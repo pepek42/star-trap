@@ -5,6 +5,8 @@ package com.github.pepek42.asteroids.lwjgl3
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import com.github.pepek42.asteroids.AsteroidsCoop
+import com.github.pepek42.asteroids.constant.BASE_HEIGHT
+import com.github.pepek42.asteroids.constant.BASE_WIDTH
 
 /** Launches the desktop (LWJGL3) application. */
 fun main() {
@@ -12,8 +14,8 @@ fun main() {
     if (StartupHelper.startNewJvmIfRequired())
       return
     Lwjgl3Application(AsteroidsCoop(), Lwjgl3ApplicationConfiguration().apply {
-        setTitle("asteroids-coop")
-        setWindowedMode(640, 480)
+        setTitle("Asteroids Coop")
+        setWindowedMode(BASE_WIDTH, BASE_HEIGHT)
         setWindowIcon(*(arrayOf(128, 64, 32, 16).map { "libgdx$it.png" }.toTypedArray()))
     })
 }

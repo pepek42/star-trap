@@ -1,4 +1,4 @@
-package com.github.pepek42.asteroids.constant
+package com.github.pepek42.asteroids
 
 const val BASE_WIDTH = 800
 const val BASE_HEIGHT = 600

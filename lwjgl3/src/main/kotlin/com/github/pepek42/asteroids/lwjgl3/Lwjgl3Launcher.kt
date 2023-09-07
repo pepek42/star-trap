@@ -5,8 +5,8 @@ package com.github.pepek42.asteroids.lwjgl3
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import com.github.pepek42.asteroids.AsteroidsCoop
-import com.github.pepek42.asteroids.constant.BASE_HEIGHT
-import com.github.pepek42.asteroids.constant.BASE_WIDTH
+import com.github.pepek42.asteroids.BASE_HEIGHT
+import com.github.pepek42.asteroids.BASE_WIDTH
 
 /** Launches the desktop (LWJGL3) application. */
 fun main() {

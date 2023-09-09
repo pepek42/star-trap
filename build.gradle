@@ -10,7 +10,7 @@ buildscript {
   }
   dependencies {
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-
+    classpath "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
   }
 }
 
@@ -52,3 +52,15 @@ subprojects {
 }
 
 eclipse.project.name = 'asteroids-coop' + '-parent'
+
+project.ext.texturePacker = [ "raw_assets", "assets/textures", "textures" ]
+import com.badlogic.gdx.tools.texturepacker.TexturePacker
+
+tasks.register('texturePacker') {
+  doLast {
+    if (project.ext.has('texturePacker')) {
+      logger.info "Calling TexturePacker: " + texturePacker
+      TexturePacker.process(texturePacker[0], texturePacker[1], texturePacker[2])
+    }
+  }
+}

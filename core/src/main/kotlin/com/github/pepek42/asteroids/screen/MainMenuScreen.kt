@@ -20,8 +20,8 @@ import ktx.scene2d.verticalGroup
 class MainMenuScreen(private val game: AsteroidsCoop) : KtxScreen {
 
   private val logger = logger<MainMenuScreen>()
-  private val i18n = game.context.inject<I18NBundle>()
-  private val stage: Stage = Stage()
+  private val i18n = game.ctx.inject<I18NBundle>()
+  private val stage = game.ctx.inject<Stage>()
   private val menu: Actor = scene2d.verticalGroup {
     setFillParent(true)
     align(Align.center)
@@ -45,7 +45,6 @@ class MainMenuScreen(private val game: AsteroidsCoop) : KtxScreen {
   }
 
   override fun show() {
-    Gdx.input.inputProcessor = stage
     stage.addActor(menu)
   }
 
@@ -62,7 +61,6 @@ class MainMenuScreen(private val game: AsteroidsCoop) : KtxScreen {
 
   override fun hide() {
     menu.remove()
-    Gdx.input.inputProcessor = null
   }
 
   override fun dispose() {

@@ -1,5 +1,4 @@
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
-eclipse.project.name = appName + '-core'
 
 dependencies {
   api "com.badlogicgames.ashley:ashley:$ashleyVersion"
@@ -8,7 +7,6 @@ dependencies {
   api "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
   api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
   api "com.badlogicgames.gdx:gdx:$gdxVersion"
-  api "com.github.MrStahlfelge.gdx-websockets:core:$websocketVersion"
   api "io.github.libktx:ktx-actors:$ktxVersion"
   api "io.github.libktx:ktx-ai:$ktxVersion"
   api "io.github.libktx:ktx-app:$ktxVersion"

@@ -1,0 +1,18 @@
+plugins {
+  id 'groovy'
+}
+
+dependencies {
+  implementation project(":core")
+  implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
+  implementation "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
+  implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+  implementation "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
+  testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
+  testImplementation 'org.apache.groovy:groovy:4.0.14'
+}
+
+sourceCompatibility = JavaVersion.VERSION_17
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+sourceSets.test.groovy.srcDirs = [ "src/" ]

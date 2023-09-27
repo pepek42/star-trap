@@ -10,7 +10,6 @@ gretty {
 
 sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
 project.ext.mainClassName = 'com.github.pepek42.asteroids.teavm.TeaVMBuilder'
-eclipse.project.name = appName + '-teavm'
 
 // This must be at least 11, and no higher than the JDK version this project is built with.
 targetCompatibility = 17

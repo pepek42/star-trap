@@ -15,7 +15,6 @@ buildscript {
 }
 
 allprojects {
-  apply plugin: 'eclipse'
   apply plugin: 'idea'
 }
 
@@ -50,8 +49,6 @@ subprojects {
     maven { url 'https://teavm.org/maven/repository/' }
   }
 }
-
-eclipse.project.name = 'asteroids-coop' + '-parent'
 
 project.ext.texturePacker = [ "raw_assets", "assets/textures", "textures" ]
 import com.badlogic.gdx.tools.texturepacker.TexturePacker

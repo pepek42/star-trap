@@ -19,7 +19,6 @@ else {
 
 sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
 mainClassName = 'com.github.pepek42.asteroids.lwjgl3.Lwjgl3Launcher'
-eclipse.project.name = appName + '-lwjgl3'
 sourceCompatibility = 17
 
 dependencies {
@@ -28,7 +27,6 @@ dependencies {
   implementation "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
   implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
   implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
-  implementation "com.github.MrStahlfelge.gdx-websockets:common:$websocketVersion"
   implementation project(':core')
 }
 

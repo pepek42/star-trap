@@ -22,10 +22,8 @@ Useful Gradle tasks and flags:
 - `--offline`: when using this flag, cached dependency archives will be used.
 - `--refresh-dependencies`: this flag forces validation of all dependencies. Useful for snapshot versions.
 - `build`: builds sources and archives of every project.
-- `cleanEclipse`: removes Eclipse project data.
 - `cleanIdea`: removes IntelliJ project data.
 - `clean`: removes `build` folders, which store compiled classes and built archives.
-- `eclipse`: generates Eclipse project data.
 - `headless:run`: starts the headless application. Note: if headless sources were not modified - and the application still creates `ApplicationListener` from `core` project - this task might fail due to no graphics support.
 - `idea`: generates IntelliJ project data.
 - `lwjgl3:jar`: builds application's runnable jar, which can be found at `lwjgl3/build/libs`.
@@ -39,3 +37,4 @@ For example, `core:clean` removes `build` folder only from the `core` project.
 
 ## Assets
 * [lunar-battle assets pack](https://mattwalkden.itch.io/lunar-battle-pack)
+* https://enjl.itch.io/background-starry-space

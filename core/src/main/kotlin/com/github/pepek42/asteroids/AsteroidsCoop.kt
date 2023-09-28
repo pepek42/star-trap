@@ -4,6 +4,7 @@ import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.assets.AssetManager
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.scenes.scene2d.Stage
@@ -40,7 +41,8 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
         assetManager.finishLoading()
 
         ctx.register {
-            bindSingleton(GameEventManager())
+            bindSingleton<OrthographicCamera>(OrthographicCamera())
+            bindSingleton(GameEventManager(inject<OrthographicCamera>()))
             bindSingleton(SpriteBatch())
             bindSingleton(assetManager.get<TextureAtlas>("textures/textures.atlas"))
             bindSingleton(Skin(Gdx.files.internal("ui/uiskin.json"), assetManager["ui/uiskin.atlas"]))

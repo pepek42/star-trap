@@ -16,6 +16,8 @@ import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.AsteroidsCoop
 import com.github.pepek42.asteroids.IS_DEBUG
 import com.github.pepek42.asteroids.component.BodyComponent
+import com.github.pepek42.asteroids.component.MoveComponent
+import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.system.MoveSystem
@@ -35,12 +37,12 @@ import ktx.log.logger
 
 
 class PlayScreen(
-    game: AsteroidsCoop,
+    private val game: AsteroidsCoop,
     private val textures: TextureAtlas
 ) : KtxScreen {
     private val logger = logger<PlayScreen>()
     private val viewport: Viewport
-    private val camera = OrthographicCamera()
+    private val camera = game.ctx.inject<OrthographicCamera>()
     private val batch = game.ctx.inject<SpriteBatch>()
     private val background = Sprite(textures.findRegion("background", 1))
     private val world = createWorld()
@@ -66,12 +68,20 @@ class PlayScreen(
                 with<SpriteComponent>() {
                     sprite = Sprite(TextureRegion(textures.findRegion("spaceships"), 86, 85, 21, 23))
                 }
+                with<MoveComponent>()
+                with<PlayerComponent>()
             }
         }
         background.texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat)
     }
 
+    override fun show() {
+        super.show()
+        game.ctx.inject<GameEventManager>().enablePlayerInputs()
+    }
+
     override fun render(delta: Float) {
+        // TODO move to GameEventManager
         viewport.apply()
         if (Gdx.input.isKeyPressed(Keys.NUMPAD_ADD)) {
             camera.zoom -= delta * 0.5f
@@ -88,7 +98,7 @@ class PlayScreen(
         batch.begin()
         batch.draw(background, 0f, 0f)
         batch.end()
-        // TODO
+        // TODO camera should folow player (players)
 //        camera.moveTo(vec2(player.x, player.y))
         engine.update(delta)
     }

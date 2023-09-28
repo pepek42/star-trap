@@ -1,16 +1,18 @@
 package com.github.pepek42.asteroids.component
 
 import com.badlogic.ashley.core.Component
-import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Pool
 import ktx.ashley.mapperFor
 
 class MoveComponent(
-    val movement: Vector2,
+    var thrusters: Float = 0f,
+    var aimPointX: Float = 0f,
+    var aimPointY: Float = 0f,
 ) : Component, Pool.Poolable {
     override fun reset() {
-        movement.x = 0f
-        movement.y = 0f
+        thrusters = 0f
+        aimPointX = 0f
+        aimPointY = 0f
     }
 
     companion object {

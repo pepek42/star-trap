@@ -3,15 +3,18 @@ package com.github.pepek42.asteroids.system
 import com.badlogic.ashley.core.Engine
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
+import com.badlogic.gdx.math.Vector3
+import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
 import ktx.ashley.allOf
 import ktx.ashley.get
+import ktx.log.logger
 
 class PlayerInputSystem(
     private val gameEventManager: GameEventManager,
-) : IteratingSystem(allOf(PlayerComponent::class).get()), PlayerInputListener {
+) : IteratingSystem(allOf(PlayerComponent::class, MoveComponent::class).get()), PlayerInputListener {
     private var thrusters = 0f
     private var aimPointX = 0f
     private var aimPointY = 0f
@@ -27,28 +30,34 @@ class PlayerInputSystem(
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
-        val playerComponent = entity[PlayerComponent.mapper]!!
-        // TODO pass to move component
-        playerComponent.thrusters = thrusters
-        playerComponent.aimPointX = aimPointX
-        playerComponent.aimPointY = aimPointY
+        val moveComponent = entity[MoveComponent.mapper]!!
+        moveComponent.thrusters = thrusters
+        moveComponent.aimPointX = aimPointX
+        moveComponent.aimPointY = aimPointY
     }
 
     override fun movement(thrusters: Float) {
         this.thrusters = thrusters
     }
 
-    override fun aimPoint(x: Float, y: Float) {
-        aimPointX = x
-        aimPointY = y
+    override fun aimPoint(point: Vector3) {
+        aimPointX = point.x
+        aimPointY = point.y
+        logger.debug { "aimPoint $aimPointX - $aimPointY" }
     }
 
     override fun fire(start: Boolean) {
         // TODO
+        logger.debug { "Fire $start" }
     }
 
     override fun block() {
         // TODO
+        logger.debug { "Block" }
+    }
+
+    companion object {
+        private val logger = logger<PlayerInputSystem>()
     }
 
 

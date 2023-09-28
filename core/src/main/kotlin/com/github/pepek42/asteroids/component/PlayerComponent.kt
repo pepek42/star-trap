@@ -4,16 +4,8 @@ import com.badlogic.ashley.core.Component
 import com.badlogic.gdx.utils.Pool
 import ktx.ashley.mapperFor
 
-class PlayerComponent(
-    var thrusters: Float,
-    var aimPointX: Float,
-    var aimPointY: Float,
-) : Component, Pool.Poolable {
-    override fun reset() {
-        thrusters = 0f
-        aimPointX = 0f
-        aimPointY = 0f
-    }
+class PlayerComponent : Component, Pool.Poolable {
+    override fun reset() = Unit
 
     companion object {
         val mapper = mapperFor<PlayerComponent>()

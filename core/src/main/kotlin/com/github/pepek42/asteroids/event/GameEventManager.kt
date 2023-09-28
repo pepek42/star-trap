@@ -1,13 +1,20 @@
 package com.github.pepek42.asteroids.event
 
 import com.badlogic.gdx.Input
+import com.badlogic.gdx.Input.Keys
+import com.badlogic.gdx.graphics.Camera
+import com.badlogic.gdx.math.Vector3
 import ktx.app.KtxInputAdapter
 import ktx.collections.GdxArray
 import ktx.log.logger
 
-class GameEventManager : KtxInputAdapter {
+class GameEventManager(
+    private val camera: Camera
+) : KtxInputAdapter {
     private val playerInputListeners = GdxArray<PlayerInputListener>()
+
     fun addInputListener(listener: PlayerInputListener) = playerInputListeners.add(listener)
+    private var ignoreInput = false
 
     fun removeInputListener(listener: PlayerInputListener) = playerInputListeners.removeValue(listener, true)
 
@@ -15,38 +22,69 @@ class GameEventManager : KtxInputAdapter {
         logger.info { "Initialised" }
     }
 
-    override fun keyDown(keycode: Int): Boolean {
-        logger.debug { "Player input start $keycode" }
-        return false
+    fun ignorePlayerInputs() {
+        ignoreInput = true
     }
 
-    override fun keyUp(keycode: Int): Boolean {
-        logger.debug { "Player input end $keycode" }
-        return false
+    fun enablePlayerInputs() {
+        ignoreInput = false
+    }
+
+    override fun keyDown(keycode: Int): Boolean {
+        // TODO ZOOM
+        if (ignoreInput) return false
+        when(keycode) {
+            Keys.CONTROL_RIGHT -> block()
+        }
+        // logger.debug { "Player input start $keycode" }
+        return true
     }
 
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
-        logger.debug { "mouseMoved $screenX, $screenY" }
-        return false
-    }
-
-    override fun scrolled(amountX: Float, amountY: Float): Boolean {
-        logger.debug { "scrolled $amountX, $amountY" }
-        return false
-    }
-
-    override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
-        logger.debug { "touchCancelled $screenX $screenY $pointer $button" }
-        return false
+        aimPoint(screenX, screenY)
+        //logger.debug { "mouseMoved $screenX, $screenY" }
+        return true
     }
 
     override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+        if (ignoreInput) return false
         when (button) {
             Input.Buttons.LEFT -> switchFire(true)
             Input.Buttons.RIGHT -> thrusters(1f)
         }
-        logger.debug { "touchDown $screenX, $screenY, $pointer, $button" }
+        aimPoint(screenX, screenY)
+        // logger.debug { "touchDown $screenX, $screenY, $button" }
         return true
+    }
+
+    override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
+        aimPoint(screenX, screenY)
+        // logger.debug { "touchDragged $screenX, $screenY" }
+        return true
+    }
+
+    override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+        if (ignoreInput) return false
+        when (button) {
+            Input.Buttons.LEFT -> switchFire(false)
+            Input.Buttons.RIGHT -> thrusters(0f)
+        }
+        aimPoint(screenX, screenY)
+        // logger.debug { "touchUp $screenX, $screenY, $button" }
+        return true
+    }
+
+    private fun aimPoint(screenX: Int, screenY: Int) {
+        val gameCoordinates = camera.unproject(
+            Vector3(
+                screenX.toFloat(),
+                screenY.toFloat(),
+                0f
+            )
+        )
+        playerInputListeners.forEach {
+            it.aimPoint(gameCoordinates)
+        }
     }
 
     private fun thrusters(thrusters: Float) {
@@ -57,18 +95,8 @@ class GameEventManager : KtxInputAdapter {
         playerInputListeners.forEach { it.fire(start) }
     }
 
-    override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
-        logger.debug { "touchDragged $screenX, $screenY, $pointer" }
-        return false
-    }
-
-    override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
-        when (button) {
-            Input.Buttons.LEFT -> switchFire(false)
-            Input.Buttons.RIGHT -> thrusters(0f)
-        }
-        logger.debug { "touchUp $screenX, $screenY, $pointer, $button" }
-        return true
+    private fun block() {
+        playerInputListeners.forEach { it.block() }
     }
 
     companion object {

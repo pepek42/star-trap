@@ -32,8 +32,19 @@ class GameEventManager(
 
     override fun keyDown(keycode: Int): Boolean {
         // TODO ZOOM
+//        if (Gdx.input.isKeyPressed(Keys.NUMPAD_ADD)) {
+//            camera.zoom -= delta * 0.5f
+//            if (camera.zoom < 0.01) {
+//                camera.zoom = 0.01f
+//            }
+//        }
+//        if (Gdx.input.isKeyPressed(Keys.NUMPAD_SUBTRACT)) {
+//            camera.zoom += delta * 0.5f
+//        }
+//        camera.update()
+
         if (ignoreInput) return false
-        when(keycode) {
+        when (keycode) {
             Keys.CONTROL_RIGHT -> block()
         }
         // logger.debug { "Player input start $keycode" }

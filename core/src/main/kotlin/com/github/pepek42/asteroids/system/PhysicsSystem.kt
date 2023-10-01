@@ -23,7 +23,7 @@ class PhysicsSystem(
         for (entity in entities) {
             val body = entity[BodyComponent.mapper]!!.body
             val sprite = entity[SpriteComponent.mapper]!!.sprite
-            sprite.setPosition(body.position.x, body.position.y)
+            sprite.setPosition(body.position.x - sprite.width / 2, body.position.y - sprite.height / 2)
             sprite.rotation = body.angle * MathUtils.radiansToDegrees
         }
     }

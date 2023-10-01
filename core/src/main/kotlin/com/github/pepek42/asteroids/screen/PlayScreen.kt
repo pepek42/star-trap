@@ -2,13 +2,10 @@ package com.github.pepek42.asteroids.screen
 
 import com.badlogic.ashley.core.PooledEngine
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input.Keys
+import com.badlogic.gdx.graphics.Cursor.SystemCursor
 import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
-import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.utils.ScreenUtils
 import com.badlogic.gdx.utils.viewport.FitViewport
@@ -20,8 +17,9 @@ import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.event.GameEventManager
+import com.github.pepek42.asteroids.system.CameraSystem
 import com.github.pepek42.asteroids.system.MoveSystem
-import com.github.pepek42.asteroids.system.PhysicsDebugSystem
+import com.github.pepek42.asteroids.system.DebugSystem
 import com.github.pepek42.asteroids.system.PhysicsSystem
 import com.github.pepek42.asteroids.system.PlayerInputSystem
 import com.github.pepek42.asteroids.system.RemoveSystem
@@ -35,16 +33,17 @@ import ktx.box2d.box
 import ktx.box2d.createWorld
 import ktx.log.logger
 
+private const val MAP_WIDTH = 1000f
+private const val MAP_HEIGHT = 1000f
 
 class PlayScreen(
     private val game: AsteroidsCoop,
-    private val textures: TextureAtlas
+    textures: TextureAtlas
 ) : KtxScreen {
     private val logger = logger<PlayScreen>()
     private val viewport: Viewport
     private val camera = game.ctx.inject<OrthographicCamera>()
     private val batch = game.ctx.inject<SpriteBatch>()
-    private val background = Sprite(textures.findRegion("background", 1))
     private val world = createWorld()
     private val engine = PooledEngine()
 
@@ -53,58 +52,53 @@ class PlayScreen(
         engine.addSystem(PlayerInputSystem(game.ctx.inject<GameEventManager>()))
         engine.addSystem(MoveSystem())
         engine.addSystem(PhysicsSystem(world))
-        engine.addSystem(RenderSystem(batch, viewport))
+        engine.addSystem(CameraSystem(camera))
+        engine.addSystem(RenderSystem(game, batch, viewport))
         if (IS_DEBUG) {
-            engine.addSystem(PhysicsDebugSystem(world, camera))
+            engine.addSystem(DebugSystem(world, camera))
         }
         engine.addSystem(RemoveSystem(world))
+        val playerSprite = textures.createSprite("spaceship/disc_green")
         engine.add {
             entity {
                 with<BodyComponent> {
                     body = world.body(BodyDef.BodyType.DynamicBody) {
-                        box(21f, 23f)
+                        box(
+                            playerSprite.width,
+                            playerSprite.height,
+//                            Vector2(MAP_WIDTH / 2, MAP_HEIGHT / 2),
+                        )
                     }
                 }
                 with<SpriteComponent>() {
-                    sprite = Sprite(TextureRegion(textures.findRegion("spaceships"), 86, 85, 21, 23))
+                    sprite = playerSprite
                 }
                 with<MoveComponent>()
                 with<PlayerComponent>()
             }
         }
-        background.texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat)
+
     }
 
     override fun show() {
         super.show()
+        Gdx.graphics.setSystemCursor(SystemCursor.Crosshair)
         game.ctx.inject<GameEventManager>().enablePlayerInputs()
     }
 
     override fun render(delta: Float) {
-        // TODO move to GameEventManager
         viewport.apply()
-        if (Gdx.input.isKeyPressed(Keys.NUMPAD_ADD)) {
-            camera.zoom -= delta * 0.5f
-            if (camera.zoom < 0.01) {
-                camera.zoom = 0.01f
-            }
-        }
-        if (Gdx.input.isKeyPressed(Keys.NUMPAD_SUBTRACT)) {
-            camera.zoom += delta * 0.5f
-        }
-        camera.update()
         ScreenUtils.clear(.1f, .1f, .1f, 1f)
-        batch.projectionMatrix = viewport.camera.combined
-        batch.begin()
-        batch.draw(background, 0f, 0f)
-        batch.end()
-        // TODO camera should folow player (players)
-//        camera.moveTo(vec2(player.x, player.y))
         engine.update(delta)
     }
 
     override fun resize(width: Int, height: Int) {
         logger.info { "Resize event $width x $height" }
         viewport.update(width, height, true)
+    }
+
+    override fun hide() {
+        Gdx.graphics.setSystemCursor(SystemCursor.Arrow)
+        super.hide()
     }
 }

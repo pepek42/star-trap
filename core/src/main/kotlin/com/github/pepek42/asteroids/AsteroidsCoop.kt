@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.scenes.scene2d.Stage
@@ -38,6 +39,7 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
         assetManager.load("i18n/messages", I18NBundle::class.java)
         assetManager.load("ui/uiskin.atlas", TextureAtlas::class.java)
         assetManager.load("textures/textures.atlas", TextureAtlas::class.java)
+        assetManager.load("textures/background_1.png", Texture::class.java)
         assetManager.finishLoading()
 
         ctx.register {
@@ -51,8 +53,8 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
             bindSingleton(this@AsteroidsCoop)
             bindSingleton(Stage())
             bindSingleton(MainMenuScreen(inject<AsteroidsCoop>()))
-            bindSingleton(PlayScreen(inject<AsteroidsCoop>(), inject<TextureAtlas>()))
             bindSingleton(assetManager)
+            bindSingleton(PlayScreen(inject<AsteroidsCoop>(), inject<TextureAtlas>()))
 
         }
         Gdx.input.inputProcessor = InputMultiplexer(ctx.inject<GameEventManager>(), ctx.inject<Stage>())

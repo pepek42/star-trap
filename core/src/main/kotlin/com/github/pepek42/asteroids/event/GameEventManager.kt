@@ -19,7 +19,7 @@ class GameEventManager(
     fun removeInputListener(listener: PlayerInputListener) = playerInputListeners.removeValue(listener, true)
 
     init {
-        logger.info { "Initialised" }
+        logger.info { "Init finished" }
     }
 
     fun ignorePlayerInputs() {
@@ -31,18 +31,6 @@ class GameEventManager(
     }
 
     override fun keyDown(keycode: Int): Boolean {
-        // TODO ZOOM
-//        if (Gdx.input.isKeyPressed(Keys.NUMPAD_ADD)) {
-//            camera.zoom -= delta * 0.5f
-//            if (camera.zoom < 0.01) {
-//                camera.zoom = 0.01f
-//            }
-//        }
-//        if (Gdx.input.isKeyPressed(Keys.NUMPAD_SUBTRACT)) {
-//            camera.zoom += delta * 0.5f
-//        }
-//        camera.update()
-
         if (ignoreInput) return false
         when (keycode) {
             Keys.CONTROL_RIGHT -> block()
@@ -53,7 +41,7 @@ class GameEventManager(
 
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
         aimPoint(screenX, screenY)
-        //logger.debug { "mouseMoved $screenX, $screenY" }
+        logger.debug { "mouseMoved $screenX, $screenY" }
         return true
     }
 
@@ -85,6 +73,16 @@ class GameEventManager(
         return true
     }
 
+    override fun scrolled(amountX: Float, amountY: Float): Boolean {
+        if (ignoreInput) return false
+
+        playerInputListeners.forEach {
+            it.zoom(amountY)
+        }
+        logger.debug { "scrolled $amountX $amountY" }
+        return true
+    }
+
     private fun aimPoint(screenX: Int, screenY: Int) {
         val gameCoordinates = camera.unproject(
             Vector3(
@@ -111,6 +109,6 @@ class GameEventManager(
     }
 
     companion object {
-        val logger = logger<GameEventManager>()
+        private val logger = logger<GameEventManager>()
     }
 }

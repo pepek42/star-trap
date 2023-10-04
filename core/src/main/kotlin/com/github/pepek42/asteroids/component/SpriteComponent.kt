@@ -10,8 +10,6 @@ class SpriteComponent : Component, Pool.Poolable {
     override fun reset() {
         sprite.texture.dispose()
     }
-
-    companion object {
-        val mapper = mapperFor<SpriteComponent>()
-    }
 }
+
+val spriteMapper = mapperFor<SpriteComponent>()

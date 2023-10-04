@@ -3,21 +3,27 @@ package com.github.pepek42.asteroids.system
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.physics.box2d.World
-import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.RemoveComponent
-import ktx.ashley.allOf
+import com.github.pepek42.asteroids.component.TransformComponent
+import com.github.pepek42.asteroids.component.bodyMapper
+import com.github.pepek42.asteroids.component.removeMapper
+import com.github.pepek42.asteroids.component.transformMapper
 import ktx.ashley.get
 import ktx.ashley.has
+import ktx.ashley.oneOf
 
 class RemoveSystem(
     private val world: World,
-) : IteratingSystem(allOf(RemoveComponent::class).get()) {
-    override fun processEntity(entity: Entity?, deltaTime: Float) {
-        if (entity?.has(BodyComponent.mapper) == true) {
-            entity[BodyComponent.mapper]?.let { bodyComponent ->
+) : IteratingSystem(oneOf(RemoveComponent::class, TransformComponent::class).get()) {
+    override fun processEntity(entity: Entity, deltaTime: Float) {
+
+        if (entity.has(removeMapper)) {
+            entity[bodyMapper]?.let { bodyComponent ->
                 world.destroyBody(bodyComponent.body)
             }
+            engine.removeEntity(entity)
+        } else if (entity.has(transformMapper)) {
+            // TODO remove out of bounds
         }
-        engine.removeEntity(entity)
     }
 }

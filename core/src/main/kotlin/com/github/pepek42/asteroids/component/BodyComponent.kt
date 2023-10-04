@@ -12,7 +12,6 @@ class BodyComponent : Component, Pool.Poolable {
         body.world.destroyBody(body)
         body.userData = null
     }
-    companion object {
-        val mapper = mapperFor<BodyComponent>()
-    }
 }
+
+val bodyMapper = mapperFor<BodyComponent>()

@@ -6,16 +6,12 @@ import ktx.ashley.mapperFor
 
 class MoveComponent(
     var thrusters: Float = 0f,
-    var aimPointX: Float = 0f,
-    var aimPointY: Float = 0f,
+    var radiansToRotate: Float = 0f,
 ) : Component, Pool.Poolable {
     override fun reset() {
         thrusters = 0f
-        aimPointX = 0f
-        aimPointY = 0f
-    }
-
-    companion object {
-        val mapper = mapperFor<MoveComponent>()
+        radiansToRotate = 0f
     }
 }
+
+val moveMapper = mapperFor<MoveComponent>()

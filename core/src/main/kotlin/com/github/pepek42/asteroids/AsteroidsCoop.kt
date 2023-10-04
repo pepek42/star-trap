@@ -13,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.I18NBundle
 import com.badlogic.gdx.utils.Logger
 import com.github.pepek42.asteroids.event.GameEventManager
+import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.screen.MainMenuScreen
 import com.github.pepek42.asteroids.screen.PlayScreen
 import ktx.app.KtxGame
@@ -26,7 +27,6 @@ import ktx.scene2d.Scene2DSkin
 const val IS_DEBUG = true
 
 class AsteroidsCoop : KtxGame<KtxScreen>() {
-    private val logger = logger<AsteroidsCoop>()
     val ctx = Context()
     override fun create() {
         if (IS_DEBUG) {
@@ -54,6 +54,7 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
             bindSingleton(Stage())
             bindSingleton(MainMenuScreen(inject<AsteroidsCoop>()))
             bindSingleton(assetManager)
+            bindSingleton(MapProvider())
             bindSingleton(PlayScreen(inject<AsteroidsCoop>(), inject<TextureAtlas>()))
 
         }
@@ -62,14 +63,21 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
         addScreen(ctx.inject<MainMenuScreen>())
         addScreen(ctx.inject<PlayScreen>())
 
+        Gdx.graphics.setTitle(TITLE)
         logger.info { "Finished setup" }
         setScreen<MainMenuScreen>()
     }
+
+    inline fun <reified Type : Any> get(): Type = ctx.inject<Type>()
 
     override fun dispose() {
         ctx.remove<AsteroidsCoop>()
         ctx.disposeSafely()
         super.dispose()
+    }
+
+    companion object {
+        private val logger = logger<AsteroidsCoop>()
     }
 }
 

@@ -10,4 +10,6 @@ interface PlayerInputListener {
     fun fire(start: Boolean) = Unit
 
     fun block() = Unit
+
+    fun zoom(zoomAmount: Float) = Unit
 }

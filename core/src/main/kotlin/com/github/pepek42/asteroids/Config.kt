@@ -5,6 +5,7 @@ const val BASE_HEIGHT = 600
 
 /**
  * Pixels per one world unit
- * TODO use it
  */
 const val UNIT_SCALE = 18
+
+const val TITLE = "Asteroids Rouge-lite"

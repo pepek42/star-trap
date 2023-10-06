@@ -2,7 +2,6 @@ package com.github.pepek42.asteroids.factory
 
 import com.badlogic.ashley.core.PooledEngine
 import com.badlogic.gdx.graphics.g2d.Sprite
-import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.UNIT_SCALE
@@ -45,6 +44,7 @@ class PlayerEntityFactory(
                 with<SpriteComponent> {
                     sprite = playerSprite
                     sprite.setSize(worldUnitsWidth, worldUnitsHeight)
+                    sprite.setOriginCenter()
                 }
                 with<MoveComponent>()
                 with<PlayerComponent>()

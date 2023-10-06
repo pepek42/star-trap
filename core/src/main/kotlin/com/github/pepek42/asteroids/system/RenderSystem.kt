@@ -14,6 +14,7 @@ import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.spriteMapper
 import com.github.pepek42.asteroids.component.transformMapper
+import com.github.pepek42.asteroids.debug.PlayScreenLoggingUtils.tryLogging
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.graphics.use
@@ -63,10 +64,25 @@ class RenderSystem(
         }
         val transformComp = entity[transformMapper]!!
         sprite.setPosition(
-            transformComp.interpolatedPosition.x,
-            transformComp.interpolatedPosition.y,
+            transformComp.interpolatedPosition.x - sprite.width / 2,
+            transformComp.interpolatedPosition.y - sprite.height / 2,
         )
         sprite.rotation = transformComp.interpolatedRotationDeg
+        tryLogging {
+            logger.debug {
+                """
+                Region X  -> ${sprite.regionX}
+                Region Y  -> ${sprite.regionY}
+                Sprite x  -> ${sprite.x}
+                Sprite y  -> ${sprite.y}
+                Origin x  -> ${sprite.originX}
+                Origin y  -> ${sprite.originY}
+                Width     -> ${sprite.width}
+                Height    -> ${sprite.height}
+                Rotation  -> ${sprite.rotation}
+            """.trimIndent()
+            }
+        }
         sprite.draw(batch)
     }
 

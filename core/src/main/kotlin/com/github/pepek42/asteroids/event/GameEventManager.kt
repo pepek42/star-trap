@@ -4,6 +4,7 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.math.Vector3
+import com.github.pepek42.asteroids.debug.PlayScreenLoggingUtils.tryLogging
 import ktx.app.KtxInputAdapter
 import ktx.collections.GdxArray
 import ktx.log.logger
@@ -74,7 +75,7 @@ class GameEventManager(
         playerInputListeners.forEach {
             it.zoom(amountY)
         }
-        logger.debug { "scrolled X: $amountX Y: $amountY" }
+        tryLogging { logger.debug { "scrolled X: $amountX Y: $amountY" } }
         return true
     }
 

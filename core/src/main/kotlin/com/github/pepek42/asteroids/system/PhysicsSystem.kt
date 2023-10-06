@@ -50,7 +50,7 @@ class PhysicsSystem(
                 body.position.x,
                 body.position.y,
             )
-            transform.rotationDeg = body.angle
+            transform.rotationDeg = body.angle * MathUtils.radiansToDegrees
 
             transform.interpolatedPosition.set(transform.prevPosition.lerp(transform.position, alpha))
             transform.interpolatedRotationDeg = MathUtils.lerp(transform.prevRotationDeg, transform.rotationDeg, alpha)

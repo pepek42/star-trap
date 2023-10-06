@@ -19,8 +19,6 @@ import ktx.scene2d.textButton
 import ktx.scene2d.verticalGroup
 
 class MainMenuScreen(private val game: AsteroidsCoop) : KtxScreen {
-
-    private val logger = logger<MainMenuScreen>()
     private val i18n = game.get<I18NBundle>()
     private val stage = game.get<Stage>()
     private val menu: Actor = scene2d.verticalGroup {
@@ -68,5 +66,9 @@ class MainMenuScreen(private val game: AsteroidsCoop) : KtxScreen {
     override fun dispose() {
         logger.info { "dispose" }
         stage.disposeSafely()
+    }
+
+    companion object {
+        private val logger = logger<MainMenuScreen>()
     }
 }

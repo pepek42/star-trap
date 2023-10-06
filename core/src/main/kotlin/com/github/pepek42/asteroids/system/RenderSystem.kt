@@ -66,6 +66,7 @@ class RenderSystem(
             transformComp.interpolatedPosition.x,
             transformComp.interpolatedPosition.y,
         )
+        sprite.rotation = transformComp.interpolatedRotationDeg
         sprite.draw(batch)
     }
 

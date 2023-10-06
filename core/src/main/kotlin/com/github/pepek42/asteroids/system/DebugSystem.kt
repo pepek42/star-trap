@@ -23,7 +23,11 @@ class DebugSystem(
     private val camera: Camera,
 ) : IteratingSystem(oneOf(SpriteComponent::class).get()), Disposable {
     private val shapeRenderer = ShapeRenderer()
-    private val box2DDebugRenderer by lazy { Box2DDebugRenderer() }
+    private val box2DDebugRenderer by lazy {
+        Box2DDebugRenderer(
+            true, true, true, true, true, true
+        )
+    }
     private val profiler by lazy { GLProfiler(Gdx.graphics).apply { enable() } }
 
     override fun update(deltaTime: Float) {
@@ -36,7 +40,7 @@ class DebugSystem(
                 append("DrawCalls:${profiler.drawCalls},")
                 append("Binds:${profiler.textureBindings},")
                 append("EcsEntitiesCount:${engine.entities.count()}")
-                append("Box2DCount:${ world.bodyCount}")
+                append("Box2DCount:${world.bodyCount}")
             }
         )
         box2DDebugRenderer.render(world, camera.combined)
@@ -44,13 +48,25 @@ class DebugSystem(
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
-        val spriteColor = Color.WHITE
         val sprite = entity[spriteMapper]!!.sprite
-        shapeRenderer.rect(sprite.x, sprite.y, sprite.width, sprite.height, spriteColor, spriteColor, spriteColor, spriteColor)
+        shapeRenderer.rect(
+            sprite.x,
+            sprite.y,
+            sprite.width,
+            sprite.height,
+            SPRITE_COLOR,
+            SPRITE_COLOR,
+            SPRITE_COLOR,
+            SPRITE_COLOR
+        )
     }
 
     override fun dispose() {
         box2DDebugRenderer.dispose()
         shapeRenderer.dispose()
+    }
+
+    companion object {
+        private val SPRITE_COLOR = Color.BLUE
     }
 }

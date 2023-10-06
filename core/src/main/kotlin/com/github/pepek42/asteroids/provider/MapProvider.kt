@@ -18,5 +18,6 @@ class MapProvider {
         height = MAP_HEIGHT
     }
 
-    fun playerSpawnLocation() = Vector2(width / 2, height / 2)
+    // TODO Vector2(width / 2, height / 2)
+    fun playerSpawnLocation() = Vector2(0f, 0f)
 }

@@ -35,13 +35,11 @@ class GameEventManager(
         when (keycode) {
             Keys.CONTROL_RIGHT -> block()
         }
-        // logger.debug { "Player input start $keycode" }
         return true
     }
 
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
         aimPoint(screenX, screenY)
-        logger.debug { "mouseMoved $screenX, $screenY" }
         return true
     }
 
@@ -52,13 +50,11 @@ class GameEventManager(
             Input.Buttons.RIGHT -> thrusters(1f)
         }
         aimPoint(screenX, screenY)
-        // logger.debug { "touchDown $screenX, $screenY, $button" }
         return true
     }
 
     override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
         aimPoint(screenX, screenY)
-        // logger.debug { "touchDragged $screenX, $screenY" }
         return true
     }
 
@@ -69,7 +65,6 @@ class GameEventManager(
             Input.Buttons.RIGHT -> thrusters(0f)
         }
         aimPoint(screenX, screenY)
-        // logger.debug { "touchUp $screenX, $screenY, $button" }
         return true
     }
 
@@ -79,7 +74,7 @@ class GameEventManager(
         playerInputListeners.forEach {
             it.zoom(amountY)
         }
-        logger.debug { "scrolled $amountX $amountY" }
+        logger.debug { "scrolled X: $amountX Y: $amountY" }
         return true
     }
 

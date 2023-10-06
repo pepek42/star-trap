@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.factory
 
 import com.badlogic.ashley.core.PooledEngine
 import com.badlogic.gdx.graphics.g2d.Sprite
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.UNIT_SCALE
@@ -31,10 +32,13 @@ class PlayerEntityFactory(
                 with<BodyComponent> {
                     body = world.body(BodyDef.BodyType.DynamicBody) {
                         box(
-                            worldUnitsWidth,
-                            worldUnitsHeight,
-                            mapProvider.playerSpawnLocation(),
-                        )
+                            width = worldUnitsWidth,
+                            height = worldUnitsHeight,
+                            position = mapProvider.playerSpawnLocation(),
+                            angle = 0f
+                        ) {
+                            density = 20f
+                        }
                     }
                 }
                 with<TransformComponent>()

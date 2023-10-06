@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.system
 
 import com.badlogic.ashley.core.Engine
 import com.badlogic.ashley.core.EntitySystem
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.TransformComponent
@@ -30,10 +31,10 @@ class PhysicsSystem(
                 entity[bodyMapper]!!.run {
                     val transform: TransformComponent = entity[transformMapper]!!
                     transform.prevPosition.set(
-                        // TODO Can I take size form sprite?
-                        body.position.x,// - transform.size.x * 0.5f,
-                        body.position.y,// - transform.size.y * 0.5f
+                        body.position.x,
+                        body.position.y,
                     )
+                    transform.prevRotationDeg = body.angle * MathUtils.radiansToDegrees
                 }
             }
 
@@ -46,12 +47,13 @@ class PhysicsSystem(
             val body = entity[bodyMapper]!!.body
             val transform = entity[transformMapper]!!
             transform.position.set(
-                body.position.x,// - transform.width / 2,
-                body.position.y,// - transform.height / 2
+                body.position.x,
+                body.position.y,
             )
+            transform.rotationDeg = body.angle
 
             transform.interpolatedPosition.set(transform.prevPosition.lerp(transform.position, alpha))
-            // TODO rotation
+            transform.interpolatedRotationDeg = MathUtils.lerp(transform.prevRotationDeg, transform.rotationDeg, alpha)
         }
 
     }

@@ -11,6 +11,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.AsteroidsCoop
 import com.github.pepek42.asteroids.IS_DEBUG
+import com.github.pepek42.asteroids.debug.PlayScreenLoggingUtils.handlePlayScreenLogging
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.factory.PlayerEntityFactory
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -63,6 +64,7 @@ class PlayScreen(
     }
 
     override fun render(delta: Float) {
+        handlePlayScreenLogging(delta)
         viewport.apply()
         ScreenUtils.clear(.1f, .1f, .1f, 1f)
         engine.update(delta)

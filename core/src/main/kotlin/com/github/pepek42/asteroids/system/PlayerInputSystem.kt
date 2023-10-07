@@ -52,12 +52,11 @@ class PlayerInputSystem(
         body: Body,
         moveCmp: MoveComponent
     ) {
-
         val targetAngle = screenAimPoint
-            .run { camera.unproject(vec3(x, y)) }
-            .run { vec2(x, y) }
-            .minus(body.position)
-            .angleRad()
+            .run { camera.unproject(vec3(x, y)) } // screen to game coordinates
+            .run { vec2(x, y) } // aim point in game coordinates
+            .minus(body.position) // vector from player position to aim point
+            .angleRad() // angle between x-axis and the aim vector
         val currentAngle = body.angle
         val angleDiff = targetAngle - currentAngle
         moveCmp.rotationNormalised = ((angleDiff - MathUtils.PI) % MathUtils.PI2 + MathUtils.PI) / MathUtils.PI

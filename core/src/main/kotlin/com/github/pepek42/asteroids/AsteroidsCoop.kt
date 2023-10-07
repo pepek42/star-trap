@@ -44,7 +44,7 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
 
         ctx.register {
             bindSingleton<OrthographicCamera>(OrthographicCamera())
-            bindSingleton(GameEventManager(inject<OrthographicCamera>()))
+            bindSingleton(GameEventManager())
             bindSingleton(SpriteBatch())
             bindSingleton(assetManager.get<TextureAtlas>("textures/textures.atlas"))
             bindSingleton(Skin(Gdx.files.internal("ui/uiskin.json"), assetManager["ui/uiskin.atlas"]))

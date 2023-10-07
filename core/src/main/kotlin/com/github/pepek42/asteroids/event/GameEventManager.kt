@@ -2,16 +2,12 @@ package com.github.pepek42.asteroids.event
 
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.graphics.Camera
-import com.badlogic.gdx.math.Vector3
-import com.github.pepek42.asteroids.debug.PlayScreenLoggingUtils.tryLogging
+import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import ktx.app.KtxInputAdapter
 import ktx.collections.GdxArray
 import ktx.log.logger
 
-class GameEventManager(
-    private val camera: Camera
-) : KtxInputAdapter {
+class GameEventManager : KtxInputAdapter {
     private val playerInputListeners = GdxArray<PlayerInputListener>()
 
     fun addInputListener(listener: PlayerInputListener) = playerInputListeners.add(listener)
@@ -75,20 +71,13 @@ class GameEventManager(
         playerInputListeners.forEach {
             it.zoom(amountY)
         }
-        tryLogging { logger.debug { "scrolled X: $amountX Y: $amountY" } }
+        defaultLoggingUtils.tryLogging { logger.debug { "scrolled X: $amountX Y: $amountY" } }
         return true
     }
 
     private fun aimPoint(screenX: Int, screenY: Int) {
-        val gameCoordinates = camera.unproject(
-            Vector3(
-                screenX.toFloat(),
-                screenY.toFloat(),
-                0f
-            )
-        )
         playerInputListeners.forEach {
-            it.aimPoint(gameCoordinates)
+            it.screenAimPoint(screenX, screenY)
         }
     }
 

@@ -14,7 +14,7 @@ import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.spriteMapper
 import com.github.pepek42.asteroids.component.transformMapper
-import com.github.pepek42.asteroids.debug.PlayScreenLoggingUtils.tryLogging
+import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.graphics.use
@@ -68,7 +68,7 @@ class RenderSystem(
             transformComp.interpolatedPosition.y - sprite.height / 2,
         )
         sprite.rotation = transformComp.interpolatedRotationDeg
-        tryLogging {
+        defaultLoggingUtils.tryLogging {
             logger.debug {
                 """
                 Region X  -> ${sprite.regionX}

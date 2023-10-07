@@ -3,29 +3,32 @@ package com.github.pepek42.asteroids.system
 import com.badlogic.ashley.core.Engine
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
+import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
-import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.physics.box2d.Body
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.bodyMapper
 import com.github.pepek42.asteroids.component.moveMapper
-import com.github.pepek42.asteroids.debug.PlayScreenLoggingUtils.tryLogging
+import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.log.logger
 import ktx.math.minus
+import ktx.math.vec2
+import ktx.math.vec3
 
 class PlayerInputSystem(
     private val gameEventManager: GameEventManager,
+    private val camera: Camera,
 ) : IteratingSystem(allOf(PlayerComponent::class, MoveComponent::class, BodyComponent::class).get()),
     PlayerInputListener {
     private var thrusters = 0f
-    private var aimPoint = Vector2(0f, 0f)
+    private var screenAimPoint = Vector2(0f, 0f)
 
     override fun addedToEngine(engine: Engine?) {
         super.addedToEngine(engine)
@@ -49,11 +52,16 @@ class PlayerInputSystem(
         body: Body,
         moveCmp: MoveComponent
     ) {
-        val targetAngle = aimPoint.minus(body.position).angleRad()
+
+        val targetAngle = screenAimPoint
+            .run { camera.unproject(vec3(x, y)) }
+            .run { vec2(x, y) }
+            .minus(body.position)
+            .angleRad()
         val currentAngle = body.angle
         val angleDiff = targetAngle - currentAngle
         moveCmp.rotationNormalised = ((angleDiff - MathUtils.PI) % MathUtils.PI2 + MathUtils.PI) / MathUtils.PI
-        tryLogging {
+        defaultLoggingUtils.tryLogging {
             logger.debug {
                 """
 
@@ -69,9 +77,9 @@ class PlayerInputSystem(
         this.thrusters = thrusters
     }
 
-    override fun aimPoint(point: Vector3) {
-        aimPoint.set(point.x, point.y)
-        tryLogging { logger.debug { "aimPoint -> $aimPoint" } }
+    override fun screenAimPoint(screenX: Int, screenY: Int) {
+        screenAimPoint.set(screenX.toFloat(), screenY.toFloat())
+        defaultLoggingUtils.tryLogging { logger.debug { "screenAimPoint -> $screenAimPoint" } }
     }
 
     override fun fire(start: Boolean) {

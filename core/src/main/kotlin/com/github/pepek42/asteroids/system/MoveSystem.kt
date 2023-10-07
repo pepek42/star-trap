@@ -8,7 +8,7 @@ import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.bodyMapper
 import com.github.pepek42.asteroids.component.moveMapper
-import com.github.pepek42.asteroids.debug.PlayScreenLoggingUtils.tryLogging
+import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.log.logger
@@ -41,7 +41,7 @@ class MoveSystem : IteratingSystem(allOf(MoveComponent::class, BodyComponent::cl
         val angularVelocity = body.angularVelocity
         val normalisedAngularVelocity = angularVelocity / MAX_ANGULAR_VELOCITY
         val torqueNormalised = moveComponent.rotationNormalised - normalisedAngularVelocity
-        tryLogging {
+        defaultLoggingUtils.tryLogging {
             logger.debug {
                 """
                     angularVelocity: $angularVelocity

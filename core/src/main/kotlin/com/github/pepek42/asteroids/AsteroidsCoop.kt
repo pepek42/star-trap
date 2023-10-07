@@ -5,7 +5,6 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.scenes.scene2d.Stage
@@ -13,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.I18NBundle
 import com.badlogic.gdx.utils.Logger
 import com.github.pepek42.asteroids.event.GameEventManager
+import com.github.pepek42.asteroids.provider.BackgroundProvider
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.screen.MainMenuScreen
 import com.github.pepek42.asteroids.screen.PlayScreen
@@ -39,7 +39,6 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
         assetManager.load("i18n/messages", I18NBundle::class.java)
         assetManager.load("ui/uiskin.atlas", TextureAtlas::class.java)
         assetManager.load("textures/textures.atlas", TextureAtlas::class.java)
-        assetManager.load("textures/background_1.png", Texture::class.java)
         assetManager.finishLoading()
 
         ctx.register {
@@ -54,7 +53,8 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
             bindSingleton(Stage())
             bindSingleton(MainMenuScreen(inject<AsteroidsCoop>()))
             bindSingleton(assetManager)
-            bindSingleton(MapProvider())
+            bindSingleton(MapProvider(inject<GameEventManager>()))
+            bindSingleton(BackgroundProvider(inject<SpriteBatch>(), inject<GameEventManager>(), inject<TextureAtlas>()))
             bindSingleton(PlayScreen(inject<AsteroidsCoop>(), inject<TextureAtlas>()))
 
         }

@@ -9,11 +9,16 @@ import ktx.log.logger
 
 class GameEventManager : KtxInputAdapter {
     private val playerInputListeners = GdxArray<PlayerInputListener>()
-
-    fun addInputListener(listener: PlayerInputListener) = playerInputListeners.add(listener)
+    private val mapEventListener = GdxArray<MapEventListener>()
     private var ignoreInput = false
 
+    fun addInputListener(listener: PlayerInputListener) = playerInputListeners.add(listener)
+
     fun removeInputListener(listener: PlayerInputListener) = playerInputListeners.removeValue(listener, true)
+
+    fun addMapEventListener(listener: MapEventListener) = mapEventListener.add(listener)
+
+    fun removeMapEventListener(listener: MapEventListener) = mapEventListener.removeValue(listener, true)
 
     init {
         logger.info { "Init finished" }
@@ -73,6 +78,10 @@ class GameEventManager : KtxInputAdapter {
         }
         defaultLoggingUtils.tryLogging { logger.debug { "scrolled X: $amountX Y: $amountY" } }
         return true
+    }
+
+    fun newMap(mapWidth: Float, mapHeight: Float) {
+        mapEventListener.forEach { it.onNewMap(mapWidth, mapHeight) }
     }
 
     private fun aimPoint(screenX: Int, screenY: Int) {

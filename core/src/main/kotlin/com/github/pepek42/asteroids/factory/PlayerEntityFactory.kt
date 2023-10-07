@@ -26,6 +26,8 @@ class PlayerEntityFactory(
         val worldUnitsWidth = playerSprite.width / UNIT_SCALE
         val worldUnitsHeight = playerSprite.height / UNIT_SCALE
 
+        val playerSpawnPosition = mapProvider.playerSpawnLocation()
+
         engine.add {
             entity {
                 with<BodyComponent> {
@@ -33,8 +35,8 @@ class PlayerEntityFactory(
                         box(
                             width = worldUnitsWidth,
                             height = worldUnitsHeight,
-                            position = mapProvider.playerSpawnLocation(),
-                            angle = 0f
+                            position = playerSpawnPosition,
+                            angle = 0f,
                         ) {
                             density = 20f
                         }
@@ -44,6 +46,7 @@ class PlayerEntityFactory(
                 with<SpriteComponent> {
                     sprite = playerSprite
                     sprite.setSize(worldUnitsWidth, worldUnitsHeight)
+                    sprite.setPosition(playerSpawnPosition.x, playerSpawnPosition.y)
                     sprite.setOriginCenter()
                 }
                 with<MoveComponent>()

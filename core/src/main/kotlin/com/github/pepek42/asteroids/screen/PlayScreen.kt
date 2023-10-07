@@ -55,6 +55,7 @@ class PlayScreen(
 
         playerEntityFactory.addPlayerEntity(textures.createSprite("spaceship/disc_green"))
 
+        mapProvider.loadMap()
     }
 
     override fun show() {
@@ -78,6 +79,10 @@ class PlayScreen(
     override fun hide() {
         Gdx.graphics.setSystemCursor(SystemCursor.Arrow)
         super.hide()
+    }
+
+    override fun dispose() {
+        super.dispose()
     }
 
     companion object {

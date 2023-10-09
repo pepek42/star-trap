@@ -30,23 +30,29 @@ class PhysicsSystem(
     override fun update(deltaTime: Float) {
         accumulator += min(maxTimeToProcess, deltaTime)
         while (accumulator >= PHYSICS_UPDATE_INTERVAL) {
-
-            entities.forEach { entity ->
-                entity[bodyMapper]!!.run {
-                    val transform: TransformComponent = entity[transformMapper]!!
-                    transform.prevPosition.set(
-                        body.position.x,
-                        body.position.y,
-                    )
-                    transform.prevRotationDeg = body.angle * MathUtils.radiansToDegrees
-                }
-            }
-
+            savePreviousTransforms()
             world.step(PHYSICS_UPDATE_INTERVAL, 6, 2)
             accumulator -= PHYSICS_UPDATE_INTERVAL
         }
-        val alpha = accumulator / PHYSICS_UPDATE_INTERVAL
 
+        interpolateTransforms()
+    }
+
+    private fun savePreviousTransforms() {
+        entities.forEach { entity ->
+            entity[bodyMapper]!!.run {
+                val transform: TransformComponent = entity[transformMapper]!!
+                transform.prevPosition.set(
+                    body.position.x,
+                    body.position.y,
+                )
+                transform.prevRotationDeg = body.angle * MathUtils.radiansToDegrees
+            }
+        }
+    }
+
+    private fun interpolateTransforms() {
+        val alpha = accumulator / PHYSICS_UPDATE_INTERVAL
         for (entity in entities) {
             val body = entity[bodyMapper]!!.body
             val transform = entity[transformMapper]!!
@@ -59,7 +65,6 @@ class PhysicsSystem(
             transform.interpolatedPosition.set(transform.prevPosition.lerp(transform.position, alpha))
             transform.interpolatedRotationDeg = MathUtils.lerp(transform.prevRotationDeg, transform.rotationDeg, alpha)
         }
-
     }
 
     companion object {

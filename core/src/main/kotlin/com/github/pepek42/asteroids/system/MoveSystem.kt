@@ -12,6 +12,7 @@ import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingU
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.log.logger
+import ktx.math.times
 import ktx.math.vec2
 
 class MoveSystem : IteratingSystem(allOf(MoveComponent::class, BodyComponent::class).get()) {
@@ -29,7 +30,7 @@ class MoveSystem : IteratingSystem(allOf(MoveComponent::class, BodyComponent::cl
     ) {
         if (moveComponent.thrusters > 0) {
             val angle = body.angle
-            val mainThrusters = vec2(MAIN_ENGINE_THRUST, 0f).rotateRad(angle)
+            val mainThrusters = vec2(MAIN_ENGINE_THRUST, 0f).rotateRad(angle) * moveComponent.thrusters
             body.applyForceToCenter(mainThrusters, true)
         }
     }

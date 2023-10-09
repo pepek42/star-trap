@@ -25,4 +25,17 @@ dependencies {
   api "io.github.libktx:ktx-scene2d:$ktxVersion"
   api "io.github.libktx:ktx-style:$ktxVersion"
   api "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+
+  testImplementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+  testImplementation "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
+  testImplementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+  testImplementation files(rootProject.file('assets').path)
+  testImplementation "org.junit.jupiter:junit-jupiter-params:$junitVersion"
+  testImplementation "org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion"
+  testImplementation "org.junit.jupiter:junit-jupiter:$junitVersion"
+  testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+tasks.named('test', Test) {
+  useJUnitPlatform()
 }

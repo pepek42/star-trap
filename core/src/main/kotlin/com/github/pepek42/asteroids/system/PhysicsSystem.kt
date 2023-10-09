@@ -10,6 +10,7 @@ import com.github.pepek42.asteroids.component.bodyMapper
 import com.github.pepek42.asteroids.component.transformMapper
 import ktx.ashley.allOf
 import ktx.ashley.get
+import ktx.log.logger
 import kotlin.math.min
 
 
@@ -19,6 +20,9 @@ class PhysicsSystem(
 ) : EntitySystem() {
     private val entities = engine.getEntitiesFor(allOf(BodyComponent::class, TransformComponent::class).get())
     private var accumulator = 0f
+    init {
+        logger.info { "Init finished" }
+    }
 
     // TODO handle if network multiplayer
     private val maxTimeToProcess = 5 * PHYSICS_UPDATE_INTERVAL
@@ -59,6 +63,7 @@ class PhysicsSystem(
     }
 
     companion object {
+        private val logger = logger<PhysicsSystem>()
         private const val PHYSICS_UPDATE_INTERVAL = 1f / 45
     }
 

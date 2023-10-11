@@ -10,7 +10,7 @@ import com.badlogic.gdx.physics.box2d.Body
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
-import com.github.pepek42.asteroids.component.bodyMapper
+import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.moveMapper
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.event.GameEventManager
@@ -42,7 +42,7 @@ class PlayerInputSystem(
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val moveCmp = entity[moveMapper]!!
-        val body = entity[bodyMapper]!!.body
+        val body = entity.bodyCmp.body
         moveCmp.thrusters = thrusters
 
         handleAngle(body, moveCmp)

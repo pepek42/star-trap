@@ -12,8 +12,7 @@ import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer
 import com.badlogic.gdx.physics.box2d.World
 import com.badlogic.gdx.utils.Disposable
 import com.github.pepek42.asteroids.component.SpriteComponent
-import com.github.pepek42.asteroids.component.spriteMapper
-import ktx.ashley.get
+import com.github.pepek42.asteroids.component.spriteCmp
 import ktx.ashley.oneOf
 import ktx.graphics.use
 
@@ -48,7 +47,7 @@ class DebugSystem(
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
-        val sprite = entity[spriteMapper]!!.sprite
+        val sprite = entity.spriteCmp.sprite
         shapeRenderer.rect(
             sprite.x,
             sprite.y,

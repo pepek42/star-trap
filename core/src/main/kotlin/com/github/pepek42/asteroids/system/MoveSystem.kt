@@ -6,7 +6,7 @@ import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.physics.box2d.Body
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.MoveComponent
-import com.github.pepek42.asteroids.component.bodyMapper
+import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.moveMapper
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import ktx.ashley.allOf
@@ -18,7 +18,7 @@ import ktx.math.vec2
 class MoveSystem : IteratingSystem(allOf(MoveComponent::class, BodyComponent::class).get()) {
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val moveComponent = entity[moveMapper]!!
-        val body = entity[bodyMapper]!!.body
+        val body = entity.bodyCmp.body
 
         applyMainThrusters(moveComponent, body)
         applyTorque(moveComponent, body)

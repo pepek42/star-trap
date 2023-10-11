@@ -20,8 +20,7 @@ class MapProvider(
         height = MAP_HEIGHT
     }
 
-    // TODO vec2(width / 2, height / 2)
-    fun playerSpawnLocation() = vec2(0f, 0f) // vec2(width / 2, height / 2)
+    fun playerSpawnLocation() =  vec2(width / 2, height / 2)
 
     // TODO JSON map format
     fun loadMap() {

@@ -7,7 +7,7 @@ import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.AsteroidsCoop
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
-import com.github.pepek42.asteroids.component.spriteMapper
+import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformMapper
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.provider.BackgroundProvider
@@ -38,20 +38,21 @@ class RenderSystem(
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
-        val sprite = entity[spriteMapper]!!.sprite
+        val sprite = entity.spriteCmp.sprite
         if (sprite.texture == null) {
             logger.error { "Trying to render sprite with no texture $entity" }
             return
         }
         val transformComp = entity[transformMapper]!!
+        sprite.rotation = transformComp.interpolatedRotationDeg
         sprite.setPosition(
             transformComp.interpolatedPosition.x - sprite.width / 2,
             transformComp.interpolatedPosition.y - sprite.height / 2,
         )
-        sprite.rotation = transformComp.interpolatedRotationDeg
         defaultLoggingUtils.tryLogging {
             logger.debug {
                 """
+
                 Region X  -> ${sprite.regionX}
                 Region Y  -> ${sprite.regionY}
                 Sprite x  -> ${sprite.x}

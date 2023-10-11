@@ -32,11 +32,10 @@ class PlayerEntityFactory(
             entity {
                 with<BodyComponent> {
                     body = world.body(BodyDef.BodyType.DynamicBody) {
+                        this.position.set(playerSpawnPosition)
                         box(
                             width = worldUnitsWidth,
                             height = worldUnitsHeight,
-                            position = playerSpawnPosition,
-                            angle = 0f,
                         ) {
                             density = 20f
                         }
@@ -46,8 +45,11 @@ class PlayerEntityFactory(
                 with<SpriteComponent> {
                     sprite = playerSprite
                     sprite.setSize(worldUnitsWidth, worldUnitsHeight)
-                    sprite.setPosition(playerSpawnPosition.x, playerSpawnPosition.y)
                     sprite.setOriginCenter()
+                    sprite.setPosition(
+                        playerSpawnPosition.x - worldUnitsWidth / 2,
+                        playerSpawnPosition.y - worldUnitsHeight / 2
+                    )
                 }
                 with<MoveComponent>()
                 with<PlayerComponent>()

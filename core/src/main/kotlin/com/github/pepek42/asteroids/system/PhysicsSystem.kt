@@ -6,8 +6,9 @@ import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.TransformComponent
-import com.github.pepek42.asteroids.component.bodyMapper
+import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.transformMapper
+import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.log.logger
@@ -20,6 +21,7 @@ class PhysicsSystem(
 ) : EntitySystem() {
     private val entities = engine.getEntitiesFor(allOf(BodyComponent::class, TransformComponent::class).get())
     private var accumulator = 0f
+
     init {
         logger.info { "Init finished" }
     }
@@ -40,8 +42,18 @@ class PhysicsSystem(
 
     private fun savePreviousTransforms() {
         entities.forEach { entity ->
-            entity[bodyMapper]!!.run {
+            entity.bodyCmp.run {
                 val transform: TransformComponent = entity[transformMapper]!!
+                defaultLoggingUtils.tryLogging {
+                    logger.debug {
+                        """
+                        position: ${body.position}
+                        angle: ${body.angle}
+                        linearVelocity: ${body.linearVelocity}
+                        angularVelocity: ${body.angularVelocity}
+                    """.trimIndent()
+                    }
+                }
                 transform.prevPosition.set(
                     body.position.x,
                     body.position.y,
@@ -54,16 +66,14 @@ class PhysicsSystem(
     private fun interpolateTransforms() {
         val alpha = accumulator / PHYSICS_UPDATE_INTERVAL
         for (entity in entities) {
-            val body = entity[bodyMapper]!!.body
+            val body = entity.bodyCmp.body
             val transform = entity[transformMapper]!!
-            transform.position.set(
-                body.position.x,
-                body.position.y,
-            )
-            transform.rotationDeg = body.angle * MathUtils.radiansToDegrees
 
-            transform.interpolatedPosition.set(transform.prevPosition.lerp(transform.position, alpha))
-            transform.interpolatedRotationDeg = MathUtils.lerp(transform.prevRotationDeg, transform.rotationDeg, alpha)
+            val rotationDeg = body.angle * MathUtils.radiansToDegrees
+
+            transform.interpolatedPosition.x = MathUtils.lerp(transform.prevPosition.x, body.position.x, alpha)
+            transform.interpolatedPosition.y = MathUtils.lerp(transform.prevPosition.y, body.position.y, alpha)
+            transform.interpolatedRotationDeg = MathUtils.lerp(transform.prevRotationDeg, rotationDeg, alpha)
         }
     }
 

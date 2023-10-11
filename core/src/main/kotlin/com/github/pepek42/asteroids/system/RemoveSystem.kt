@@ -5,10 +5,9 @@ import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.component.RemoveComponent
 import com.github.pepek42.asteroids.component.TransformComponent
-import com.github.pepek42.asteroids.component.bodyMapper
+import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.removeMapper
 import com.github.pepek42.asteroids.component.transformMapper
-import ktx.ashley.get
 import ktx.ashley.has
 import ktx.ashley.oneOf
 
@@ -18,7 +17,7 @@ class RemoveSystem(
     override fun processEntity(entity: Entity, deltaTime: Float) {
 
         if (entity.has(removeMapper)) {
-            entity[bodyMapper]?.let { bodyComponent ->
+            entity.bodyCmpOptional?.let { bodyComponent ->
                 world.destroyBody(bodyComponent.body)
             }
             engine.removeEntity(entity)

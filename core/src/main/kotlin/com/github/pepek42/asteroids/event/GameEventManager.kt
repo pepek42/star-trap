@@ -41,6 +41,7 @@ class GameEventManager : KtxInputAdapter {
     }
 
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
+        if (ignoreInput) return false
         aimPoint(screenX, screenY)
         return true
     }
@@ -56,6 +57,7 @@ class GameEventManager : KtxInputAdapter {
     }
 
     override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
+        if (ignoreInput) return false
         aimPoint(screenX, screenY)
         return true
     }
@@ -73,9 +75,7 @@ class GameEventManager : KtxInputAdapter {
     override fun scrolled(amountX: Float, amountY: Float): Boolean {
         if (ignoreInput) return false
 
-        playerInputListeners.forEach {
-            it.zoom(amountY)
-        }
+        playerInputListeners.forEach { it.zoom(amountY) }
         defaultLoggingUtils.tryLogging { logger.debug { "scrolled X: $amountX Y: $amountY" } }
         return true
     }
@@ -85,9 +85,7 @@ class GameEventManager : KtxInputAdapter {
     }
 
     private fun aimPoint(screenX: Int, screenY: Int) {
-        playerInputListeners.forEach {
-            it.screenAimPoint(screenX, screenY)
-        }
+        playerInputListeners.forEach { it.screenAimPoint(screenX, screenY) }
     }
 
     private fun thrusters(thrusters: Float) {

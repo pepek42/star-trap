@@ -57,8 +57,10 @@ class MoveSystem : IteratingSystem(allOf(MoveComponent::class, BodyComponent::cl
 
     companion object {
         private val logger = logger<MoveSystem>()
-        private const val MAIN_ENGINE_THRUST = 10f
-        private const val ADDITIONAL_ENGINES_TORQUE = 5f
-        private const val MAX_ANGULAR_VELOCITY = MathUtils.HALF_PI
+
+        // TODO separate components
+        private const val MAIN_ENGINE_THRUST = 50f
+        private const val ADDITIONAL_ENGINES_TORQUE = 10f
+        private const val MAX_ANGULAR_VELOCITY = MathUtils.PI
     }
 }

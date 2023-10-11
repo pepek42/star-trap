@@ -1,9 +1,11 @@
 package com.github.pepek42.asteroids.component
 
 import com.badlogic.ashley.core.Component
+import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Pool
 import ktx.ashley.mapperFor
+import ktx.ashley.propertyFor
 import ktx.math.vec2
 
 class TransformComponent(
@@ -24,3 +26,4 @@ class TransformComponent(
 }
 
 val transformMapper = mapperFor<TransformComponent>()
+val Entity.transformCmp by propertyFor(transformMapper)

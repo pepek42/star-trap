@@ -10,6 +10,7 @@ import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
+import com.github.pepek42.asteroids.component.WrapComponent
 import com.github.pepek42.asteroids.provider.MapProvider
 import ktx.ashley.add
 import ktx.ashley.entity
@@ -53,6 +54,7 @@ class PlayerEntityFactory(
                 }
                 with<MoveComponent>()
                 with<PlayerComponent>()
+                with<WrapComponent>()
             }
         }
     }

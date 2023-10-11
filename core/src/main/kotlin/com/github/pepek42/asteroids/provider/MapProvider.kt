@@ -10,20 +10,20 @@ class MapProvider(
     private val gameEventManager: GameEventManager,
 ) {
 
-    var width = 0f
+    var mapWidth = 0f
         private set
-    var height = 0f
+    var mapHeight = 0f
         private set
 
     init {
-        width = MAP_WIDTH
-        height = MAP_HEIGHT
+        mapWidth = MAP_WIDTH
+        mapHeight = MAP_HEIGHT
     }
 
-    fun playerSpawnLocation() =  vec2(width / 2, height / 2)
+    fun playerSpawnLocation() = vec2(mapWidth / 2, mapHeight / 2)
 
     // TODO JSON map format
     fun loadMap() {
-        gameEventManager.newMap(width, height)
+        gameEventManager.newMap(mapWidth, mapHeight)
     }
 }

@@ -9,5 +9,5 @@ interface PlayerInputListener {
 
     fun block() = Unit
 
-    fun zoom(zoomAmount: Float) = Unit
+    fun zoom(zoomDelta: Float) = Unit
 }

@@ -2,38 +2,47 @@ package com.github.pepek42.asteroids.system
 
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
-import com.badlogic.gdx.math.Vector2
-import com.github.pepek42.asteroids.component.TransformComponent
+import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.WrapComponent
-import com.github.pepek42.asteroids.component.transformMapper
+import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.provider.MapProvider
 import ktx.ashley.allOf
-import ktx.ashley.get
 import ktx.log.logger
 
 class WrapSystem(
     private val mapProvider: MapProvider,
 ) : IteratingSystem(
-    allOf(TransformComponent::class, WrapComponent::class).get()
+    allOf(WrapComponent::class, BodyComponent::class).get()
 ) {
     override fun processEntity(entity: Entity, deltaTime: Float) {
-        val transformComponent = entity[transformMapper]!!
-        val newPosition = Vector2.Zero
-        if (transformComponent.interpolatedPosition.x < 0) {
-            newPosition.x = transformComponent.interpolatedPosition.x + mapProvider.width
+        val body = entity.bodyCmp.body
+        var moved = false
+        var newX = 0f
+        var newY = 0f
+        val x = body.position.x
+        val y = body.position.y
+        if (x < 0) {
+            newX = x + mapProvider.mapWidth
+            moved = true
         }
-        if (transformComponent.interpolatedPosition.x > mapProvider.width) {
-            newPosition.x = transformComponent.interpolatedPosition.x - mapProvider.width
+        if (x > mapProvider.mapWidth) {
+            newX = x - mapProvider.mapWidth
+            moved = true
         }
-        if (transformComponent.interpolatedPosition.y < 0) {
-            newPosition.y = transformComponent.interpolatedPosition.y + mapProvider.height
+        if (y < 0) {
+            newY = y + mapProvider.mapHeight
+            moved = true
         }
-        if (transformComponent.interpolatedPosition.y > mapProvider.width) {
-            newPosition.y = transformComponent.interpolatedPosition.y - mapProvider.height
+        if (y > mapProvider.mapWidth) {
+            newY = y - mapProvider.mapHeight
+            moved = true
         }
-        if (newPosition != Vector2.Zero) {
-            // TODO wrap - most likely destroy current body and rebuild?
-            logger.debug { "Wrapping entity to $newPosition from ${transformComponent.interpolatedPosition}" }
+        if (moved) {
+            logger.debug {
+                "Wrapping entity to $newX x $newY from ${body.position}"
+            }
+            // TODO How will it work with multiple objects? Maybe force field around borders is better idea
+            body.setTransform(newX, newY, body.angle)
         }
     }
 

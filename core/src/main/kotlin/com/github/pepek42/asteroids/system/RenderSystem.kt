@@ -8,11 +8,10 @@ import com.github.pepek42.asteroids.AsteroidsCoop
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.spriteCmp
-import com.github.pepek42.asteroids.component.transformMapper
+import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.provider.BackgroundProvider
 import ktx.ashley.allOf
-import ktx.ashley.get
 import ktx.graphics.use
 import ktx.log.logger
 
@@ -43,7 +42,7 @@ class RenderSystem(
             logger.error { "Trying to render sprite with no texture $entity" }
             return
         }
-        val transformComp = entity[transformMapper]!!
+        val transformComp = entity.transformCmp
         sprite.rotation = transformComp.interpolatedRotationDeg
         sprite.setPosition(
             transformComp.interpolatedPosition.x - sprite.width / 2,

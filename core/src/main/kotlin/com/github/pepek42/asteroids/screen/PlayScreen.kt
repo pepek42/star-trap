@@ -16,8 +16,8 @@ import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.factory.PlayerEntityFactory
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.system.CameraSystem
-import com.github.pepek42.asteroids.system.MoveSystem
 import com.github.pepek42.asteroids.system.DebugSystem
+import com.github.pepek42.asteroids.system.MoveSystem
 import com.github.pepek42.asteroids.system.PhysicsSystem
 import com.github.pepek42.asteroids.system.PlayerInputSystem
 import com.github.pepek42.asteroids.system.RemoveSystem
@@ -45,7 +45,7 @@ class PlayScreen(
         engine.addSystem(PlayerInputSystem(gameEventManager, camera))
         engine.addSystem(MoveSystem())
         engine.addSystem(PhysicsSystem(world, engine))
-        engine.addSystem(CameraSystem(camera, gameEventManager))
+        engine.addSystem(CameraSystem(camera, gameEventManager, mapProvider))
         engine.addSystem(WrapSystem(mapProvider))
         engine.addSystem(RenderSystem(game, batch, viewport))
         if (IS_DEBUG) {

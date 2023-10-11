@@ -7,10 +7,9 @@ import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.bodyCmp
-import com.github.pepek42.asteroids.component.transformMapper
+import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import ktx.ashley.allOf
-import ktx.ashley.get
 import ktx.log.logger
 import kotlin.math.min
 
@@ -43,7 +42,7 @@ class PhysicsSystem(
     private fun savePreviousTransforms() {
         entities.forEach { entity ->
             entity.bodyCmp.run {
-                val transform: TransformComponent = entity[transformMapper]!!
+                val transform: TransformComponent = entity.transformCmp
                 defaultLoggingUtils.tryLogging {
                     logger.debug {
                         """
@@ -67,7 +66,7 @@ class PhysicsSystem(
         val alpha = accumulator / PHYSICS_UPDATE_INTERVAL
         for (entity in entities) {
             val body = entity.bodyCmp.body
-            val transform = entity[transformMapper]!!
+            val transform = entity.transformCmp
 
             val rotationDeg = body.angle * MathUtils.radiansToDegrees
 

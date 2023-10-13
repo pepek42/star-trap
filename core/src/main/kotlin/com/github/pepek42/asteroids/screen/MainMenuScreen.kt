@@ -50,7 +50,7 @@ class MainMenuScreen(private val game: AsteroidsCoop) : KtxScreen {
 
     override fun render(delta: Float) {
         clearScreen(red = 0f, green = 0f, blue = 0f)
-        stage.act(delta)
+        stage.act()
         stage.draw()
     }
 
@@ -64,8 +64,9 @@ class MainMenuScreen(private val game: AsteroidsCoop) : KtxScreen {
     }
 
     override fun dispose() {
-        logger.info { "dispose" }
+        logger.info { "Dispose" }
         stage.disposeSafely()
+        super.dispose()
     }
 
     companion object {

@@ -23,7 +23,7 @@ class PlayerEntityFactory(
     private val world: World,
     private val mapProvider: MapProvider,
 ) {
-    fun addPlayerEntity(playerSprite: Sprite) {
+    fun spawnPlayerEntity(playerSprite: Sprite) {
         val worldUnitsWidth = playerSprite.width / UNIT_SCALE
         val worldUnitsHeight = playerSprite.height / UNIT_SCALE
 

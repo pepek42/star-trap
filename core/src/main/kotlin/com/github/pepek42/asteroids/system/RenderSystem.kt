@@ -22,16 +22,14 @@ class RenderSystem(
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()) {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
 
-
     init {
-
-
         logger.info { "Init finished" }
     }
 
     override fun update(deltaTime: Float) {
         batch.use(viewport.camera) {
             backgroundProvider.renderBg(deltaTime)
+            // TODO Minimap
             super.update(deltaTime)
         }
     }

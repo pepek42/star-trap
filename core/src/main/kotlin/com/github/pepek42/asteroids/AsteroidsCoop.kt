@@ -7,6 +7,7 @@ import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
+import com.badlogic.gdx.physics.box2d.Box2D
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.I18NBundle
@@ -29,6 +30,9 @@ const val IS_DEBUG = true
 class AsteroidsCoop : KtxGame<KtxScreen>() {
     val ctx = Context()
     override fun create() {
+        logger.info { "Starting setup" }
+
+        Box2D.init()
         if (IS_DEBUG) {
             Gdx.app.logLevel = Application.LOG_DEBUG
         } else {
@@ -56,7 +60,6 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
             bindSingleton(MapProvider(inject<GameEventManager>()))
             bindSingleton(BackgroundProvider(inject<SpriteBatch>(), inject<GameEventManager>(), inject<TextureAtlas>()))
             bindSingleton(PlayScreen(inject<AsteroidsCoop>(), inject<TextureAtlas>()))
-
         }
         Gdx.input.inputProcessor = InputMultiplexer(ctx.inject<GameEventManager>(), ctx.inject<Stage>())
 
@@ -71,6 +74,9 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
     inline fun <reified Type : Any> get(): Type = ctx.inject<Type>()
 
     override fun dispose() {
+        logger.info { "Dispose" }
+        removeScreen<PlayScreen>()
+        removeScreen<MainMenuScreen>()
         ctx.remove<AsteroidsCoop>()
         ctx.disposeSafely()
         super.dispose()

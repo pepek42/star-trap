@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Cursor.SystemCursor
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
+import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.ScreenUtils
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.badlogic.gdx.utils.viewport.Viewport
@@ -24,6 +25,7 @@ import com.github.pepek42.asteroids.system.RemoveSystem
 import com.github.pepek42.asteroids.system.RenderSystem
 import com.github.pepek42.asteroids.system.WrapSystem
 import ktx.app.KtxScreen
+import ktx.assets.disposeSafely
 import ktx.box2d.createWorld
 import ktx.log.logger
 
@@ -32,30 +34,30 @@ class PlayScreen(
     textures: TextureAtlas
 ) : KtxScreen {
     private val mapProvider = game.get<MapProvider>()
-    private val viewport: Viewport
     private val camera = game.get<OrthographicCamera>()
-    private val batch = game.get<SpriteBatch>()
+    private val viewport: Viewport = FitViewport(16f, 9f, camera)
     private val world = createWorld()
     private val engine = PooledEngine()
     private val playerEntityFactory = PlayerEntityFactory(engine, world, mapProvider)
 
     init {
+        setupEcs()
+        mapProvider.loadMap()
+        playerEntityFactory.spawnPlayerEntity(textures.createSprite("spaceship/disc_green"))
+    }
+
+    private fun setupEcs() {
         val gameEventManager = game.get<GameEventManager>()
-        viewport = FitViewport(16f, 9f, camera)
         engine.addSystem(PlayerInputSystem(gameEventManager, camera))
         engine.addSystem(MoveSystem())
         engine.addSystem(PhysicsSystem(world, engine))
         engine.addSystem(CameraSystem(camera, gameEventManager, mapProvider))
         engine.addSystem(WrapSystem(mapProvider))
-        engine.addSystem(RenderSystem(game, batch, viewport))
+        engine.addSystem(RenderSystem(game, game.get<SpriteBatch>(), viewport))
         if (IS_DEBUG) {
             engine.addSystem(DebugSystem(world, engine, camera))
         }
         engine.addSystem(RemoveSystem(world))
-
-        playerEntityFactory.addPlayerEntity(textures.createSprite("spaceship/disc_green"))
-
-        mapProvider.loadMap()
     }
 
     override fun show() {
@@ -82,6 +84,8 @@ class PlayScreen(
     }
 
     override fun dispose() {
+        engine.systems.forEach { if (it is Disposable) it.disposeSafely() }
+        world.disposeSafely()
         super.dispose()
     }
 

@@ -26,13 +26,13 @@ class MainMenuScreen(private val game: AsteroidsCoop) : KtxScreen {
         align(Align.center)
         space(16f)
         touchable = Touchable.enabled
-        textButton(i18n["menu.single_player"]) {
+        textButton(i18n["menu_single_player"]) {
             onClick {
                 game.setScreen<PlayScreen>()
             }
         }
         if (Gdx.app.type != Application.ApplicationType.WebGL) {
-            textButton(i18n["menu.exit"]) {
+            textButton(i18n["menu_exit"]) {
                 onClick {
                     logger.info { "Exiting application" }
                     Gdx.app.exit()

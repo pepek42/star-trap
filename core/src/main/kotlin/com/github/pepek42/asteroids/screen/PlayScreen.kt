@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.ScreenUtils
-import com.badlogic.gdx.utils.viewport.FitViewport
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.AsteroidsCoop
 import com.github.pepek42.asteroids.IS_DEBUG
@@ -23,7 +22,9 @@ import com.github.pepek42.asteroids.system.PhysicsSystem
 import com.github.pepek42.asteroids.system.PlayerInputSystem
 import com.github.pepek42.asteroids.system.RemoveSystem
 import com.github.pepek42.asteroids.system.RenderSystem
+import com.github.pepek42.asteroids.system.UpdateHudSystem
 import com.github.pepek42.asteroids.system.WrapSystem
+import com.github.pepek42.asteroids.ui.Hud
 import ktx.app.KtxScreen
 import ktx.assets.disposeSafely
 import ktx.box2d.createWorld
@@ -33,9 +34,10 @@ class PlayScreen(
     private val game: AsteroidsCoop,
     textures: TextureAtlas
 ) : KtxScreen {
+    private val hud = Hud(game)
     private val mapProvider = game.get<MapProvider>()
     private val camera = game.get<OrthographicCamera>()
-    private val viewport: Viewport = FitViewport(16f, 9f, camera)
+    private val viewport: Viewport = game.get<Viewport>()
     private val world = createWorld()
     private val engine = PooledEngine()
     private val playerEntityFactory = PlayerEntityFactory(engine, world, mapProvider)
@@ -53,7 +55,8 @@ class PlayScreen(
         engine.addSystem(PhysicsSystem(world, engine))
         engine.addSystem(CameraSystem(camera, gameEventManager, mapProvider))
         engine.addSystem(WrapSystem(mapProvider))
-        engine.addSystem(RenderSystem(game, game.get<SpriteBatch>(), viewport))
+        engine.addSystem(UpdateHudSystem(hud))
+        engine.addSystem(RenderSystem(game, game.get<SpriteBatch>(), viewport, hud))
         if (IS_DEBUG) {
             engine.addSystem(DebugSystem(world, engine, camera))
         }
@@ -62,6 +65,7 @@ class PlayScreen(
 
     override fun show() {
         super.show()
+        hud.updateLevel(1) // TODO increase on win
         Gdx.graphics.setSystemCursor(SystemCursor.Crosshair)
         game.get<GameEventManager>().enablePlayerInputs()
     }
@@ -76,6 +80,7 @@ class PlayScreen(
     override fun resize(width: Int, height: Int) {
         logger.info { "Resize event $width x $height" }
         viewport.update(width, height)
+        hud.resize(width, height)
     }
 
     override fun hide() {

@@ -44,8 +44,8 @@ class MoveSystemTest {
 
     @ParameterizedTest
     @CsvSource(
-        "1,4.9999995,8.6602545",
-        "0.5,2.4999998,4.3301272",
+        "1,24.999998,43.301273",
+        "0.5,12.499999,21.650637",
     )
     fun thrustersShouldWork(thrusters: Float, expectedForceX: Float, expectedForceY: Float) {
         // given

@@ -11,6 +11,7 @@ import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.provider.BackgroundProvider
+import com.github.pepek42.asteroids.ui.Hud
 import ktx.ashley.allOf
 import ktx.graphics.use
 import ktx.log.logger
@@ -19,6 +20,7 @@ class RenderSystem(
     game: AsteroidsCoop,
     private val batch: SpriteBatch,
     private val viewport: Viewport,
+    private val hud: Hud,
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()) {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
 
@@ -27,11 +29,12 @@ class RenderSystem(
     }
 
     override fun update(deltaTime: Float) {
+        viewport.apply()
         batch.use(viewport.camera) {
             backgroundProvider.renderBg(deltaTime)
-            // TODO Minimap
             super.update(deltaTime)
         }
+        hud.updateAndRender()
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {

@@ -7,17 +7,16 @@ import com.badlogic.gdx.physics.box2d.Body
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.bodyCmp
-import com.github.pepek42.asteroids.component.moveMapper
+import com.github.pepek42.asteroids.component.moveCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import ktx.ashley.allOf
-import ktx.ashley.get
 import ktx.log.logger
 import ktx.math.times
 import ktx.math.vec2
 
 class MoveSystem : IteratingSystem(allOf(MoveComponent::class, BodyComponent::class).get()) {
     override fun processEntity(entity: Entity, deltaTime: Float) {
-        val moveComponent = entity[moveMapper]!!
+        val moveComponent = entity.moveCmp
         val body = entity.bodyCmp.body
 
         applyMainThrusters(moveComponent, body)

@@ -11,12 +11,11 @@ import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.bodyCmp
-import com.github.pepek42.asteroids.component.moveMapper
+import com.github.pepek42.asteroids.component.moveCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
 import ktx.ashley.allOf
-import ktx.ashley.get
 import ktx.log.logger
 import ktx.math.minus
 import ktx.math.vec2
@@ -41,7 +40,7 @@ class PlayerInputSystem(
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
-        val moveCmp = entity[moveMapper]!!
+        val moveCmp = entity.moveCmp
         val body = entity.bodyCmp.body
         moveCmp.thrusters = thrusters
 

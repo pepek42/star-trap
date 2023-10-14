@@ -12,6 +12,9 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.I18NBundle
 import com.badlogic.gdx.utils.Logger
+import com.badlogic.gdx.utils.viewport.FitViewport
+import com.badlogic.gdx.utils.viewport.ScreenViewport
+import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.provider.BackgroundProvider
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -54,7 +57,8 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
             Scene2DSkin.defaultSkin = ctx.inject<Skin>()
             bindSingleton(assetManager.get<I18NBundle>("i18n/messages"))
             bindSingleton(this@AsteroidsCoop)
-            bindSingleton(Stage())
+            bindSingleton<Viewport>(FitViewport(16f, 9f, inject<OrthographicCamera>()))
+            bindSingleton(Stage(ScreenViewport()))
             bindSingleton(MainMenuScreen(inject<AsteroidsCoop>()))
             bindSingleton(assetManager)
             bindSingleton(MapProvider(inject<GameEventManager>()))

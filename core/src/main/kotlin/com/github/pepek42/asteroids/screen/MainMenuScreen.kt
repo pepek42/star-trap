@@ -7,7 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.I18NBundle
-import com.github.pepek42.asteroids.AsteroidsCoop
+import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.event.GameEventManager
 import ktx.actors.onClick
 import ktx.app.KtxScreen
@@ -18,7 +18,7 @@ import ktx.scene2d.scene2d
 import ktx.scene2d.textButton
 import ktx.scene2d.verticalGroup
 
-class MainMenuScreen(private val game: AsteroidsCoop) : KtxScreen {
+class MainMenuScreen(private val game: Game) : KtxScreen {
     private val i18n = game.get<I18NBundle>()
     private val stage = game.get<Stage>()
     private val menu: Actor = scene2d.verticalGroup {

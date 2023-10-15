@@ -36,7 +36,7 @@ configure(subprojects) {
 
 subprojects {
   version = '0.1.0'
-  ext.appName = 'asteroids-coop'
+  ext.appName = 'star-trap'
   repositories {
     mavenCentral()
     maven { url 'https://s01.oss.sonatype.org' }

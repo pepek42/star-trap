@@ -10,9 +10,15 @@ import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.ui.Hud
 import ktx.ashley.allOf
 
-class UpdateHudSystem(
+class HudSystem(
     private val hud: Hud,
 ) : IteratingSystem(allOf(PlayerComponent::class, TransformComponent::class, BodyComponent::class).get()) {
+
+    override fun update(deltaTime: Float) {
+        super.update(deltaTime)
+        hud.updateAndRender(deltaTime)
+    }
+
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val body = entity.bodyCmp.body
         val transformCmp = entity.transformCmp

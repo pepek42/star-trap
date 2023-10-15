@@ -30,7 +30,7 @@ import ktx.scene2d.Scene2DSkin
 
 const val IS_DEBUG = true
 
-class AsteroidsCoop : KtxGame<KtxScreen>() {
+class Game : KtxGame<KtxScreen>() {
     val ctx = Context()
     override fun create() {
         logger.info { "Starting setup" }
@@ -49,6 +49,7 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
         assetManager.finishLoading()
 
         ctx.register {
+            bindSingleton(GameState())
             bindSingleton<OrthographicCamera>(OrthographicCamera())
             bindSingleton(GameEventManager())
             bindSingleton(SpriteBatch())
@@ -56,14 +57,14 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
             bindSingleton(Skin(Gdx.files.internal("ui/uiskin.json"), assetManager["ui/uiskin.atlas"]))
             Scene2DSkin.defaultSkin = ctx.inject<Skin>()
             bindSingleton(assetManager.get<I18NBundle>("i18n/messages"))
-            bindSingleton(this@AsteroidsCoop)
+            bindSingleton(this@Game)
             bindSingleton<Viewport>(FitViewport(16f, 9f, inject<OrthographicCamera>()))
             bindSingleton(Stage(ScreenViewport()))
-            bindSingleton(MainMenuScreen(inject<AsteroidsCoop>()))
+            bindSingleton(MainMenuScreen(inject<Game>()))
             bindSingleton(assetManager)
             bindSingleton(MapProvider(inject<GameEventManager>()))
             bindSingleton(BackgroundProvider(inject<SpriteBatch>(), inject<GameEventManager>(), inject<TextureAtlas>()))
-            bindSingleton(PlayScreen(inject<AsteroidsCoop>(), inject<TextureAtlas>()))
+            bindSingleton(PlayScreen(inject<Game>(), inject<TextureAtlas>()))
         }
         Gdx.input.inputProcessor = InputMultiplexer(ctx.inject<GameEventManager>(), ctx.inject<Stage>())
 
@@ -81,13 +82,13 @@ class AsteroidsCoop : KtxGame<KtxScreen>() {
         logger.info { "Dispose" }
         removeScreen<PlayScreen>()
         removeScreen<MainMenuScreen>()
-        ctx.remove<AsteroidsCoop>()
+        ctx.remove<Game>()
         ctx.disposeSafely()
         super.dispose()
     }
 
     companion object {
-        private val logger = logger<AsteroidsCoop>()
+        private val logger = logger<Game>()
     }
 }
 

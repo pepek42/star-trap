@@ -5,16 +5,16 @@ import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.utils.I18NBundle
-import com.github.pepek42.asteroids.AsteroidsCoop
+import com.github.pepek42.asteroids.Game
 import ktx.actors.plusAssign
 import ktx.scene2d.label
 import ktx.scene2d.scene2d
 
 class Hud(
-    asteroidsCoop: AsteroidsCoop,
+    game: Game,
 ) {
-    private val stage: Stage = asteroidsCoop.get()
-    private val i18NBundle: I18NBundle = asteroidsCoop.get()
+    private val stage: Stage = game.get()
+    private val i18NBundle: I18NBundle = game.get()
     private val coordinatesLabel: Label = scene2d.label("")
     private val speedLabel: Label = scene2d.label("")
     private val levelLabel: Label = scene2d.label("")
@@ -29,12 +29,12 @@ class Hud(
     }
 
     // TODO Minimap
-    fun updateAndRender() {
-//        stage.run {
-//            viewport.apply()
-//            act()
-//            draw()
-//        }
+    fun updateAndRender(deltaTime: Float) {
+        stage.run {
+            viewport.apply()
+            act(deltaTime.coerceAtMost(MAX_DELTA_TIME))
+            draw()
+        }
     }
 
     fun resize(width: Int, height: Int) {
@@ -51,5 +51,9 @@ class Hud(
 
     fun updateLevel(level: Int) {
         levelLabel.setText(i18NBundle.format("hud_level", level))
+    }
+
+    companion object {
+        private const val MAX_DELTA_TIME = 1f / 30
     }
 }

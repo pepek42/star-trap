@@ -8,4 +8,4 @@ const val BASE_HEIGHT = 600
  */
 const val UNIT_SCALE = 18
 
-const val TITLE = "Asteroids Rouge-lite"
+const val TITLE = "Star Trap"

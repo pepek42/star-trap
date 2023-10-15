@@ -4,23 +4,21 @@ import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.utils.viewport.Viewport
-import com.github.pepek42.asteroids.AsteroidsCoop
+import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.provider.BackgroundProvider
-import com.github.pepek42.asteroids.ui.Hud
 import ktx.ashley.allOf
 import ktx.graphics.use
 import ktx.log.logger
 
 class RenderSystem(
-    game: AsteroidsCoop,
+    game: Game,
     private val batch: SpriteBatch,
     private val viewport: Viewport,
-    private val hud: Hud,
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()) {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
 
@@ -34,7 +32,6 @@ class RenderSystem(
             backgroundProvider.renderBg(deltaTime)
             super.update(deltaTime)
         }
-        hud.updateAndRender()
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {

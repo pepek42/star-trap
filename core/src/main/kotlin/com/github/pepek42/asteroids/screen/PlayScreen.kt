@@ -9,7 +9,8 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.ScreenUtils
 import com.badlogic.gdx.utils.viewport.Viewport
-import com.github.pepek42.asteroids.AsteroidsCoop
+import com.github.pepek42.asteroids.Game
+import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.IS_DEBUG
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.event.GameEventManager
@@ -17,12 +18,12 @@ import com.github.pepek42.asteroids.factory.PlayerEntityFactory
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.system.CameraSystem
 import com.github.pepek42.asteroids.system.DebugSystem
+import com.github.pepek42.asteroids.system.HudSystem
 import com.github.pepek42.asteroids.system.MoveSystem
 import com.github.pepek42.asteroids.system.PhysicsSystem
 import com.github.pepek42.asteroids.system.PlayerInputSystem
 import com.github.pepek42.asteroids.system.RemoveSystem
 import com.github.pepek42.asteroids.system.RenderSystem
-import com.github.pepek42.asteroids.system.UpdateHudSystem
 import com.github.pepek42.asteroids.system.WrapSystem
 import com.github.pepek42.asteroids.ui.Hud
 import ktx.app.KtxScreen
@@ -31,7 +32,7 @@ import ktx.box2d.createWorld
 import ktx.log.logger
 
 class PlayScreen(
-    private val game: AsteroidsCoop,
+    private val game: Game,
     textures: TextureAtlas
 ) : KtxScreen {
     private val hud = Hud(game)
@@ -41,6 +42,7 @@ class PlayScreen(
     private val world = createWorld()
     private val engine = PooledEngine()
     private val playerEntityFactory = PlayerEntityFactory(engine, world, mapProvider)
+    private val gameState = game.get<GameState>()
 
     init {
         setupEcs()
@@ -55,17 +57,17 @@ class PlayScreen(
         engine.addSystem(PhysicsSystem(world, engine))
         engine.addSystem(CameraSystem(camera, gameEventManager, mapProvider))
         engine.addSystem(WrapSystem(mapProvider))
-        engine.addSystem(UpdateHudSystem(hud))
-        engine.addSystem(RenderSystem(game, game.get<SpriteBatch>(), viewport, hud))
+        engine.addSystem(RenderSystem(game, game.get<SpriteBatch>(), viewport))
         if (IS_DEBUG) {
             engine.addSystem(DebugSystem(world, engine, camera))
         }
+        engine.addSystem(HudSystem(hud))
         engine.addSystem(RemoveSystem(world))
     }
 
     override fun show() {
         super.show()
-        hud.updateLevel(1) // TODO increase on win
+        hud.updateLevel(gameState.level) // TODO increase on win
         Gdx.graphics.setSystemCursor(SystemCursor.Crosshair)
         game.get<GameEventManager>().enablePlayerInputs()
     }

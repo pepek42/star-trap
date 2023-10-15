@@ -10,6 +10,7 @@ import ktx.ashley.propertyFor
 
 class BodyComponent : Component, Pool.Poolable {
     lateinit var body: Body
+    var moveForcesApplied = false
 
     override fun reset() {
         body.world.destroyBody(body)

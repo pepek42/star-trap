@@ -17,6 +17,7 @@ import ktx.math.vec2
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import org.mockito.Mockito.atMostOnce
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
@@ -44,8 +45,8 @@ class MoveSystemTest {
 
     @ParameterizedTest
     @CsvSource(
-        "1,24.999998,43.301273",
-        "0.5,12.499999,21.650637",
+        "1,49.999996,86.60255",
+        "0.5,24.999998,43.301273",
     )
     fun thrustersShouldWork(thrusters: Float, expectedForceX: Float, expectedForceY: Float) {
         // given
@@ -58,6 +59,21 @@ class MoveSystemTest {
 
         // then
         verify(bodyMock).applyForceToCenter(vec2(expectedForceX, expectedForceY), true)
+    }
+
+    @Test
+    fun thrustersShouldWorkOnlyOncePerStep() {
+        // given
+        moveComponent.thrusters = 1f
+        `when`(bodyMock.angle).doReturn(MathUtils.PI / 3)
+        moveSystem.addedToEngine(engineMock)
+
+        // when
+        moveSystem.update(DELTA_TIME)
+        moveSystem.update(DELTA_TIME)
+
+        // then
+        verify(bodyMock, atMostOnce()).applyForceToCenter(vec2(49.999996f, 86.60255f), true)
     }
 
     @Test

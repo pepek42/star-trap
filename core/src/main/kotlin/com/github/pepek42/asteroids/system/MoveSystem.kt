@@ -17,10 +17,14 @@ import ktx.math.vec2
 class MoveSystem : IteratingSystem(allOf(MoveComponent::class, BodyComponent::class).get()) {
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val moveComponent = entity.moveCmp
-        val body = entity.bodyCmp.body
+        val bodyCmp = entity.bodyCmp
 
-        applyMainThrusters(moveComponent, body)
-        applyTorque(moveComponent, body)
+        if (!bodyCmp.moveForcesApplied) {
+            // TODO Only once per simulation?
+            applyMainThrusters(moveComponent, bodyCmp.body)
+            applyTorque(moveComponent, bodyCmp.body)
+            bodyCmp.moveForcesApplied = true
+        }
     }
 
     private fun applyMainThrusters(
@@ -58,8 +62,8 @@ class MoveSystem : IteratingSystem(allOf(MoveComponent::class, BodyComponent::cl
         private val logger = logger<MoveSystem>()
 
         // TODO separate components
-        private const val MAIN_ENGINE_THRUST = 50f
-        private const val ADDITIONAL_ENGINES_TORQUE = 10f
+        private const val MAIN_ENGINE_THRUST = 100f
+        private const val ADDITIONAL_ENGINES_TORQUE = 25f
         private const val MAX_ANGULAR_VELOCITY = MathUtils.PI
     }
 }

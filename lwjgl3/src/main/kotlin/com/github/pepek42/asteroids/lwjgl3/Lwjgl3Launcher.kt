@@ -7,6 +7,7 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import com.github.pepek42.asteroids.BASE_HEIGHT
 import com.github.pepek42.asteroids.BASE_WIDTH
 import com.github.pepek42.asteroids.Game
+import com.github.pepek42.asteroids.TITLE
 
 /** Launches the desktop (LWJGL3) application. */
 fun main() {
@@ -14,7 +15,7 @@ fun main() {
     if (StartupHelper.startNewJvmIfRequired())
       return
     Lwjgl3Application(Game(), Lwjgl3ApplicationConfiguration().apply {
-        setTitle("Asteroids Coop")
+        setTitle(TITLE)
         setWindowedMode(BASE_WIDTH, BASE_HEIGHT)
         setWindowIcon(*(arrayOf(128, 64, 32, 16).map { "libgdx$it.png" }.toTypedArray()))
     })

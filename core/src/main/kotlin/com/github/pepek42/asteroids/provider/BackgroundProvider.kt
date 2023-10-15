@@ -65,7 +65,7 @@ class BackgroundProvider(
     }
 
     companion object {
-        private const val T2_SCROLL_SPEED = 0.3f
-        private const val T3_SCROLL_SPEED = 0.7f
+        private const val T2_SCROLL_SPEED = 0.1f
+        private const val T3_SCROLL_SPEED = 0.3f
     }
 }

@@ -39,7 +39,9 @@ class PlayScreen(
     private val mapProvider = game.get<MapProvider>()
     private val camera = game.get<OrthographicCamera>()
     private val viewport: Viewport = game.get<Viewport>()
-    private val world = createWorld()
+    private val world = createWorld().apply {
+        autoClearForces = false
+    }
     private val engine = PooledEngine()
     private val playerEntityFactory = PlayerEntityFactory(engine, world, mapProvider)
     private val gameState = game.get<GameState>()

@@ -30,19 +30,24 @@ class PhysicsSystem(
 
     override fun update(deltaTime: Float) {
         accumulator += min(maxTimeToProcess, deltaTime)
+        var runSimulation = false
         while (accumulator >= PHYSICS_UPDATE_INTERVAL) {
-            savePreviousTransforms()
+            preProcess()
             world.step(PHYSICS_UPDATE_INTERVAL, 6, 2)
             accumulator -= PHYSICS_UPDATE_INTERVAL
+            runSimulation = true
+        }
+        if (runSimulation) {
+            world.clearForces()
         }
 
         interpolateTransforms()
     }
 
-    private fun savePreviousTransforms() {
+    private fun preProcess() {
         entities.forEach { entity ->
             entity.bodyCmp.run {
-                val transform: TransformComponent = entity.transformCmp
+                val transformCmp: TransformComponent = entity.transformCmp
                 defaultLoggingUtils.tryLogging {
                     logger.debug {
                         """
@@ -53,11 +58,12 @@ class PhysicsSystem(
                     """.trimIndent()
                     }
                 }
-                transform.prevPosition.set(
+                transformCmp.prevPosition.set(
                     body.position.x,
                     body.position.y,
                 )
-                transform.prevRotationDeg = body.angle * MathUtils.radiansToDegrees
+                transformCmp.prevRotationDeg = body.angle * MathUtils.radiansToDegrees
+                moveForcesApplied = false
             }
         }
     }

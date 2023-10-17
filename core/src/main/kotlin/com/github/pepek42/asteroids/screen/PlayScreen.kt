@@ -69,6 +69,7 @@ class PlayScreen(
 
     override fun show() {
         super.show()
+        hud.toggleHud(show = true)
         hud.updateLevel(gameState.level) // TODO increase on win
         Gdx.graphics.setSystemCursor(SystemCursor.Crosshair)
         game.get<GameEventManager>().enablePlayerInputs()
@@ -89,6 +90,7 @@ class PlayScreen(
 
     override fun hide() {
         Gdx.graphics.setSystemCursor(SystemCursor.Arrow)
+        hud.toggleHud(show = false)
         super.hide()
     }
 

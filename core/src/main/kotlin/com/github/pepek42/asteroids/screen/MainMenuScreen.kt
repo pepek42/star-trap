@@ -12,7 +12,6 @@ import com.github.pepek42.asteroids.event.GameEventManager
 import ktx.actors.onClick
 import ktx.app.KtxScreen
 import ktx.app.clearScreen
-import ktx.assets.disposeSafely
 import ktx.log.logger
 import ktx.scene2d.scene2d
 import ktx.scene2d.textButton
@@ -56,17 +55,11 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
 
     override fun resize(width: Int, height: Int) {
         logger.info { "Resizing screen to ${width}x$height" }
-        stage.viewport.update(width, height)
+        stage.viewport.update(width, height, true)
     }
 
     override fun hide() {
         menu.remove()
-    }
-
-    override fun dispose() {
-        logger.info { "Dispose" }
-        stage.disposeSafely()
-        super.dispose()
     }
 
     companion object {

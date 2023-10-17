@@ -58,7 +58,7 @@ class CameraSystem(
     }
 
     private fun handleCameraZoom(deltaTime: Float) {
-        camera.zoom = MathUtils.clamp(camera.zoom + zoomDelta * deltaTime * ZOOM_SPEED, 0.3f, 5f)
+        camera.zoom = MathUtils.clamp(camera.zoom + zoomDelta * deltaTime * ZOOM_SPEED, 0.5f, 2f)
         zoomDelta = 0f
     }
 

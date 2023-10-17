@@ -58,7 +58,7 @@ class Game : KtxGame<KtxScreen>() {
             Scene2DSkin.defaultSkin = ctx.inject<Skin>()
             bindSingleton(assetManager.get<I18NBundle>("i18n/messages"))
             bindSingleton(this@Game)
-            bindSingleton<Viewport>(FitViewport(16f, 9f, inject<OrthographicCamera>()))
+            bindSingleton<Viewport>(FitViewport(16f * 3, 9f * 3, inject<OrthographicCamera>()))
             bindSingleton(Stage(ScreenViewport()))
             bindSingleton(MainMenuScreen(inject<Game>()))
             bindSingleton(assetManager)

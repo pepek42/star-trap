@@ -49,7 +49,7 @@ class GameEventManager : KtxInputAdapter {
     override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         if (ignoreInput) return false
         when (button) {
-            Input.Buttons.LEFT -> switchFire(true)
+            Input.Buttons.LEFT -> fire(true)
             Input.Buttons.RIGHT -> thrusters(1f)
         }
         aimPoint(screenX, screenY)
@@ -65,7 +65,7 @@ class GameEventManager : KtxInputAdapter {
     override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         if (ignoreInput) return false
         when (button) {
-            Input.Buttons.LEFT -> switchFire(false)
+            Input.Buttons.LEFT -> fire(false)
             Input.Buttons.RIGHT -> thrusters(0f)
         }
         aimPoint(screenX, screenY)
@@ -92,8 +92,8 @@ class GameEventManager : KtxInputAdapter {
         playerInputListeners.forEach { it.movement(thrusters) }
     }
 
-    private fun switchFire(start: Boolean) {
-        playerInputListeners.forEach { it.fire(start) }
+    private fun fire(fire: Boolean) {
+        playerInputListeners.forEach { it.fire(fire) }
     }
 
     private fun block() {

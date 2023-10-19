@@ -20,7 +20,6 @@ class MoveSystem : IteratingSystem(allOf(MoveComponent::class, BodyComponent::cl
         val bodyCmp = entity.bodyCmp
 
         if (!bodyCmp.moveForcesApplied) {
-            // TODO Only once per simulation?
             applyMainThrusters(moveComponent, bodyCmp.body)
             applyTorque(moveComponent, bodyCmp.body)
             bodyCmp.moveForcesApplied = true

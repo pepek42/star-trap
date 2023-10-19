@@ -24,6 +24,7 @@ import com.github.pepek42.asteroids.system.PhysicsSystem
 import com.github.pepek42.asteroids.system.PlayerInputSystem
 import com.github.pepek42.asteroids.system.RemoveSystem
 import com.github.pepek42.asteroids.system.RenderSystem
+import com.github.pepek42.asteroids.system.WeaponSystem
 import com.github.pepek42.asteroids.system.WrapSystem
 import com.github.pepek42.asteroids.ui.Hud
 import ktx.app.KtxScreen
@@ -56,6 +57,7 @@ class PlayScreen(
         val gameEventManager = game.get<GameEventManager>()
         engine.addSystem(PlayerInputSystem(gameEventManager, camera))
         engine.addSystem(MoveSystem())
+        engine.addSystem(WeaponSystem(world, game))
         engine.addSystem(PhysicsSystem(world, engine))
         engine.addSystem(CameraSystem(camera, gameEventManager, mapProvider))
         engine.addSystem(WrapSystem(mapProvider))

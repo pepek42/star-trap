@@ -25,7 +25,6 @@ class PhysicsSystem(
         logger.info { "Init finished" }
     }
 
-    // TODO handle if network multiplayer
     private val maxTimeToProcess = 5 * PHYSICS_UPDATE_INTERVAL
 
     override fun update(deltaTime: Float) {

@@ -5,7 +5,7 @@ interface PlayerInputListener {
 
     fun screenAimPoint(screenX: Int, screenY: Int) = Unit
 
-    fun fire(start: Boolean) = Unit
+    fun fire(fire: Boolean) = Unit
 
     fun block() = Unit
 

@@ -10,13 +10,17 @@ import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
+import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.component.WrapComponent
+import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.ashley.add
 import ktx.ashley.entity
 import ktx.ashley.with
 import ktx.box2d.body
 import ktx.box2d.box
+import ktx.math.vec2
 
 class PlayerEntityFactory(
     private val engine: PooledEngine,
@@ -55,6 +59,15 @@ class PlayerEntityFactory(
                 with<MoveComponent>()
                 with<PlayerComponent>()
                 with<WrapComponent>()
+                with<WeaponComponent> {
+                    ready = true
+                    weaponType = WeaponType.LASER
+                    weaponPosition = vec2(worldUnitsWidth / 2, 0f)
+                    rof = 6f
+                    bulletSpeed = SPEED_OF_LIGHT
+                    bulletDamage = 50f
+                    bulletRadius = 0.1f
+                }
             }
         }
     }

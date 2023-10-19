@@ -12,6 +12,7 @@ import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.moveCmp
+import com.github.pepek42.asteroids.component.weaponCmpOptional
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
@@ -28,6 +29,7 @@ class PlayerInputSystem(
     PlayerInputListener {
     private var thrusters = 0f
     private var screenAimPoint = Vector2(0f, 0f)
+    private var attack = false
 
     override fun addedToEngine(engine: Engine?) {
         super.addedToEngine(engine)
@@ -45,6 +47,8 @@ class PlayerInputSystem(
         moveCmp.thrusters = thrusters
 
         handleAngle(body, moveCmp)
+
+        entity.weaponCmpOptional?.let { it.doAttack = attack }
     }
 
     private inline fun handleAngle(
@@ -80,9 +84,8 @@ class PlayerInputSystem(
         defaultLoggingUtils.tryLogging { logger.debug { "screenAimPoint -> $screenAimPoint" } }
     }
 
-    override fun fire(start: Boolean) {
-        // TODO
-        logger.debug { "Fire $start" }
+    override fun fire(fire: Boolean) {
+        this.attack = fire
     }
 
     override fun block() {

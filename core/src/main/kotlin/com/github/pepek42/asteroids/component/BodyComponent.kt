@@ -13,8 +13,7 @@ class BodyComponent : Component, Pool.Poolable {
     var moveForcesApplied = false
 
     override fun reset() {
-        body.world.destroyBody(body)
-        body.userData = null
+        assert(body.userData == null) { "Body userData should be null from remove component" }
     }
 }
 

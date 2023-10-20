@@ -10,7 +10,7 @@ import ktx.ashley.propertyFor
 class SpriteComponent : Component, Pool.Poolable {
     lateinit var sprite: Sprite
     override fun reset() {
-        sprite.texture.dispose()
+        sprite.texture = null
     }
 }
 

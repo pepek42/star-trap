@@ -67,7 +67,7 @@ class PlayScreen(
             engine.addSystem(DebugSystem(world, engine, camera))
         }
         engine.addSystem(HudSystem(hud))
-        engine.addSystem(RemoveSystem(world))
+        engine.addSystem(RemoveSystem(world, mapProvider))
     }
 
     override fun show() {

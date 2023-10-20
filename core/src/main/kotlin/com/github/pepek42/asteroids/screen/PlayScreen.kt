@@ -16,6 +16,7 @@ import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingU
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.factory.PlayerEntityFactory
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.system.CameraSystem
 import com.github.pepek42.asteroids.system.DebugSystem
 import com.github.pepek42.asteroids.system.HudSystem
@@ -57,7 +58,7 @@ class PlayScreen(
         val gameEventManager = game.get<GameEventManager>()
         engine.addSystem(PlayerInputSystem(gameEventManager, camera))
         engine.addSystem(MoveSystem())
-        engine.addSystem(WeaponSystem(world, game))
+        engine.addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world)))
         engine.addSystem(PhysicsSystem(world, engine))
         engine.addSystem(CameraSystem(camera, gameEventManager, mapProvider))
         engine.addSystem(WrapSystem(mapProvider))

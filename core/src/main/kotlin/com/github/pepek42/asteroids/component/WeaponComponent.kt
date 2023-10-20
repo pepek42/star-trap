@@ -18,7 +18,7 @@ class WeaponComponent(
     var weaponPosition: Vector2 = vec2(0f, 0f),
     var weaponType: WeaponType = WeaponType.LASER,
     var ready: Boolean = true,
-    var rof: Float = 0f,
+    var shotsPerSecond: Float = 0f,
     var cooldown: Float = 0f,
     var bulletSpeed: Float = 0f,
     var bulletDamage: Float = 0f,
@@ -30,7 +30,7 @@ class WeaponComponent(
         weaponPosition.y = 0f
         weaponType = WeaponType.LASER
         ready = true
-        rof = 0f
+        shotsPerSecond = 0f
         cooldown = 0f
         bulletSpeed = 0f
         bulletDamage = 0f

@@ -17,7 +17,6 @@ import ktx.math.vec2
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import org.mockito.Mockito.atMostOnce
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
@@ -73,7 +72,7 @@ class MoveSystemTest {
         moveSystem.update(DELTA_TIME)
 
         // then
-        verify(bodyMock, atMostOnce()).applyForceToCenter(vec2(49.999996f, 86.60255f), true)
+        verify(bodyMock).applyForceToCenter(vec2(49.999996f, 86.60255f), true)
     }
 
     @Test

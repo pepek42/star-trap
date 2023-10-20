@@ -63,7 +63,7 @@ class PlayerEntityFactory(
                     ready = true
                     weaponType = WeaponType.LASER
                     weaponPosition = vec2(worldUnitsWidth / 2, 0f)
-                    rof = 6f
+                    shotsPerSecond = 3f
                     bulletSpeed = SPEED_OF_LIGHT
                     bulletDamage = 50f
                     bulletRadius = 0.1f

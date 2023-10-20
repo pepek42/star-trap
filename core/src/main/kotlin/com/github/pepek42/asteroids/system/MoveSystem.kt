@@ -62,7 +62,7 @@ class MoveSystem : IteratingSystem(allOf(MoveComponent::class, BodyComponent::cl
 
         // TODO separate components
         private const val MAIN_ENGINE_THRUST = 100f
-        private const val ADDITIONAL_ENGINES_TORQUE = 25f
+        private const val ADDITIONAL_ENGINES_TORQUE = 50f
         private const val MAX_ANGULAR_VELOCITY = MathUtils.PI
     }
 }

@@ -3,6 +3,7 @@ package com.github.pepek42.asteroids.provider
 import com.badlogic.ashley.core.Engine
 import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
+import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
@@ -34,7 +35,7 @@ class WeaponProjectileProvider(
 
         engine.entity {
             with<BodyComponent> {
-                body = world.body(com.badlogic.gdx.physics.box2d.BodyDef.BodyType.DynamicBody) {
+                body = world.body(BodyDef.BodyType.KinematicBody) {
                     this.angle = angle
                     this.position.set(position.x, position.y)
                     val velocity = when (weaponCmp.weaponType) {
@@ -54,8 +55,10 @@ class WeaponProjectileProvider(
                         radius = weaponCmp.bulletRadius,
                     ) {
                         density = 0f
+                        isSensor = true
                     }
                 }
+                body.massData
             }
             with<TransformComponent> {
                 prevRotationDeg = angle

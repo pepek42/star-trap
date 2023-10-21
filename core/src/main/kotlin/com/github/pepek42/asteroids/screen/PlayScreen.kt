@@ -13,8 +13,10 @@ import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.IS_DEBUG
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
+import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.factory.PlayerEntityFactory
+import com.github.pepek42.asteroids.provider.EnvironmentProvider
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.system.CameraSystem
@@ -32,6 +34,7 @@ import ktx.app.KtxScreen
 import ktx.assets.disposeSafely
 import ktx.box2d.createWorld
 import ktx.log.logger
+import ktx.math.vec2
 
 class PlayScreen(
     private val game: Game,
@@ -46,12 +49,14 @@ class PlayScreen(
     }
     private val engine = PooledEngine()
     private val playerEntityFactory = PlayerEntityFactory(engine, world, mapProvider)
+    private val environmentProvider = EnvironmentProvider(game.get<TextureAtlas>(), engine, world)
     private val gameState = game.get<GameState>()
 
     init {
         setupEcs()
         mapProvider.loadMap()
         playerEntityFactory.spawnPlayerEntity(textures.createSprite("spaceship/disc_green"))
+        environmentProvider.spawnAsteroid(AsteroidSize.LARGE, vec2(100f, 100f), vec2(7f, 7f), 1f)
     }
 
     private fun setupEcs() {

@@ -5,11 +5,13 @@ import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.component.RemoveComponent
 import com.github.pepek42.asteroids.component.TransformComponent
+import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.bodyMapper
 import com.github.pepek42.asteroids.component.removeMapper
 import com.github.pepek42.asteroids.component.wrapMapper
+import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.provider.MapProvider
 import ktx.ashley.has
 import ktx.ashley.oneOf
@@ -28,7 +30,7 @@ class RemoveSystem(
                 position.y < -mapProvider.mapHeight * REMOVE_BUFFER || position.y > mapProvider.mapHeight * (1 + REMOVE_BUFFER)
             ) {
                 entity.add(RemoveComponent())
-                logger.debug { "Adding remove component to $entity" }
+                defaultLoggingUtils.tryLogging { logger.debug { "Adding remove component to ${entity.baseInfoCmp}" } }
             }
         }
         if (entity.has(removeMapper)) {
@@ -38,7 +40,7 @@ class RemoveSystem(
                 bodyComponent.body.userData = null
             }
             engine.removeEntity(entity)
-            logger.debug { "Entity $entity removed" }
+            defaultLoggingUtils.tryLogging { logger.debug { "${entity.baseInfoCmp} removed" } }
         }
     }
 

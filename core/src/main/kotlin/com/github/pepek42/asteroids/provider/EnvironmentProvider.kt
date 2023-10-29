@@ -5,12 +5,16 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.World
+import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
+import com.github.pepek42.asteroids.component.EntityType
+import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WrapComponent
 import com.github.pepek42.asteroids.environment.ASTEROID_DENSITY
 import com.github.pepek42.asteroids.environment.AsteroidSize
+import com.github.pepek42.asteroids.faction.FactionEnum
 import ktx.ashley.entity
 import ktx.ashley.with
 import ktx.box2d.body
@@ -37,13 +41,21 @@ class EnvironmentProvider(
                     this.angularVelocity = angularSpeed
                     circle(radius = size.radius) {
                         density = ASTEROID_DENSITY
+                        filter.maskBits = FactionEnum.NEUTRAL.entityMaskBit
+                        filter.categoryBits = FactionEnum.NEUTRAL.categoryBits
                     }
+                    userData = this@entity.entity
                 }
             }
             with<TransformComponent> {
                 prevPosition.set(position)
             }
             with<WrapComponent>()
+            with<BaseInfoComponent> {
+                faction = FactionEnum.NEUTRAL
+                entityType = EntityType.ASTEROID
+            }
+            with<HealthComponent> { health = 150f }
         }
     }
 }

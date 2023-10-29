@@ -20,9 +20,9 @@ class WeaponComponent(
     var ready: Boolean = true,
     var shotsPerSecond: Float = 0f,
     var cooldown: Float = 0f,
-    var bulletSpeed: Float = 0f,
-    var bulletDamage: Float = 0f,
-    var bulletRadius: Float = 0f,
+    var projectileSpeed: Float = 0f,
+    var projectileDamage: Float = 0f,
+    var projectileRadius: Float = 0f,
 ) : Component, Pool.Poolable {
     override fun reset() {
         doAttack = false
@@ -32,9 +32,9 @@ class WeaponComponent(
         ready = true
         shotsPerSecond = 0f
         cooldown = 0f
-        bulletSpeed = 0f
-        bulletDamage = 0f
-        bulletRadius = 0f
+        projectileSpeed = 0f
+        projectileDamage = 0f
+        projectileRadius = 0f
     }
 }
 

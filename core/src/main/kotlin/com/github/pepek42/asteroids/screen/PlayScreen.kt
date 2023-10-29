@@ -15,11 +15,12 @@ import com.github.pepek42.asteroids.IS_DEBUG
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.event.GameEventManager
-import com.github.pepek42.asteroids.factory.PlayerEntityFactory
 import com.github.pepek42.asteroids.provider.EnvironmentProvider
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.system.CameraSystem
+import com.github.pepek42.asteroids.system.ContactSystem
 import com.github.pepek42.asteroids.system.DebugSystem
 import com.github.pepek42.asteroids.system.HudSystem
 import com.github.pepek42.asteroids.system.MoveSystem
@@ -48,14 +49,14 @@ class PlayScreen(
         autoClearForces = false
     }
     private val engine = PooledEngine()
-    private val playerEntityFactory = PlayerEntityFactory(engine, world, mapProvider)
+    private val playerEntityProvider = PlayerEntityProvider(engine, world, mapProvider)
     private val environmentProvider = EnvironmentProvider(game.get<TextureAtlas>(), engine, world)
     private val gameState = game.get<GameState>()
 
     init {
         setupEcs()
         mapProvider.loadMap()
-        playerEntityFactory.spawnPlayerEntity(textures.createSprite("spaceship/disc_green"))
+        playerEntityProvider.spawnPlayerEntity(textures.createSprite("spaceship/disc_green"))
         environmentProvider.spawnAsteroid(AsteroidSize.LARGE, vec2(100f, 100f), vec2(7f, 7f), 1f)
     }
 
@@ -64,6 +65,7 @@ class PlayScreen(
         engine.addSystem(PlayerInputSystem(gameEventManager, camera))
         engine.addSystem(MoveSystem())
         engine.addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world)))
+        engine.addSystem(ContactSystem(world))
         engine.addSystem(PhysicsSystem(world, engine))
         engine.addSystem(CameraSystem(camera, gameEventManager, mapProvider))
         engine.addSystem(WrapSystem(mapProvider))

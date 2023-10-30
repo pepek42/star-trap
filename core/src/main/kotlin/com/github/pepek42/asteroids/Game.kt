@@ -18,6 +18,7 @@ import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.provider.BackgroundProvider
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.screen.LevelClearedScreen
 import com.github.pepek42.asteroids.screen.MainMenuScreen
 import com.github.pepek42.asteroids.screen.PlayScreen
 import ktx.app.KtxGame
@@ -64,22 +65,29 @@ class Game : KtxGame<KtxScreen>() {
             bindSingleton(assetManager)
             bindSingleton(MapProvider(inject<GameEventManager>()))
             bindSingleton(BackgroundProvider(inject<SpriteBatch>(), inject<GameEventManager>(), inject<TextureAtlas>()))
-            bindSingleton(PlayScreen(inject<Game>(), inject<TextureAtlas>()))
+            bindSingleton(PlayScreen(inject<Game>()))
+            bindSingleton(LevelClearedScreen(inject<Game>()))
         }
         Gdx.input.inputProcessor = InputMultiplexer(ctx.inject<GameEventManager>(), ctx.inject<Stage>())
 
         addScreen(ctx.inject<MainMenuScreen>())
         addScreen(ctx.inject<PlayScreen>())
+        addScreen(ctx.inject<LevelClearedScreen>())
 
         Gdx.graphics.setTitle(TITLE)
         logger.info { "Finished setup" }
         setScreen<MainMenuScreen>()
     }
 
+    fun finishLevel() {
+        setScreen<LevelClearedScreen>()
+    }
+
     inline fun <reified Type : Any> get(): Type = ctx.inject<Type>()
 
     override fun dispose() {
         logger.info { "Dispose" }
+        removeScreen<LevelClearedScreen>()
         removeScreen<PlayScreen>()
         removeScreen<MainMenuScreen>()
         ctx.remove<Game>()

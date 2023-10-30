@@ -3,8 +3,8 @@ package com.github.pepek42.asteroids.provider
 import com.github.pepek42.asteroids.event.GameEventManager
 import ktx.math.vec2
 
-private const val MAP_WIDTH = 250f
-private const val MAP_HEIGHT = 250f
+private const val MAP_WIDTH = 100f
+private const val MAP_HEIGHT = 100f
 
 class MapProvider(
     private val gameEventManager: GameEventManager,

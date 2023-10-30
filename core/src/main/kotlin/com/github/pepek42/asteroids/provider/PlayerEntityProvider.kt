@@ -1,7 +1,7 @@
 package com.github.pepek42.asteroids.provider
 
 import com.badlogic.ashley.core.PooledEngine
-import com.badlogic.gdx.graphics.g2d.Sprite
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.UNIT_SCALE
@@ -29,8 +29,10 @@ class PlayerEntityProvider(
     private val engine: PooledEngine,
     private val world: World,
     private val mapProvider: MapProvider,
+    private val textureAtlas: TextureAtlas,
 ) {
-    fun spawnPlayerEntity(playerSprite: Sprite) {
+    fun spawnPlayerEntity() {
+        val playerSprite = textureAtlas.createSprite("spaceship/disc_green")
         val worldUnitsWidth = playerSprite.width / UNIT_SCALE
         val worldUnitsHeight = playerSprite.height / UNIT_SCALE
 

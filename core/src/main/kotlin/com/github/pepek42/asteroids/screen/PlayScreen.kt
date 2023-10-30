@@ -15,13 +15,15 @@ import com.github.pepek42.asteroids.IS_DEBUG
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.event.GameEventManager
-import com.github.pepek42.asteroids.provider.EnvironmentProvider
+import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.system.CameraSystem
 import com.github.pepek42.asteroids.system.ContactSystem
+import com.github.pepek42.asteroids.system.DeathSystem
 import com.github.pepek42.asteroids.system.DebugSystem
+import com.github.pepek42.asteroids.system.EndLevelSystem
 import com.github.pepek42.asteroids.system.HudSystem
 import com.github.pepek42.asteroids.system.MoveSystem
 import com.github.pepek42.asteroids.system.PhysicsSystem
@@ -32,6 +34,7 @@ import com.github.pepek42.asteroids.system.WeaponSystem
 import com.github.pepek42.asteroids.system.WrapSystem
 import com.github.pepek42.asteroids.ui.Hud
 import ktx.app.KtxScreen
+import ktx.ashley.add
 import ktx.assets.disposeSafely
 import ktx.box2d.createWorld
 import ktx.log.logger
@@ -39,7 +42,6 @@ import ktx.math.vec2
 
 class PlayScreen(
     private val game: Game,
-    textures: TextureAtlas
 ) : KtxScreen {
     private val hud = Hud(game)
     private val mapProvider = game.get<MapProvider>()
@@ -49,38 +51,42 @@ class PlayScreen(
         autoClearForces = false
     }
     private val engine = PooledEngine()
-    private val playerEntityProvider = PlayerEntityProvider(engine, world, mapProvider)
-    private val environmentProvider = EnvironmentProvider(game.get<TextureAtlas>(), engine, world)
+    private val playerEntityProvider = PlayerEntityProvider(engine, world, mapProvider, game.get<TextureAtlas>())
+    private val asteroidProvider = AsteroidProvider(game.get<TextureAtlas>(), engine, world)
     private val gameState = game.get<GameState>()
 
     init {
         setupEcs()
-        mapProvider.loadMap()
-        playerEntityProvider.spawnPlayerEntity(textures.createSprite("spaceship/disc_green"))
-        environmentProvider.spawnAsteroid(AsteroidSize.LARGE, vec2(100f, 100f), vec2(7f, 7f), 1f)
     }
 
     private fun setupEcs() {
         val gameEventManager = game.get<GameEventManager>()
-        engine.addSystem(PlayerInputSystem(gameEventManager, camera))
-        engine.addSystem(MoveSystem())
-        engine.addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world)))
-        engine.addSystem(ContactSystem(world))
-        engine.addSystem(PhysicsSystem(world, engine))
-        engine.addSystem(CameraSystem(camera, gameEventManager, mapProvider))
-        engine.addSystem(WrapSystem(mapProvider))
-        engine.addSystem(RenderSystem(game, game.get<SpriteBatch>(), viewport))
-        if (IS_DEBUG) {
-            engine.addSystem(DebugSystem(world, engine, camera))
+        engine.add {
+            addSystem(EndLevelSystem(game))
+            addSystem(PlayerInputSystem(gameEventManager, camera))
+            addSystem(MoveSystem())
+            addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world)))
+            addSystem(ContactSystem(world))
+            addSystem(PhysicsSystem(world, engine))
+            addSystem(CameraSystem(camera, gameEventManager, mapProvider))
+            addSystem(WrapSystem(mapProvider))
+            addSystem(RenderSystem(game, game.get<SpriteBatch>(), viewport))
+            if (IS_DEBUG) {
+                engine.addSystem(DebugSystem(world, engine, camera))
+            }
+            addSystem(HudSystem(hud))
+            addSystem(DeathSystem(engine, asteroidProvider))
+            addSystem(RemoveSystem(world, mapProvider))
         }
-        engine.addSystem(HudSystem(hud))
-        engine.addSystem(RemoveSystem(world, mapProvider))
     }
 
     override fun show() {
         super.show()
+        mapProvider.loadMap()
+        playerEntityProvider.spawnPlayerEntity()
+        asteroidProvider.spawnAsteroid(AsteroidSize.LARGE, vec2(100f, 100f), vec2(7f, 7f), 1f)
         hud.toggleHud(show = true)
-        hud.updateLevel(gameState.level) // TODO increase on win
+        hud.updateLevel(gameState.level)
         Gdx.graphics.setSystemCursor(SystemCursor.Crosshair)
         game.get<GameEventManager>().enablePlayerInputs()
     }
@@ -101,6 +107,7 @@ class PlayScreen(
     override fun hide() {
         Gdx.graphics.setSystemCursor(SystemCursor.Arrow)
         hud.toggleHud(show = false)
+        // TODO Clear ECS and Box2d
         super.hide()
     }
 

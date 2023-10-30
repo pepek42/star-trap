@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.World
+import com.github.pepek42.asteroids.component.AsteroidComponent
 import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.EntityType
@@ -20,7 +21,7 @@ import ktx.ashley.with
 import ktx.box2d.body
 import ktx.box2d.circle
 
-class EnvironmentProvider(
+class AsteroidProvider(
     private val textureAtlas: TextureAtlas,
     private val engine: Engine,
     private val world: World,
@@ -56,6 +57,7 @@ class EnvironmentProvider(
                 entityType = EntityType.ASTEROID
             }
             with<HealthComponent> { health = 150f }
+            with<AsteroidComponent> { asteroidSize = size }
         }
     }
 }

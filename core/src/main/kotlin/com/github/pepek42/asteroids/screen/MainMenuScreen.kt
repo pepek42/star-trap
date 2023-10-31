@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.I18NBundle
 import com.github.pepek42.asteroids.Game
+import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.event.GameEventManager
 import ktx.actors.onClick
 import ktx.app.KtxScreen
@@ -20,6 +21,7 @@ import ktx.scene2d.verticalGroup
 class MainMenuScreen(private val game: Game) : KtxScreen {
     private val i18n = game.get<I18NBundle>()
     private val stage = game.get<Stage>()
+    private val gameState = game.get<GameState>()
     private val menu: Actor = scene2d.verticalGroup {
         setFillParent(true)
         align(Align.center)
@@ -27,6 +29,7 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         touchable = Touchable.enabled
         textButton(i18n["menu_single_player"]) {
             onClick {
+                gameState.resetGame()
                 game.setScreen<PlayScreen>()
             }
         }

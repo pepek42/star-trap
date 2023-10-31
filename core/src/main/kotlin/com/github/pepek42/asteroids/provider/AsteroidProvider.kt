@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.provider
 
 import com.badlogic.ashley.core.Engine
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.World
@@ -20,6 +21,11 @@ import ktx.ashley.entity
 import ktx.ashley.with
 import ktx.box2d.body
 import ktx.box2d.circle
+import ktx.math.plus
+import ktx.math.vec2
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.random.Random
 
 class AsteroidProvider(
     private val textureAtlas: TextureAtlas,
@@ -30,7 +36,7 @@ class AsteroidProvider(
         engine.entity {
             with<SpriteComponent> {
                 val sprite = textureAtlas.createSprite(size.textureRegionName)
-                sprite.setSize(size.radius, size.radius)
+                sprite.setSize(size.radius * 2, size.radius * 2)
                 sprite.setOriginCenter()
                 this.sprite = sprite
             }
@@ -58,6 +64,23 @@ class AsteroidProvider(
             }
             with<HealthComponent> { health = 150f }
             with<AsteroidComponent> { asteroidSize = size }
+        }
+    }
+
+    fun spawnAsteroids(level: Int, mapProvider: MapProvider) {
+        val maxAsteroids = 3 + level.toDouble().pow(2).toInt()
+        val center = vec2(mapProvider.mapWidth / 2f, mapProvider.mapHeight / 2f)
+        val radius = min(center.x, center.y)
+        val step = MathUtils.PI2 / maxAsteroids
+        for (i in 0 until maxAsteroids) {
+            val angle = step * i * Random.nextDouble(0.9, 1.1).toFloat()
+            val positionShift = vec2(radius * 0.85f, 0f).rotateRad(angle)
+            spawnAsteroid(
+                size = AsteroidSize.LARGE,
+                position = center + positionShift,
+                velocity = vec2(Random.nextDouble(-10.0, 10.0).toFloat(), Random.nextDouble(-10.0, 10.0).toFloat()),
+                angularSpeed = Random.nextFloat() * 3f,
+            )
         }
     }
 }

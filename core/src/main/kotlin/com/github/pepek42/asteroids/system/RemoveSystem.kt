@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.system
 
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.component.RemoveComponent
 import com.github.pepek42.asteroids.component.TransformComponent
@@ -22,19 +23,13 @@ class RemoveSystem(
     private val mapProvider: MapProvider,
 ) : IteratingSystem(oneOf(RemoveComponent::class, TransformComponent::class).get()) {
     override fun processEntity(entity: Entity, deltaTime: Float) {
-
         if (entity.has(bodyMapper) && !entity.has(wrapMapper) && !entity.has(removeMapper)) {
-            val position = entity.bodyCmp.body.position
-
-            if (position.x < -mapProvider.mapWidth * REMOVE_BUFFER || position.x > mapProvider.mapWidth * (1 + REMOVE_BUFFER) ||
-                position.y < -mapProvider.mapHeight * REMOVE_BUFFER || position.y > mapProvider.mapHeight * (1 + REMOVE_BUFFER)
-            ) {
+            if (isOutOfBounds(entity.bodyCmp.body.position)) {
                 entity.add(RemoveComponent())
                 defaultLoggingUtils.tryLogging { logger.debug { "Adding remove component to ${entity.baseInfoCmp}" } }
             }
         }
         if (entity.has(removeMapper)) {
-
             entity.bodyCmpOptional?.let { bodyComponent ->
                 world.destroyBody(bodyComponent.body)
                 bodyComponent.body.userData = null
@@ -44,8 +39,14 @@ class RemoveSystem(
         }
     }
 
+    private fun isOutOfBounds(position: Vector2) =
+        position.x < -mapProvider.mapWidth * REMOVE_BUFFER_MULTIPLAYER
+            || position.x > mapProvider.mapWidth * (1 + REMOVE_BUFFER_MULTIPLAYER)
+            || position.y < -mapProvider.mapHeight * REMOVE_BUFFER_MULTIPLAYER
+            || position.y > mapProvider.mapHeight * (1 + REMOVE_BUFFER_MULTIPLAYER)
+
     companion object {
         private val logger = logger<RemoveSystem>()
-        private const val REMOVE_BUFFER = 0.05f
+        private const val REMOVE_BUFFER_MULTIPLAYER = 0.05f
     }
 }

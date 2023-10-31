@@ -13,7 +13,6 @@ import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.IS_DEBUG
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
-import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -38,7 +37,6 @@ import ktx.ashley.add
 import ktx.assets.disposeSafely
 import ktx.box2d.createWorld
 import ktx.log.logger
-import ktx.math.vec2
 
 class PlayScreen(
     private val game: Game,
@@ -82,9 +80,10 @@ class PlayScreen(
 
     override fun show() {
         super.show()
+        gameState.nextLevel()
         mapProvider.loadMap()
         playerEntityProvider.spawnPlayerEntity()
-        asteroidProvider.spawnAsteroid(AsteroidSize.LARGE, vec2(100f, 100f), vec2(7f, 7f), 1f)
+        asteroidProvider.spawnAsteroids(gameState.level, mapProvider)
         hud.toggleHud(show = true)
         hud.updateLevel(gameState.level)
         Gdx.graphics.setSystemCursor(SystemCursor.Crosshair)

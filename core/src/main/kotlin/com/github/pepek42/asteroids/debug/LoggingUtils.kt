@@ -33,7 +33,7 @@ class LoggingUtils(
 
 
     companion object {
-        private const val DEFAULT_LOG_INTERVAL_SECONDS = 5f
+        private const val DEFAULT_LOG_INTERVAL_SECONDS = 30f
         val defaultLoggingUtils = LoggingUtils()
     }
 }

@@ -1,6 +1,8 @@
 package com.github.pepek42.asteroids.screen
 
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
+import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
@@ -29,6 +31,7 @@ class LevelClearedScreen(
         onClick { game.setScreen<PlayScreen>() }
     }
     private val gameEventManager = game.get<GameEventManager>()
+    private lateinit var actionsSeq: SequenceAction
 
     init {
         table.setFillParent(true)
@@ -47,8 +50,16 @@ class LevelClearedScreen(
     }
 
     override fun show() {
-        centerLabel.isVisible = false
         centerLabel.setText(i18NBundle.format("level_cleared_message", gameState.level))
+        centerLabel.clearActions()
+        actionsSeq = Actions.sequence(
+            Actions.show(),
+            Actions.alpha(1f),
+            Actions.delay(3f),
+            Actions.fadeOut(2f),
+            Actions.hide(),
+        )
+        centerLabel.addAction(actionsSeq)
         gameEventManager.ignorePlayerInputs()
         stage += table
     }
@@ -60,8 +71,11 @@ class LevelClearedScreen(
 
     override fun render(delta: Float) {
         clearScreen(red = 0f, green = 0f, blue = 0f)
-        stage.act()
-        stage.draw()
+        stage.run {
+            viewport.apply()
+            act()
+            draw()
+        }
     }
 
     override fun hide() {

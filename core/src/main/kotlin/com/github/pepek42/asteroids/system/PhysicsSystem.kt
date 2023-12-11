@@ -83,7 +83,7 @@ class PhysicsSystem(
 
     companion object {
         private val logger = logger<PhysicsSystem>()
-        private const val PHYSICS_UPDATE_INTERVAL = 1f / 45
+        const val PHYSICS_UPDATE_INTERVAL = 1f / 45
     }
 
 }

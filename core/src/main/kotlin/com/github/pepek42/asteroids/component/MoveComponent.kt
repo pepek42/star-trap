@@ -10,13 +10,13 @@ class MoveComponent(
     /** From -1 (opposite direction thruster) to 1 (max main thrusters). */
     var thrusters: Float = 0f,
     /**
-     * Between -1 and 1. -1 means rotate half a circle clock wise, 1 means half a circle rotation counter-clock wise.
+     * Between -PI and PI. -PI means rotate half a circle clock wise, PI means half a circle rotation counter-clock wise.
      */
-    var rotationNormalised: Float = 0f,
+    var rotationRequired: Float = 0f,
 ) : Component, Pool.Poolable {
     override fun reset() {
         thrusters = 0f
-        rotationNormalised = 0f
+        rotationRequired = 0f
     }
 }
 

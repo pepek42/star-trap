@@ -62,14 +62,13 @@ class PlayerInputSystem(
             .angleRad() // angle between x-axis and the aim vector
         val currentAngle = body.angle
         val angleDiff = targetAngle - currentAngle
-        moveCmp.rotationNormalised = ((angleDiff - MathUtils.PI) % MathUtils.PI2 + MathUtils.PI) / MathUtils.PI
+        moveCmp.rotationRequired = (angleDiff - MathUtils.PI) % MathUtils.PI2 + MathUtils.PI
         defaultLoggingUtils.tryLogging {
             logger.debug {
                 """
-
                     target angle         -> ${targetAngle * MathUtils.radiansToDegrees}
                     from angle           -> ${currentAngle * MathUtils.radiansToDegrees}
-                    rotation normalised  -> ${moveCmp.rotationNormalised}
+                    rotation required    -> ${moveCmp.rotationRequired}
                 """.trimIndent()
             }
         }

@@ -1,4 +1,4 @@
-# Star Trap
+# star-trap
 
 A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/tommyettinger/gdx-liftoff).
 
@@ -8,7 +8,6 @@ This project was generated with a Kotlin project template that includes Kotlin a
 
 - `core`: Main module with the application logic shared by all platforms.
 - `lwjgl3`: Primary desktop platform using LWJGL3.
-- `headless`: Desktop platform without a graphical interface.
 - `teavm`: Experimental web platform using TeaVM and WebGL.
 
 ## Gradle
@@ -22,11 +21,12 @@ Useful Gradle tasks and flags:
 - `--offline`: when using this flag, cached dependency archives will be used.
 - `--refresh-dependencies`: this flag forces validation of all dependencies. Useful for snapshot versions.
 - `build`: builds sources and archives of every project.
+- `cleanEclipse`: removes Eclipse project data.
 - `cleanIdea`: removes IntelliJ project data.
 - `clean`: removes `build` folders, which store compiled classes and built archives.
-- `headless:run`: starts the headless application. Note: if headless sources were not modified - and the application still creates `ApplicationListener` from `core` project - this task might fail due to no graphics support.
+- `eclipse`: generates Eclipse project data.
 - `idea`: generates IntelliJ project data.
-- `lwjgl3:jar`: builds application's runnable jar, which can be found at `lwjgl3/build/libs`.
+- `lwjgl3:jar`: builds application's runnable jar, which can be found at `lwjgl3/build/lib`.
 - `lwjgl3:run`: starts the application.
 - `teavm:build`: builds the JavaScript application into the build/dist/webapp folder.
 - `teavm:run`: serves the JavaScript application at http://localhost:8080 via a local Jetty server.

@@ -1,1 +1,1 @@
-include 'lwjgl3', 'headless', 'teavm', 'core'
+include 'lwjgl3', 'teavm', 'core'

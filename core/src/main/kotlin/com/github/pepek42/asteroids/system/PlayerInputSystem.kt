@@ -51,27 +51,32 @@ class PlayerInputSystem(
         entity.weaponCmpOptional?.let { it.doAttack = attack }
     }
 
-    private inline fun handleAngle(
+    private fun handleAngle(
         body: Body,
         moveCmp: MoveComponent
     ) {
-        val targetAngle = screenAimPoint
-            .run { camera.unproject(vec3(x, y)) } // screen to game coordinates
-            .run { vec2(x, y) } // aim point in game coordinates
-            .minus(body.position) // vector from player position to aim point
-            .angleRad() // angle between x-axis and the aim vector
-        val currentAngle = body.angle
-        val angleDiff = targetAngle - currentAngle
+        val targetAngleRad = getTargetAngleRad(body)
+        val currentAngleRads = body.angle + MathUtils.PI
+        val angleDiff = targetAngleRad - currentAngleRads
         moveCmp.rotationRequired = (angleDiff - MathUtils.PI) % MathUtils.PI2 + MathUtils.PI
         defaultLoggingUtils.tryLogging {
             logger.debug {
                 """
-                    target angle         -> ${targetAngle * MathUtils.radiansToDegrees}
-                    from angle           -> ${currentAngle * MathUtils.radiansToDegrees}
-                    rotation required    -> ${moveCmp.rotationRequired}
+                    target angle deg        -> ${targetAngleRad * MathUtils.radiansToDegrees}
+                    from angle deg          -> ${currentAngleRads * MathUtils.radiansToDegrees}
+                    rotation required deg   -> ${moveCmp.rotationRequired * MathUtils.radiansToDegrees}
                 """.trimIndent()
             }
         }
+    }
+
+    private fun getTargetAngleRad(body: Body): Float {
+        val gameAimPoint = screenAimPoint
+            .run { camera.unproject(vec3(x, y)) }
+            .run { vec2(x, y) }
+        val aimVector = gameAimPoint.minus(body.position)
+        return aimVector.angleRad() + MathUtils.PI
+
     }
 
     override fun movement(thrusters: Float) {

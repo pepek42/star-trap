@@ -24,6 +24,7 @@ import com.github.pepek42.asteroids.system.DeathSystem
 import com.github.pepek42.asteroids.system.DebugSystem
 import com.github.pepek42.asteroids.system.EndLevelSystem
 import com.github.pepek42.asteroids.system.HudSystem
+import com.github.pepek42.asteroids.system.MinimapSystem
 import com.github.pepek42.asteroids.system.MoveSystem
 import com.github.pepek42.asteroids.system.PhysicsSystem
 import com.github.pepek42.asteroids.system.PlayerInputSystem
@@ -32,6 +33,7 @@ import com.github.pepek42.asteroids.system.RenderSystem
 import com.github.pepek42.asteroids.system.WeaponSystem
 import com.github.pepek42.asteroids.system.WrapSystem
 import com.github.pepek42.asteroids.ui.Hud
+import com.github.pepek42.asteroids.ui.MinimapViewport
 import ktx.app.KtxScreen
 import ktx.ashley.add
 import ktx.assets.disposeSafely
@@ -52,6 +54,7 @@ class PlayScreen(
     private val playerEntityProvider = PlayerEntityProvider(engine, world, mapProvider, game.get<TextureAtlas>())
     private val asteroidProvider = AsteroidProvider(game.get<TextureAtlas>(), engine, world)
     private val gameState = game.get<GameState>()
+    private val minimapViewport = MinimapViewport()
 
     init {
         setupEcs()
@@ -59,6 +62,7 @@ class PlayScreen(
 
     private fun setupEcs() {
         val gameEventManager = game.get<GameEventManager>()
+        val spriteBatch = game.get<SpriteBatch>()
         engine.add {
             addSystem(EndLevelSystem(game))
             addSystem(PlayerInputSystem(gameEventManager, camera))
@@ -68,11 +72,12 @@ class PlayScreen(
             addSystem(PhysicsSystem(world, engine))
             addSystem(CameraSystem(camera, gameEventManager, mapProvider))
             addSystem(WrapSystem(mapProvider))
-            addSystem(RenderSystem(game, game.get<SpriteBatch>(), viewport))
+            addSystem(RenderSystem(game, spriteBatch, viewport))
             if (IS_DEBUG) {
                 engine.addSystem(DebugSystem(world, engine, camera))
             }
             addSystem(HudSystem(hud))
+            addSystem(MinimapSystem(spriteBatch, minimapViewport))
             addSystem(DeathSystem(engine, asteroidProvider))
             addSystem(RemoveSystem(world, mapProvider))
         }
@@ -101,6 +106,7 @@ class PlayScreen(
         logger.info { "Resize event $width x $height" }
         viewport.update(width, height)
         hud.resize(width, height)
+        minimapViewport.updateViewportSize(width, height)
     }
 
     override fun hide() {

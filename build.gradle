@@ -17,6 +17,14 @@ buildscript {
 allprojects {
   apply plugin: 'eclipse'
   apply plugin: 'idea'
+
+  // This allows you to "Build and run using IntelliJ IDEA", an option in IDEA's Settings.
+  idea {
+    module {
+      outputDir file('build/classes/java/main')
+      testOutputDir file('build/classes/java/test')
+    }
+  }
 }
 
 configure(subprojects) {
@@ -43,13 +51,8 @@ configure(subprojects) {
       assetsFile.append(it + "\n")
     }
   }
-  compileKotlin {
-    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-  }
+  compileKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
 
-  kotlin {
-    jvmToolchain(17)
-  }
 }
 
 subprojects {

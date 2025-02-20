@@ -13,7 +13,6 @@ import ktx.log.logger
 
 class EndLevelSystem(
     private val game: Game,
-    // TODO Add enemy ships
     private val family: Family = oneOf(AsteroidComponent::class).get(),
 ) : EntitySystem() {
     private val gameState = game.get<GameState>()

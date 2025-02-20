@@ -5,9 +5,8 @@ enum class AsteroidSize(
     val nextSize: AsteroidSize?,
     val textureRegionName: String,
 ) {
-    SMALL(0.45f, null, "asteroid_big"),
-    MEDIUM(1f, SMALL, "asteroid_mid"),
-    LARGE(2.25f, MEDIUM, "asteroid_small"),
+    SMALL(1f, null, "asteroid_big"),
+    LARGE(2.25f, SMALL, "asteroid_big"),
 }
 
 const val ASTEROID_DENSITY = 10f

@@ -21,26 +21,22 @@ class MinimapSystem(
 
     override fun update(deltaTime: Float) {
         minimapViewport.apply()
-        batch.use(minimapViewport.camera) {
-            super.update(deltaTime)
-        }
+        batch.use(minimapViewport.camera) { super.update(deltaTime) }
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val baseInfo = entity.baseInfoCmp
-        val entityType = baseInfo.entityType
-        val faction = baseInfo.faction
 
-        val size: Float = when (entityType) {
+        val size: Float = when (baseInfo.entityType) {
             EntityType.SHIP -> 3f
             EntityType.ASTEROID -> 2f
             EntityType.PROJECTILE -> 1.25f
-            else -> 0f
+            EntityType.UNKNOWN -> 0f
         }
 
-        val transformComp = entity.transformCmp
         shape.begin(ShapeRenderer.ShapeType.Filled)
-        shape.color = faction.color
+        shape.color = baseInfo.faction.color
+        val transformComp = entity.transformCmp
         shape.circle(
             transformComp.interpolatedPosition.x,
             transformComp.interpolatedPosition.y,

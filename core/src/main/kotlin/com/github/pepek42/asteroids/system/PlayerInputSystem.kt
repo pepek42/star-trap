@@ -94,7 +94,7 @@ class PlayerInputSystem(
 
     override fun block() {
         // TODO
-        logger.debug { "Block" }
+        logger.debug { "Using shields!" }
     }
 
     companion object {

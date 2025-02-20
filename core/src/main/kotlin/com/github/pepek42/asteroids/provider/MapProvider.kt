@@ -22,7 +22,6 @@ class MapProvider(
 
     fun playerSpawnLocation() = vec2(mapWidth / 2, mapHeight / 2)
 
-    // TODO JSON map format
     fun loadMap() {
         gameEventManager.newMap(mapWidth, mapHeight)
     }

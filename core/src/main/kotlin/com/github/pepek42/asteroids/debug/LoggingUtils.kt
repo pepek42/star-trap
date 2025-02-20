@@ -8,7 +8,7 @@ import com.github.pepek42.asteroids.IS_DEBUG
 class LoggingUtils(
     private val logTimeIntervalSeconds: Float = DEFAULT_LOG_INTERVAL_SECONDS
 ) {
-    private var logEnabled = false
+    private var logEnabled = true
     private var accumulatorSeconds = 0f
 
     /**

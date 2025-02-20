@@ -55,7 +55,6 @@ class Hud(
         }
     }
 
-    // TODO Minimap
     fun updateAndRender(deltaTime: Float) {
         stage.run {
             viewport.apply()

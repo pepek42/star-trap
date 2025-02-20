@@ -68,7 +68,7 @@ class AsteroidProvider(
     }
 
     fun spawnAsteroids(level: Int, mapProvider: MapProvider) {
-        val maxAsteroids = 3 + level.toDouble().pow(2).toInt()
+        val maxAsteroids = 1 + level.toDouble().pow(2).toInt()
         val center = vec2(mapProvider.mapWidth / 2f, mapProvider.mapHeight / 2f)
         val radius = min(center.x, center.y)
         val step = MathUtils.PI2 / maxAsteroids

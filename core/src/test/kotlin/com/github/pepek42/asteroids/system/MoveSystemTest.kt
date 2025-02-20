@@ -44,8 +44,8 @@ class MoveSystemTest {
 
     @ParameterizedTest
     @CsvSource(
-        "1,49.999996,86.60255",
-        "0.5,24.999998,43.301273",
+        "1,149.99998,259.80765",
+        "0.5,74.99999,129.90382",
     )
     fun thrustersShouldWork(thrusters: Float, expectedForceX: Float, expectedForceY: Float) {
         // given
@@ -72,7 +72,7 @@ class MoveSystemTest {
         moveSystem.update(DELTA_TIME)
 
         // then
-        verify(bodyMock).applyForceToCenter(vec2(49.999996f, 86.60255f), true)
+        verify(bodyMock).applyForceToCenter(vec2(149.99998f, 259.80765f), true)
     }
 
     @Test

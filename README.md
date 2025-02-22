@@ -22,6 +22,7 @@ Left mouse button to shoot, right to use thrusters. Mouse wheel to zoom in and o
 
 * Speed of light mechanics to limit ship speed, black holes, realistic physics
 * Rouge like progression
+* Instead of teleport make force field around play arena to smooth out experience
 
 ## Third party assets used
 

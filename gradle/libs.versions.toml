@@ -1,0 +1,72 @@
+[versions]
+jvmToolchainVersion = "25"
+kotlinVersion = "2.4.21"
+gdxVersion = "1.14.2"
+ktxVersion = "1.14.2-rc2"
+ashleyVersion = "1.7.4"
+gdxAiVersion = "1.8.2"
+gdxTeaVmVersion = "1.6.2"
+construoVersion = "2.2.3"
+gdxControllersVersion = "2.2.4"
+junitVersion = "6.1.3"
+mockitoKotlinVersion = "6.4.0"
+
+[libraries]
+kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinVersion" }
+#gdx base
+gdx = { module = "com.badlogicgames.gdx:gdx", version.ref = "gdxVersion" }
+gdxBackendLwjgl3 = { module = "com.badlogicgames.gdx:gdx-backend-lwjgl3", version.ref = "gdxVersion" }
+gdxPlatform = { module = "com.badlogicgames.gdx:gdx-platform", version.ref = "gdxVersion" }
+gdxTools = { module = "com.badlogicgames.gdx:gdx-tools", version.ref = "gdxVersion" }
+# ktx base
+ktxActors = { module = "io.github.quillraven.libktx:ktx-actors", version.ref = "ktxVersion" }
+ktxApp = { module = "io.github.quillraven.libktx:ktx-app", version.ref = "ktxVersion" }
+ktxAssets = { module = "io.github.quillraven.libktx:ktx-assets", version.ref = "ktxVersion" }
+ktxCollections = { module = "io.github.quillraven.libktx:ktx-collections", version.ref = "ktxVersion" }
+ktxGraphics = { module = "io.github.quillraven.libktx:ktx-graphics", version.ref = "ktxVersion" }
+ktxInject = { module = "io.github.quillraven.libktx:ktx-inject", version.ref = "ktxVersion" }
+ktxLog = { module = "io.github.quillraven.libktx:ktx-log", version.ref = "ktxVersion" }
+ktxMath = { module = "io.github.quillraven.libktx:ktx-math", version.ref = "ktxVersion" }
+ktxScene2d = { module = "io.github.quillraven.libktx:ktx-scene2d", version.ref = "ktxVersion" }
+# box2d
+gdxBox2dPlatform = { module = "com.badlogicgames.gdx:gdx-box2d-platform", version.ref = "gdxVersion" }
+gdxBox2d = { module = "com.badlogicgames.gdx:gdx-box2d", version.ref = "gdxVersion" }
+ktxBox2d = { module = "io.github.quillraven.libktx:ktx-box2d", version.ref = "ktxVersion" }
+# freetype
+gdxFreetypePlatform = { module = "com.badlogicgames.gdx:gdx-freetype-platform", version.ref = "gdxVersion" }
+gdxFreetype = { module = "com.badlogicgames.gdx:gdx-freetype", version.ref = "gdxVersion" }
+ktxFreetype = { module = "io.github.quillraven.libktx:ktx-freetype", version.ref = "ktxVersion" }
+# ai
+gdxAi = { module = "com.badlogicgames.gdx:gdx-ai", version.ref = "gdxAiVersion" }
+ktxAi = { module = "io.github.quillraven.libktx:ktx-ai", version.ref = "ktxVersion" }
+# other ktx extensions
+ktxPreferences = { module = "io.github.quillraven.libktx:ktx-preferences", version.ref = "ktxVersion" }
+ktxI18n = { module = "io.github.quillraven.libktx:ktx-i18n", version.ref = "ktxVersion" }
+# ecs
+ashley = { module = "com.badlogicgames.ashley:ashley", version.ref = "ashleyVersion" }
+ktxAshley = { module = "io.github.quillraven.libktx:ktx-ashley", version.ref = "ktxVersion" }
+# teavm
+gdxBox2dGwt = { module = "com.badlogicgames.gdx:gdx-box2d-gwt", version.ref = "gdxVersion" }
+gdxTeaVmFreetype = { module = "com.github.xpenatan.gdx-teavm:gdx-freetype-web", version.ref = "gdxTeaVmVersion" }
+# gdx controllers
+gdxControllersCore = { module = "com.badlogicgames.gdx-controllers:gdx-controllers-core", version.ref = "gdxControllersVersion" }
+gdxTeaVmControllers = { module = "com.github.xpenatan.gdx-teavm:gdx-controllers-web", version.ref = "gdxTeaVmVersion" }
+gdxControllersDesktop = { module = "com.badlogicgames.gdx-controllers:gdx-controllers-desktop", version.ref = "gdxControllersVersion" }
+# test
+junitBom = { module = "org.junit:junit-bom", version.ref = "junitVersion" }
+junitJupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junitJupiterParams = { module = "org.junit.jupiter:junit-jupiter-params" }
+junitPlatformLauncher = { module = "org.junit.platform:junit-platform-launcher" }
+mockitoKotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlinVersion" }
+
+[bundles]
+ktxBaseBundle = ["ktxActors", "ktxApp", "ktxAssets", "ktxCollections", "ktxGraphics", "ktxInject", "ktxLog", "ktxMath", "ktxScene2d"]
+box2dBundle = ["gdxBox2d", "ktxBox2d"]
+freetypeBundle = ["gdxFreetype", "ktxFreetype"]
+aiBundle = ["gdxAi", "ktxAi"]
+ashleyBundle = ["ashley", "ktxAshley"]
+
+[plugins]
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinVersion" }
+construoGradlePlugin = { id = "io.github.fourlastor.construo", version.ref = "construoVersion" }
+gdxTeaVmPlugin = { id = "com.github.xpenatan.gdx-teavm", version.ref = "gdxTeaVmVersion" }

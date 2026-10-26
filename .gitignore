@@ -8,6 +8,10 @@ gradle-app.setting
 /lwjgl3/build/
 /html/build/
 /teavm/build/
+/tool/build/
+/build-logic/build/
+/build-logic/.gradle/
+.kotlin/
 /ios/build/
 /ios-moe/build/
 /server/build/

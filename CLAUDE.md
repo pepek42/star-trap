@@ -6,11 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Star Trap: a proof-of-concept physics-based 2D space shooter (Asteroids-like, aiming toward an action roguelike) built with libGDX + Kotlin + KTX, using Ashley ECS and Box2D. Controls: LMB fire, RMB thrusters, mouse wheel zoom. The Kotlin package is `com.github.pepek42.asteroids` (not `startrap`).
 
-Roadmap and planned work live in `docs/design/todo.md`. The current plan is to migrate to a newer gdx Kotlin template (Kotlin DSL, version catalog, `build-logic` convention plugins). A freshly generated reference copy sits in `scratch_pad/star-trap-update/`. It is gitignored and is reference material only, not part of the build.
+Docs index: `docs/README.md`. Owner's raw roadmap: `docs/design/todo.md`. Game design: `docs/design/game-design.md`. Physics research: `docs/research/`. Task cards: `docs/backlog.md`. Detailed architecture and known issues: `docs/tech/architecture.md`. Library gotchas: `docs/tech/ktx-cheatsheet.md`.
+
+Development is agent-driven (see `docs/tech/dev-workflow.md`). Subagents live in `.claude/agents/` (planner, kotlin-dev, junior-dev, verifier, reviewer, physics-researcher). `/auto-dev` runs the backlog loop and `/plan-backlog` adds cards. `scratch_pad/` is gitignored reference material (the gdx template used for the stack migration) and is not part of the build.
 
 ## Commands
 
-Groovy Gradle build, JDK 17 (`sourceCompatibility`/`jvmTarget` 17).
+Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, convention plugin `build-logic/src/main/kotlin/kotlin-jvm.gradle.kts`. JVM toolchain 25, auto-downloaded via foojay.
 
 ```bash
 ./gradlew lwjgl3:run          # run desktop game (working dir = assets/)
@@ -18,20 +20,20 @@ Groovy Gradle build, JDK 17 (`sourceCompatibility`/`jvmTarget` 17).
 ./gradlew core:test --tests "com.github.pepek42.asteroids.system.MoveSystemTest"   # single test class
 ./gradlew core:test --tests "*MoveSystemTest.thrustersShouldWork*"                 # single test method
 ./gradlew lwjgl3:jar          # runnable fat jar -> lwjgl3/build/lib
-./gradlew texturePacker       # repack raw_assets/*.png -> assets/textures/textures.atlas/.png
+./gradlew tool:packTextures  # repack raw_assets/*.png -> assets/textures/textures.atlas/.png
 ./gradlew teavm:run           # experimental web build at http://localhost:8080
 ```
 
-- There is no linter. Formatting follows `.editorconfig`: 4-space indent for Kotlin, 2 for `.gradle`.
-- After adding or changing a sprite in `raw_assets/`, run `texturePacker` and commit the regenerated atlas. Code looks sprites up by region name in `textures/textures.atlas`.
-- `compileJava` regenerates `assets/assets.txt` (an asset list) as a side effect.
-- Tests use JUnit 5 + mockito-kotlin. The test classpath includes `assets/` and desktop natives, so tests can touch real Box2D/libGDX classes.
+- There is no linter. Formatting follows `.editorconfig`: 4-space indent for Kotlin, 2 for Gradle scripts.
+- After adding or changing a sprite in `raw_assets/`, run `tool:packTextures` and commit the regenerated atlas. Code looks sprites up by region name in `textures/textures.atlas`.
+- Tests use JUnit (Jupiter) + mockito-kotlin. The test classpath includes `assets/` and desktop natives, so tests can touch real Box2D/libGDX classes.
 
 ## Modules
 
 - `core`: all game logic.
 - `lwjgl3`: desktop launcher (`Lwjgl3Launcher.kt`).
 - `teavm`: experimental browser launcher.
+- `tool`: texture packer (`packTextures`).
 
 ## Architecture
 
@@ -53,6 +55,6 @@ Groovy Gradle build, JDK 17 (`sourceCompatibility`/`jvmTarget` 17).
 
 **Debug.** The `IS_DEBUG` constant in `Game.kt` sets the log level and adds `DebugSystem` (the Box2D debug renderer). For per-frame logging, wrap calls in `defaultLoggingUtils.tryLogging { ... }`, which throttles output to once every 30 s. `PlayScreen.render` ticks the throttle.
 
-**Units.** World units are meters-ish. `UNIT_SCALE = 18` px per unit (`Config.kt`). The map is 100×100 units (`MapProvider`). `physics/PhysicsConstants.kt` holds `SPEED_OF_LIGHT` for the planned relativity mechanics.
+**Units.** World units are meters-ish. `UNIT_SCALE = 18` px per unit (`Config.kt`). The map is 100×100 units (`MapProvider`). `physics/PhysicsConstants.kt` holds `SPEED_OF_LIGHT` for the planned relativity mechanics. Box2D clamps movement to 2 units per step, which is about 90 u/s at 45 Hz. The current `SPEED_OF_LIGHT = 250` exceeds that, so projectiles are silently clamped.
 
 **i18n.** UI strings live in `assets/i18n/messages.properties` and `messages_pl.properties`. Keep both files in sync.

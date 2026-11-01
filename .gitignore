@@ -142,3 +142,6 @@ Thumbs.db
 ## Other
 
 /scratch_pad/
+
+## Claude Code local settings
+.claude/settings.local.json

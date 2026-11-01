@@ -433,7 +433,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The edge reads as a soft energy wall. Bumping into it sends a ripple along the wall at visibly finite speed. The band is not distracting in the middle of the arena.
 
 ### ST-029 Bring docs in line after M2
-- status: done (2026-11-01, PENDING29)
+- status: done (2026-11-01, 5e1bce1)
 - result: architecture.md system table renumbered and synced with M2 code; CLAUDE.md gained a Rendering paragraph.
 - size: S
 - agent: junior-dev
@@ -552,7 +552,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] The answer is added to game-design.md §11. For (b) or (c), ask the planner for a slug card in M3
 
 ### ST-035 Relativity math module (pure functions)
-- status: ready
+- status: done (2026-11-01, PENDING35)
+- result: Relativity.kt with γ, proper velocity, velocity addition, aberration, Doppler, thrust and γ_rel; 24 tests.
 - size: S
 - agent: kotlin-dev
 - depends: ST-019
@@ -573,13 +574,13 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `gammaRel(va: Vector2, vb: Vector2, c) = γ_a·γ_b·(1 − va·vb/c²)`
   - Non-finite input: return the zero vector or γ = 1. NaN is guarded at the call sites (ST-037).
 - acceptance:
-  - [ ] Tests (seeded random, 10 000 cases where relevant): |velocityFromU(huge u)| < c; γ ≥ 1; the round trip `u → v → uFromV` holds within 1e-4 relative error for γ ≤ 10; `addVelocity` never gives |out| ≥ c for |v|, |w| < c; `aberratePhoton` output is a unit vector
-  - [ ] Test: collinear 0.5c ⊕ 0.5c = 0.8c (±1e-5·c)
-  - [ ] Test: a ship at β = 0.9 along +x firing a photon at +y (shooter frame) gives a W angle of 25.84° ± 0.05°
-  - [ ] Test: `dopplerFactor` with the observer at β = 0.9 (+x) and a static source: n̂ = (−1, 0) (source ahead) gives 4.36 ± 0.01, n̂ = (1, 0) (behind) gives 0.229 ± 0.001, n̂ = (0, 1) gives γ = 2.294 ± 0.001
-  - [ ] Test: `thrustAccelWorld` at γ = 2: along v gives magnitude a0, perpendicular to v gives a0/2
-  - [ ] Test: `gammaRel` of equal velocities = 1; head-on ±0.5c = 1.6667 ± 1e-4
-  - [ ] `./gradlew core:test` passes
+  - [x] Tests (seeded random, 10 000 cases where relevant): |velocityFromU(huge u)| < c; γ ≥ 1; the round trip `u → v → uFromV` holds within 1e-4 relative error for γ ≤ 10; `addVelocity` never gives |out| ≥ c for |v|, |w| < c; `aberratePhoton` output is a unit vector
+  - [x] Test: collinear 0.5c ⊕ 0.5c = 0.8c (±1e-5·c)
+  - [x] Test: a ship at β = 0.9 along +x firing a photon at +y (shooter frame) gives a W angle of 25.84° ± 0.05°
+  - [x] Test: `dopplerFactor` with the observer at β = 0.9 (+x) and a static source: n̂ = (−1, 0) (source ahead) gives 4.36 ± 0.01, n̂ = (1, 0) (behind) gives 0.229 ± 0.001, n̂ = (0, 1) gives γ = 2.294 ± 0.001
+  - [x] Test: `thrustAccelWorld` at γ = 2: along v gives magnitude a0, perpendicular to v gives a0/2
+  - [x] Test: `gammaRel` of equal velocities = 1; head-on ±0.5c = 1.6667 ± 1e-4
+  - [x] `./gradlew core:test` passes
 
 ### ST-036 Swept raycast for projectile hits; projectiles are consumed on hit
 - status: ready

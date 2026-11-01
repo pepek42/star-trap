@@ -67,7 +67,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
 
 ### ST-006 Clear all entities and bodies between levels
-- status: done (2026-11-01, bf27af7)
+- status: done (2026-11-01, 1f103d8)
 - result: `ecs/LevelCleanup.kt` `clearLevel` destroys every body and removes all entities; `PlayScreen.hide()` calls it.
 - size: S
 - agent: kotlin-dev
@@ -79,7 +79,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-007 Fix faction collision bit naming and the projectile filter
-- status: ready
+- status: done (2026-11-01, 0e560cd)
+- result: `FactionEnum` fields renamed to `ownCategoryBit`/`collidesWithMask` with `collidesWith()`; all providers (including projectiles, which now set a mask) use category=own, mask=collidesWith.
 - size: S
 - agent: junior-dev
 - depends: —
@@ -87,9 +88,9 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - goal: Field names are inverted. `entityMaskBit` (the faction's own bit) is assigned to `maskBits`, and `categoryBits` (other factions' bits) to `categoryBits`. `WeaponProjectileProvider` sets `filter.categoryBits` twice and never sets `maskBits`.
 - spec: Rename `entityMaskBit` → `ownCategoryBit` and `categoryBits` → `collidesWithMask`. Keep the constructor values unchanged. In **all three** providers, set `filter.categoryBits = faction.ownCategoryBit` and `filter.maskBits = faction.collidesWithMask`. (Swapping category and mask on every fixture leaves Box2D's symmetric collision rule unchanged.) Add `fun FactionEnum.collidesWith(other: FactionEnum): Boolean = (collidesWithMask.toInt() and other.ownCategoryBit.toInt()) != 0 && (other.collidesWithMask.toInt() and ownCategoryBit.toInt()) != 0`.
 - acceptance:
-  - [ ] Test: PLAYER×PLAYER false, PLAYER×NEUTRAL true, PLAYER×ENEMY true, ENEMY×ENEMY false, NEUTRAL×NEUTRAL true
-  - [ ] Existing `WeaponProjectileProviderTest` still passes
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: PLAYER×PLAYER false, PLAYER×NEUTRAL true, PLAYER×ENEMY true, ENEMY×ENEMY false, NEUTRAL×NEUTRAL true
+  - [x] Existing `WeaponProjectileProviderTest` still passes
+  - [x] `./gradlew core:test` passes
 - playtest: The player's lasers hit asteroids and don't hit the player ship.
 
 ### ST-008 Small asteroids use their own texture

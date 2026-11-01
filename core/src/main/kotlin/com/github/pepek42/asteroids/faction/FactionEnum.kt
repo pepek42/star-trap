@@ -8,8 +8,8 @@ const val neutralEntityBit = (1 shl 2).toShort()
 const val enemyEntityBit = (1 shl 3).toShort()
 
 enum class FactionEnum(
-    val entityMaskBit: Short,
-    val categoryBits: Short,
+    val ownCategoryBit: Short,
+    val collidesWithMask: Short,
     val color: Color
 ) {
     PLAYER(playerEntityBit, neutralEntityBit or enemyEntityBit, Color.BLUE),
@@ -23,3 +23,7 @@ enum class FactionEnum(
     ;
 
 }
+
+fun FactionEnum.collidesWith(other: FactionEnum): Boolean =
+    (collidesWithMask.toInt() and other.ownCategoryBit.toInt()) != 0 &&
+        (other.collidesWithMask.toInt() and ownCategoryBit.toInt()) != 0

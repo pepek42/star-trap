@@ -48,8 +48,8 @@ class AsteroidProvider(
                     this.angularVelocity = angularSpeed
                     circle(radius = size.radius) {
                         density = ASTEROID_DENSITY
-                        filter.maskBits = FactionEnum.NEUTRAL.entityMaskBit
-                        filter.categoryBits = FactionEnum.NEUTRAL.categoryBits
+                        filter.categoryBits = FactionEnum.NEUTRAL.ownCategoryBit
+                        filter.maskBits = FactionEnum.NEUTRAL.collidesWithMask
                     }
                     userData = this@entity.entity
                 }

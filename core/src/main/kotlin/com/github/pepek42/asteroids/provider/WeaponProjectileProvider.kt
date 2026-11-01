@@ -57,8 +57,8 @@ class WeaponProjectileProvider(
                     ) {
                         density = 0f
                         isSensor = true
-                        filter.categoryBits = faction.entityMaskBit
-                        filter.categoryBits = faction.categoryBits
+                        filter.categoryBits = faction.ownCategoryBit
+                        filter.maskBits = faction.collidesWithMask
                     }
                     userData = this@entity.entity
                 }

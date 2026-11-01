@@ -65,7 +65,7 @@ The convention is described in `CLAUDE.md`: a `Poolable` class, `xxxMapper`, and
 
 ## Collision filtering
 
-`FactionEnum` (`PLAYER`, `NEUTRAL`, `ENEMY`). **The naming is inverted:** `entityMaskBit` is used as the fixture's `maskBits` and holds the faction's *own* bit, while `categoryBits` holds the *other* factions' bits. It works because it's used consistently, but it's confusing (see the tech-debt list).
+`FactionEnum` (`PLAYER`, `NEUTRAL`, `ENEMY`). `ownCategoryBit` is the faction's own bit and is set as the fixture's `categoryBits`. `collidesWithMask` holds the bits the faction collides with and is set as `maskBits`. `FactionEnum.collidesWith(other)` checks the symmetric rule.
 
 ## Known issues and tech debt
 
@@ -75,7 +75,7 @@ These are input for the backlog. Card IDs are given where a card exists.
 2. **Minimap**: `MinimapSystem` calls `shape.begin/end` per entity, inside a `SpriteBatch.use` block, and never sets `shape.projectionMatrix` to the minimap camera. It has no frame, no background and no camera rectangle.
 3. **Star field**: three full-screen layers that scroll on a timer, independent of camera movement. There's no parallax from player motion and the contrast is low.
 4. `PlayScreen.hide()` only removes player entities. Asteroids, projectiles and Box2D bodies leak between levels (there's a TODO).
-5. `WeaponProjectileProvider` sets `filter.categoryBits` twice and never sets `maskBits`.
+5. ~~`WeaponProjectileProvider` sets `filter.categoryBits` twice and never sets `maskBits`.~~ Fixed in ST-007.
 6. `BaseInfoComponent.reset()` doesn't reset `entityType`. The global id counter is a static mutable.
 7. `AsteroidSize.SMALL` uses the `asteroid_big` texture.
 8. CI (`.github/workflows/workflows.yaml`) still installs JDK 17. The toolchain is 25, so it relies on foojay provisioning.

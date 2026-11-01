@@ -48,8 +48,8 @@ class PlayerEntityProvider(
                             height = worldUnitsHeight,
                         ) {
                             density = 20f
-                            filter.maskBits = playerFaction.entityMaskBit
-                            filter.categoryBits = playerFaction.categoryBits
+                            filter.categoryBits = playerFaction.ownCategoryBit
+                            filter.maskBits = playerFaction.collidesWithMask
                         }
                         userData = this@entity.entity
                     }

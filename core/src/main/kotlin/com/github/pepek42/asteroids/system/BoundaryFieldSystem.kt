@@ -1,12 +1,13 @@
 package com.github.pepek42.asteroids.system
 
 import com.badlogic.ashley.core.Engine
+import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.core.EntitySystem
 import com.badlogic.ashley.utils.ImmutableArray
-import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.Body
 import com.badlogic.gdx.physics.box2d.BodyDef
+import com.badlogic.gdx.utils.Array
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.baseInfoMapper
@@ -15,14 +16,14 @@ import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.physics.BoundaryFieldParams
 import com.github.pepek42.asteroids.physics.FIELD_BACKSTOP_RESTITUTION
-import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.physics.FIELD_EXPONENT
+import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.physics.boundaryAcceleration
 import com.github.pepek42.asteroids.physics.boundaryDepthQ
-import com.github.pepek42.asteroids.render.ShimmerImpacts
 import com.github.pepek42.asteroids.provider.MapProvider
-import ktx.ashley.allOf
+import com.github.pepek42.asteroids.render.ShimmerImpacts
 import kotlin.math.pow
+import ktx.ashley.allOf
 import ktx.log.logger
 
 /**
@@ -34,7 +35,7 @@ class BoundaryFieldSystem(
     private val impacts: ShimmerImpacts = ShimmerImpacts(),
     private val params: BoundaryFieldParams = BoundaryFieldParams(),
 ) : EntitySystem(), PhysicsStepListener {
-    private var entities: ImmutableArray<Entity> = ImmutableArray(com.badlogic.gdx.utils.Array())
+    private var entities: ImmutableArray<Entity> = ImmutableArray(Array())
     private val accel = Vector2()
     private val velocity = Vector2()
 

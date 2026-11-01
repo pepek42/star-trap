@@ -445,7 +445,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 ---
 
 ### ST-051 WeaponProjectileProviderTest asserts laser lifetime
-- status: done (2026-11-01, PENDING51)
+- status: done (2026-11-01, 35f9134)
 - result: Laser provider test asserts LifetimeComponent values.
 - size: S
 - agent: junior-dev
@@ -457,7 +457,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] Test exists and passes; `./gradlew core:test` passes
 
 ### ST-052 BoundaryFieldSystem test gaps and tidy-up
-- status: in-progress
+- status: done (2026-11-01, PENDING52)
+- result: Corner and top/bottom wall tests added; imports tidied.
 - size: S
 - agent: junior-dev
 - depends: ST-025
@@ -465,7 +466,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - goal: Review minors from ST-025.
 - spec: Add a corner backstop test (body at (100.5, 100.5) moving (+10, +10) ends inside with both velocity components negative) and a top/bottom wall turn-back test. In `fieldIsMassIndependent`, keep the `Body` reference instead of looking it up via `getBodies`. Replace the fully qualified `com.badlogic.gdx.utils.Array()` with an import or `lateinit`; sort imports in `BoundaryFieldSystem.kt` and `PlayScreen.kt`.
 - acceptance:
-  - [ ] New tests pass; `./gradlew core:test` passes
+  - [x] New tests pass; `./gradlew core:test` passes
 
 ### ST-053 Shimmer polish: ripple clipping, precision, emission threshold
 - status: ready

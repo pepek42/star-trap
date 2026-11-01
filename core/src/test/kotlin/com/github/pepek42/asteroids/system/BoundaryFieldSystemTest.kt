@@ -75,8 +75,26 @@ class BoundaryFieldSystemTest {
         assertTrue(body.linearVelocity.x < 0f)
     }
 
-    private fun maxX(density: Float): Float {
-        val body = addBody(BodyDef.BodyType.DynamicBody, 85f, 50f, 30f, density = density)
+    @Test
+    fun dynamicCircleIsTurnedBackBeforeTopAndBottomWalls() {
+        val top = addBody(BodyDef.BodyType.DynamicBody, 50f, 85f, 0f, 30f)
+        repeat(135) {
+            step()
+            assertTrue(top.position.y + 1f <= 100f, "y=${top.position.y}")
+        }
+        assertTrue(top.linearVelocity.y < 0f)
+        engine.removeAllEntities()
+        world.destroyBody(top)
+
+        val bottom = addBody(BodyDef.BodyType.DynamicBody, 50f, 15f, 0f, -30f)
+        repeat(135) {
+            step()
+            assertTrue(bottom.position.y - 1f >= 0f, "y=${bottom.position.y}")
+        }
+        assertTrue(bottom.linearVelocity.y > 0f)
+    }
+
+    private fun maxX(body: Body): Float {
         var max = 0f
         repeat(135) {
             step()
@@ -87,10 +105,11 @@ class BoundaryFieldSystemTest {
 
     @Test
     fun fieldIsMassIndependent() {
-        val light = maxX(1f)
-        world.destroyBody(world.run { val a = com.badlogic.gdx.utils.Array<Body>(); getBodies(a); a.first() })
+        val lightBody = addBody(BodyDef.BodyType.DynamicBody, 85f, 50f, 30f, density = 1f)
+        val light = maxX(lightBody)
+        world.destroyBody(lightBody)
         engine.removeAllEntities()
-        val heavy = maxX(100f)
+        val heavy = maxX(addBody(BodyDef.BodyType.DynamicBody, 85f, 50f, 30f, density = 100f))
         assertEquals(light, heavy, 0.05f)
     }
 
@@ -110,6 +129,16 @@ class BoundaryFieldSystemTest {
         step()
         assertTrue(body.position.x + 0.1f < 100f, "x=${body.position.x}")
         assertTrue(body.linearVelocity.x < 0f)
+    }
+
+    @Test
+    fun cornerBackstopPutsBodyInsideAndReflectsBothAxes() {
+        val body = addBody(BodyDef.BodyType.DynamicBody, 99.8f, 99.8f, 80f, 80f, radius = 0.1f)
+        step()
+        assertTrue(body.position.x + 0.1f < 100f, "x=${body.position.x}")
+        assertTrue(body.position.y + 0.1f < 100f, "y=${body.position.y}")
+        assertTrue(body.linearVelocity.x < 0f)
+        assertTrue(body.linearVelocity.y < 0f)
     }
 
     @Test

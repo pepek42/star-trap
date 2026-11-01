@@ -42,7 +42,7 @@ Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execu
 | 5b | `BoundaryFieldSystem` | Step listener (registered just before `PhysicsSystem`). `beforeStep`: mass-independent repulsive boundary field (`physics/BoundaryField.kt`) as force on dynamic bodies, velocity change on kinematic ones. `afterStep`: hard backstop (clamp inside, reflect outward velocity). Lazily fills `BodyComponent.boundingRadius` |
 | 6 | `PhysicsSystem` | Accumulator stepping (max 5 steps/frame). Before each substep applies the `ShipRotationController` angular impulse for entities with `targetAngleRad`. Then `clearForces` and interpolation of transforms |
 | 7 | `CameraSystem` | Follows player (clamped to map), mouse wheel zoom 0.5–2 |
-| 9 | `RenderSystem` | Nebula background + `Starfield` (camera-relative parallax), then sprites, using interpolated transforms |
+| 9 | `RenderSystem` | Nebula background + `Starfield` (camera-relative parallax), then sprites (interpolated transforms), then the boundary field band via `render/FieldShimmerRenderer` (`assets/shaders/field_shimmer.*`: honeycomb brightening with depth plus ripples expanding at c from `ShimmerImpacts`, additive blend; `u_time` is `ShimmerImpacts.time`; falls back to a pulsing tint if the shader fails to compile). `RenderSystem` is `Disposable` and disposes the renderer |
 | 10 | `DebugSystem` | (only when `IS_DEBUG`) Box2D debug renderer |
 | 11 | `HudSystem` | scene2d HUD |
 | 12 | `MinimapSystem` | Bottom-right minimap (`ui/MinimapViewport`): arena background, entity dots, camera view rectangle, arena border |

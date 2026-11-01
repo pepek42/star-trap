@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-053**.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-054**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -395,7 +395,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Near the edge you can see a strip of space beyond the arena. The minimap shows an inner rectangle where the field starts.
 
 ### ST-027 Shimmer impact buffer and emission from the field
-- status: done (2026-11-01, e5e8c1d)
+- status: done (2026-11-01, 2da47e8)
 - result: ShimmerImpacts buffer (16 slots, throttled, decay eviction) fed from field and backstop; 7 tests.
 - size: S
 - agent: kotlin-dev
@@ -413,7 +413,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-028 Field shimmer shader
-- status: ready
+- status: done (2026-11-01, ce9ba9e)
+- result: Shimmer shader renders edge band and ripples; screenshot checked; reviewer approved, polish in ST-053.
 - size: M
 - agent: kotlin-dev
 - depends: ST-027
@@ -426,9 +427,9 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `FieldShimmerRenderer(impacts: ShimmerImpacts, mapProvider: MapProvider) : Disposable`. It loads the shader via `Gdx.files.internal("shaders/…")` with `ShaderProgram.pedantic = false`, and makes a 1×1 white `Texture` from a `Pixmap`. `render(batch)`: set `batch.shader`, the additive blend (`GL_SRC_ALPHA, GL_ONE`), and the uniforms (`setUniform4fv("u_impacts", impacts.data, 0, 64)`). Draw 4 edge strips covering the band from `−FIELD_SKIN/2` outside to `FIELD_SKIN` inside each wall. Then restore the default shader and blend. If `!program.isCompiled`, log the error once and fall back to drawing the same strips with the default shader, tinted `ARENA_BOUNDARY_COLOR` at alpha `0.06 + 0.04·sin(2·time)`.
   - `RenderSystem` takes the renderer (constructor param) and calls `render(batch)` after `super.update(deltaTime)` inside the existing `batch.use` block. `PlayScreen` creates it and disposes it via the existing `Disposable` sweep (make `RenderSystem` `Disposable` and forward).
 - acceptance:
-  - [ ] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
-  - [ ] A screenshot via the ST-005 harness (`--seed=42 --frames=240 --thrust`) shows the shimmer band near an edge, and the agent has looked at it. If the ship doesn't reach an edge in 240 frames, add a temporary `--frames` value that does, and note it on the card
-  - [ ] No per-frame allocation in `render`
+  - [x] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
+  - [x] A screenshot via the ST-005 harness (`--seed=42 --frames=240 --thrust`) shows the shimmer band near an edge, and the agent has looked at it. If the ship doesn't reach an edge in 240 frames, add a temporary `--frames` value that does, and note it on the card
+  - [x] No per-frame allocation in `render`
 - playtest: The edge reads as a soft energy wall. Bumping into it sends a ripple along the wall at visibly finite speed. The band is not distracting in the middle of the arena.
 
 ### ST-029 Bring docs in line after M2
@@ -464,6 +465,19 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - spec: Add a corner backstop test (body at (100.5, 100.5) moving (+10, +10) ends inside with both velocity components negative) and a top/bottom wall turn-back test. In `fieldIsMassIndependent`, keep the `Body` reference instead of looking it up via `getBodies`. Replace the fully qualified `com.badlogic.gdx.utils.Array()` with an import or `lateinit`; sort imports in `BoundaryFieldSystem.kt` and `PlayScreen.kt`.
 - acceptance:
   - [ ] New tests pass; `./gradlew core:test` passes
+
+### ST-053 Shimmer polish: ripple clipping, precision, emission threshold
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-028
+- files: `render/FieldShimmerRenderer.kt`, `assets/shaders/field_shimmer.frag`, `system/BoundaryFieldSystem.kt`
+- goal: Follow-ups from ST-028 review and screenshots.
+- spec: (1) Ripples are cut off by a hard straight edge at the inner border of the strips (`FIELD_SKIN` inside). Extend the strips to `2·FIELD_SKIN` inside and fade ripple contribution smoothly to 0 between `FIELD_SKIN` and `2·FIELD_SKIN` depth; base honeycomb unchanged. (2) In the frag shader use `highp` when `GL_FRAGMENT_PRECISION_HIGH` is defined; pass `u_time` from `impacts.time` but wrap the pulse phase CPU-side (`time % (PI)`) as a separate `u_pulsePhase` uniform. (3) In normal play the ship rarely reaches `q > 0.1` (it turns back early); emit a weak impact (strength `q²`, throttled as now) for any body with `q > 0.05` and normal velocity into the wall, so bumping the edge visibly ripples.
+- acceptance:
+  - [ ] Screenshot with a forced impact shows no straight cut at the inner band edge (agent looks at it; remove the forcing hack after)
+  - [ ] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
+- playtest: Bumping into the edge at moderate speed produces a visible ripple.
 
 ## M3 Relativity MVP
 

@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.component.SpriteComponent
@@ -13,6 +14,7 @@ import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.provider.BackgroundProvider
+import com.github.pepek42.asteroids.render.FieldShimmerRenderer
 import ktx.ashley.allOf
 import ktx.graphics.use
 import ktx.log.logger
@@ -21,7 +23,8 @@ class RenderSystem(
     game: Game,
     private val batch: SpriteBatch,
     private val viewport: Viewport,
-) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()) {
+    private val fieldShimmerRenderer: FieldShimmerRenderer,
+) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()), Disposable {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
 
     init {
@@ -35,7 +38,12 @@ class RenderSystem(
             // Logical width (not back buffer) keeps star sizes HiDPI independent.
             backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width)
             super.update(deltaTime)
+            fieldShimmerRenderer.render(batch)
         }
+    }
+
+    override fun dispose() {
+        fieldShimmerRenderer.dispose()
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {

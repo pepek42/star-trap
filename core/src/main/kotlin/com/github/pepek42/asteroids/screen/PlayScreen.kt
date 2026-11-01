@@ -19,6 +19,7 @@ import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
+import com.github.pepek42.asteroids.render.FieldShimmerRenderer
 import com.github.pepek42.asteroids.render.ShimmerImpacts
 import com.github.pepek42.asteroids.system.CameraSystem
 import com.github.pepek42.asteroids.system.ContactSystem
@@ -69,7 +70,7 @@ class PlayScreen(
         val gameEventManager = game.get<GameEventManager>()
         val spriteBatch = game.get<SpriteBatch>()
         val moveSystem = MoveSystem()
-        // Later also handed to the shimmer renderer (ST-028).
+        // Shared by the boundary field (emits) and the shimmer renderer (draws).
         val shimmerImpacts = ShimmerImpacts()
         val boundaryFieldSystem = BoundaryFieldSystem(mapProvider, shimmerImpacts)
         engine.add {
@@ -81,7 +82,7 @@ class PlayScreen(
             addSystem(boundaryFieldSystem)
             addSystem(PhysicsSystem(world, engine, listOf(moveSystem, boundaryFieldSystem)))
             addSystem(CameraSystem(camera, gameEventManager, mapProvider))
-            addSystem(RenderSystem(game, spriteBatch, viewport))
+            addSystem(RenderSystem(game, spriteBatch, viewport, FieldShimmerRenderer(shimmerImpacts, mapProvider)))
             if (IS_DEBUG) {
                 engine.addSystem(DebugSystem(world, engine, camera))
             }

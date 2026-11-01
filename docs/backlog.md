@@ -127,7 +127,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] The fix is made, and `./gradlew core:test` passes
 
 ### ST-011 Readable minimap
-- status: done (2026-11-01, 8c4652d)
+- status: done (2026-11-01, 44ccd24)
 - result: Minimap anchored to the window's bottom-right (logical px, HiDPI-safe), one ShapeRenderer pass, `ARENA_BOUNDARY_COLOR` in `ui/Colors.kt`, view rectangle tracks zoom; screenshot checked.
 - size: M
 - agent: kotlin-dev
@@ -147,7 +147,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The minimap is readable at a glance. You can tell asteroids from yourself, and the view rectangle tracks zoom.
 
 ### ST-012 Readable, camera-relative starfield (Doppler-ready)
-- status: ready
+- status: done (2026-11-01, d97197b)
+- result: `render/Starfield.kt`: 1500 seeded stars in `StarData` arrays (x, y, layer, brightness, kelvin, packedColor), 3 parallax layers, additive dots sized in logical px, dim `background_1` nebula; brightness constants (layer 0.55/0.8/1.0, sizes 1.5/2.2/3.2 px) are the knobs for playtest tuning.
 - size: M
 - agent: kotlin-dev
 - depends: ST-005
@@ -158,10 +159,10 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - Keep `background_1` as a very dim nebula base (tint alpha ≈ 0.35) and drop `background_2/3` scrolling.
   - Keep the data (`StarData` arrays) in a structure a future shader or system can read (positions + temperature), because M3/M4 will Doppler-shift and aberrate them.
 - acceptance:
-  - [ ] Unit tests: `blackbodyRgb(kelvin)` is monotone in blue/red ratio, and the same seed gives the same star set
-  - [ ] Screenshot via the ST-005 harness with `--thrust` shows parallax-readable stars, and the agent has looked at it
-  - [ ] No per-frame allocations in the draw loop
-  - [ ] `./gradlew core:test` passes
+  - [x] Unit tests: `blackbodyRgb(kelvin)` is monotone in blue/red ratio, and the same seed gives the same star set
+  - [x] Screenshot via the ST-005 harness with `--thrust` shows parallax-readable stars, and the agent has looked at it
+  - [x] No per-frame allocations in the draw loop
+  - [x] `./gradlew core:test` passes
 - playtest: The background reads as space with depth, and the ship's motion is felt through parallax without distracting from asteroids.
 
 ### ST-013 Bring docs in line after M1

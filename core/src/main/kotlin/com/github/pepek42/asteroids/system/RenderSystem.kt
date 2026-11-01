@@ -1,7 +1,9 @@
 package com.github.pepek42.asteroids.system
 
 import com.badlogic.ashley.core.Entity
+import com.badlogic.gdx.Gdx
 import com.badlogic.ashley.systems.IteratingSystem
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.Game
@@ -29,7 +31,9 @@ class RenderSystem(
     override fun update(deltaTime: Float) {
         viewport.apply()
         batch.use(viewport.camera) {
-            backgroundProvider.renderBg(deltaTime)
+            val camera = viewport.camera as OrthographicCamera
+            // Logical width (not back buffer) keeps star sizes HiDPI independent.
+            backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width)
             super.update(deltaTime)
         }
     }

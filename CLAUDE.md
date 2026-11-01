@@ -37,7 +37,7 @@ Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, conventio
 
 ## Architecture
 
-**Bootstrap & DI.** `Game` (a `KtxGame`) loads assets synchronously through `AssetManager`, then registers singletons in a `ktx.inject.Context`: camera, `FitViewport` (48×27 world units), `SpriteBatch`, atlas, skin, i18n bundle, `GameEventManager`, `MapProvider`, `GameState`, and the screens. Other code fetches them with `game.get<T>()`. Screens: `MainMenuScreen` → `PlayScreen` → `LevelClearedScreen` (`game.finishLevel()`).
+**Bootstrap & DI.** `Game` (a `KtxGame`) loads assets synchronously through `AssetManager`, then registers singletons in a `ktx.inject.Context`: camera, `FitViewport` (48×27 world units), `SpriteBatch`, atlas, skin, i18n bundle, `GameEventManager`, `MapProvider`, `GameState`, and the screens. It also registers one seeded `RandomXS128`; gameplay randomness must use it. `Game` takes a `LaunchOptions`, parsed from the command line by `Lwjgl3Launcher`. Other code fetches singletons with `game.get<T>()`. Screens: `MainMenuScreen` → `PlayScreen` → `LevelClearedScreen` (`game.finishLevel()`).
 
 **ECS (Ashley `PooledEngine`).** `PlayScreen` owns the per-level `PooledEngine` and Box2D `World` and registers all systems in `setupEcs()`. **System registration order is the execution order and matters.** The order is input → move → weapons → contact → physics step → camera → wrap → render → debug/HUD/minimap → death → remove. `show()` advances the level and spawns the player and asteroids, with the asteroid count growing with level².
 
@@ -53,7 +53,7 @@ Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, conventio
 
 **Input & events.** `GameEventManager` is the libGDX `InputProcessor`, multiplexed with the UI `Stage`. It translates raw input into `PlayerInputListener` callbacks (aim, thrusters, fire, zoom, block) and broadcasts `MapEventListener.onNewMap`. Systems subscribe as listeners rather than polling `Gdx.input`. `ignorePlayerInputs()`/`enablePlayerInputs()` gate input between screens.
 
-**Debug.** The `IS_DEBUG` constant in `Game.kt` sets the log level and adds `DebugSystem` (the Box2D debug renderer). For per-frame logging, wrap calls in `defaultLoggingUtils.tryLogging { ... }`, which throttles output to once every 30 s. `PlayScreen.render` ticks the throttle.
+**Debug.** The `IS_DEBUG` constant in `Game.kt` sets the log level and adds `DebugSystem` (the Box2D debug renderer). For per-frame logging, wrap calls in `defaultLoggingUtils.tryLogging { ... }`, which throttles output to once every 30 s. `PlayScreen.render` ticks the throttle. The screenshot harness (`--screenshot=<path>`, `--seed=<long>`, etc.) is described in `docs/tech/dev-workflow.md`.
 
 **Units.** World units are meters-ish. `UNIT_SCALE = 18` px per unit (`Config.kt`). The map is 100×100 units (`MapProvider`). `physics/PhysicsConstants.kt` holds `SPEED_OF_LIGHT` for the planned relativity mechanics. Box2D clamps movement to 2 units per step, which is about 90 u/s at 45 Hz. The current `SPEED_OF_LIGHT = 250` exceeds that, so projectiles are silently clamped.
 

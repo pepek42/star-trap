@@ -1,6 +1,6 @@
 # Star Trap: Technical Architecture
 
-Status: describes the code as of 2026-11-01 (branch `stack-update`). Keep this file current when the architecture changes. Agents read it before coding.
+Status: describes the code as of 2026-11-01 (branch `AI-slop`, after M1). Keep this file current when the architecture changes. Agents read it before coding.
 
 ## Stack
 
@@ -26,7 +26,7 @@ flowchart LR
   PlayScreen --- World["Box2D World (autoClearForces=false)"]
 ```
 
-Singletons registered in `Game.create()` and fetched with `game.get<T>()`: `GameState`, `OrthographicCamera`, `GameEventManager`, `SpriteBatch`, `TextureAtlas` (textures), `Skin`, `I18NBundle`, `Viewport` (`FitViewport` 48×27 world units), `Stage`, `AssetManager`, `MapProvider`, `BackgroundProvider`, and the screens.
+Singletons registered in `Game.create()` and fetched with `game.get<T>()`: `RandomXS128` (seeded from `LaunchOptions.seed`, or the clock), `GameState`, `OrthographicCamera`, `GameEventManager`, `SpriteBatch`, `TextureAtlas` (textures), `Skin`, `I18NBundle`, `Viewport` (`FitViewport` 48×27 world units), `Stage`, `AssetManager`, `MapProvider`, `BackgroundProvider`, and the screens. `Game` takes a `LaunchOptions`, which `Lwjgl3Launcher` parses from the command line.
 
 ## ECS system order
 
@@ -35,23 +35,23 @@ Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execu
 | # | System | Responsibility |
 |---|---|---|
 | 1 | `EndLevelSystem` | No asteroids left → `game.finishLevel()` |
-| 2 | `PlayerInputSystem` | Input listener → `MoveComponent.thrusters/targetAngleRad` (null = not steered), `WeaponComponent.doAttack` |
+| 2 | `PlayerInputSystem` | Input listener → `MoveComponent.thrusters`, `targetAngleRad` (aim angle, set every frame for the player), `WeaponComponent.doAttack` |
 | 3 | `MoveSystem` | Applies thrust force, once per frame (`moveForcesApplied`) |
 | 4 | `WeaponSystem` | Cooldown, spawns projectiles via `WeaponProjectileProvider` |
 | 5 | `ContactSystem` | Box2D `ContactListener`: projectile damage into `HealthComponent` |
 | 6 | `PhysicsSystem` | Accumulator stepping (max 5 steps/frame). Before each substep applies the `ShipRotationController` angular impulse for entities with `targetAngleRad`. Then `clearForces` and interpolation of transforms |
 | 7 | `CameraSystem` | Follows player (clamped to map), mouse wheel zoom 0.5–2 |
 | 8 | `WrapSystem` | Teleports `WrapComponent` bodies to the opposite edge |
-| 9 | `RenderSystem` | Background + sprites, using interpolated transforms |
+| 9 | `RenderSystem` | Nebula background + `Starfield` (camera-relative parallax), then sprites, using interpolated transforms |
 | 10 | `DebugSystem` | (only when `IS_DEBUG`) Box2D debug renderer |
 | 11 | `HudSystem` | scene2d HUD |
-| 12 | `MinimapSystem` | ShapeRenderer dots per entity |
+| 12 | `MinimapSystem` | Bottom-right minimap (`ui/MinimapViewport`): arena background, entity dots, camera view rectangle, arena border |
 | 13 | `DeathSystem` | health ≤ 0 → asteroid split, add `RemoveComponent` |
 | 14 | `RemoveSystem` | Out-of-bounds tagging, destroys bodies, removes entities |
 
 ## Components (`core/.../component/`)
 
-`BaseInfoComponent` (id, faction, `EntityType`; every entity has one), `BodyComponent` (Box2D body, `moveForcesApplied`), `TransformComponent` (prev + interpolated position/rotation), `SpriteComponent`, `MoveComponent` (thrusters −1..1, `targetAngleRad` world angle or null), `WeaponComponent`, `ProjectileComponent` (sealed projectile types, currently `LaserProjectile`), `HealthComponent`, `AsteroidComponent`, `PlayerComponent`, `WrapComponent`, `RemoveComponent`.
+`BaseInfoComponent` (id, faction, `EntityType`; every entity has one), `BodyComponent` (Box2D body, `moveForcesApplied`), `TransformComponent` (prev + interpolated position/rotation), `SpriteComponent`, `MoveComponent` (thrusters −1..1, `targetAngleRad` world angle or null), `WeaponComponent`, `ProjectileComponent` (sealed projectile types, currently `LaserProjectile`), `HealthComponent`, `AsteroidComponent`, `PlayerComponent` (mapper and `playerCmpOptional`), `ShipHandlingComponent` (per-ship PD gains, defaults from `ShipRotationController`), `WrapComponent`, `RemoveComponent`.
 
 The convention is described in `CLAUDE.md`: a `Poolable` class, `xxxMapper`, and `Entity.xxxCmp`/`xxxCmpOptional`.
 
@@ -72,14 +72,9 @@ The convention is described in `CLAUDE.md`: a `Poolable` class, `xxxMapper`, and
 These are input for the backlog. Card IDs are given where a card exists.
 
 1. **Wrap teleport is confusing.** It's planned to be replaced by a boundary force field. → milestone M2
-2. **Minimap**: `MinimapSystem` calls `shape.begin/end` per entity, inside a `SpriteBatch.use` block, and never sets `shape.projectionMatrix` to the minimap camera. It has no frame, no background and no camera rectangle.
-3. **Star field**: three full-screen layers that scroll on a timer, independent of camera movement. There's no parallax from player motion and the contrast is low.
-4. `PlayScreen.hide()` only removes player entities. Asteroids, projectiles and Box2D bodies leak between levels (there's a TODO).
-5. ~~`WeaponProjectileProvider` sets `filter.categoryBits` twice and never sets `maskBits`.~~ Fixed in ST-007.
-6. `BaseInfoComponent.reset()` doesn't reset `entityType`. The global id counter is a static mutable.
-7. `AsteroidSize.SMALL` uses the `asteroid_big` texture.
-8. CI (`.github/workflows/workflows.yaml`) still installs JDK 17. The toolchain is 25, so it relies on foojay provisioning.
-9. `CLAUDE.md` used to describe a Groovy build on JDK 17. That's fixed, but verify after any build change.
+2. `BaseInfoComponent.reset()` doesn't reset `entityType`. The global id counter is a static mutable. (No card yet.)
+
+Fixed in M1 and removed from this list: ST-006 (level cleanup in `hide()`), ST-007 (faction filter bits), ST-008 (small asteroid texture), ST-009 (CI on JDK 25), ST-011 (minimap rework), ST-012 (starfield).
 
 ## Testing strategy
 

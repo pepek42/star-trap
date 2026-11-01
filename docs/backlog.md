@@ -166,14 +166,15 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The background reads as space with depth, and the ship's motion is felt through parallax without distracting from asteroids.
 
 ### ST-013 Bring docs in line after M1
-- status: ready
+- status: done (2026-11-01, 36ce6cc)
+- result: architecture.md and CLAUDE.md updated for M1; known issues cut to wrap teleport (M2) and the static id counter.
 - size: S
 - agent: junior-dev
 - depends: ST-003, ST-004, ST-006, ST-007, ST-011, ST-012
 - files: `docs/tech/architecture.md`, `CLAUDE.md`
 - goal: Update the "Known issues" list (remove the fixed items, reference their card IDs), the system table and the component list, so they match the code after M1.
 - acceptance:
-  - [ ] Every statement in the updated sections can be traced to the current code
+  - [x] Every statement in the updated sections can be traced to the current code
 
 ### ST-016 Per-ship rotation tuning via ShipHandlingComponent
 - status: done (2026-11-01, 3833b76)
@@ -190,7 +191,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The player ship feels the same as after ST-004. Also check the feel with the real `disc_green` sprite size, since the tests used a 2×2 box.
 
 ### ST-017 Deterministic screenshots with --seed
-- status: done (2026-11-01, 4684c83)
+- status: done (2026-11-01, 991c9e4)
 - result: `--seed` feeds one `RandomXS128` in DI (AsteroidProvider, DeathSystem); screenshot runs use a fixed 1/60 s delta; two `--seed=42` runs gave byte-identical PNGs.
 - size: S
 - agent: kotlin-dev

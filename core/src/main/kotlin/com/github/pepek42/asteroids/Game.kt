@@ -21,6 +21,8 @@ import com.github.pepek42.asteroids.debug.LaunchOptions
 import com.github.pepek42.asteroids.debug.ScreenshotHarness
 import com.github.pepek42.asteroids.debug.ScreenshotScene
 import com.github.pepek42.asteroids.event.GameEventManager
+import com.github.pepek42.asteroids.input.ControlScheme
+import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.BackgroundProvider
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -60,6 +62,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             bindSingleton(RandomXS128(options.seed ?: System.nanoTime()))
             bindSingleton(GameState())
             bindSingleton(RelativitySettings())
+            bindSingleton(ControlSettings(options.controls ?: ControlScheme.MOUSE_HULL))
             bindSingleton(DebugSettings(panelAllowed = IS_DEBUG || options.debugPanel, panelVisible = options.debugPanel))
             bindSingleton<OrthographicCamera>(OrthographicCamera())
             bindSingleton(GameEventManager())

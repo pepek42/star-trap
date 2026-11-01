@@ -23,6 +23,8 @@ class WeaponComponent(
     var projectileSpeed: Float = 0f,
     var projectileDamage: Float = 0f,
     var projectileRadius: Float = 0f,
+    /** World-frame fire direction; null means fire along the hull. */
+    var aimAngleRad: Float? = null,
 ) : Component, Pool.Poolable {
     override fun reset() {
         doAttack = false
@@ -35,6 +37,7 @@ class WeaponComponent(
         projectileSpeed = 0f
         projectileDamage = 0f
         projectileRadius = 0f
+        aimAngleRad = null
     }
 }
 

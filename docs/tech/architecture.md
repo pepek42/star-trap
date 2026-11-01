@@ -37,7 +37,7 @@ Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execu
 | # | System | Responsibility |
 |---|---|---|
 | 1 | `EndLevelSystem` | No asteroids left → `game.finishLevel()` |
-| 2 | `PlayerInputSystem` | Input listener → `MoveComponent.thrusters`, `targetAngleRad` (aim angle, set every frame for the player), `WeaponComponent.doAttack` |
+| 2 | `PlayerInputSystem` | Input listener fills `PlayerInputState`, then delegates to the active `ControlStrategy` (selected by `ControlSettings.scheme`, a `ControlScheme`), which writes `MoveComponent.thrusters`/`targetAngleRad` and `WeaponComponent.doAttack`/`aimAngleRad`. Only `MouseHullStrategy` exists; TWIN_STICK and AUTO_AIM fall back to it (ST-061/062) |
 | 3 | `MoveSystem` | Step listener, `beforeStep` once per physics step. Bodies with a `RelativisticComponent`: adds `thrustAccelWorld(ENGINE_PROPER_ACCEL·thr, …)` to `RelativisticComponent.accel` (reverse thrust is `REVERSE_THRUST_FRACTION` as strong). Other bodies: Newtonian `applyForceToCenter` |
 | 4 | `WeaponSystem` | Cooldown, spawns projectiles via `WeaponProjectileProvider` |
 | 5 | `ContactSystem` | Box2D `ContactListener`: `beginContact` calls top-level `applyProjectileHit(engine, projectile, target)`, which applies damage to `HealthComponent`, sets `ProjectileComponent.spent` and adds `RemoveComponent`. Projectiles are consumed on first hit and no longer pierce; a spent projectile ignores further hits |

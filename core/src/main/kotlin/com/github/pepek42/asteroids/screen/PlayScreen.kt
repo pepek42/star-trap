@@ -18,6 +18,7 @@ import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingU
 import com.github.pepek42.asteroids.debug.SCREENSHOT_FRAME_DELTA
 import com.github.pepek42.asteroids.ecs.clearLevel
 import com.github.pepek42.asteroids.event.GameEventManager
+import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -83,7 +84,7 @@ class PlayScreen(
         val relativisticDynamics = RelativisticDynamics(settings)
         engine.add {
             addSystem(EndLevelSystem(game))
-            addSystem(PlayerInputSystem(gameEventManager, camera))
+            addSystem(PlayerInputSystem(gameEventManager, camera, game.get<ControlSettings>()))
             addSystem(moveSystem)
             addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world, settings)))
             addSystem(ContactSystem(world))

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
+import com.github.pepek42.asteroids.input.ControlScheme
 import ktx.log.logger
 
 const val DEFAULT_SCREENSHOT_FRAMES = 180
@@ -20,10 +21,12 @@ data class LaunchOptions(
     val seed: Long? = null,
     /** Shows the debug side panel at launch (`--debug-panel`). */
     val debugPanel: Boolean = false,
+    /** Initial control scheme (`--controls=mouse|twin|auto`); null means default. */
+    val controls: ControlScheme? = null,
 )
 
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>` and `--debug-panel`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto` and `--debug-panel`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -38,6 +41,7 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
                 ?.let { options = options.copy(scene = it) }
             "--seed" -> value?.toLongOrNull()?.let { options = options.copy(seed = it) }
             "--thrust" -> options = options.copy(thrust = true)
+            "--controls" -> ControlScheme.fromFlag(value)?.let { options = options.copy(controls = it) }
             "--debug-panel" -> options = options.copy(debugPanel = true)
         }
     }

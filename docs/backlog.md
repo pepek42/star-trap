@@ -710,7 +710,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: With the defaults, the game plays exactly as after ST-046.
 
 ### ST-057 Debug plumbing: --debug-panel flag, F1 event, UI-first input, time scale
-- status: done (2026-11-01, PENDINGxx)
+- status: done (2026-11-01, 3ade280)
 - result: Added the --debug-panel flag, DebugSettings with a time scale, and an F1 DebugInputListener that fires even while input is ignored; the Stage now comes first in the input multiplexer.
 - size: S
 - agent: junior-dev
@@ -730,7 +730,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Main menu buttons and the level-cleared button still work. In play, LMB fires and RMB thrusts as before.
 
 ### ST-058 ControlScheme abstraction; current mouse-hull scheme as the first strategy
-- status: ready
+- status: done (2026-11-01, PENDINGxx)
+- result: Added ControlScheme, ControlSettings and --controls=, plus a ControlStrategy interface with MouseHullStrategy porting today's controls; WeaponComponent.aimAngleRad allows turret aiming. Reviewer approved; minor issues went to ST-064.
 - size: M
 - agent: kotlin-dev
 - depends: ST-057
@@ -744,10 +745,10 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `PlayerInputSystem(gameEventManager, camera, controlSettings = ControlSettings())` holds `strategies: Map<ControlScheme, ControlStrategy>`. Until ST-061/ST-062 land, TWIN_STICK and AUTO_AIM map to `MouseHullStrategy`, and that fallback is logged once. When `controlSettings.scheme` differs from last frame, call `onActivate` (which zeroes thrusters and sets `aimAngleRad = null`).
   - `WeaponComponent`: add `var aimAngleRad: Float? = null` (world frame; null means fire along the hull), reset to null. `WeaponProjectileProvider`: `val aim = weaponCmp.aimAngleRad ?: body.angle`. Muzzle = `body.position + weaponPosition.rotateRad(body.angle) + (2·projectileRadius, 0).rotateRad(aim)`. The projectile velocity and angle use `aim`. With null, this is identical to today.
 - acceptance:
-  - [ ] Test: `MouseHullStrategy` with the ship at (10, 10) and aim at (10, 20) sets `targetAngleRad = π/2`, copies thrust and fire, and leaves `aimAngleRad` null
-  - [ ] Test: `ControlScheme.fromFlag("TWIN") == TWIN_STICK`; `--controls=auto` parses; `--controls=foo` keeps null
-  - [ ] Test: `WeaponProjectileProvider` with `aimAngleRad = π/2` on a ship facing 0 gives a projectile velocity along +y. With null, the existing `WeaponProjectileProviderTest` expectations hold
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: `MouseHullStrategy` with the ship at (10, 10) and aim at (10, 20) sets `targetAngleRad = π/2`, copies thrust and fire, and leaves `aimAngleRad` null
+  - [x] Test: `ControlScheme.fromFlag("TWIN") == TWIN_STICK`; `--controls=auto` parses; `--controls=foo` keeps null
+  - [x] Test: `WeaponProjectileProvider` with `aimAngleRad = π/2` on a ship facing 0 gives a projectile velocity along +y. With null, the existing `WeaponProjectileProviderTest` expectations hold
+  - [x] `./gradlew core:test` passes
 - playtest: The controls feel exactly as before.
 
 ### ST-041 ObserverState: smoothed player β, γ, τ, t
@@ -1032,6 +1033,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - Field-off test: add a control. In the same setup with `fieldEnabled = true`, the body does get accelerated.
   - `PlayerEntityProvider`: comment that `projectileSpeed` is ignored for LASER (it fires at `settings.c`), or drop the assignment if nothing reads it.
   - Tests: `WeaponProjectileProvider` gives a laser speed `settings.c` (e.g. `c = 40` gives |v| = 40). Player and asteroid providers always attach `RelativisticComponent`.
+  - (ST-058 review) Test that changing `ControlSettings.scheme` between `PlayerInputSystem` updates calls `onActivate` (thrusters zeroed). Sort imports in `WeaponProjectileProviderTest`.
   - architecture.md: remove the stale "boundary field until ST-038" wording. Note that `FieldShimmerRenderer`, `MinimapSystem` and `CameraSystem` still read the `FIELD_SKIN` const, not `settings.fieldParams.skin`.
 - acceptance:
   - [ ] The tests above exist, and `./gradlew core:test` passes

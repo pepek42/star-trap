@@ -3,6 +3,7 @@ package com.github.pepek42.asteroids.provider
 import com.badlogic.ashley.core.Engine
 import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.component.BaseInfoComponent
@@ -36,12 +37,11 @@ class WeaponProjectileProvider(
 ) {
     fun spawnProjectile(weaponCmp: WeaponComponent, entity: Entity) {
         val bodyCmp = entity.bodyCmp
-        val relativeWeaponPosition = vec2(
-            weaponCmp.weaponPosition.x + 2f * weaponCmp.projectileRadius,
-            weaponCmp.weaponPosition.y
-        ).rotateRad(bodyCmp.body.angle)
-        val position = bodyCmp.body.position + relativeWeaponPosition
-        val angle = bodyCmp.body.angle
+        val aim = weaponCmp.aimAngleRad ?: bodyCmp.body.angle
+        val muzzle = vec2(2f * weaponCmp.projectileRadius, 0f).rotateRad(aim)
+        val position = bodyCmp.body.position +
+            Vector2(weaponCmp.weaponPosition).rotateRad(bodyCmp.body.angle) + muzzle
+        val angle = aim
         val faction = entity.baseInfoCmp.faction
 
         engine.entity {
@@ -53,7 +53,7 @@ class WeaponProjectileProvider(
                         WeaponType.LASER -> vec2(
                             settings.c,
                             0f
-                        ).rotateRad(bodyCmp.body.angle)
+                        ).rotateRad(aim)
                     }
                     linearVelocity.set(velocity)
                     bullet = true

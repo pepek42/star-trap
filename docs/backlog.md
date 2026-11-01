@@ -231,7 +231,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - goal: Once `docs/research/relativity-effects.md` exists, turn its "Arena boundary force field" section into M2 cards. These are a pure force-law function plus tests, a `BoundaryFieldSystem` placed before `PhysicsSystem`, removal of the `WrapSystem` and `WrapComponent` usage, projectile lifetime replacing out-of-bounds removal, and a field shimmer visual.
 
 ### ST-019 Set SPEED_OF_LIGHT to 60 u/s
-- status: ready
+- status: done (2026-11-01, e7a7d0a)
+- result: c = 60 u/s with a test guarding the Box2D cap; docs updated.
 - size: S
 - agent: junior-dev
 - depends: —
@@ -239,8 +240,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - goal: `SPEED_OF_LIGHT = 250` is above Box2D's 2 u/step cap (90 u/s at 45 Hz), so lasers are silently clamped. Research §1 recommends c = 60 (1.33 u/step, 67 % of the cap). This is planned around the recommended answer to ST-020.
 - spec: Set `const val SPEED_OF_LIGHT = 60f`. Replace the KDoc with: "World units per second. Must stay ≤ 0.75 × 2 u/step × 45 Hz ≈ 67 so Box2D's b2_maxTranslation never clamps (research §1)." Lasers keep `projectileSpeed = SPEED_OF_LIGHT` in `PlayerEntityProvider`, so they now fly at 60 u/s. In `CLAUDE.md` and `architecture.md`, replace the sentences saying 250 exceeds the cap with "c = 60 u/s fits under the 90 u/s Box2D cap".
 - acceptance:
-  - [ ] Test: `SPEED_OF_LIGHT * PhysicsSystem.PHYSICS_UPDATE_INTERVAL <= 0.75f * 2f`
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: `SPEED_OF_LIGHT * PhysicsSystem.PHYSICS_UPDATE_INTERVAL <= 0.75f * 2f`
+  - [x] `./gradlew core:test` passes
 - playtest: Lasers look a bit slower than before (60 vs the clamped 90 u/s) and are still easy to aim.
 
 ### ST-020 Owner decision: value of c

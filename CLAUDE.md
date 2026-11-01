@@ -55,6 +55,6 @@ Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, conventio
 
 **Debug.** The `IS_DEBUG` constant in `Game.kt` sets the log level and adds `DebugSystem` (the Box2D debug renderer). For per-frame logging, wrap calls in `defaultLoggingUtils.tryLogging { ... }`, which throttles output to once every 30 s. `PlayScreen.render` ticks the throttle. The screenshot harness (`--screenshot=<path>`, `--seed=<long>`, etc.) is described in `docs/tech/dev-workflow.md`.
 
-**Units.** World units are meters-ish. `UNIT_SCALE = 18` px per unit (`Config.kt`). The map is 100×100 units (`MapProvider`). `physics/PhysicsConstants.kt` holds `SPEED_OF_LIGHT` for the planned relativity mechanics. Box2D clamps movement to 2 units per step, which is about 90 u/s at 45 Hz. The current `SPEED_OF_LIGHT = 250` exceeds that, so projectiles are silently clamped.
+**Units.** World units are meters-ish. `UNIT_SCALE = 18` px per unit (`Config.kt`). The map is 100×100 units (`MapProvider`). `physics/PhysicsConstants.kt` holds `SPEED_OF_LIGHT` for the planned relativity mechanics. Box2D clamps movement to 2 units per step, which is about 90 u/s at 45 Hz. c = 60 u/s fits under the 90 u/s Box2D cap.
 
 **i18n.** UI strings live in `assets/i18n/messages.properties` and `messages_pl.properties`. Keep both files in sync.

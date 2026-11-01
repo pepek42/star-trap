@@ -12,7 +12,7 @@ import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.IS_DEBUG
-import com.github.pepek42.asteroids.component.PlayerComponent
+import com.github.pepek42.asteroids.ecs.clearLevel
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.provider.AsteroidProvider
@@ -37,7 +37,6 @@ import com.github.pepek42.asteroids.ui.Hud
 import com.github.pepek42.asteroids.ui.MinimapViewport
 import ktx.app.KtxScreen
 import ktx.ashley.add
-import ktx.ashley.allOf
 import ktx.assets.disposeSafely
 import ktx.box2d.createWorld
 import ktx.log.logger
@@ -114,8 +113,7 @@ class PlayScreen(
     override fun hide() {
         Gdx.graphics.setSystemCursor(SystemCursor.Arrow)
         hud.toggleHud(show = false)
-        engine.removeAllEntities(allOf(PlayerComponent::class).get())
-        // TODO Clear ECS and Box2d - player ship is not getting cleared
+        clearLevel(engine, world)
         super.hide()
     }
 

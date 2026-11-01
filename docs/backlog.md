@@ -53,7 +53,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The ship follows the cursor snappily with no wobble, including when the cursor crosses behind the ship.
 
 ### ST-005 Screenshot harness for automated visual checks
-- status: done (2026-11-01, 8455fa4)
+- status: done (2026-11-01, f84b805)
 - result: `debug/ScreenshotHarness.kt` with `LaunchOptions` parsing; `./gradlew lwjgl3:run --args="--screenshot=/abs/path.png --frames=120"` writes the PNG and exits (verified, also exits if the write fails).
 - size: M
 - agent: kotlin-dev
@@ -67,15 +67,16 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
 
 ### ST-006 Clear all entities and bodies between levels
-- status: ready
+- status: done (2026-11-01, bf27af7)
+- result: `ecs/LevelCleanup.kt` `clearLevel` destroys every body and removes all entities; `PlayScreen.hide()` calls it.
 - size: S
 - agent: kotlin-dev
 - depends: —
 - files: `screen/PlayScreen.kt`, new helper (e.g. `ecs/LevelCleanup.kt`), a test
 - goal: `PlayScreen.hide()` only removes player entities. Asteroids, projectiles and their Box2D bodies leak into the next level (there's a TODO). Add `fun clearLevel(engine: Engine, world: World)`: for every entity with a `BodyComponent`, destroy the body and null `userData` (the same thing `RemoveSystem` does), then `engine.removeAllEntities()`. Call it from `hide()`.
 - acceptance:
-  - [ ] Test with a real `World` + `PooledEngine`: after spawning 3 bodies/entities and calling `clearLevel`, `world.bodyCount == 0` and `engine.entities.size() == 0`, and no assertion error comes from `BodyComponent.reset()`
-  - [ ] `./gradlew core:test` passes
+  - [x] Test with a real `World` + `PooledEngine`: after spawning 3 bodies/entities and calling `clearLevel`, `world.bodyCount == 0` and `engine.entities.size() == 0`, and no assertion error comes from `BodyComponent.reset()`
+  - [x] `./gradlew core:test` passes
 
 ### ST-007 Fix faction collision bit naming and the projectile filter
 - status: ready

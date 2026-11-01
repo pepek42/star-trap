@@ -770,7 +770,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 
 ### ST-059 Debug side panel: relativity readouts, toggles and sliders
 - status: done (2026-11-01, 411a63f)
-- result: F1 debug side panel with live readouts, relativity and field toggles, time scale, c/a0/damping/γ-cap sliders and a control picker. The toggle test was skipped because the Skin needs GL, the review didn't finish before the session ended, and polish is in ST-065.
+- result: F1 debug side panel with live readouts, relativity and field toggles, time scale, c/a0/damping/γ-cap sliders and a control picker. The toggle test was skipped because the Skin needs GL, the reviewer approved, and polish is in ST-065.
 - size: M
 - agent: kotlin-dev
 - depends: ST-041, ST-056, ST-057, ST-058
@@ -1051,7 +1051,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - The minimap (bottom-right) covers the controls selectbox and the reset button. While the panel is visible, move the minimap left of the panel, or move it to the bottom-left.
   - Checkbox checked and unchecked states look the same in this skin. Tint the checked state or use a clearer style.
   - The UI font has no Greek glyphs, so `DebugPanel.update` swaps in ASCII names. Drop that swap if a Greek-capable font is added.
-  - Finish the ST-059 review if it never finished: check the show/hide lifecycle across levels and that slider/selectbox initialisation doesn't overwrite settings.
+  - (ST-059 review, approved, minors) Swap the Greek letters for ASCII inside the reused StringBuilder instead of chaining `String.replace` calls. Pace the 10 Hz refresh in `DebugPanelSystem` on real time (`Gdx.graphics.rawDeltaTime`), not the scaled delta. Call `select.hideList()` in `hide()` and `toggleDebugPanel()`. Make the toggle-flip logic testable without GL and add the `panelVisible` test.
 - acceptance:
   - [ ] A screenshot with `--debug-panel` shows every widget unobstructed
   - [ ] `./gradlew core:test` passes

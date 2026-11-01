@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-019**.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-051**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -166,7 +166,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The background reads as space with depth, and the ship's motion is felt through parallax without distracting from asteroids.
 
 ### ST-013 Bring docs in line after M1
-- status: done (2026-11-01, 36ce6cc)
+- status: done (2026-11-01, b586f78)
 - result: architecture.md and CLAUDE.md updated for M1; known issues cut to wrap teleport (M2) and the static id counter.
 - size: S
 - agent: junior-dev
@@ -219,22 +219,570 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 
 ## M2 Arena boundary field
 
+- note: Physics source is `docs/research/relativity-effects.md` §1, §3 and §7 (items 1–6). **Step-input rule, decided in ST-014:** every per-step physics input goes through `PhysicsStepListener.beforeStep(dt)`. That covers thrust force, field force or velocity kick, and (still inline in `PhysicsSystem`) the rotation impulse. `world.clearForces()` runs after **every** `world.step`. This replaces the old "thrust applied once per frame, persists across substeps, cleared after the loop" scheme. Per step the result is the same: each step still integrates the thrust exactly once. The shimmer uses `ARENA_BOUNDARY_COLOR` (orange, `ui/Colors.kt`) rather than the research doc's cyan, so it matches the minimap frame.
+
 ### ST-014 Plan M2 (boundary field) from research
-- status: ready
+- status: done (2026-11-01)
+- result: Created ST-019 … ST-029 (ST-020 and ST-023 are `needs-user`). `SPEED_OF_LIGHT = 60` goes into M2 (ST-019) so the field is tuned against the final c.
 - size: S
 - agent: planner
 - depends: —
 - files: `docs/backlog.md`
 - goal: Once `docs/research/relativity-effects.md` exists, turn its "Arena boundary force field" section into M2 cards. These are a pure force-law function plus tests, a `BoundaryFieldSystem` placed before `PhysicsSystem`, removal of the `WrapSystem` and `WrapComponent` usage, projectile lifetime replacing out-of-bounds removal, and a field shimmer visual.
 
+### ST-019 Set SPEED_OF_LIGHT to 60 u/s
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `core/src/main/kotlin/com/github/pepek42/asteroids/physics/PhysicsConstants.kt`, create `core/src/test/kotlin/com/github/pepek42/asteroids/physics/PhysicsConstantsTest.kt`, `CLAUDE.md` (Units paragraph), `docs/tech/architecture.md` ("Box2D speed cap" bullet)
+- goal: `SPEED_OF_LIGHT = 250` is above Box2D's 2 u/step cap (90 u/s at 45 Hz), so lasers are silently clamped. Research §1 recommends c = 60 (1.33 u/step, 67 % of the cap). This is planned around the recommended answer to ST-020.
+- spec: Set `const val SPEED_OF_LIGHT = 60f`. Replace the KDoc with: "World units per second. Must stay ≤ 0.75 × 2 u/step × 45 Hz ≈ 67 so Box2D's b2_maxTranslation never clamps (research §1)." Lasers keep `projectileSpeed = SPEED_OF_LIGHT` in `PlayerEntityProvider`, so they now fly at 60 u/s. In `CLAUDE.md` and `architecture.md`, replace the sentences saying 250 exceeds the cap with "c = 60 u/s fits under the 90 u/s Box2D cap".
+- acceptance:
+  - [ ] Test: `SPEED_OF_LIGHT * PhysicsSystem.PHYSICS_UPDATE_INTERVAL <= 0.75f * 2f`
+  - [ ] `./gradlew core:test` passes
+- playtest: Lasers look a bit slower than before (60 vs the clamped 90 u/s) and are still easy to aim.
+
+### ST-020 Owner decision: value of c
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `docs/design/game-design.md` §11, `physics/PhysicsConstants.kt` (only if the answer is not (b))
+- goal: Record the owner's choice for the speed of light (research §8 Q1). ST-019 already implements the recommendation.
+- question: What should c be? (a) 40 u/s: very slow light, sluggish lasers. (b) **60 u/s at 45 Hz (recommended)**: light delay is visible at screen scale, bullets are fast, and Box2D needs no change. (c) 80 u/s with `PHYSICS_SUBSTEPS = 2`: faster, but Box2D costs twice as much CPU.
+- acceptance:
+  - [ ] The answer is added to game-design.md §11. If (a): set `SPEED_OF_LIGHT = 40f`. If (c): `SPEED_OF_LIGHT = 80f` and `PHYSICS_SUBSTEPS = 2` (ST-021), and the ST-019 test uses `PHYSICS_UPDATE_INTERVAL / PHYSICS_SUBSTEPS`
+  - [ ] `./gradlew core:test` passes
+
+### ST-021 Per-step physics listener hook; thrust applied per step
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: create `physics/PhysicsStepListener.kt`, edit `system/PhysicsSystem.kt`, `system/MoveSystem.kt`, `component/BodyComponent.kt`, `screen/PlayScreen.kt`, `system/MoveSystemTest.kt`
+- goal: The boundary field (and later the relativistic integrator) must act once per physics step. Today thrust is applied once per frame in `MoveSystem.update` and persists through the substeps until `clearForces` after the loop. Replace this with a per-step hook (research §3 "Box2D interaction", points 1–2). Per-step behaviour stays the same.
+- spec:
+  - `interface PhysicsStepListener { fun beforeStep(dt: Float); fun afterStep(dt: Float) }` in package `com.github.pepek42.asteroids.physics`.
+  - `PhysicsSystem(world, engine, private val stepListeners: List<PhysicsStepListener> = emptyList())`. Add `const val PHYSICS_SUBSTEPS = 1` to its companion. The loop becomes:
+    ```
+    while (accumulator >= PHYSICS_UPDATE_INTERVAL) {
+        preProcess()                                   // prev transforms only, once per tick
+        val subDt = PHYSICS_UPDATE_INTERVAL / PHYSICS_SUBSTEPS
+        repeat(PHYSICS_SUBSTEPS) {
+            stepListeners.forEach { it.beforeStep(subDt) }
+            applyRotation()                            // unchanged angular impulse
+            world.step(subDt, 6, 2)
+            stepListeners.forEach { it.afterStep(subDt) }
+            world.clearForces()
+        }
+        accumulator -= PHYSICS_UPDATE_INTERVAL
+    }
+    ```
+    Delete the `runSimulation` flag and the post-loop `clearForces`.
+  - `MoveSystem` becomes `EntitySystem(), PhysicsStepListener`. It caches the `allOf(MoveComponent, BodyComponent)` family in `addedToEngine`. `update` does nothing. `beforeStep` applies the existing `applyMainThrusters` to every entity (same force, `applyForceToCenter`). `afterStep` does nothing.
+  - Delete `BodyComponent.moveForcesApplied` and its reset in `PhysicsSystem.preProcess`.
+  - `PlayScreen.setupEcs`: keep `val moveSystem = MoveSystem()`, add it at the same position, and construct `PhysicsSystem(world, engine, listOf(moveSystem))`.
+- acceptance:
+  - [ ] `MoveSystemTest` thrust tests call `moveSystem.beforeStep(dt)` instead of `update`. The "once per step" test asserts that two `beforeStep` calls apply the force twice and that `update` alone applies nothing
+  - [ ] New test with a real `World`: a 1-unit box with thrusters = 1 driven through `PhysicsSystem` for 45 steps reaches `|v| = MAIN_ENGINE_THRUST / mass × 1 s` within 1 %, both with 1 step per frame and with 3 steps per frame (frame time `3 × PHYSICS_UPDATE_INTERVAL + 1e-4`)
+  - [ ] The existing rotation tests still pass unchanged
+  - [ ] `./gradlew core:test` passes
+- playtest: Thrust feels exactly as before.
+
+### ST-022 Boundary field force law (pure functions)
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: create `core/src/main/kotlin/com/github/pepek42/asteroids/physics/BoundaryField.kt`, create `core/src/test/kotlin/com/github/pepek42/asteroids/physics/BoundaryFieldTest.kt`
+- goal: The force law from research §3 as GL-free functions with tests. It's an acceleration field, independent of mass.
+- spec:
+  - Top-level constants: `FIELD_SKIN = 8f`, `FIELD_EXPONENT = 2f`, `FIELD_ACCEL_MAX = 3000f`, `FIELD_DAMPING = 1f` (per ST-023 recommendation), `FIELD_BACKSTOP_RESTITUTION = 0.9f`, `FIELD_PHOTON_MIRROR_Q = 0.5f`, `FIELD_USE_BODY_RADIUS = true`.
+  - `data class BoundaryFieldParams(skin, exponent, accelMax, damping, useBodyRadius)` with those defaults.
+  - Walls of `[0, W] × [0, H]`: left `d = x − r`, n̂ = (1, 0); right `d = W − x − r`, n̂ = (−1, 0); bottom `d = y − r`, n̂ = (0, 1); top `d = H − y − r`, n̂ = (0, −1). `r` = body radius, or 0 when `useBodyRadius` is false.
+  - `qᵢ = clamp((s − dᵢ)/s, 0, 1)`.
+  - `fun boundaryAcceleration(x, y, vx, vy, rBody, mapW, mapH, params, out: Vector2): Vector2`:
+    `a = Σᵢ A·qᵢⁿ·n̂ᵢ − Σᵢ k_d·qᵢ·min(0, v·n̂ᵢ)·n̂ᵢ`. Writes into `out` and returns it, with no allocation. `v` is the Newtonian velocity in M2 and the proper velocity `u` in M3 (ST-038).
+  - `fun boundaryDepthQ(x, y, rBody, mapW, mapH, params): Float` = max qᵢ (for shimmer and photon mirrors).
+  - `fun boundaryPotential(q, params) = A·s·q^(n+1)/(n+1)` (per unit mass).
+  - `fun newtonianTurnAroundDepth(vNormal, params): Float` = `s·q*` where `q* = ((n+1)·v²/(2·A·s))^(1/(n+1))`, capped at `s` (≥ s means the backstop catches it).
+- acceptance:
+  - [ ] All tests build an explicit `BoundaryFieldParams(skin = 8f, exponent = 2f, accelMax = 3000f, …)` instead of relying on defaults, so ST-046 can change `FIELD_SKIN` without breaking them
+  - [ ] Test: zero acceleration at (50, 50) and at (s + r + 0.01, 50) on a 100×100 map
+  - [ ] Test: symmetry. `a` at (x, 50) equals −`a` at (100 − x, 50) for x in 0.5..7.5
+  - [ ] Test: |a| is monotonically non-decreasing as x goes from 8 to 0 (zero velocity)
+  - [ ] Test: corner. At (2, 2), `a.x == a.y > 0`, and each equals the single-wall value at (2, 50)
+  - [ ] Test: body radius. With r = 2.25, x = 9 gives a > 0, and with `useBodyRadius = false` it gives 0
+  - [ ] Test: `newtonianTurnAroundDepth` gives 1.47 ± 0.02 for 10 u/s, 3.06 ± 0.02 for 30 u/s, and 7.02 ± 0.03 for 60 u/s
+  - [ ] Test: a semi-implicit Euler simulation (dt = 1/45, damping 0, point body entering from x = 20 toward x = 0) reaches a maximum depth within `v·dt` of `newtonianTurnAroundDepth` for v = 10, 30, 60, and leaves with speed within 2 % of the entry speed
+  - [ ] Test: with damping 1, the exit speed is strictly lower than the entry speed and above 50 % of it for v = 30
+  - [ ] `./gradlew core:test` passes
+
+### ST-023 Owner decision: boundary field damping
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `docs/design/game-design.md` §11, `physics/BoundaryField.kt` (only if the answer is (a))
+- goal: Record the owner's choice (research §8 Q7). ST-022 implements the recommendation.
+- question: Should the boundary field lose energy? (a) Lossless (`FIELD_DAMPING = 0`): pinball-like, everything bounces forever. (b) **Mild damping, `k_d = 1` (recommended)**: about 10–20 % of normal speed is lost per bounce for ships and asteroids. Photon lasers always reflect losslessly but use up a bounce.
+- acceptance:
+  - [ ] The answer is added to game-design.md §11. If (a): set `FIELD_DAMPING = 0f` and drop the damping test's "strictly lower" assertion in favour of "within 2 %"
+  - [ ] `./gradlew core:test` passes
+
+### ST-024 Projectile lifetime; out-of-bounds removal becomes a safety net
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: create `component/LifetimeComponent.kt`, `system/LifetimeSystem.kt`, `weapon/ProjectileConstants.kt`; edit `provider/WeaponProjectileProvider.kt`, `system/RemoveSystem.kt`, `screen/PlayScreen.kt`; tests
+- goal: Once the field bends projectiles back (ST-025), they never leave the map, so they need a clock (research §3 "Projectiles: lifetime"). The out-of-bounds check stays only as a safety net, and the player is never removed.
+- spec:
+  - `enum class LifetimeClock { WORLD, PROPER }`. `LifetimeComponent(var remaining: Float = 0f, var total: Float = 0f, var clock: LifetimeClock = WORLD, var bouncesLeft: Int = -1)` is `Poolable` and follows the component convention (`lifetimeMapper`, `lifetimeCmp`, `lifetimeCmpOptional`). `bouncesLeft = -1` means unlimited. Only the photon mirror decrements it (ST-039). `LifetimeSystem` only handles time.
+  - `ProjectileConstants.kt`: `PHOTON_WORLD_LIFETIME = 2f`, `PHOTON_MAX_BOUNCES = 3`, `SLUG_PROPER_LIFETIME = 1.2f`, `LIFETIME_FADE_SECONDS = 0.2f`.
+  - `LifetimeSystem : IteratingSystem(allOf(LifetimeComponent))`, registered just before `DeathSystem`. It does `remaining -= dt`. PROPER is treated like WORLD until ST-040. When `remaining <= 0` and there's no `RemoveComponent`, it adds one. If the entity has a `SpriteComponent` and `remaining < LIFETIME_FADE_SECONDS`, it calls `sprite.setAlpha(remaining / LIFETIME_FADE_SECONDS)`.
+  - `WeaponProjectileProvider`: lasers get `LifetimeComponent(remaining = total = PHOTON_WORLD_LIFETIME, clock = WORLD, bouncesLeft = PHOTON_MAX_BOUNCES)`.
+  - `RemoveSystem`: rename `REMOVE_BUFFER_MULTIPLAYER` to `REMOVE_BUFFER_FRACTION = 0.20f`. When out of bounds: if `entity.playerCmpOptional != null`, `setTransform` the body to the position clamped into `[1, W−1] × [1, H−1]`, zero its linear velocity, and log a warning (throttled via `defaultLoggingUtils.tryLogging`). Never remove the player. Otherwise add `RemoveComponent` and log a throttled warning. Keep the `wrapMapper` exemption for now (ST-025 deletes it).
+- acceptance:
+  - [ ] Test (`PooledEngine` + `LifetimeSystem`): lifetime 0.5. After `update(0.3)` there's no `RemoveComponent`. After another `update(0.3)` there is
+  - [ ] Test: a player entity with a real body at (130, 50) on a 100×100 map is moved inside and not removed. A non-player body entity at (130, 50) gets `RemoveComponent`. A body at (110, 50) is left alone (inside the 20 % margin)
+  - [ ] `./gradlew core:test` passes
+- playtest: Lasers fade out after about 2 s instead of vanishing at the map edge.
+
+### ST-025 BoundaryFieldSystem replaces the wrap teleport
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-021, ST-022, ST-024
+- files: create `system/BoundaryFieldSystem.kt`; edit `component/BodyComponent.kt`, `screen/PlayScreen.kt`, `system/RemoveSystem.kt`, `provider/PlayerEntityProvider.kt`, `provider/AsteroidProvider.kt`, `provider/WeaponProjectileProvider.kt`, `weapon/WeaponType.kt`; delete `system/WrapSystem.kt`, `component/WrapComponent.kt`; tests
+- goal: The wrap teleport is confusing (owner's todo). Replace it with the mass-independent repulsive field from ST-022, applied per step through the ST-021 hook, plus a hard backstop. Projectiles bend back too.
+- spec:
+  - `BodyComponent`: add `var boundingRadius = -1f` (reset to −1). Add a helper `fun computeBoundingRadius(body: Body): Float` = max over fixtures of (`CircleShape`: `position.len() + radius`; `PolygonShape`: max vertex length). `BoundaryFieldSystem` fills it lazily the first time it sees the body.
+  - `class BoundaryFieldSystem(private val mapProvider: MapProvider, private val params: BoundaryFieldParams = BoundaryFieldParams()) : EntitySystem(), PhysicsStepListener`, with family `allOf(BodyComponent, TransformComponent)`. `update` does nothing. Register it in `setupEcs` directly before `PhysicsSystem` and pass it as the second listener: `PhysicsSystem(world, engine, listOf(moveSystem, boundaryFieldSystem))`.
+  - `beforeStep(dt)`: for each body, skip `StaticBody`. Compute `a = boundaryAcceleration(pos, vel, boundingRadius, mapW, mapH, params, scratch)`. If it's zero, skip. For a `DynamicBody`: `applyForceToCenter(a.x·mass, a.y·mass, true)`. For a `KinematicBody` (projectiles): `setLinearVelocity(v + a·dt)`. Use preallocated scratch vectors, with no per-step allocation.
+  - `afterStep(dt)`, the backstop: for each wall with `dᵢ <= 0` (the same `dᵢ`, radius included, as the force law), `setTransform` so that `dᵢ = 0.01`. If the normal velocity is outward (`v·n̂ᵢ < 0`), set `v_n → −FIELD_BACKSTOP_RESTITUTION·v_n`. Log at debug level via `tryLogging`.
+  - Delete `WrapSystem`, `WrapComponent`, `wrapMapper`, every `with<WrapComponent>()`, the `wrapMapper` check in `RemoveSystem`, and `WeaponType.trapped`, so it becomes `enum class WeaponType { LASER }`.
+  - `AsteroidProvider.spawnAsteroids`: the spawn ring radius `radius * 0.85f` becomes `min(center.x, center.y) − FIELD_SKIN − AsteroidSize.LARGE.radius − 1f`, so asteroids don't spawn inside the skin.
+- acceptance:
+  - [ ] Test (real `World`, `PhysicsSystem` with this listener, 100×100 map): a dynamic circle (r = 1) at (85, 50) moving +x at 30 u/s never has `x + r > 100` during 3 s, and ends with `vx < 0`
+  - [ ] Test: mass independence. Circles of density 1 and 100, same radius and speed, reach the same maximum x within 0.05
+  - [ ] Test: a kinematic sensor body (r = 0.1) at 60 u/s toward the right wall turns back before x = 100
+  - [ ] Test: backstop. A body at x = 100.5 moving +x is inside after one step and moving −x
+  - [ ] `grep -r "WrapComponent\|WrapSystem\|trapped" core/src` returns nothing
+  - [ ] `./gradlew core:test` passes
+- playtest: Flying into the edge curves you back smoothly with no teleport. Asteroids drift off the edges. Lasers fired at the wall curve back and can hit asteroids on the rebound.
+
+### ST-026 Camera may show the field skin; minimap shows the skin
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-025
+- files: `system/CameraSystem.kt`, `system/MinimapSystem.kt`, create `core/src/test/kotlin/com/github/pepek42/asteroids/system/CameraClampTest.kt`
+- goal: The camera is clamped exactly to the map, so the boundary field is barely visible. Let the view extend `FIELD_SKIN / 2` past the edge, and draw the skin on the minimap (research §3).
+- spec:
+  - In `CameraSystem.kt` add a top-level `fun clampCameraAxis(target: Float, halfView: Float, mapSize: Float, margin: Float): Float`. Let `lo = halfView − margin` and `hi = mapSize − halfView + margin`. If `lo > hi`, return `mapSize / 2`. Otherwise return `target.coerceIn(lo, hi)`. `handleCameraPosition` uses it for x and y with `margin = CAMERA_ARENA_MARGIN`, where `private const val CAMERA_ARENA_MARGIN = FIELD_SKIN / 2`.
+  - `MinimapSystem.update`: after the arena border, in the same `Line` pass, draw a second rectangle inset by `FIELD_SKIN` on each side, in a private copy of `ARENA_BOUNDARY_COLOR` with alpha 0.35 (`ARENA_BOUNDARY_COLOR.cpy().apply { a = 0.35f }` stored in a `private val`). Don't mutate the shared colour.
+- acceptance:
+  - [ ] Tests: `clampCameraAxis(0f, 24f, 100f, 4f) == 20f`; `clampCameraAxis(100f, 24f, 100f, 4f) == 80f`; `clampCameraAxis(50f, 24f, 100f, 4f) == 50f`; `clampCameraAxis(0f, 60f, 100f, 4f) == 50f`
+  - [ ] `./gradlew core:test` passes
+- playtest: Near the edge you can see a strip of space beyond the arena. The minimap shows an inner rectangle where the field starts.
+
+### ST-027 Shimmer impact buffer and emission from the field
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-025
+- files: create `render/ShimmerImpacts.kt`, create `core/src/test/kotlin/com/github/pepek42/asteroids/render/ShimmerImpactsTest.kt`; edit `system/BoundaryFieldSystem.kt`, `screen/PlayScreen.kt`
+- goal: This is the CPU half of the shimmer (research §3 "Shimmer visual"). It's a fixed-size buffer of recent wall impacts that the shader (ST-028) uploads as `u_impacts[16]`.
+- spec:
+  - `class ShimmerImpacts(val capacity: Int = SHIMMER_MAX_IMPACTS)` with constants `SHIMMER_MAX_IMPACTS = 16`, `SHIMMER_DECAY = 0.6f`, `SHIMMER_IMPACT_LIFETIME = 1.5f`, `SHIMMER_REFRESH_SECONDS = 0.25f`. Its state is `var time = 0f` (advanced by `BoundaryFieldSystem.afterStep(dt)`), `val data = FloatArray(capacity * 4)` holding (x, y, startTime, strength), and `var count`. It also keeps an `IntFloatMap` of last emit time per entity id.
+  - `fun emit(entityId: Int, x: Float, y: Float, strength: Float, force: Boolean = false)`: skip if `!force` and this id emitted less than `SHIMMER_REFRESH_SECONDS` ago. If an empty slot exists, use it. Otherwise replace the slot with the smallest `strength·exp(−age/SHIMMER_DECAY)`.
+  - `fun prune()`: drops entries older than `SHIMMER_IMPACT_LIFETIME` and compacts the array.
+  - `BoundaryFieldSystem` takes a `ShimmerImpacts` (created in `PlayScreen`, which later also gives it to the renderer). In `afterStep`, for each body with `q = boundaryDepthQ(...) > 0.1`, it emits at the centre projected onto the nearest wall, with strength `q^FIELD_EXPONENT` and id `baseInfoCmp.id`. Backstop hits emit with `strength = 1.5f, force = true`. It calls `prune()` once per `afterStep`.
+- acceptance:
+  - [ ] Tests: the same id twice within 0.25 s stores one impact, and after 0.3 s stores two. `force = true` bypasses the throttle. 20 emits into capacity 16 keep 16 and evict the weakest decayed one. `prune` removes entries older than 1.5 s
+  - [ ] No allocation in `emit` or `prune` (arrays are preallocated)
+  - [ ] `./gradlew core:test` passes
+
+### ST-028 Field shimmer shader
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-027
+- files: create `assets/shaders/field_shimmer.vert`, `assets/shaders/field_shimmer.frag`, `render/FieldShimmerRenderer.kt`; edit `system/RenderSystem.kt`, `screen/PlayScreen.kt`
+- goal: Make the field visible: a faint honeycomb that brightens with depth, plus ripples from impacts that expand at c (research §3 "Shimmer visual"). It uses `ARENA_BOUNDARY_COLOR`.
+- spec:
+  - GLSL ES 1.00 (TeaVM-safe): `#ifdef GL_ES precision mediump float; #endif`. Attributes and uniforms are the `SpriteBatch` ones (`a_position`, `a_color`, `a_texCoord0`, `u_projTrans`). The vertex shader passes `v_world = a_position.xy`.
+  - Fragment uniforms: `u_mapSize` (vec2), `u_skin`, `u_time`, `u_baseColor` (vec3 = `ARENA_BOUNDARY_COLOR` rgb), `u_baseAlpha` (`SHIMMER_BASE_ALPHA = 0.08`), `u_c` (= `SPEED_OF_LIGHT`), `u_impacts[16]` (vec4), and `u_impactCount` (int; loop `for (int i = 0; i < 16; i++) { if (i >= u_impactCount) break; … }`).
+  - Fragment math: `d` = distance from `v_world` to the nearest wall (negative outside the map, clamped to 0). `q = clamp((u_skin − d)/u_skin, 0, 1)`. `hex` = standard two-offset-grid hexagon edge mask (cell size 1.2 u) in 0..1, modulated by `0.6 + 0.4·sin(u_time·2 + v_world.x·0.3)`. `base = u_baseAlpha·q²·hex`. For each impact `(x, y, t0, s)`: `ρ = distance(v_world, xy)`, `age = u_time − t0`, `ring = s·exp(−((ρ − u_c·age)/0.6)²)·exp(−age/0.6)`, `spot = s·exp(−ρ²/1.44)·max(0, 1 − age/0.2)`. `I = base + Σ(ring + spot)·q_soft`, with `q_soft = max(q, 0.15)` so ripples are visible across the skin. Colour is `mix(u_baseColor, vec3(1.0), clamp(Σs·(ring+spot), 0, 1))`, alpha `clamp(I, 0, 1)`.
+  - `FieldShimmerRenderer(impacts: ShimmerImpacts, mapProvider: MapProvider) : Disposable`. It loads the shader via `Gdx.files.internal("shaders/…")` with `ShaderProgram.pedantic = false`, and makes a 1×1 white `Texture` from a `Pixmap`. `render(batch)`: set `batch.shader`, the additive blend (`GL_SRC_ALPHA, GL_ONE`), and the uniforms (`setUniform4fv("u_impacts", impacts.data, 0, 64)`). Draw 4 edge strips covering the band from `−FIELD_SKIN/2` outside to `FIELD_SKIN` inside each wall. Then restore the default shader and blend. If `!program.isCompiled`, log the error once and fall back to drawing the same strips with the default shader, tinted `ARENA_BOUNDARY_COLOR` at alpha `0.06 + 0.04·sin(2·time)`.
+  - `RenderSystem` takes the renderer (constructor param) and calls `render(batch)` after `super.update(deltaTime)` inside the existing `batch.use` block. `PlayScreen` creates it and disposes it via the existing `Disposable` sweep (make `RenderSystem` `Disposable` and forward).
+- acceptance:
+  - [ ] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
+  - [ ] A screenshot via the ST-005 harness (`--seed=42 --frames=240 --thrust`) shows the shimmer band near an edge, and the agent has looked at it. If the ship doesn't reach an edge in 240 frames, add a temporary `--frames` value that does, and note it on the card
+  - [ ] No per-frame allocation in `render`
+- playtest: The edge reads as a soft energy wall. Bumping into it sends a ripple along the wall at visibly finite speed. The band is not distracting in the middle of the arena.
+
+### ST-029 Bring docs in line after M2
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-019, ST-021, ST-024, ST-025, ST-026, ST-028
+- files: `docs/tech/architecture.md`, `CLAUDE.md`
+- goal: Update the system table (WrapSystem gone, BoundaryFieldSystem and LifetimeSystem added), the component list (LifetimeComponent added, WrapComponent removed, `BodyComponent.boundingRadius`), the "Physics loop details" (the per-step listener hook, clearForces per step, no `moveForcesApplied`), RemoveSystem as a safety net, c = 60, and remove known issue 1 (wrap teleport, fixed by ST-025).
+- acceptance:
+  - [ ] Every statement in the updated sections can be traced to the current code
+
 ---
 
-## M3+ Relativity, gravity, enemies, modes
+## M3 Relativity MVP
+
+- note: Source is `docs/research/relativity-effects.md` §2, §4 Tier 1 (E1–E7) and §7 items 7–15. **Differences from `docs/design/game-design.md` §6:** the research promotes relativistic velocity addition for projectiles (GDD "Maybe") to MVP because Galilean addition breaks the c cap. It also moves length contraction (GDD "Next") into MVP in world view, and adds γ-mass collisions, speed zoom and a mild searchlight (k = 1) to MVP. The HUD shows ship time τ and world time t, which answers GDD §11 Q2 with "both". The GDD parking-lot idea "fast = bullet time" is physically backwards (research E2), so it's not planned. The GDD isn't edited here. ST-049 reconciles it once the owner has answered the questions below. **Feature flag:** `RELATIVITY_ENABLED` (ST-037). When false, providers don't attach `RelativisticComponent` and the Newtonian M2 path runs unchanged. **Owner questions** ST-030 … ST-034 are `needs-user`. Every other card is planned around their recommended answers and isn't blocked by them.
 
 ### ST-015 Plan M3 (relativity MVP) from research
-- status: ready
+- status: done (2026-11-01)
+- result: Created ST-030 … ST-049 for M3 (ST-030 … ST-034 are `needs-user`) and the M4 planning placeholder ST-050. The choice of c moved to M2 (ST-019/ST-020).
 - size: S
 - agent: planner
 - depends: ST-014
 - files: `docs/backlog.md`
 - goal: Turn the MVP tier of `docs/research/relativity-effects.md` into cards. Expected scope: the choice of `c` and the physics-rate change, a pure `Relativity.kt` math module with tests, a relativistic momentum integrator on top of Box2D, proper time per entity, a β/γ HUD, and Doppler on the starfield. Questions from the research doc that are really the owner's go into `needs-user` cards, planned around the recommended answer. Later milestones (M4–M7) are planned when M3 is about half done.
+
+### ST-030 Owner decision: arena size
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `docs/design/game-design.md` §11; values in ST-046
+- goal: Record the owner's choice (research §8 Q2). At c = 60 with 60 u/s² proper acceleration, reaching 0.9c takes about 77 u of straight flight, so 100×100 feels cramped near c. ST-046 implements the recommendation.
+- question: How big should the arena be from M3 on? (a) Keep 100×100. (b) 150×150. (c) **200×200 with `FIELD_SKIN = 10` (recommended)**. The asteroid count formula stays the same, so asteroids are sparser.
+- acceptance:
+  - [ ] The answer is added to game-design.md §11. If not (c): change ST-046's values (or set it to done with "not needed" for (a))
+
+### ST-031 Owner decision: what time dilation does to gameplay
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `docs/design/game-design.md` §11; constants in `physics/PhysicsConstants.kt` (ST-040)
+- goal: Record the owner's choice (research §8 Q3 and Q4, merged). In every option, world time is the game clock (a pilot-time clock, research E21, is parked as a possible race-mode variant). ST-040 implements the recommendation.
+- question: How should the ship's own clock (proper time τ, which runs at 1/γ) affect play? (a) **Guns exact (cooldown runs on τ), turning softened (`γ^−0.5`) (recommended)**: speed costs fire rate but stays controllable. (b) Both exact (`1/γ`): purist, and turning at γ = 5 is 5× slower. (c) Neither: τ is only shown on the HUD.
+- acceptance:
+  - [ ] The answer is added to game-design.md §11. Constants: (a) `COOLDOWN_DILATION_EXPONENT = 1f`, `ROTATION_DILATION_EXPONENT = 0.5f`; (b) both `1f`; (c) both `0f`
+
+### ST-032 Owner decision: hard γ cap
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `docs/design/game-design.md` §11; `physics/PhysicsConstants.kt`
+- goal: Record the owner's choice (research §8 Q6). ST-035/ST-037 implement the recommendation.
+- question: Should γ be capped? (a) **Hard cap γ = 10, β ≤ 0.995 (recommended)**: numerically safe and readable. (b) No cap: risky, because float precision and Box2D clamping become an issue above γ ≈ 30. (c) A soft cap where engine efficiency drops with γ: this needs a new card, and is only worth it if (a) feels like an invisible wall.
+- acceptance:
+  - [ ] The answer is added to game-design.md §11. For (b), set `GAMMA_MAX_MASSIVE = 30f` (still a safety bound). For (c), ask the planner for a card
+
+### ST-033 Owner decision: ramming at relativistic mass
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `docs/design/game-design.md` §11
+- goal: Record the owner's choice (research §8 Q9). ST-047/ST-048 implement the recommendation.
+- question: Should a near-c ship hit like a freight train? (a) **Yes: Box2D mass = γ·m₀ (capped at 8) and impact damage from relativistic kinetic energy (recommended)**. (b) No: collisions use rest mass and do no damage.
+- acceptance:
+  - [ ] The answer is added to game-design.md §11. For (b): set `GAMMA_MASS_ENABLED = false` and mark ST-048 done with "not needed" (or revert it if already done)
+
+### ST-034 Owner decision: default weapon
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `docs/design/game-design.md` §11
+- goal: Record the owner's choice (research §8 Q10). ST-039 implements the recommendation. The slug weapon isn't planned in M3.
+- question: What should the default weapon be? (a) **A photon laser at exactly c, whose direction aberrates with your speed (recommended)**, with a massive slug at 0.7c (which inherits your speed and lives on proper time) as the first roguelike upgrade in M7. (b) The slug as the default. (c) Both from the start.
+- acceptance:
+  - [ ] The answer is added to game-design.md §11. For (b) or (c), ask the planner for a slug card in M3
+
+### ST-035 Relativity math module (pure functions)
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-019
+- files: create `core/src/main/kotlin/com/github/pepek42/asteroids/physics/Relativity.kt`, edit `physics/PhysicsConstants.kt`, create `core/src/test/kotlin/com/github/pepek42/asteroids/physics/RelativityTest.kt`
+- goal: All special relativity formulas used in M3, in one GL-free, unit-tested file (research §2 "Numerically safe γ", E3, E4, E7). Compute in `Double` internally and use `Float`/`Vector2` at the API. Output goes into caller-provided `Vector2`s, with no allocation.
+- spec:
+  - Constants in `PhysicsConstants.kt`: `GAMMA_MAX_MASSIVE = 10f`, `GAMMA_MAX_PROJECTILE = 20f`, `val BETA_MAX_MASSIVE = sqrt(1 − 1/GAMMA_MAX_MASSIVE²)` (≈ 0.99499).
+  - `gammaFromU(ux, uy, c = SPEED_OF_LIGHT) = sqrt(1 + (ux²+uy²)/c²)`
+  - `velocityFromU(ux, uy, c, out)` = u / γ(u)
+  - `gammaFromV(vx, vy, c, betaMax = BETA_MAX_MASSIVE) = 1 / sqrt(1 − min(v²/c², betaMax²))`
+  - `clampSpeed(v: Vector2, maxSpeed)` in place. `uFromV(vx, vy, c, betaMax, out)` = γ(clamped v)·(clamped v)
+  - `clampU(u: Vector2, gammaMax, c)` in place: `u *= min(1, c·sqrt(γmax² − 1)/|u|)`
+  - `rapidity(ux, uy, c) = asinh(|u|/c)`
+  - `addVelocity(v: Vector2, w: Vector2, c, out)`: the shooter moves at `v` in W, and the muzzle velocity `w` is in the shooter frame. `out = (w_∥ + v + w_⊥/γ_v) / (1 + v·w/c²)`, with ∥ along v̂. If |v| < 1e-6, `out = w`.
+  - `aberratePhoton(betaX, betaY, nx, ny, out)`: n̂' is in the shooter frame. `n_∥ = (n'_∥ + β)/(1 + β n'_∥)`, `n_⊥ = n'_⊥/(γ(1 + β n'_∥))`, then renormalise.
+  - `dopplerFactor(betaObs: Vector2, betaSrc: Vector2, nx, ny)`, where n̂ is the propagation direction from source to observer: `D = γ_o(1 − β_o·n̂) / (γ_s(1 − β_s·n̂))`.
+  - `thrustAccelWorld(a0, nx, ny, vx, vy, gamma, out)`: with n̂' the engine direction, `a = a0·[(n̂'·v̂)v̂ + (n̂' − (n̂'·v̂)v̂)/γ]`. If |v| < 1e-6, `a = a0·n̂'`.
+  - `gammaRel(va: Vector2, vb: Vector2, c) = γ_a·γ_b·(1 − va·vb/c²)`
+  - Non-finite input: return the zero vector or γ = 1. NaN is guarded at the call sites (ST-037).
+- acceptance:
+  - [ ] Tests (seeded random, 10 000 cases where relevant): |velocityFromU(huge u)| < c; γ ≥ 1; the round trip `u → v → uFromV` holds within 1e-4 relative error for γ ≤ 10; `addVelocity` never gives |out| ≥ c for |v|, |w| < c; `aberratePhoton` output is a unit vector
+  - [ ] Test: collinear 0.5c ⊕ 0.5c = 0.8c (±1e-5·c)
+  - [ ] Test: a ship at β = 0.9 along +x firing a photon at +y (shooter frame) gives a W angle of 25.84° ± 0.05°
+  - [ ] Test: `dopplerFactor` with the observer at β = 0.9 (+x) and a static source: n̂ = (−1, 0) (source ahead) gives 4.36 ± 0.01, n̂ = (1, 0) (behind) gives 0.229 ± 0.001, n̂ = (0, 1) gives γ = 2.294 ± 0.001
+  - [ ] Test: `thrustAccelWorld` at γ = 2: along v gives magnitude a0, perpendicular to v gives a0/2
+  - [ ] Test: `gammaRel` of equal velocities = 1; head-on ±0.5c = 1.6667 ± 1e-4
+  - [ ] `./gradlew core:test` passes
+
+### ST-036 Swept raycast for projectile hits; projectiles are consumed on hit
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-021
+- files: create `system/ProjectileSweepSystem.kt`; edit `component/ProjectileComponent.kt`, `system/ContactSystem.kt`, `screen/PlayScreen.kt`; tests
+- goal: At c = 60, a projectile moves 1.33 u per step, and sensor bodies don't use continuous collision detection, so small targets get skipped (research §1 "Tunneling"). Add a per-step ray test. Also make each projectile deal damage once and then disappear. Today a laser pierces and can hit several bodies. That interacts badly with bouncing lasers (ST-025) and is the intended change.
+- spec:
+  - `ProjectileComponent` becomes `Pool.Poolable` with `var spent = false` (reset to false), and gets `projectileCmpOptional`.
+  - Extract `fun applyProjectileHit(engine: Engine, projectile: Entity, target: Entity)` (top-level, in `ContactSystem.kt`): if spent, return. Apply damage as today if the target has health. Set `spent = true` and add `RemoveComponent` if not already present. `ContactSystem.beginContact` uses it (it needs the engine, so use `EntitySystem.engine` once added).
+  - `ProjectileSweepSystem(world) : EntitySystem(), PhysicsStepListener`, with family `allOf(ProjectileComponent, BodyComponent, TransformComponent)`. Register it before `PhysicsSystem` and add it to the listener list. `afterStep`: for each unspent projectile, `world.rayCast(callback, transform.prevPosition, body.position)` (`prevPosition` is the start-of-tick position set in `preProcess`; valid while `PHYSICS_SUBSTEPS = 1`). The callback ignores the projectile's own body, sensor fixtures, and targets whose `baseInfoCmp.faction` doesn't satisfy `projectileFaction.collidesWith(targetFaction)`. It keeps the smallest fraction. On a hit, call `applyProjectileHit`. Reuse one callback instance and preallocated vectors.
+- acceptance:
+  - [ ] Test (real `World`): a kinematic sensor projectile (r = 0.1) at 89 u/s whose consecutive step positions straddle a static circle target (r = 0.3) without overlapping it damages the target exactly once and gets `RemoveComponent`
+  - [ ] Test: a projectile that overlaps the target in `beginContact` and is also swept in the same step damages it only once
+  - [ ] Test: a PLAYER projectile ignores a PLAYER-faction target in the sweep
+  - [ ] `./gradlew core:test` passes
+- playtest: Lasers reliably hit small asteroids and disappear on impact.
+
+### ST-037 RelativisticComponent and RelativisticDynamics integrator
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-025, ST-035, ST-036
+- files: create `component/RelativisticComponent.kt`, `system/RelativisticDynamics.kt`; edit `physics/PhysicsConstants.kt`, `system/MoveSystem.kt`, `screen/PlayScreen.kt`, `provider/PlayerEntityProvider.kt`, `provider/AsteroidProvider.kt`; tests
+- goal: This is the core of M3 (research §2, E1). Each massive body integrates its proper velocity `u = γv` once per step and writes `v = u/γ` into Box2D. Box2D only handles collisions. Engines become a proper acceleration, so the ship approaches c but never reaches it, and turning at speed gets γ² harder.
+- spec:
+  - Constants: `RELATIVITY_ENABLED = true`, `ENGINE_PROPER_ACCEL = 60f`, `REVERSE_THRUST_FRACTION = 0.5f`, `COLLISION_EPS = 0.05f`.
+  - `RelativisticComponent` (Poolable, convention): `u: Vector2`, `accel: Vector2` (per-step accumulator), `tau: Float`, `gUsed: Float = 1f`, `vSet: Vector2`, `gammaMax: Float = GAMMA_MAX_MASSIVE`. Reset everything to zero or defaults.
+  - Step-listener order in `PlayScreen`: `listOf(moveSystem, boundaryFieldSystem, projectileSweepSystem, relativisticDynamics)`. Contributors add into `accel` in `beforeStep`, and `RelativisticDynamics` runs last and integrates. `afterStep` runs in the same order.
+  - `MoveSystem.beforeStep`: if the entity has a `RelativisticComponent`, don't apply a force. Instead, with `thr = thrusters if > 0 else thrusters·REVERSE_THRUST_FRACTION`, `v = velocityFromU(u)` and `γ = gammaFromU(u)`, add `thrustAccelWorld(ENGINE_PROPER_ACCEL·thr, cos(angle), sin(angle), v, γ)` to `accel`. Entities without the component keep the Newtonian force.
+  - `RelativisticDynamics : EntitySystem(), PhysicsStepListener` (family `allOf(RelativisticComponent, BodyComponent)`, registered before `PhysicsSystem`):
+    - `beforeStep(dt)`: if `u` or `accel` is non-finite, log once via `tryLogging` and zero both. `u += accel·dt`; `clampU(u, gammaMax)`; `g = gammaFromU(u)`; `v = u/g`; `body.setLinearVelocity(v)`; `vSet = v`; `gUsed = g`.
+    - `afterStep(dt)`: copy `body.linearVelocity` into a scratch vector (Box2D reuses it). If `dst(vb, vSet) > COLLISION_EPS` (a contact changed it): `clampSpeed(vb, BETA_MAX_MASSIVE·c)`, `u = uFromV(vb)`. Then `tau += dt / gUsed`, `accel.setZero()`.
+  - Providers, when `RELATIVITY_ENABLED`: the player and all asteroids (including split children through `spawnAsteroid`) get a `RelativisticComponent` with `u = uFromV(initial velocity)`. The player body gets `allowSleep = false`. Projectiles don't get one (photons are ST-039).
+- acceptance:
+  - [ ] Test (real `World`, `PhysicsSystem` + `MoveSystem` + `RelativisticDynamics`, no walls): a ship from rest with thrusters = 1 and fixed facing, after 94 steps (`t = 94/45` s), has β = `(a0t/c)/sqrt(1+(a0t/c)²)` ± 0.005 and τ = `(c/a0)·asinh(a0t/c)` ± 0.02
+  - [ ] Test: 20 s of thrust gives β < `BETA_MAX_MASSIVE`, γ ≤ 10 + 1e-3, and no NaN
+  - [ ] Test: at β = 0.9 along +x, thrust along +y for one step changes the velocity direction by `a0·dt/(γ²v)` rad ± 10 %
+  - [ ] Test: setting `u = NaN` leads, after one step, to `u = 0` and a finite body velocity
+  - [ ] Test: two relativistic circles collide head-on at 10 u/s each, and afterwards `u` equals `γ(v_body)·v_body` within 1e-3 for both
+  - [ ] With `RELATIVITY_ENABLED = false` the existing `MoveSystemTest` Newtonian tests pass unchanged
+  - [ ] `./gradlew core:test` passes
+- playtest: The ship accelerates hard at first, then creeps toward c. Turning at high speed is much heavier. Asteroids behave as before at their low speeds.
+
+### ST-038 Boundary field acts on proper velocity
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-025, ST-037
+- files: `system/BoundaryFieldSystem.kt`, tests
+- goal: In M2 the field applies a Box2D force. Relativistic bodies must instead get `du/dt = a_field` (research §3 "Relativistic behaviour", exact: a charge in a static potential), and the backstop must reflect `u`.
+- spec:
+  - `beforeStep`: if the entity has a `RelativisticComponent`, compute `boundaryAcceleration` with velocity = `u` (damping acts on `u`) and **add** it to `relCmp.accel` instead of applying a force. Others keep the M2 path.
+  - Backstop for relativistic bodies: reflect `u_n → −FIELD_BACKSTOP_RESTITUTION·u_n`, then set `v = velocityFromU(u)`, `body.setLinearVelocity(v)`, and `relCmp.vSet = v`, so `RelativisticDynamics.afterStep` (which runs later) doesn't treat it as a collision.
+- acceptance:
+  - [ ] Test (explicit `BoundaryFieldParams(skin = 8f, damping = 0f)`): a relativistic body heading straight at a wall with β = 0.9 turns around at a depth of 6.7 ± 0.4 u (research §3 table) and never reaches the wall
+  - [ ] Test: a body at γ = 5 toward the wall triggers the backstop, ends inside the map with |u| ≤ 0.9·|u_before| and moving inward
+  - [ ] `./gradlew core:test` passes
+- playtest: Bouncing off the edge at high speed feels like a strong rubber wall. Very fast hits snap back with a backstop ripple.
+
+### ST-039 Photon lasers: velocity aberration at the muzzle and field mirrors
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-024, ST-025, ST-035
+- files: create `component/PhotonComponent.kt`; edit `provider/WeaponProjectileProvider.kt`, `system/BoundaryFieldSystem.kt`; tests
+- goal: Lasers fly at exactly c in a direction that aberrates with the shooter's velocity (research E3). Today projectiles ignore the ship's velocity, so a ship near c would outrun its own bullets. The field doesn't push photons. Instead they mirror at mid-skin and use up a bounce (research §3 [FAKE] rule). This follows the ST-034 recommendation.
+- spec:
+  - `PhotonComponent { val dir = Vector2() }` (unit vector, Poolable, convention).
+  - `WeaponProjectileProvider`: `n̂' = (cos angle, sin angle)` of the ship facing (aim is in W for M3). `β = shipBody.linearVelocity / SPEED_OF_LIGHT`. `n̂ = aberratePhoton(β, n̂')`. Body velocity = `SPEED_OF_LIGHT·n̂`, and the body angle (and the TransformComponent `prevRotationDeg`, in degrees) = `atan2(n̂)`. Add `PhotonComponent(dir = n̂)`. The lifetime from ST-024 stays.
+  - `BoundaryFieldSystem.beforeStep`: photon entities skip the kinematic kick. For each wall, with `r = 0`, if `qᵢ ≥ FIELD_PHOTON_MIRROR_Q` and `dir·n̂ᵢ < 0`: if `lifetime.bouncesLeft == 0`, add `RemoveComponent`. Otherwise reflect `dir → dir − 2(dir·n̂ᵢ)n̂ᵢ`, decrement `bouncesLeft`, set the velocity to `c·dir` and the angle to `atan2(dir)`, and if `ShimmerImpacts` exists, `emit(id, …, strength = 1f, force = true)`.
+- acceptance:
+  - [ ] Test: a ship at rest facing +x fires a laser with velocity (60, 0) ± 1e-3
+  - [ ] Test: a ship moving at β = 0.9 along +x, facing +y, fires a laser at a W angle of 25.84° ± 0.1° with |v| = 60 ± 1e-3
+  - [ ] Test (100×100 map, skin 8): a photon moving +x reflects between x = 95.5 and 96.5, `bouncesLeft` goes 3 → 2, and the speed stays 60. With `bouncesLeft = 0` it gets `RemoveComponent` instead
+  - [ ] `./gradlew core:test` passes
+- playtest: Lasers fired sideways at speed visibly sweep forward. Lasers bounce off the edge up to 3 times with a ripple, which allows bank shots.
+
+### ST-040 Proper time drives ship clocks
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-024, ST-037
+- files: `component/RelativisticComponent.kt`, `physics/PhysicsConstants.kt`, `system/WeaponSystem.kt`, `system/LifetimeSystem.kt`, `system/PhysicsSystem.kt`, `system/RelativisticDynamics.kt`; tests
+- goal: Time dilation becomes gameplay (research E2): the ship's own clock runs at 1/γ. This follows the ST-031 recommendation: guns exact, turning softened.
+- spec:
+  - Constants: `COOLDOWN_DILATION_EXPONENT = 1f`, `ROTATION_DILATION_EXPONENT = 0.5f`.
+  - In `RelativisticComponent.kt`: `fun Entity.clockRate(exponent: Float): Float = relativisticCmpOptional?.let { it.gUsed.pow(-exponent) } ?: 1f`.
+  - `WeaponSystem`: `cooldown -= deltaTime · entity.clockRate(COOLDOWN_DILATION_EXPONENT)`.
+  - `LifetimeSystem`: for the PROPER clock, `remaining -= dt · entity.clockRate(1f)`. WORLD is unchanged.
+  - `PhysicsSystem.applyRotation`: `f = entity.clockRate(ROTATION_DILATION_EXPONENT)`. Time-scale the PD controller by passing `kp·f²`, `kd·f`, `maxAngularAcceleration·f²`, `maxAngularVelocity·f` (from `ShipHandlingComponent` or the `ShipRotationController` defaults). This is exactly the controller on a clock slowed by `f`.
+  - Asteroid spin `ω₀/γ`: in `RelativisticDynamics.beforeStep`, for entities without a `MoveComponent` or with a null `targetAngleRad`, compute `g` and do `body.angularVelocity *= gUsedPrevious / g` before overwriting `gUsed`. This rescales exactly and survives collisions.
+- acceptance:
+  - [ ] Test: a weapon on an entity with `gUsed = 2` fires half as often over 3 s of world time as at `gUsed = 1` (±1 shot)
+  - [ ] Test: a PROPER lifetime of 1.2 at `gUsed = 3.2` lasts 3.84 s ± 1 frame of world time
+  - [ ] Test: a 90° turn at `gUsed = 4` (f = 0.5) takes 2× ± 15 % as long as at γ = 1, with overshoot still < 5°
+  - [ ] Test: an asteroid spinning at 2 rad/s whose `u` is set to γ = 2 spins at 1 ± 0.02 rad/s after one step
+  - [ ] `./gradlew core:test` passes
+- playtest: At high speed the fire rate visibly drops and turning feels heavier but still controllable.
+
+### ST-041 ObserverState: smoothed player β, γ, τ, t
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-037
+- files: create `physics/ObserverState.kt`, `system/ObserverSystem.kt`; edit `screen/PlayScreen.kt`; tests
+- goal: The HUD, camera zoom and Doppler visuals all need the player's kinematics. Visuals need a low-pass-filtered β so field bounces don't flash the screen (research E4 `VISUAL_BETA_SMOOTHING`).
+- spec:
+  - `class ObserverState { val position = Vector2(); val betaRaw = Vector2(); var gammaRaw = 1f; val betaVisual = Vector2(); var gammaVisual = 1f; var tau = 0f; var worldTime = 0f; var rapidity = 0f; fun reset() }`.
+  - `fun smoothToward(current: Float, target: Float, dt: Float, timeConstant: Float) = current + (target − current)·(1 − exp(−dt/timeConstant))`, top-level and tested. `VISUAL_BETA_SMOOTHING = 0.15f`.
+  - `ObserverSystem(state) : IteratingSystem(allOf(PlayerComponent, BodyComponent, TransformComponent))`, registered right after `PhysicsSystem`. `worldTime += dt`. `position = interpolatedPosition`. `betaRaw = v/c`, where `v` comes from `velocityFromU(u)` if a `RelativisticComponent` exists, otherwise the body velocity. `gammaRaw` and `rapidity` come from `u` (or `gammaFromV`). `tau` comes from the component (or `worldTime`). `betaVisual` smooths x and y separately, and `gammaVisual = gammaFromV(betaVisual·c)`.
+  - `PlayScreen` owns one `ObserverState`, passes it to the systems that need it (ST-042/043/045), and calls `reset()` in `show()`.
+- acceptance:
+  - [ ] Tests: `smoothToward` reaches 63 % ± 1 % of a step after one time constant, and is stable for dt ≫ timeConstant (no overshoot)
+  - [ ] `./gradlew core:test` passes
+
+### ST-042 HUD shows β, γ, τ and t; speed zoom
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-041
+- files: `ui/Hud.kt`, `system/HudSystem.kt`, `system/CameraSystem.kt`, `assets/i18n/messages.properties`, `assets/i18n/messages_pl.properties`; tests
+- goal: The "I'm near c and I can feel it" readout (research E6), plus a camera that zooms out with speed, because at c = 60 half the screen is crossed in 0.4 s.
+- spec:
+  - HUD: a `ProgressBar(0f, 1f, 0.001f, false, skin, "default-horizontal")` showing `rapidity / acosh(GAMMA_MAX_MASSIVE)`, which keeps moving near c. Labels: `hud_beta=β = {0,number,0.000} c`, `hud_gamma=γ = {0,number,0.00}`, `hud_time=Ship time {0,number,0.0} s · World time {1,number,0.0} s · τ/t {2,number,0.00}`. Polish: `Czas statku`, `Czas świata`. Keep the existing level, position and velocity labels. `HudSystem` takes the `ObserverState` and feeds `betaRaw.len()`, `gammaRaw`, `tau`, `worldTime`, and `tau/worldTime` (1 when worldTime = 0).
+  - `CameraSystem`: keep a `wheelZoom` field (the old `camera.zoom` logic, clamped 0.5–2). Add top-level `fun speedZoom(wheelZoom: Float, beta: Float, k: Float = CAMERA_ZOOM_PER_BETA2): Float = (wheelZoom·(1 + k·beta²)).coerceIn(0.5f, 2f)` with `CAMERA_ZOOM_PER_BETA2 = 0.6f`. Set `camera.zoom = speedZoom(wheelZoom, observer.betaVisual.len())`. `CameraSystem` takes the `ObserverState`.
+- acceptance:
+  - [ ] Tests: `speedZoom(1f, 0f) == 1f`; `speedZoom(1f, 0.9f) ≈ 1.486`; `speedZoom(2f, 0.9f) == 2f`
+  - [ ] The i18n keys exist in both properties files
+  - [ ] `./gradlew core:test` passes
+- playtest: The β bar fills fast at first, then slowly near c. τ visibly falls behind t at speed. The view widens smoothly as you speed up.
+
+### ST-043 Doppler colour and mild searchlight on the starfield
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-041
+- files: create `render/BlackbodyLut.kt`, `render/RelativityVisuals.kt` (create or extend); edit `render/Starfield.kt`, `provider/BackgroundProvider.kt`, `system/RenderSystem.kt`; tests
+- goal: The sky ahead turns blue-white and bright, and behind turns red and dim (research E4, plus E10 with k = 1). It's done on the CPU over the existing `StarData` with a LUT, with no shader, which is TeaVM-safe and cheap for 1500 stars. The research's GPU-shader path is deferred.
+- spec:
+  - `BlackbodyLut`: 256 entries, log-spaced 1000–60000 K, holding r, g, b from `blackbodyRgb`, built once. `fun rgbInto(kelvin: Float, out: FloatArray)` interpolates linearly and doesn't allocate.
+  - `RelativityVisuals.kt` constants: `DOPPLER_COLOR_STRENGTH = 1f`, `DOPPLER_D_MIN = 0.25f`, `DOPPLER_D_MAX = 4f`, `BRIGHTNESS_EXPONENT_MVP = 1f`, `B_MIN = 0.25f`, `B_MAX = 3f`. `fun effectiveDoppler(d: Float) = exp(DOPPLER_COLOR_STRENGTH·ln d).coerceIn(DOPPLER_D_MIN, DOPPLER_D_MAX)`. `fun starDoppler(betaX, betaY, gamma, sx, sy) = gamma·(1 + betaX·sx + betaY·sy)`, where ŝ is the unit vector from the player to the star's on-screen position. This is the static-source case of `dopplerFactor`.
+  - `Starfield.render(batch, camera, zoom, logicalWidthPx, observer: ObserverState)`: if `observer.betaVisual.len() < 1e-4`, use the cached `packedColor` (fast path). Otherwise, per drawn star: ŝ = normalize((cx + dx, cy + dy) − `observer.position`), i.e. from the player to where the star is drawn; `D = effectiveDoppler(starDoppler(betaVisual, gammaVisual, ŝ))`; `rgb = lut(kelvin·D)`; `B = D^BRIGHTNESS_EXPONENT_MVP` clamped to `[B_MIN, B_MAX]`; colour = `rgb·brightness·min(B, 1)` packed with `Color.toFloatBits`; size × `sqrt(max(B, 1))`. No allocation.
+  - `BackgroundProvider.renderBg` and `RenderSystem` pass the `ObserverState` through.
+- acceptance:
+  - [ ] Tests: `starDoppler` at β = 0.9 (+x) gives 4.36 for ŝ = (1, 0), 0.229 for (−1, 0), and 2.294 for (0, 1). `effectiveDoppler` clamps to [0.25, 4]. `BlackbodyLut.rgbInto` matches `blackbodyRgb` within 1/255 at 2000, 6500 and 20000 K
+  - [ ] Screenshot via the harness with `--seed=42 --thrust --frames=150` shows a blue-shifted side and a red-shifted side, and the agent has looked at it
+  - [ ] No per-frame allocation in `Starfield.render`
+  - [ ] `./gradlew core:test` passes
+- playtest: At speed you can tell which way you're flying from the sky colour alone. Stars behind dim but don't vanish.
+
+### ST-044 Length contraction of moving sprites
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-035
+- files: `system/RenderSystem.kt`, `render/RelativityVisuals.kt` (create or extend); tests
+- goal: In world view, moving objects are flattened along their motion to `L₀/γ` (research E5, exact for the top-down camera). It's done on the CPU with 4-corner quads, so no shader is needed and batching survives. Hitboxes stay uncontracted for now (research E20, later).
+- spec:
+  - Constant `CONTRACTION_STRENGTH = 1f`. Add `fun contractOffset(ox, oy, vhx, vhy, k, out: Vector2)`: `o' = o − k·(o·v̂)·v̂`.
+  - `RenderSystem.processEntity`: after setting the sprite rotation and position, if the entity has a body with speed > 1e-3: `γ = relativisticCmpOptional?.gUsed ?: gammaFromV(v)` and `k = CONTRACTION_STRENGTH·(1 − 1/γ)`. Copy `sprite.vertices` (20 floats) into a reusable `FloatArray(20)`. For corners at offsets 0, 5, 10, 15, transform `(x − cx, y − cy)` with `contractOffset` around the interpolated centre. Then `batch.draw(sprite.texture, scratch, 0, 20)`. Otherwise use `sprite.draw(batch)` as today.
+- acceptance:
+  - [ ] Tests: `contractOffset` with k = 0 is the identity. A point along v̂ with k = 1 − 1/2.294 is scaled to 0.436. A point perpendicular to v̂ is unchanged
+  - [ ] `./gradlew core:test` passes
+- playtest: The player ship visibly flattens along its direction of travel near c. Slow asteroids look unchanged.
+
+### ST-045 Doppler tint on sprites
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-043, ST-044
+- files: `system/RenderSystem.kt`, `render/RelativityVisuals.kt`; tests
+- goal: Approaching objects look blue and bright, and receding ones look red and dim, which gives a free threat readout (research E4 sprites [FAKE white-point shift] plus E10 k = 1).
+- spec:
+  - `fun spriteTint(d: Float, lut: BlackbodyLut, out: FloatArray)`: `out = lut(6500·d) / lut(6500)` per channel, with each channel clamped to [0, 1]. `T_REF = 6500f`.
+  - `RenderSystem`, for every non-player entity: `n̂ = normalize(observer.position − entity pos)` (source → observer). `β_s = entity velocity / c` (from `u` if relativistic). `D = effectiveDoppler(dopplerFactor(observer.betaVisual, β_s, n̂))`. `B = D` clamped to `[B_MIN, B_MAX]`. Write `Color.toFloatBits(tint.r, tint.g, tint.b, min(B, 1)·spriteAlpha)` into the vertex colour slots (indices 2, 7, 12, 17) of the ST-044 scratch vertices. Always use the vertex path for tinted sprites. If `D > 1`, push the vertex copy into a reusable additive queue with alpha `clamp(D − 1, 0, 1)`. After all sprites, switch once to `GL_SRC_ALPHA, GL_ONE`, draw the queue, and restore the blend. The player sprite isn't tinted.
+- acceptance:
+  - [ ] Tests: `spriteTint(1f)` ≈ (1, 1, 1) ± 0.01; `spriteTint(2f)` has blue ≥ red; `spriteTint(0.5f)` has red > blue
+  - [ ] No per-frame allocation (preallocated queue, max 256 sprites; beyond that, skip the additive pass)
+  - [ ] `./gradlew core:test` passes
+- playtest: Fly at an asteroid fast: it turns blue-white and glows. Fly away: asteroids behind turn red and dim.
+
+### ST-046 Enlarge the arena to 200×200
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-025, ST-037
+- files: `provider/MapProvider.kt`, `physics/BoundaryField.kt`
+- goal: Near-c play needs room. This follows the ST-030 recommendation (c): 200×200 with a 10 u skin.
+- spec: `MAP_WIDTH = 200f`, `MAP_HEIGHT = 200f`, `FIELD_SKIN = 10f`. Don't change the asteroid count formula. Tests that depend on map size or skin must already pass an explicit 100×100 map and `skin = 8f`. Fix any that don't, without changing their expected numbers.
+- acceptance:
+  - [ ] `./gradlew core:test` passes
+  - [ ] Screenshot via the harness shows the minimap with the larger arena, and the agent has looked at it
+- playtest: There's room for a straight run to about 0.9c. Asteroids are sparser. Check whether level 1 feels empty.
+
+### ST-047 Relativistic mass in Box2D collisions
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-038
+- files: `component/RelativisticComponent.kt`, `system/RelativisticDynamics.kt`, `physics/PhysicsConstants.kt`; tests
+- goal: Box2D contact impulses conserve `Σ M v`. With `M = γm₀` they conserve relativistic momentum, so a near-c ship hits like a freight train (research E7, owner's "mass going to infinite"). This follows the ST-033 recommendation.
+- spec:
+  - Constants: `GAMMA_MASS_ENABLED = true`, `GAMMA_MASS_CAP = 8f`.
+  - `RelativisticComponent`: add `restMass`, `restInertia` (captured from the body when the component is attached in the providers) and `massGamma = 1f`.
+  - `RelativisticDynamics.beforeStep`, if enabled: `g' = min(g, GAMMA_MASS_CAP)`. If `|g' − massGamma| / massGamma > 0.01`: reuse one `MassData` (`mass = restMass·g'`, `I = restInertia·g'`, `center = body.localCenter`), call `body.setMassData(md)`, and set `massGamma = g'`.
+  - The `afterStep` collision readback when enabled: `u = gUsed·vb`, then `clampU`. This is momentum-consistent. The old `uFromV` path stays for when the flag is off.
+  - Thrust, field and rotation are acceleration-based or scale with inertia, so they're unaffected.
+- acceptance:
+  - [ ] Test: two equal rest-mass circles, A at β = 0.9 head-on into B at rest. `Σ restMass·u` is conserved within 2 % across the collision, and B's final speed exceeds its speed in the same test with the flag off
+  - [ ] Test: γ = 20 is capped to a Box2D mass of 8·m₀
+  - [ ] `./gradlew core:test` passes
+- playtest: Ramming asteroids at speed sends them flying. A slow nudge feels the same as before.
+
+### ST-048 Impact damage from relativistic kinetic energy
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-047
+- files: `system/ContactSystem.kt`, `physics/PhysicsConstants.kt`; tests
+- goal: Collisions currently do no damage. Make ramming at relativistic speed a weapon and a risk, from the exact relative Lorentz factor (research E7).
+- spec:
+  - Constants: `DAMAGE_PER_ENERGY = 1e-3f`, `RAM_GAMMA_THRESHOLD = 0.02f` (≈ 0.2c relative), `PLAYER_RAM_DAMAGE_FACTOR = 0f`. The player damage factor is 0 because there's no player-death flow yet. Raise it once one exists (follow-up).
+  - Top-level `fun ramDamage(va, vb, restMassA, restMassB, c): Float`: `γ_rel = gammaRel(va, vb)`. If `γ_rel − 1 < RAM_GAMMA_THRESHOLD`, return 0. Otherwise `μ = mA·mB/(mA + mB)` (if one is 0 or static, μ = the other), `K = (γ_rel − 1)·μ·c²`, and return `K·DAMAGE_PER_ENERGY`.
+  - `ContactSystem.beginContact`: if neither entity is a projectile and neither fixture is a sensor, take each velocity from `relativisticCmpOptional?.vSet` (pre-step) or the body velocity, and the rest mass from `restMass` or `body.mass`. Apply `ramDamage` to each body that has a `HealthComponent`, scaled by `PLAYER_RAM_DAMAGE_FACTOR` for the player.
+- acceptance:
+  - [ ] Tests: 10 u/s vs rest gives 0. Head-on at ±0.5c gives more damage than overtaking at 0.9c vs 0.4c with the same masses. Damage grows with the masses
+  - [ ] `./gradlew core:test` passes
+- playtest: A near-c ram destroys a large asteroid in one hit, and a slow bump does nothing.
+
+### ST-049 Bring docs in line after M3
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-036, ST-037, ST-038, ST-039, ST-040, ST-041, ST-042, ST-043, ST-044, ST-045, ST-046, ST-047, ST-048
+- files: `docs/tech/architecture.md`, `CLAUDE.md`, `docs/design/game-design.md` (§6 tier table and §11, only to reflect the answered `needs-user` cards)
+- goal: Document the relativistic dynamics layer (step-listener order, `RelativisticComponent`, `RELATIVITY_ENABLED`), `ObserverState`, the projectile sweep and photons, the new constants, and the M3 promotions listed in this milestone's note.
+- acceptance:
+  - [ ] Every statement in the updated sections can be traced to the current code or to an answered owner decision
+
+---
+
+## M4+ Relativistic view, gravity, enemies, modes
+
+### ST-050 Plan M4 (relativistic view) from research
+- status: blocked
+- blocker: Plan when about half of M3 is done (research §7 items 16–20).
+- size: S
+- agent: planner
+- depends: ST-037
+- files: `docs/backlog.md`
+- goal: Turn research §4 Tier 2 (E8–E13) and §7 items 16–20 into M4 cards, along with owner questions Q5, Q8, Q13 and Q14.

@@ -257,7 +257,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] `./gradlew core:test` passes
 
 ### ST-021 Per-step physics listener hook; thrust applied per step
-- status: done (2026-11-01, 10b8124)
+- status: done (2026-11-01, a9015c0)
 - result: PhysicsStepListener hook added; thrust is applied in beforeStep and moveForcesApplied is gone.
 - size: S
 - agent: kotlin-dev
@@ -293,7 +293,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Thrust feels exactly as before.
 
 ### ST-022 Boundary field force law (pure functions)
-- status: ready
+- status: done (2026-11-01, 251856f)
+- result: BoundaryField.kt implements research §3 force law; 11 tests incl. Euler bounce simulation.
 - size: S
 - agent: kotlin-dev
 - depends: —
@@ -310,16 +311,16 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `fun boundaryPotential(q, params) = A·s·q^(n+1)/(n+1)` (per unit mass).
   - `fun newtonianTurnAroundDepth(vNormal, params): Float` = `s·q*` where `q* = ((n+1)·v²/(2·A·s))^(1/(n+1))`, capped at `s` (≥ s means the backstop catches it).
 - acceptance:
-  - [ ] All tests build an explicit `BoundaryFieldParams(skin = 8f, exponent = 2f, accelMax = 3000f, …)` instead of relying on defaults, so ST-046 can change `FIELD_SKIN` without breaking them
-  - [ ] Test: zero acceleration at (50, 50) and at (s + r + 0.01, 50) on a 100×100 map
-  - [ ] Test: symmetry. `a` at (x, 50) equals −`a` at (100 − x, 50) for x in 0.5..7.5
-  - [ ] Test: |a| is monotonically non-decreasing as x goes from 8 to 0 (zero velocity)
-  - [ ] Test: corner. At (2, 2), `a.x == a.y > 0`, and each equals the single-wall value at (2, 50)
-  - [ ] Test: body radius. With r = 2.25, x = 9 gives a > 0, and with `useBodyRadius = false` it gives 0
-  - [ ] Test: `newtonianTurnAroundDepth` gives 1.47 ± 0.02 for 10 u/s, 3.06 ± 0.02 for 30 u/s, and 7.02 ± 0.03 for 60 u/s
-  - [ ] Test: a semi-implicit Euler simulation (dt = 1/45, damping 0, point body entering from x = 20 toward x = 0) reaches a maximum depth within `v·dt` of `newtonianTurnAroundDepth` for v = 10, 30, 60, and leaves with speed within 2 % of the entry speed
-  - [ ] Test: with damping 1, the exit speed is strictly lower than the entry speed and above 50 % of it for v = 30
-  - [ ] `./gradlew core:test` passes
+  - [x] All tests build an explicit `BoundaryFieldParams(skin = 8f, exponent = 2f, accelMax = 3000f, …)` instead of relying on defaults, so ST-046 can change `FIELD_SKIN` without breaking them
+  - [x] Test: zero acceleration at (50, 50) and at (s + r + 0.01, 50) on a 100×100 map
+  - [x] Test: symmetry. `a` at (x, 50) equals −`a` at (100 − x, 50) for x in 0.5..7.5
+  - [x] Test: |a| is monotonically non-decreasing as x goes from 8 to 0 (zero velocity)
+  - [x] Test: corner. At (2, 2), `a.x == a.y > 0`, and each equals the single-wall value at (2, 50)
+  - [x] Test: body radius. With r = 2.25, x = 9 gives a > 0, and with `useBodyRadius = false` it gives 0
+  - [x] Test: `newtonianTurnAroundDepth` gives 1.47 ± 0.02 for 10 u/s, 3.06 ± 0.02 for 30 u/s, and 4.87 ± 0.03 for 60 u/s (card originally said 7.02, an arithmetic slip)
+  - [x] Test: a semi-implicit Euler simulation (dt = 1/45, damping 0, point body entering from x = 20 toward x = 0) reaches a maximum depth within `v·dt` of `newtonianTurnAroundDepth` for v = 10, 30, 60, and leaves with speed within 2 % of the entry speed
+  - [x] Test: with damping 1, the exit speed is strictly lower than the entry speed and above 50 % of it for v = 30
+  - [x] `./gradlew core:test` passes
 
 ### ST-023 Owner decision: boundary field damping
 - status: needs-user

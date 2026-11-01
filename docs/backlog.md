@@ -147,7 +147,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The minimap is readable at a glance. You can tell asteroids from yourself, and the view rectangle tracks zoom.
 
 ### ST-012 Readable, camera-relative starfield (Doppler-ready)
-- status: done (2026-11-01, d97197b)
+- status: done (2026-11-01, e00f364)
 - result: `render/Starfield.kt`: 1500 seeded stars in `StarData` arrays (x, y, layer, brightness, kelvin, packedColor), 3 parallax layers, additive dots sized in logical px, dim `background_1` nebula; brightness constants (layer 0.55/0.8/1.0, sizes 1.5/2.2/3.2 px) are the knobs for playtest tuning.
 - size: M
 - agent: kotlin-dev
@@ -201,15 +201,16 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
 
 ### ST-018 PlayerComponent mapper and property
-- status: ready
+- status: done (2026-11-01, a3bead6)
+- result: `PlayerComponent` follows the component convention; MinimapSystem uses `playerCmpOptional`.
 - size: S
 - agent: junior-dev
 - depends: —
 - files: `component/PlayerComponent.kt`, `system/MinimapSystem.kt`
 - goal: Follow-up from ST-011. `PlayerComponent` has no `playerMapper` or `Entity.playerCmp`/`playerCmpOptional` properties, unlike the other components. Add them following the component convention in CLAUDE.md. Then switch `MinimapSystem`'s player detection (currently SHIP type + PLAYER faction) to `entity.playerCmpOptional != null`.
 - acceptance:
-  - [ ] The mapper and properties exist, and MinimapSystem uses them
-  - [ ] `./gradlew core:test` passes
+  - [x] The mapper and properties exist, and MinimapSystem uses them
+  - [x] `./gradlew core:test` passes
 
 ---
 

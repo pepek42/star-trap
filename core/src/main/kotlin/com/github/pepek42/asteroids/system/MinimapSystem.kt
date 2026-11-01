@@ -14,8 +14,8 @@ import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.asteroidMapper
 import com.github.pepek42.asteroids.component.baseInfoCmp
+import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
-import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.ui.ARENA_BOUNDARY_COLOR
 import com.github.pepek42.asteroids.ui.MinimapViewport
@@ -95,7 +95,7 @@ class MinimapSystem(
             EntityType.PROJECTILE -> PROJECTILE_DOT_RADIUS
             EntityType.UNKNOWN -> return
         }
-        if (baseInfo.entityType == EntityType.SHIP && baseInfo.faction == FactionEnum.PLAYER) {
+        if (entity.playerCmpOptional != null) {
             playerEntity = entity
             return
         }

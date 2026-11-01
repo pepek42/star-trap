@@ -28,13 +28,17 @@ object ShipRotationController {
         angularVelocity: Float,
         inertia: Float,
         dt: Float = PHYSICS_UPDATE_INTERVAL,
+        kp: Float = ROTATION_KP,
+        kd: Float = ROTATION_KD,
+        maxAngularAcceleration: Float = MAX_ANGULAR_ACCELERATION,
+        maxAngularVelocity: Float = MAX_ANGULAR_VELOCITY,
     ): Float {
-        var acceleration = ROTATION_KP * error - ROTATION_KD * angularVelocity
-        acceleration = MathUtils.clamp(acceleration, -MAX_ANGULAR_ACCELERATION, MAX_ANGULAR_ACCELERATION)
+        var acceleration = kp * error - kd * angularVelocity
+        acceleration = MathUtils.clamp(acceleration, -maxAngularAcceleration, maxAngularAcceleration)
         val nextVelocity = MathUtils.clamp(
             angularVelocity + acceleration * dt,
-            -MAX_ANGULAR_VELOCITY,
-            MAX_ANGULAR_VELOCITY
+            -maxAngularVelocity,
+            maxAngularVelocity
         )
         return inertia * (nextVelocity - angularVelocity)
     }

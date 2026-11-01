@@ -11,6 +11,7 @@ import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
+import com.github.pepek42.asteroids.component.ShipHandlingComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
@@ -65,6 +66,7 @@ class PlayerEntityProvider(
                     )
                 }
                 with<MoveComponent>()
+                with<ShipHandlingComponent>()
                 with<PlayerComponent>()
                 with<WrapComponent>()
                 with<WeaponComponent> {

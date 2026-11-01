@@ -22,6 +22,7 @@ import com.github.pepek42.asteroids.math.wrapAngleRad
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import com.github.pepek42.asteroids.component.TransformComponent
+import com.github.pepek42.asteroids.component.ShipHandlingComponent
 import kotlin.math.abs
 import ktx.ashley.allOf
 import ktx.ashley.get
@@ -110,6 +111,7 @@ class MoveSystemTest {
         seconds: Float,
         stepsPerFrame: Int = 1,
         startVelocity: Float = 0f,
+        handling: ShipHandlingComponent? = null,
     ): Sim {
         if (Gdx.app == null) Gdx.app = mock<Application>()
         GdxNativesLoader.load()
@@ -123,12 +125,12 @@ class MoveSystemTest {
         body.setTransform(Vector2.Zero, startAngle)
         body.angularVelocity = startVelocity
         val engine = Engine()
-        engine.addEntity(
-            Entity()
-                .add(BodyComponent().apply { this.body = body })
-                .add(TransformComponent())
-                .add(MoveComponent(targetAngleRad = targetAngle))
-        )
+        val ship = Entity()
+            .add(BodyComponent().apply { this.body = body })
+            .add(TransformComponent())
+            .add(MoveComponent(targetAngleRad = targetAngle))
+        if (handling != null) ship.add(handling)
+        engine.addEntity(ship)
         val physics = PhysicsSystem(world, engine)
         val frameTime = stepsPerFrame * PhysicsSystem.PHYSICS_UPDATE_INTERVAL + 1e-4f
         val angles = mutableListOf<Float>()
@@ -163,6 +165,16 @@ class MoveSystemTest {
         val sim = simulateTurn(0f, MathUtils.PI - 0.01f, 1.5f, stepsPerFrame)
         val maxOmega = sim.velocities.maxOf { abs(it) }
         assertTrue(maxOmega <= ShipRotationController.MAX_ANGULAR_VELOCITY + 1e-3f, "omega $maxOmega")
+    }
+
+    @Test
+    fun lowerMaxAngularVelocityIsRespectedOnHalfTurn() {
+        val limit = 1.5f
+        val handling = ShipHandlingComponent().apply { maxAngularVelocity = limit }
+        val sim = simulateTurn(0f, MathUtils.PI - 0.01f, 2f, handling = handling)
+        val maxOmega = sim.velocities.maxOf { abs(it) }
+        assertTrue(maxOmega <= limit + 1e-3f, "omega $maxOmega")
+        assertTrue(maxOmega > limit * 0.8f, "omega $maxOmega")
     }
 
     @Test

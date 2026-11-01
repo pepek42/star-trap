@@ -8,6 +8,7 @@ import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.moveCmp
+import com.github.pepek42.asteroids.component.shipHandlingCmpOptional
 import com.github.pepek42.asteroids.math.shortestAngleDiffRad
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.transformCmp
@@ -52,11 +53,25 @@ class PhysicsSystem(
         for (entity in rotatingEntities) {
             val targetAngle = entity.moveCmp.targetAngleRad ?: continue
             val body = entity.bodyCmp.body
-            val impulse = ShipRotationController.computeAngularImpulse(
-                error = shortestAngleDiffRad(body.angle, targetAngle),
-                angularVelocity = body.angularVelocity,
-                inertia = body.inertia,
-            )
+            val error = shortestAngleDiffRad(body.angle, targetAngle)
+            val handling = entity.shipHandlingCmpOptional
+            val impulse = if (handling == null) {
+                ShipRotationController.computeAngularImpulse(
+                    error = error,
+                    angularVelocity = body.angularVelocity,
+                    inertia = body.inertia,
+                )
+            } else {
+                ShipRotationController.computeAngularImpulse(
+                    error = error,
+                    angularVelocity = body.angularVelocity,
+                    inertia = body.inertia,
+                    kp = handling.rotationKp,
+                    kd = handling.rotationKd,
+                    maxAngularAcceleration = handling.maxAngularAcceleration,
+                    maxAngularVelocity = handling.maxAngularVelocity,
+                )
+            }
             body.applyAngularImpulse(impulse, true)
         }
     }

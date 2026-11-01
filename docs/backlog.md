@@ -176,16 +176,17 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] Every statement in the updated sections can be traced to the current code
 
 ### ST-016 Per-ship rotation tuning via ShipHandlingComponent
-- status: ready
+- status: done (2026-11-01, 8bb6566)
+- result: `ShipHandlingComponent` (kp, kd, max angular accel/velocity) read per substep by `PhysicsSystem`; defaults stay in `ShipRotationController`.
 - size: S
 - agent: kotlin-dev
 - depends: ST-004
 - files: create `component/ShipHandlingComponent.kt`, edit `system/ShipRotationController.kt`, `system/PhysicsSystem.kt`, `provider/PlayerEntityProvider.kt`, tests
 - goal: Follow-up from ST-004. Move the rotation gains (kp, kd, max angular acceleration, max angular velocity) from `ShipRotationController` constants into a `ShipHandlingComponent` (follow the component convention), with the current values as defaults, so enemies and ship variants can feel different. `PhysicsSystem` reads the component when present and falls back to the defaults otherwise.
 - acceptance:
-  - [ ] The player entity gets a `ShipHandlingComponent` with the defaults
-  - [ ] Test: an entity with a lower max angular velocity never exceeds it during a 180° turn
-  - [ ] `./gradlew core:test` passes
+  - [x] The player entity gets a `ShipHandlingComponent` with the defaults
+  - [x] Test: an entity with a lower max angular velocity never exceeds it during a 180° turn
+  - [x] `./gradlew core:test` passes
 - playtest: The player ship feels the same as after ST-004. Also check the feel with the real `disc_green` sprite size, since the tests used a 2×2 box.
 
 ### ST-017 Deterministic screenshots with --seed
@@ -201,7 +202,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
 
 ### ST-018 PlayerComponent mapper and property
-- status: done (2026-11-01, a3bead6)
+- status: done (2026-11-01, be183ef)
 - result: `PlayerComponent` follows the component convention; MinimapSystem uses `playerCmpOptional`.
 - size: S
 - agent: junior-dev

@@ -119,12 +119,25 @@ class RelativisticDynamicsTest {
             step()
             assertTrue(ship.body.linearVelocity.len().isFinite())
         }
-        // The γ cap is reached after ~10 s, where β equals BETA_MAX_MASSIVE up to Float rounding.
+        // The γ cap (50) is not reached in 20 s: at a = 25 it takes about 120 s of thrust.
         assertTrue(beta(ship.rel) <= BETA_MAX_MASSIVE + 1e-5f, "beta ${beta(ship.rel)}")
         assertTrue(ship.body.linearVelocity.len() < c)
-        assertTrue(gammaFromU(ship.rel.u.x, ship.rel.u.y, c) <= GAMMA_MAX_MASSIVE + 1e-3f)
+        assertTrue(gammaFromU(ship.rel.u.x, ship.rel.u.y, c) <= GAMMA_MAX_MASSIVE * (1 + 1e-4f))
         assertFalse(ship.rel.u.x.isNaN() || ship.rel.u.y.isNaN() || ship.rel.tau.isNaN())
         assertTrue(ship.body.position.x.isFinite())
+    }
+
+    @Test
+    fun gammaIsClampedToSafetyBoundInOneStep() {
+        setup()
+        val ship = addShip()
+        ship.rel.u.set(100f * c, 0f)
+        step()
+        val gamma = gammaFromU(ship.rel.u.x, ship.rel.u.y, c)
+        assertEquals(GAMMA_MAX_MASSIVE, gamma, 0.05f)
+        assertTrue(ship.body.linearVelocity.len() < c)
+        assertTrue(ship.body.linearVelocity.x.isFinite() && ship.body.linearVelocity.y.isFinite())
+        assertTrue(ship.rel.u.x.isFinite() && ship.rel.u.y.isFinite())
     }
 
     @Test

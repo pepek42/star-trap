@@ -646,7 +646,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-046 Enlarge the arena to 200×200 and calm the pacing
-- status: done (2026-11-01, PENDINGxx)
+- status: done (2026-11-01, 96782ba)
 - result: Arena 200×200 with 10 u skin, ENGINE_PROPER_ACCEL 25, asteroids 1+2·level² in a disc ≥30 u from centre at ±8 u/s; tests pin old sizes explicitly.
 - size: S
 - agent: junior-dev
@@ -668,7 +668,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Less frantic than at 100×100 with a = 60. A straight run from the centre almost reaches 0.9c before the field. Level 1 should feel sparse but not empty, with 3 asteroids within reach. If it's too empty, raise `ASTEROID_COUNT_PER_LEVEL_SQ` to 3. If it's still too hectic, lower `ASTEROID_SPAWN_SPEED_MAX`. Try a0 = 15/25/40 in the debug panel (ST-059) to pick the feel.
 
 ### ST-055 Raise the γ safety cap to 50 (no gameplay cap)
-- status: ready
+- status: done (2026-11-01, PENDINGxx)
+- result: GAMMA_MAX_MASSIVE and GAMMA_MAX_PROJECTILE are 50 (safety bound only); tests cover the γ 10–50 round trip and a one-step clamp from u = 100c.
 - size: S
 - agent: junior-dev
 - depends: ST-037
@@ -681,8 +682,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `RelativisticDynamicsTest`, the 20 s thrust test: keep `β ≤ BETA_MAX_MASSIVE + 1e-5` and `γ ≤ GAMMA_MAX_MASSIVE·(1 + 1e-4)`, plus no NaN. Fix the comment (the cap isn't reached in 20 s any more). Add a test: set `rel.u = (100·c, 0)`, run one step, and expect γ = 50 ± 0.05, |body velocity| < c, and finite values.
   - Leave `GAMMA_MASS_CAP` (ST-047) alone. It's a separate Box2D solver-stability cap.
 - acceptance:
-  - [ ] `GAMMA_MAX_MASSIVE == 50f`, and the tests above exist
-  - [ ] `./gradlew core:test` passes
+  - [x] `GAMMA_MAX_MASSIVE == 50f`, and the tests above exist
+  - [x] `./gradlew core:test` passes
 
 ### ST-056 RelativitySettings: runtime tunables replace consts at the call sites
 - status: ready

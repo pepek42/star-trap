@@ -5,11 +5,14 @@ package com.github.pepek42.asteroids.physics
  */
 const val SPEED_OF_LIGHT = 60.0f
 
-/** Lorentz factor cap for massive bodies (ships, asteroids). Enforced by clamping proper velocity (research §2). */
-const val GAMMA_MAX_MASSIVE = 10f
+/**
+ * Numerical safety bound, not a gameplay cap (owner decision ST-032). Runtime value lives in `RelativitySettings.gammaMaxMassive` (ST-056).
+ * Enforced by clamping proper velocity (research §2).
+ */
+const val GAMMA_MAX_MASSIVE = 50f
 
 /** Lorentz factor cap for slug projectiles. Photons travel at exactly [SPEED_OF_LIGHT] and carry no proper velocity. */
-const val GAMMA_MAX_PROJECTILE = 20f
+const val GAMMA_MAX_PROJECTILE = 50f
 
 /** Speed cap as a fraction of c for massive bodies: sqrt(1 - 1/γmax²) ≈ 0.99499. */
 val BETA_MAX_MASSIVE: Float = kotlin.math.sqrt(1f - 1f / (GAMMA_MAX_MASSIVE * GAMMA_MAX_MASSIVE))

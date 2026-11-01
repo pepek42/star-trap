@@ -23,9 +23,9 @@ class RelativityTest {
 
     @Test
     fun constantsShouldMatchSpec() {
-        assertEquals(0.99499f, BETA_MAX_MASSIVE, 1e-5f)
-        assertEquals(10f, GAMMA_MAX_MASSIVE)
-        assertEquals(20f, GAMMA_MAX_PROJECTILE)
+        assertEquals(50f, GAMMA_MAX_MASSIVE)
+        assertEquals(0.99980f, BETA_MAX_MASSIVE, 1e-5f)
+        assertEquals(50f, GAMMA_MAX_PROJECTILE)
     }
 
     @Test
@@ -77,7 +77,7 @@ class RelativityTest {
         val back = Vector2()
         repeat(cases) {
             val dir = randomDir(rnd)
-            val gamma = 1.0 + rnd.nextDouble() * (GAMMA_MAX_MASSIVE - 1.0)
+            val gamma = 1.0 + rnd.nextDouble() * (10.0 - 1.0)
             val mag = (c * sqrt(gamma * gamma - 1.0)).toFloat()
             val ux = dir.x * mag
             val uy = dir.y * mag
@@ -89,10 +89,29 @@ class RelativityTest {
     }
 
     @Test
+    fun roundTripUToVToUShouldHoldUpToGammaMax() {
+        val rnd = Random(9)
+        val v = Vector2()
+        val back = Vector2()
+        repeat(cases) {
+            val dir = randomDir(rnd)
+            val gamma = 10.0 + rnd.nextDouble() * (50.0 - 10.0)
+            val mag = (c * sqrt(gamma * gamma - 1.0)).toFloat()
+            val ux = dir.x * mag
+            val uy = dir.y * mag
+            velocityFromU(ux, uy, c, v)
+            uFromV(v.x, v.y, c, BETA_MAX_MASSIVE, back)
+            val err = Vector2(back.x - ux, back.y - uy).len() / mag
+            assertTrue(err < 1e-3f, "relative error $err at gamma $gamma")
+        }
+    }
+
+    @Test
     fun uFromVShouldClampToBetaMax() {
         val out = Vector2()
         uFromV(10 * c, 0f, c, BETA_MAX_MASSIVE, out)
-        assertEquals(GAMMA_MAX_MASSIVE * BETA_MAX_MASSIVE * c, out.x, 1e-2f)
+        val expected = GAMMA_MAX_MASSIVE * BETA_MAX_MASSIVE * c
+        assertEquals(expected, out.x, 1e-3f * expected)
         assertEquals(0f, out.y, 1e-6f)
     }
 

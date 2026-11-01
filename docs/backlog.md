@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-055**.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-064**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -485,7 +485,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 
 ## M3 Relativity MVP
 
-- note: Source is `docs/research/relativity-effects.md` §2, §4 Tier 1 (E1–E7) and §7 items 7–15. **Differences from `docs/design/game-design.md` §6:** the research promotes relativistic velocity addition for projectiles (GDD "Maybe") to MVP because Galilean addition breaks the c cap. It also moves length contraction (GDD "Next") into MVP in world view, and adds γ-mass collisions, speed zoom and a mild searchlight (k = 1) to MVP. The HUD shows ship time τ and world time t, which answers GDD §11 Q2 with "both". The GDD parking-lot idea "fast = bullet time" is physically backwards (research E2), so it's not planned. The GDD isn't edited here. ST-049 reconciles it once the owner has answered the questions below. **Feature flag:** `RELATIVITY_ENABLED` (ST-037). When false, providers don't attach `RelativisticComponent` and the Newtonian M2 path runs unchanged. **Owner questions** ST-030 … ST-034 are `needs-user`. Every other card is planned around their recommended answers and isn't blocked by them.
+- note: Source is `docs/research/relativity-effects.md` §2, §4 Tier 1 (E1–E7) and §7 items 7–15. **Differences from `docs/design/game-design.md` §6:** the research promotes relativistic velocity addition for projectiles (GDD "Maybe") to MVP because Galilean addition breaks the c cap. It also moves length contraction (GDD "Next") into MVP in world view, and adds γ-mass collisions, speed zoom and a mild searchlight (k = 1) to MVP. The HUD shows ship time τ and world time t, which answers GDD §11 Q2 with "both". The GDD parking-lot idea "fast = bullet time" is physically backwards (research E2), so it's not planned. The GDD isn't edited here. ST-049 reconciles it once the owner has answered the questions below. **Feature flag:** `RELATIVITY_ENABLED` (ST-037). When false, providers don't attach `RelativisticComponent` and the Newtonian M2 path runs unchanged. (Superseded by ST-056: the flag becomes a runtime setting, and providers always attach the component.) **Owner questions** ST-030 … ST-034 are `needs-user`. Every other card is planned around their recommended answers and isn't blocked by them.
+- note (2026-11-01, owner playtest after M2 + ST-037): "Feels a bit chaotic, maybe the arena should be bigger" → ST-030 answered (c), and ST-046 now also calms a0 and the asteroid spawn. "Relativity debug options on the side" → ST-056 (runtime `RelativitySettings`), ST-057 (plumbing), ST-059 (panel), ST-060 (vector overlay). Controls are undecided → ST-058/ST-061/ST-062 make schemes (a)/(b)/(c) switchable at runtime, and ST-063 asks for the default. γ: no gameplay cap (ST-032), safety bound 50 (ST-055). **From ST-056 on**, runtime code reads c, a0, the γ cap, field params and relativity/field on/off from the DI singleton `RelativitySettings`, not the consts (the consts are its defaults). Cards written earlier (ST-038 … ST-048) that say `SPEED_OF_LIGHT`, `ENGINE_PROPER_ACCEL`, `BETA_MAX_MASSIVE` or `RELATIVITY_ENABLED` mean the corresponding setting once ST-056 is done.
 
 ### ST-015 Plan M3 (relativity MVP) from research
 - status: done (2026-11-01)
@@ -497,15 +498,17 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - goal: Turn the MVP tier of `docs/research/relativity-effects.md` into cards. Expected scope: the choice of `c` and the physics-rate change, a pure `Relativity.kt` math module with tests, a relativistic momentum integrator on top of Box2D, proper time per entity, a β/γ HUD, and Doppler on the starfield. Questions from the research doc that are really the owner's go into `needs-user` cards, planned around the recommended answer. Later milestones (M4–M7) are planned when M3 is about half done.
 
 ### ST-030 Owner decision: arena size
-- status: needs-user
+- status: done (2026-11-01)
+- result: Owner chose (c) 200×200 with `FIELD_SKIN = 10` ("feels a bit chaotic, maybe arena should be bigger"). Recorded in game-design.md §11. ST-046 implements it and also lowers a0 and rescales the asteroid spawn.
 - size: S
 - agent: junior-dev
 - depends: —
 - files: `docs/design/game-design.md` §11; values in ST-046
 - goal: Record the owner's choice (research §8 Q2). At c = 60 with 60 u/s² proper acceleration, reaching 0.9c takes about 77 u of straight flight, so 100×100 feels cramped near c. ST-046 implements the recommendation.
 - question: How big should the arena be from M3 on? (a) Keep 100×100. (b) 150×150. (c) **200×200 with `FIELD_SKIN = 10` (recommended)**. The asteroid count formula stays the same, so asteroids are sparser.
+- answer: (c).
 - acceptance:
-  - [ ] The answer is added to game-design.md §11. If not (c): change ST-046's values (or set it to done with "not needed" for (a))
+  - [x] The answer is added to game-design.md §11. If not (c): change ST-046's values (or set it to done with "not needed" for (a))
 
 ### ST-031 Owner decision: what time dilation does to gameplay
 - status: needs-user
@@ -514,20 +517,22 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - depends: —
 - files: `docs/design/game-design.md` §11; constants in `physics/PhysicsConstants.kt` (ST-040)
 - goal: Record the owner's choice (research §8 Q3 and Q4, merged). In every option, world time is the game clock (a pilot-time clock, research E21, is parked as a possible race-mode variant). ST-040 implements the recommendation.
-- question: How should the ship's own clock (proper time τ, which runs at 1/γ) affect play? (a) **Guns exact (cooldown runs on τ), turning softened (`γ^−0.5`) (recommended)**: speed costs fire rate but stays controllable. (b) Both exact (`1/γ`): purist, and turning at γ = 5 is 5× slower. (c) Neither: τ is only shown on the HUD.
+- question: How should the ship's own clock (proper time τ, which runs at 1/γ) affect play? (a) **Guns exact (cooldown runs on τ), turning softened (`γ^−0.5`) (recommended)**: speed costs fire rate but stays controllable. (b) Both exact (`1/γ`): purist, and turning at γ = 5 is 5× slower. (c) Neither: τ is only shown on the HUD. **Note (2026-11-01):** there's no gameplay γ cap any more (ST-032), so (a) and (b) get extreme at high γ: fire rate is 1/γ, 1/10 at γ = 10 and nearly frozen at the γ = 50 safety bound. In practice a 200 u arena with a0 = 25 gives γ ≈ 2–3 per straight run (`γ = 1 + d·a0/c²`), and only sustained loops that keep momentum through field bounces go higher. The recommendation stays (a). If high-γ guns feel dead, a softening variant (a′) uses `COOLDOWN_DILATION_EXPONENT = 0.5` or a floor `CLOCK_RATE_MIN = 0.2` on the gun clock.
 - acceptance:
   - [ ] The answer is added to game-design.md §11. Constants: (a) `COOLDOWN_DILATION_EXPONENT = 1f`, `ROTATION_DILATION_EXPONENT = 0.5f`; (b) both `1f`; (c) both `0f`
 
 ### ST-032 Owner decision: hard γ cap
-- status: needs-user
+- status: done (2026-11-01)
+- result: Owner: "it should be capped by relativity effects themselves", so there's **no gameplay cap**. A numerical safety bound `GAMMA_MAX_MASSIVE = 50` stays far out (u is stored, so precision is fine) and is exposed in the debug panel. In practice the arena and the field limit γ, since crossing 200 u at about c takes about 3.3 s. Implemented by ST-055. Recorded in game-design.md §11.
 - size: S
 - agent: junior-dev
 - depends: —
 - files: `docs/design/game-design.md` §11; `physics/PhysicsConstants.kt`
 - goal: Record the owner's choice (research §8 Q6). ST-035/ST-037 implement the recommendation.
 - question: Should γ be capped? (a) **Hard cap γ = 10, β ≤ 0.995 (recommended)**: numerically safe and readable. (b) No cap: risky, because float precision and Box2D clamping become an issue above γ ≈ 30. (c) A soft cap where engine efficiency drops with γ: this needs a new card, and is only worth it if (a) feels like an invisible wall.
+- answer: (b) no gameplay cap, with the safety bound at 50 instead of 30 (ST-055).
 - acceptance:
-  - [ ] The answer is added to game-design.md §11. For (b), set `GAMMA_MAX_MASSIVE = 30f` (still a safety bound). For (c), ask the planner for a card
+  - [x] The answer is added to game-design.md §11. For (b), set `GAMMA_MAX_MASSIVE = 30f` (still a safety bound). For (c), ask the planner for a card
 
 ### ST-033 Owner decision: ramming at relativistic mass
 - status: needs-user
@@ -628,61 +633,117 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 - playtest: The ship accelerates hard at first, then creeps toward c. Turning at high speed is much heavier. Asteroids behave as before at their low speeds.
 
-### ST-038 Boundary field acts on proper velocity
+### ST-054 RelativisticDynamics review minors
 - status: ready
 - size: S
-- agent: kotlin-dev
+- agent: junior-dev
+- depends: ST-037
+- files: `system/RelativisticDynamics.kt`, `system/MoveSystem.kt`, `docs/tech/architecture.md`, tests
+- goal: Minor issues from the ST-037 review.
+- spec: (1) Renumber the architecture.md system table cleanly (no "7a"; RelativisticDynamics = 8, PhysicsSystem = 9, shift the rest) and fix any references. (2) In `afterStep` readback, derive the beta cap from `rel.gammaMax` (`sqrt(1 − 1/gammaMax²)`) instead of `BETA_MAX_MASSIVE`. (3) Add a code comment at the `COLLISION_EPS` readback explaining that velocity changes under the threshold are dropped. (4) Sort imports in `MoveSystem.kt`. (5) Tests: a pooled `RelativisticComponent` is fully reset. (The provider-skip test is dropped: ST-056 makes providers always attach the component, and relativity on/off becomes a runtime setting.)
+- acceptance:
+  - [ ] `./gradlew core:test` passes
+
+### ST-046 Enlarge the arena to 200×200 and calm the pacing
+- status: ready
+- size: S
+- agent: junior-dev
 - depends: ST-025, ST-037
-- files: `system/BoundaryFieldSystem.kt`, tests
-- goal: In M2 the field applies a Box2D force. Relativistic bodies must instead get `du/dt = a_field` (research §3 "Relativistic behaviour", exact: a charge in a static potential), and the backstop must reflect `u`.
+- files: `provider/MapProvider.kt`, `physics/BoundaryField.kt`, `physics/PhysicsConstants.kt`, `environment/asteroid.kt`, `provider/AsteroidProvider.kt`; tests that build a `MapProvider` or a `BoundaryFieldSystem` (`BoundaryFieldSystemTest`, `RelativisticDynamicsTest`, `LifetimeAndRemoveSystemTest`)
+- goal: The owner chose 200×200 (ST-030 (c)) because the game "feels a bit chaotic". Make the arena 4× bigger, make the engine calmer, and scale the asteroids so the arena isn't empty but is less crowded than now. `ENGINE_PROPER_ACCEL` becomes a runtime tunable in ST-056/ST-059. This card only changes its default.
 - spec:
-  - `beforeStep`: if the entity has a `RelativisticComponent`, compute `boundaryAcceleration` with velocity = `u` (damping acts on `u`) and **add** it to `relCmp.accel` instead of applying a force. Others keep the M2 path.
-  - Backstop for relativistic bodies: reflect `u_n → −FIELD_BACKSTOP_RESTITUTION·u_n`, then set `v = velocityFromU(u)`, `body.setLinearVelocity(v)`, and `relCmp.vSet = v`, so `RelativisticDynamics.afterStep` (which runs later) doesn't treat it as a collision.
+  - `MapProvider`: `MAP_WIDTH = 200f`, `MAP_HEIGHT = 200f`. Add constructor params `width: Float = MAP_WIDTH, height: Float = MAP_HEIGHT` and use them in `init`, so tests can ask for a 100×100 map.
+  - `BoundaryField.kt`: `FIELD_SKIN = 10f`.
+  - `PhysicsConstants.kt`: `ENGINE_PROPER_ACCEL = 25f`. Update its KDoc: with c = 60, 0.9c (γβ = 2.065) takes `t = (c/a)·γβ ≈ 5.0 s` and `d = (c²/a)(γ − 1) ≈ 186 u` of straight flight (it was ≈ 2.1 s and 78 u at 60).
+  - `environment/asteroid.kt`: add `ASTEROID_COUNT_PER_LEVEL_SQ = 2`, `ASTEROID_SPAWN_SPEED_MAX = 8f` (u/s per axis, was a literal 10), `ASTEROID_SPAWN_MIN_RADIUS = 30f` (distance from the map centre, where the player spawns).
+  - `AsteroidProvider.spawnAsteroids`: `maxAsteroids = 1 + ASTEROID_COUNT_PER_LEVEL_SQ·level²` (level 1/2/3 → 3/9/19, was 2/5/10). That is about half the old density on 4× the area. Rename the existing `radius` to `maxRadius` (same formula). For each asteroid, draw from `random` in this order: angle (existing formula), `r = ASTEROID_SPAWN_MIN_RADIUS + random.nextFloat()·(maxRadius − ASTEROID_SPAWN_MIN_RADIUS)`, vx, vy (each `random.nextFloat()·2·ASTEROID_SPAWN_SPEED_MAX − ASTEROID_SPAWN_SPEED_MAX`), spin (existing). Position = centre + `(r, 0).rotateRad(angle)`. Asteroids then fill a disc around the player instead of a ring at the edge.
+  - Tests: every test that depends on map size or skin must pass an explicit `MapProvider(mock(), 100f, 100f)` and `BoundaryFieldParams(skin = 8f)`. Keep their expected numbers. Tests use `ENGINE_PROPER_ACCEL` symbolically, so their maths follows the new value. Only fix tests that break.
 - acceptance:
-  - [ ] Test (explicit `BoundaryFieldParams(skin = 8f, damping = 0f)`): a relativistic body heading straight at a wall with β = 0.9 turns around at a depth of 6.7 ± 0.4 u (research §3 table) and never reaches the wall
-  - [ ] Test: a body at γ = 5 toward the wall triggers the backstop, ends inside the map with |u| ≤ 0.9·|u_before| and moving inward
+  - [ ] Test: `MapProvider(mock())` is 200×200, and `MapProvider(mock(), 100f, 100f)` is 100×100
+  - [ ] Test (real `World`, seeded `RandomXS128`): `spawnAsteroids(3, 200×200 map)` creates 19 asteroids. All are between 30 u and `maxRadius` from the centre, and every velocity component is within ±8
   - [ ] `./gradlew core:test` passes
-- playtest: Bouncing off the edge at high speed feels like a strong rubber wall. Very fast hits snap back with a backstop ripple.
+  - [ ] Screenshot via the harness (`--seed=42 --frames=120`) shows the minimap with the larger arena and asteroids spread through it, and the agent has looked at it
+- playtest: Less frantic than at 100×100 with a = 60. A straight run from the centre almost reaches 0.9c before the field. Level 1 should feel sparse but not empty, with 3 asteroids within reach. If it's too empty, raise `ASTEROID_COUNT_PER_LEVEL_SQ` to 3. If it's still too hectic, lower `ASTEROID_SPAWN_SPEED_MAX`. Try a0 = 15/25/40 in the debug panel (ST-059) to pick the feel.
 
-### ST-039 Photon lasers: velocity aberration at the muzzle and field mirrors
+### ST-055 Raise the γ safety cap to 50 (no gameplay cap)
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-037
+- files: `physics/PhysicsConstants.kt`, `core/src/test/kotlin/com/github/pepek42/asteroids/physics/RelativityTest.kt`, `core/src/test/kotlin/com/github/pepek42/asteroids/system/RelativisticDynamicsTest.kt`
+- goal: The owner decided (ST-032) that γ is limited only by relativity itself, through the engine, the arena and the field, so there's no gameplay cap. Keep a numerical safety bound far out. Precision is fine there because the integrator stores proper velocity `u`. At c = 60 and a0 = 25, 50 is only reachable after about 2 minutes of uninterrupted thrust.
+- spec:
+  - `GAMMA_MAX_MASSIVE = 50f`. KDoc: "Numerical safety bound, not a gameplay cap (owner decision ST-032). Runtime value lives in `RelativitySettings.gammaMaxMassive` (ST-056)." `BETA_MAX_MASSIVE` then ≈ 0.99980 (it's derived, so no code change).
+  - `GAMMA_MAX_PROJECTILE = 50f`, so slugs are never capped below ships.
+  - `RelativityTest`: the constants test expects `50f` and `BETA_MAX_MASSIVE = 0.99980 ± 1e-5`. In the `u → v → uFromV` round trip, change the γ range from `GAMMA_MAX_MASSIVE` to a literal `10.0` (gameplay range, keep 1e-4). Add a second loop over γ ∈ [10, 50] with 1e-3 relative tolerance. For the `uFromV(10 * c, …)` assertion, use a relative tolerance of `1e-3·expected` instead of `1e-2f`.
+  - `RelativisticDynamicsTest`, the 20 s thrust test: keep `β ≤ BETA_MAX_MASSIVE + 1e-5` and `γ ≤ GAMMA_MAX_MASSIVE·(1 + 1e-4)`, plus no NaN. Fix the comment (the cap isn't reached in 20 s any more). Add a test: set `rel.u = (100·c, 0)`, run one step, and expect γ = 50 ± 0.05, |body velocity| < c, and finite values.
+  - Leave `GAMMA_MASS_CAP` (ST-047) alone. It's a separate Box2D solver-stability cap.
+- acceptance:
+  - [ ] `GAMMA_MAX_MASSIVE == 50f`, and the tests above exist
+  - [ ] `./gradlew core:test` passes
+
+### ST-056 RelativitySettings: runtime tunables replace consts at the call sites
 - status: ready
 - size: M
 - agent: kotlin-dev
-- depends: ST-024, ST-025, ST-035
-- files: create `component/PhotonComponent.kt`; edit `provider/WeaponProjectileProvider.kt`, `system/BoundaryFieldSystem.kt`; tests
-- goal: Lasers fly at exactly c in a direction that aberrates with the shooter's velocity (research E3). Today projectiles ignore the ship's velocity, so a ship near c would outrun its own bullets. The field doesn't push photons. Instead they mirror at mid-skin and use up a bounce (research §3 [FAKE] rule). This follows the ST-034 recommendation.
+- depends: ST-046, ST-054, ST-055
+- files: create `physics/RelativitySettings.kt`; edit `Game.kt`, `screen/PlayScreen.kt`, `system/MoveSystem.kt`, `system/RelativisticDynamics.kt`, `system/BoundaryFieldSystem.kt`, `provider/PlayerEntityProvider.kt`, `provider/AsteroidProvider.kt`, `provider/WeaponProjectileProvider.kt`, `render/FieldShimmerRenderer.kt`, `physics/PhysicsConstants.kt` (KDoc only); tests
+- goal: The debug panel (ST-059) has to change c, a0, field damping, the γ cap and relativity/field on/off while the game runs. `RELATIVITY_ENABLED` and friends are `const val`s. Add one mutable settings object in DI that runtime code reads. The consts stay and become its defaults. Nothing changes in play until someone moves a slider.
 - spec:
-  - `PhotonComponent { val dir = Vector2() }` (unit vector, Poolable, convention).
-  - `WeaponProjectileProvider`: `n̂' = (cos angle, sin angle)` of the ship facing (aim is in W for M3). `β = shipBody.linearVelocity / SPEED_OF_LIGHT`. `n̂ = aberratePhoton(β, n̂')`. Body velocity = `SPEED_OF_LIGHT·n̂`, and the body angle (and the TransformComponent `prevRotationDeg`, in degrees) = `atan2(n̂)`. Add `PhotonComponent(dir = n̂)`. The lifetime from ST-024 stays.
-  - `BoundaryFieldSystem.beforeStep`: photon entities skip the kinematic kick. For each wall, with `r = 0`, if `qᵢ ≥ FIELD_PHOTON_MIRROR_Q` and `dir·n̂ᵢ < 0`: if `lifetime.bouncesLeft == 0`, add `RemoveComponent`. Otherwise reflect `dir → dir − 2(dir·n̂ᵢ)n̂ᵢ`, decrement `bouncesLeft`, set the velocity to `c·dir` and the angle to `atan2(dir)`, and if `ShimmerImpacts` exists, `emit(id, …, strength = 1f, force = true)`.
+  - `class RelativitySettings(relativityEnabled: Boolean = RELATIVITY_ENABLED, c: Float = SPEED_OF_LIGHT, engineProperAccel: Float = ENGINE_PROPER_ACCEL, var fieldEnabled: Boolean = true, var fieldParams: BoundaryFieldParams = BoundaryFieldParams(), gammaMaxMassive: Float = GAMMA_MAX_MASSIVE)`. Every property is a `var`, and the setters clamp: `c` to `[C_MIN = 20f, C_MAX_BOX2D_SAFE = 67f]`, `engineProperAccel` to `[5f, 120f]`, `gammaMaxMassive` to `[2f, GAMMA_MAX_MASSIVE]`. Add `val betaMaxMassive get() = sqrt(1 − 1/gammaMaxMassive²)`, plus `var fieldDamping` (get from `fieldParams.damping`, set with `fieldParams = fieldParams.copy(damping = it.coerceIn(0f, 5f))`, which allocates only on change). Put `C_MIN` and `C_MAX_BOX2D_SAFE` in `PhysicsConstants.kt`, and add a `PhysicsConstantsTest` assertion `C_MAX_BOX2D_SAFE·PHYSICS_UPDATE_INTERVAL ≤ 0.75·2`.
+  - DI: `Game.create` does `bindSingleton(RelativitySettings())`. `PlayScreen` injects it and passes it to every consumer below. Each consumer takes `settings: RelativitySettings = RelativitySettings()` as its **last** constructor param, so existing test call sites still compile. **Exception:** `BoundaryFieldSystem` drops its `params` param, reads `settings.fieldParams` each step, and the tests that passed params now pass `RelativitySettings(fieldParams = …)`.
+  - Replace runtime reads (grep `SPEED_OF_LIGHT`, `ENGINE_PROPER_ACCEL`, `BETA_MAX_MASSIVE`, `RELATIVITY_ENABLED` in `core/src/main`): `MoveSystem` uses `settings.c` and `settings.engineProperAccel`. `RelativisticDynamics` uses `settings.c` and clamps with `min(rel.gammaMax, settings.gammaMaxMassive)`. The readback beta cap is derived from that same effective γ max (this supersedes ST-054 item 2). The providers' `uFromV` uses `settings.c` and `settings.betaMaxMassive`. `WeaponProjectileProvider` gives a LASER the speed `settings.c` at the moment it's fired (ignoring `weaponCmp.projectileSpeed` for lasers). `FieldShimmerRenderer` sets `u_c` from `settings.c`. Default params on the pure `Relativity.kt` functions stay.
+  - **Runtime relativity off.** Providers now **always** attach `RelativisticComponent` (to the player and asteroids), and `settings.relativityEnabled` picks the path each step: `MoveSystem` uses the Newtonian force path when it's false, even if the component exists. `BoundaryFieldSystem` uses the M2 force path when it's false. `RelativisticDynamics.beforeStep` does nothing when it's false except `accel.setZero()`. `afterStep` when it's false: copy the body velocity, `clampSpeed(v, betaMax·c)`, `u = uFromV(v)`, `gUsed = 1`, `tau += dt`. This keeps `u` in sync so switching back on is seamless. Update the `RELATIVITY_ENABLED` KDoc to say "default for `RelativitySettings.relativityEnabled`".
+  - **Field off.** `BoundaryFieldSystem` skips the field acceleration (both paths) when `!settings.fieldEnabled`, but it **keeps the backstop**. The arena becomes a hard-walled box, and bodies never leave it, so `RemoveSystem` never deletes the player.
+  - Changing `c` mid-flight keeps `u`, so v = u/γ(u, c) changes on the next step. Photons already in flight keep their speed until they bounce. That's acceptable for a debug knob, and the KDoc should say so.
 - acceptance:
-  - [ ] Test: a ship at rest facing +x fires a laser with velocity (60, 0) ± 1e-3
-  - [ ] Test: a ship moving at β = 0.9 along +x, facing +y, fires a laser at a W angle of 25.84° ± 0.1° with |v| = 60 ± 1e-3
-  - [ ] Test (100×100 map, skin 8): a photon moving +x reflects between x = 95.5 and 96.5, `bouncesLeft` goes 3 → 2, and the speed stays 60. With `bouncesLeft = 0` it gets `RemoveComponent` instead
+  - [ ] Test: `RelativitySettings(c = 100f).c == 67f`; `gammaMaxMassive = 1f` clamps to 2; `fieldDamping = 2f` updates `fieldParams.damping` and keeps the other params
+  - [ ] Test (real `World`): with `settings.c = 30f`, a ship thrusting for 10 s from rest has |v| < 30 and β (against 30) > 0.9
+  - [ ] Test: with `relativityEnabled = false`, an entity that has a `RelativisticComponent` gets the Newtonian force (same velocity after N steps as the existing `MoveSystemTest` Newtonian case), and `u` tracks `uFromV(body velocity)`
+  - [ ] Test: with `gammaMaxMassive = 5f`, `u = (100c, 0)` is clamped to γ = 5 ± 0.01 after one step
+  - [ ] Test: with `fieldEnabled = false`, a body inside the skin gets no field acceleration, and a body past the wall is still reflected by the backstop
   - [ ] `./gradlew core:test` passes
-- playtest: Lasers fired sideways at speed visibly sweep forward. Lasers bounce off the edge up to 3 times with a ripple, which allows bank shots.
+- playtest: With the defaults, the game plays exactly as after ST-046.
 
-### ST-040 Proper time drives ship clocks
+### ST-057 Debug plumbing: --debug-panel flag, F1 event, UI-first input, time scale
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `debug/ScreenshotHarness.kt` (`LaunchOptions`), create `debug/DebugSettings.kt`, create `event/DebugInputListener.kt`, edit `event/GameEventManager.kt`, `Game.kt`, `screen/PlayScreen.kt`; `core/src/test/kotlin/com/github/pepek42/asteroids/debug/LaunchOptionsTest.kt`, create `core/src/test/kotlin/com/github/pepek42/asteroids/event/GameEventManagerTest.kt`
+- goal: Groundwork for the debug side panel (ST-059) that has no UI yet. It adds a launch flag, an F1 toggle event, and a time-scale knob, and it fixes input order. Today `GameEventManager` comes first in the `InputMultiplexer` and returns `true` from every `touchDown`/`keyDown`, so Stage widgets in play would never get clicks.
+- spec:
+  - `LaunchOptions`: add `val debugPanel: Boolean = false`, parsed from `--debug-panel` (no value). Extend the KDoc of `parseLaunchOptions`.
+  - `class DebugSettings(var panelAllowed: Boolean, var panelVisible: Boolean, var timeScale: Float = 1f, var showVectors: Boolean = false)`. `Game.create` binds `DebugSettings(panelAllowed = IS_DEBUG || options.debugPanel, panelVisible = options.debugPanel)`. Add `val TIME_SCALES = floatArrayOf(0.25f, 0.5f, 1f)`.
+  - `fun interface DebugInputListener { fun toggleDebugPanel() }`. `GameEventManager` gets `addDebugListener`/`removeDebugListener` (a `GdxArray` like the others). In `keyDown`, `Keys.F1` dispatches to the debug listeners **before** the `ignoreInput` check. Make `keyDown` return `true` only for keys it handles (`CONTROL_RIGHT`, `F1`) and `false` otherwise.
+  - `Game.create`: the multiplexer order becomes `InputMultiplexer(stage, gameEventManager)`. Stage returns `true` only when a widget handled the event, so clicks on empty space still reach the game. Add a comment saying why.
+  - `PlayScreen.render`: `engine.update(baseDelta · debugSettings.timeScale)`, where `baseDelta` is the existing screenshot-or-real delta.
+- acceptance:
+  - [ ] Test: `--debug-panel` sets `debugPanel = true`, and the existing `LaunchOptionsTest` cases still pass (update the `LaunchOptions(...)` constructor calls if they're positional)
+  - [ ] Test: `GameEventManager.keyDown(Keys.F1)` calls a registered `DebugInputListener` once, also after `ignorePlayerInputs()`. `keyDown(Keys.A)` returns false
+  - [ ] `./gradlew core:test` passes
+- playtest: Main menu buttons and the level-cleared button still work. In play, LMB fires and RMB thrusts as before.
+
+### ST-058 ControlScheme abstraction; current mouse-hull scheme as the first strategy
 - status: ready
 - size: M
 - agent: kotlin-dev
-- depends: ST-024, ST-037
-- files: `component/RelativisticComponent.kt`, `physics/PhysicsConstants.kt`, `system/WeaponSystem.kt`, `system/LifetimeSystem.kt`, `system/PhysicsSystem.kt`, `system/RelativisticDynamics.kt`; tests
-- goal: Time dilation becomes gameplay (research E2): the ship's own clock runs at 1/γ. This follows the ST-031 recommendation: guns exact, turning softened.
+- depends: ST-057
+- files: create `input/ControlScheme.kt`, `input/ControlSettings.kt`, `input/PlayerInputState.kt`, `input/ControlStrategy.kt`, `input/MouseHullStrategy.kt`; edit `system/PlayerInputSystem.kt`, `component/WeaponComponent.kt`, `provider/WeaponProjectileProvider.kt`, `debug/ScreenshotHarness.kt` (`LaunchOptions`), `Game.kt`, `screen/PlayScreen.kt`; tests
+- goal: The owner wants to try three control schemes at runtime before choosing one (ST-063). Pull the input → `MoveComponent`/`WeaponComponent` mapping out of `PlayerInputSystem` into swappable strategies, and port today's behaviour (scheme (a)) with no change in feel. The input plumbing stays the same: `GameEventManager` is the `InputProcessor` and dispatches `PlayerInputListener` callbacks. `PlayerInputSystem` subscribes and never polls `Gdx.input`.
 - spec:
-  - Constants: `COOLDOWN_DILATION_EXPONENT = 1f`, `ROTATION_DILATION_EXPONENT = 0.5f`.
-  - In `RelativisticComponent.kt`: `fun Entity.clockRate(exponent: Float): Float = relativisticCmpOptional?.let { it.gUsed.pow(-exponent) } ?: 1f`.
-  - `WeaponSystem`: `cooldown -= deltaTime · entity.clockRate(COOLDOWN_DILATION_EXPONENT)`.
-  - `LifetimeSystem`: for the PROPER clock, `remaining -= dt · entity.clockRate(1f)`. WORLD is unchanged.
-  - `PhysicsSystem.applyRotation`: `f = entity.clockRate(ROTATION_DILATION_EXPONENT)`. Time-scale the PD controller by passing `kp·f²`, `kd·f`, `maxAngularAcceleration·f²`, `maxAngularVelocity·f` (from `ShipHandlingComponent` or the `ShipRotationController` defaults). This is exactly the controller on a clock slowed by `f`.
-  - Asteroid spin `ω₀/γ`: in `RelativisticDynamics.beforeStep`, for entities without a `MoveComponent` or with a null `targetAngleRad`, compute `g` and do `body.angularVelocity *= gUsedPrevious / g` before overwriting `gUsed`. This rescales exactly and survives collisions.
+  - `enum class ControlScheme(val flag: String) { MOUSE_HULL("mouse"), TWIN_STICK("twin"), AUTO_AIM("auto"); companion fun fromFlag(s: String?): ControlScheme? }` (case-insensitive). `class ControlSettings(var scheme: ControlScheme = ControlScheme.MOUSE_HULL)` is bound in `Game.create` from `options.controls ?: MOUSE_HULL`. `LaunchOptions` gets `val controls: ControlScheme? = null`, parsed from `--controls=mouse|twin|auto`. Invalid values are ignored.
+  - `class PlayerInputState { var thrustHeld = 0f; var fireHeld = false; val aimWorld = Vector2(); val moveAxis = Vector2() }`. `PlayerInputSystem` fills it from the existing callbacks. It unprojects the screen aim point into `aimWorld` once per frame (the existing `camera.unproject`, but into a reused `Vector3` to stop allocating). `moveAxis` stays zero until ST-061.
+  - `interface ControlStrategy { fun apply(input: PlayerInputState, shipPos: Vector2, shipAngleRad: Float, move: MoveComponent, weapon: WeaponComponent?, dt: Float); fun onActivate(move: MoveComponent, weapon: WeaponComponent?, shipAngleRad: Float) {} }`. These are pure apart from writing the components, so they can be tested without GL.
+  - `MouseHullStrategy`: `move.thrusters = input.thrustHeld`, `move.targetAngleRad = atan2(aimWorld − shipPos)`, `weapon?.doAttack = fireHeld`, `weapon?.aimAngleRad = null`. This is exactly today's behaviour.
+  - `PlayerInputSystem(gameEventManager, camera, controlSettings = ControlSettings())` holds `strategies: Map<ControlScheme, ControlStrategy>`. Until ST-061/ST-062 land, TWIN_STICK and AUTO_AIM map to `MouseHullStrategy`, and that fallback is logged once. When `controlSettings.scheme` differs from last frame, call `onActivate` (which zeroes thrusters and sets `aimAngleRad = null`).
+  - `WeaponComponent`: add `var aimAngleRad: Float? = null` (world frame; null means fire along the hull), reset to null. `WeaponProjectileProvider`: `val aim = weaponCmp.aimAngleRad ?: body.angle`. Muzzle = `body.position + weaponPosition.rotateRad(body.angle) + (2·projectileRadius, 0).rotateRad(aim)`. The projectile velocity and angle use `aim`. With null, this is identical to today.
 - acceptance:
-  - [ ] Test: a weapon on an entity with `gUsed = 2` fires half as often over 3 s of world time as at `gUsed = 1` (±1 shot)
-  - [ ] Test: a PROPER lifetime of 1.2 at `gUsed = 3.2` lasts 3.84 s ± 1 frame of world time
-  - [ ] Test: a 90° turn at `gUsed = 4` (f = 0.5) takes 2× ± 15 % as long as at γ = 1, with overshoot still < 5°
-  - [ ] Test: an asteroid spinning at 2 rad/s whose `u` is set to γ = 2 spins at 1 ± 0.02 rad/s after one step
+  - [ ] Test: `MouseHullStrategy` with the ship at (10, 10) and aim at (10, 20) sets `targetAngleRad = π/2`, copies thrust and fire, and leaves `aimAngleRad` null
+  - [ ] Test: `ControlScheme.fromFlag("TWIN") == TWIN_STICK`; `--controls=auto` parses; `--controls=foo` keeps null
+  - [ ] Test: `WeaponProjectileProvider` with `aimAngleRad = π/2` on a ship facing 0 gives a projectile velocity along +y. With null, the existing `WeaponProjectileProviderTest` expectations hold
   - [ ] `./gradlew core:test` passes
-- playtest: At high speed the fire rate visibly drops and turning feels heavier but still controllable.
+- playtest: The controls feel exactly as before.
 
 ### ST-041 ObserverState: smoothed player β, γ, τ, t
 - status: ready
@@ -700,6 +761,158 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] Tests: `smoothToward` reaches 63 % ± 1 % of a step after one time constant, and is stable for dt ≫ timeConstant (no overshoot)
   - [ ] `./gradlew core:test` passes
 
+### ST-059 Debug side panel: relativity readouts, toggles and sliders
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-041, ST-056, ST-057, ST-058
+- files: create `ui/DebugPanel.kt`, `system/DebugPanelSystem.kt`; edit `screen/PlayScreen.kt`; tests
+- goal: The owner asked for relativity debug options on the side of the screen, so the feel can be tuned in play instead of by editing consts. The panel is a scene2d.ui table on the existing `Stage` with the existing `Skin`, docked on the right and toggled with F1. It exists only when `DebugSettings.panelAllowed` is true (`IS_DEBUG` or `--debug-panel`).
+- spec:
+  - **Labels aren't i18n (decision):** this is developer tooling, not shipped UI, so the strings are English literals in `DebugPanel.kt`, with a comment saying so. `messages*.properties` don't change. If panel options ever move into a player options menu (GDD §11 Q3, M7), they get i18n keys then.
+  - `class DebugPanel(skin, relativitySettings, debugSettings, controlSettings) : DebugInputListener`. Its root is a `Table` with `background = skin.newDrawable("white", Color(0f, 0f, 0f, 0.6f))`, fixed width 260 px, filling the right edge of a full-screen container table (`setFillParent(true)`, `right().top()`). `toggleDebugPanel()` flips `debugSettings.panelVisible` and the root's `isVisible`. `show(stage)`/`hide()` add or remove the container. `PlayScreen.show` adds it only if `panelAllowed` and registers it with `gameEventManager.addDebugListener`. `hide` removes both. While the panel is visible, `PlayScreen.show` sets the system cursor to Arrow instead of Crosshair, and the toggle swaps it.
+  - **Readouts** (`Label`s, refreshed at 10 Hz from `DebugPanelSystem` through `panel.update(observer, playerRel)`, reusing one `StringBuilder`): `β` (`betaRaw.len()`, 3 dp), `γ` (2 dp), `τ` and `world t` (s, 1 dp), `|v|` (u/s), `|u| = γ|v|` (proper velocity, i.e. world units per ship second), and `ship-frame speed = rapidity·c`. For straight-line thrust from rest, the last one equals `a0·τ`, the speed the pilot's own accelerometer would integrate, and the label's tooltip says so. Also show the current `c` and `a0`.
+  - **Toggles** (`CheckBox`): relativity on/off → `relativitySettings.relativityEnabled`; boundary field on/off → `fieldEnabled`; show vectors → `debugSettings.showVectors` (drawn by ST-060).
+  - **Time scale:** three `TextButton`s, 0.25×, 0.5× and 1×, in a `ButtonGroup` (exactly one checked) → `debugSettings.timeScale`.
+  - **Sliders** (`Slider(min, max, step, false, skin, "default-horizontal")` + value label): `c` 20–67 step 1; `a0` 5–120 step 1; `field damping` 0–5 step 0.1; `γ safety cap` 2–50 step 1. Each slider writes the setting in a `ChangeListener` and is initialised from it. Add a "reset defaults" `TextButton` that restores the const defaults.
+  - **Control scheme:** `SelectBox<String>` with `ControlScheme.entries.map { it.flag }` → `controlSettings.scheme`.
+  - `DebugPanelSystem(panel, observerState) : EntitySystem()`, family `allOf(PlayerComponent, RelativisticComponent)`. Register it just before `HudSystem` (which acts and draws the stage). It runs only when the panel is visible.
+  - Keep the logic you can test separate from the widgets: put `fun formatReadouts(observer: ObserverState, rel: RelativisticComponent?, c: Float, a0: Float, out: StringBuilder)` at top level.
+- acceptance:
+  - [ ] Test: `formatReadouts` with β = 0.9 along +x and c = 60 contains `γ = 2.29`, `|u| = 123.9` and `ship-frame speed = 88.3` (rapidity atanh 0.9 = 1.4722, times 60)
+  - [ ] Test (no GL): `DebugPanel.toggleDebugPanel()` flips `debugSettings.panelVisible`. Skip this if building the `Skin` needs GL, and say so in the result
+  - [ ] `./gradlew core:test` passes
+  - [ ] Screenshot via the harness with `--debug-panel --seed=42 --thrust --frames=150` shows the panel on the right with non-zero β, and the agent has looked at it
+- playtest: F1 shows and hides the panel. Dragging a slider doesn't fire or thrust. Dropping c to 30 makes the ship hit "near c" much sooner. 0.25× time makes bounces and aberration easy to watch. Relativity off lets the ship go past c, up to the Box2D clamp.
+
+### ST-060 Debug vector overlay: v, u and acceleration arrows
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-056, ST-057
+- files: create `system/DebugVectorSystem.kt`; edit `component/RelativisticComponent.kt`, `system/RelativisticDynamics.kt`, `screen/PlayScreen.kt`; tests
+- goal: Make the difference between coordinate velocity `v` (capped at c) and proper velocity `u = γv` (unbounded) visible, together with the acceleration actually applied, which is thrust plus field. Enabled by the panel's "show vectors" toggle.
+- spec:
+  - `RelativisticComponent`: add `val lastAccel = Vector2()` (reset to zero). In `RelativisticDynamics.afterStep`, `lastAccel.set(accel)` right before `accel.setZero()`. When relativity is off it's zero.
+  - `DebugVectorSystem(camera, relativitySettings, debugSettings) : IteratingSystem(allOf(RelativisticComponent, BodyComponent, TransformComponent))`, registered right after `RenderSystem`. It owns a `ShapeRenderer` and is `Disposable`. In `update`, it returns early unless `debugSettings.showVectors`. Otherwise it calls `begin(ShapeType.Line)` with `camera.combined` once and `end()` once. For each entity, from the origin `transform.interpolatedPosition`, it draws: `v` (green) with length `v·VEC_SCALE_VELOCITY`; `u` (cyan) with `u·VEC_SCALE_VELOCITY`; `lastAccel` (orange) with `a·VEC_SCALE_ACCEL`; and a thin grey circle of radius `c·VEC_SCALE_VELOCITY` around the player only (the "c" ring, which `v` can never leave but `u` can). Constants: `VEC_SCALE_VELOCITY = 0.25f` (s), `VEC_SCALE_ACCEL = 0.1f` (s²). Arrowheads are two 0.4 u lines at ±25°.
+  - Put the geometry in a pure function: `fun arrowSegments(ox, oy, dx, dy, scale, headLen, headAngleRad, out: FloatArray)` fills 12 floats (shaft + 2 head lines). Draw from that.
+- acceptance:
+  - [ ] Test: `arrowSegments` for (0, 0) + (4, 0)·0.25 gives a shaft (0, 0)→(1, 0) and heads ending at `1 − 0.4·cos25°, ±0.4·sin25°`
+  - [ ] Test: after one step with thrust, `lastAccel` is non-zero, and after a step without thrust it's zero
+  - [ ] `./gradlew core:test` passes
+- playtest: At speed the green `v` arrow stops at the c ring while the cyan `u` keeps growing. Thrusting sideways at speed shows a short orange arrow (the 1/γ² turning cost). In the field skin the orange arrow points inward.
+
+### ST-061 Twin-stick control scheme (WASD thrust direction + mouse turret)
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-058
+- files: create `input/TwinStickStrategy.kt`; edit `event/PlayerInputListener.kt`, `event/GameEventManager.kt`, `system/PlayerInputSystem.kt`; tests
+- goal: Scheme (b) for the owner to try. WASD gives the desired thrust direction in the world frame. The hull turns toward it through the existing PD rotation controller (`MoveComponent.targetAngleRad`), and the engine fires as the hull lines up. The mouse aims an independent turret (`WeaponComponent.aimAngleRad`), and LMB fires. Gamepad support (left/right stick through gdx-controllers) is **out of scope**. Ask the planner for a card if the owner picks (b) in ST-063.
+- spec:
+  - `PlayerInputListener`: add `fun moveAxis(x: Float, y: Float) = Unit`. In `GameEventManager`, track W/A/S/D (and the arrow keys) as booleans in `keyDown` and a new `keyUp` override. Respect `ignoreInput`, and return true only for these keys. On every change, dispatch `moveAxis(x = right − left, y = up − down)`, normalised when the length is > 1. Clear the axis in `ignorePlayerInputs()` so a held key doesn't stick across screens.
+  - `PlayerInputSystem` copies it into `PlayerInputState.moveAxis`.
+  - `TwinStickStrategy` (it keeps `lastTarget`, set to the ship angle in `onActivate`): if `|moveAxis| > 0.1`: `target = atan2(axis)`, `lastTarget = target`, `Δ = shortestAngleDiffRad(shipAngle, target)`, `move.thrusters = |axis|·max(0, cos Δ)^TWIN_STICK_ALIGN_EXPONENT` with `TWIN_STICK_ALIGN_EXPONENT = 2f`. Otherwise `thrusters = 0` and `targetAngleRad = lastTarget` (the ship holds its heading instead of drifting in spin). RMB is ignored. Turret: `weapon.aimAngleRad = atan2(aimWorld − shipPos)`, `doAttack = fireHeld`.
+  - Register it in `PlayerInputSystem.strategies[TWIN_STICK]`, replacing the fallback.
+  - Note for relativity: the turret aim is the shooter-frame direction n̂'. Once ST-039 lands, a laser aimed at the cursor at high speed visibly sweeps forward (aberration). That's intended and part of what the owner should feel.
+- acceptance:
+  - [ ] Test: hull at 0, axis (0, 1): `targetAngleRad = π/2`, thrusters = 0 (cos 90° = 0). Hull at π/2, same axis: thrusters = 1. Hull at π/4: thrusters = 0.5 ± 1e-4
+  - [ ] Test: no axis after having had one: thrusters = 0 and `targetAngleRad` equals the last target. The turret angle follows the mouse whatever the hull angle
+  - [ ] Test: `GameEventManager`: W down + D down dispatches (0.7071, 0.7071) ± 1e-4. W up leaves (1, 0). `ignorePlayerInputs()` dispatches (0, 0)
+  - [ ] `./gradlew core:test` passes
+- playtest: With `--controls=twin`, strafe past an asteroid while shooting it. Near c, try to turn around: the hull swings fast but the velocity changes slowly (γ² turning cost), which is the momentum-management skill.
+
+### ST-038 Boundary field acts on proper velocity
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-025, ST-037
+- files: `system/BoundaryFieldSystem.kt`, tests
+- goal: In M2 the field applies a Box2D force. Relativistic bodies must instead get `du/dt = a_field` (research §3 "Relativistic behaviour", exact: a charge in a static potential), and the backstop must reflect `u`.
+- spec:
+  - `beforeStep`: if the entity has a `RelativisticComponent`, compute `boundaryAcceleration` with velocity = `u` (damping acts on `u`) and **add** it to `relCmp.accel` instead of applying a force. Others keep the M2 path.
+  - After ST-056: params come from `settings.fieldParams`, and with `!settings.fieldEnabled` the field acceleration is skipped but the backstop below still runs. The test passes its params through `RelativitySettings(fieldParams = …)` and a `MapProvider(mock(), 100f, 100f)`.
+  - Backstop for relativistic bodies: reflect `u_n → −FIELD_BACKSTOP_RESTITUTION·u_n`, then set `v = velocityFromU(u)`, `body.setLinearVelocity(v)`, and `relCmp.vSet = v`, so `RelativisticDynamics.afterStep` (which runs later) doesn't treat it as a collision.
+- acceptance:
+  - [ ] Test (explicit `BoundaryFieldParams(skin = 8f, damping = 0f)`): a relativistic body heading straight at a wall with β = 0.9 turns around at a depth of 6.7 ± 0.4 u (research §3 table) and never reaches the wall
+  - [ ] Test: a body at γ = 5 toward the wall triggers the backstop, ends inside the map with |u| ≤ 0.9·|u_before| and moving inward
+  - [ ] `./gradlew core:test` passes
+- playtest: Bouncing off the edge at high speed feels like a strong rubber wall. Very fast hits snap back with a backstop ripple.
+
+### ST-039 Photon lasers: velocity aberration at the muzzle and field mirrors
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-024, ST-025, ST-035
+- files: create `component/PhotonComponent.kt`; edit `provider/WeaponProjectileProvider.kt`, `system/BoundaryFieldSystem.kt`; tests
+- goal: Lasers fly at exactly c in a direction that aberrates with the shooter's velocity (research E3). Today projectiles ignore the ship's velocity, so a ship near c would outrun its own bullets. The field doesn't push photons. Instead they mirror at mid-skin and use up a bounce (research §3 [FAKE] rule). This follows the ST-034 recommendation.
+- spec:
+  - `PhotonComponent { val dir = Vector2() }` (unit vector, Poolable, convention).
+  - `WeaponProjectileProvider`: `n̂' = (cos aim, sin aim)` with `aim = weaponCmp.aimAngleRad ?: body.angle` (ST-058 adds the turret aim, null = hull facing; aim is in W for M3). `β = v_ship / c`, where `v_ship` is `relativisticCmpOptional?.vSet ?: body.linearVelocity` and `c = settings.c` once ST-056 is done. `n̂ = aberratePhoton(β, n̂')`. Body velocity = `SPEED_OF_LIGHT·n̂`, and the body angle (and the TransformComponent `prevRotationDeg`, in degrees) = `atan2(n̂)`. Add `PhotonComponent(dir = n̂)`. The lifetime from ST-024 stays.
+  - `BoundaryFieldSystem.beforeStep`: photon entities skip the kinematic kick. For each wall, with `r = 0`, if `qᵢ ≥ FIELD_PHOTON_MIRROR_Q` and `dir·n̂ᵢ < 0`: if `lifetime.bouncesLeft == 0`, add `RemoveComponent`. Otherwise reflect `dir → dir − 2(dir·n̂ᵢ)n̂ᵢ`, decrement `bouncesLeft`, set the velocity to `c·dir` and the angle to `atan2(dir)`, and if `ShimmerImpacts` exists, `emit(id, …, strength = 1f, force = true)`.
+- acceptance:
+  - [ ] Test: a ship at rest facing +x fires a laser with velocity (60, 0) ± 1e-3
+  - [ ] Test: a ship moving at β = 0.9 along +x, facing +y, fires a laser at a W angle of 25.84° ± 0.1° with |v| = 60 ± 1e-3
+  - [ ] Test (`MapProvider(mock(), 100f, 100f)`, skin 8): a photon moving +x reflects between x = 95.5 and 96.5, `bouncesLeft` goes 3 → 2, and the speed stays 60. With `bouncesLeft = 0` it gets `RemoveComponent` instead
+  - [ ] `./gradlew core:test` passes
+- playtest: Lasers fired sideways at speed visibly sweep forward. Lasers bounce off the edge up to 3 times with a ripple, which allows bank shots.
+
+### ST-062 Auto-aim control scheme (steer + guns pick targets in a cone)
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-039, ST-058
+- files: create `input/AutoAim.kt`, `input/AutoAimStrategy.kt`; edit `system/PlayerInputSystem.kt`, `screen/PlayScreen.kt`; tests
+- goal: Scheme (c), which is also an accessibility option. Movement is as in (a): the mouse steers the hull and RMB thrusts. The guns fire on their own at the nearest target inside a forward cone. Because photons fly at exactly c in the world frame and their direction aberrates at the muzzle (ST-039), the aim has to lead the target and pre-compensate the aberration, or auto-aim misses at speed. That's why this card depends on ST-039.
+- spec:
+  - Pure functions in `AutoAim.kt` (no allocation):
+    - `fun pickTargetIndex(sx, sy, facingRad, coneHalfRad, range, xs: FloatArray, ys: FloatArray, n: Int): Int` returns the index of the nearest candidate with `dist ≤ range` and `|shortestAngleDiffRad(facing, atan2(dy, dx))| ≤ coneHalfRad`, or −1.
+    - `fun photonInterceptDir(rx, ry, vtx, vty, c, out: Vector2): Boolean`: `r` is target minus shooter, `v_t` is the target's world velocity. Solve `|r + v_t·t| = c·t`, i.e. `a = v_t² − c²` (< 0), `b = 2 r·v_t`, `k = r²`, `t = (−b − sqrt(b² − 4ak)) / (2a)`, `out = (r + v_t·t)/(c·t)`. Return false if `t` isn't finite or is ≤ 0. The shooter's velocity doesn't enter, because the photon moves at c in W anyway.
+    - `fun muzzleDirForWorldDir(betaX, betaY, nWx, nWy, out)` = `aberratePhoton(−β, n̂_W)`, the inverse of the ST-039 muzzle aberration.
+  - `AutoAimStrategy(targets: ImmutableArray<Entity>, relativitySettings)`: the targets are the engine family `allOf(HealthComponent, BodyComponent, BaseInfoComponent)`, minus the player faction (filtered when filling the scratch arrays, which are reused and grow as needed). Movement is the same as `MouseHullStrategy`. Fire: `i = pickTargetIndex(…, AUTO_AIM_CONE_HALF_DEG = 30°, AUTO_AIM_RANGE = 40f)`. If `i ≥ 0`: the target velocity comes from `relativisticCmpOptional?.vSet ?: body.linearVelocity`. `photonInterceptDir` → `muzzleDirForWorldDir(β_ship, …)` → `weapon.aimAngleRad = atan2`, `doAttack = true`. Otherwise `doAttack = fireHeld` (LMB still fires along the hull) and `aimAngleRad = null`.
+  - Register it in `PlayerInputSystem.strategies[AUTO_AIM]`. `PlayScreen` passes the family.
+- acceptance:
+  - [ ] Tests: `pickTargetIndex` picks the nearest in-cone target, skips a nearer one at 45° off the facing and one beyond range, and returns −1 for none
+  - [ ] Test: `photonInterceptDir` for a static target gives r̂. For a target at (30, 0) moving (0, 20) with c = 60, a photon from the origin along `out` meets the target within 1e-3 u at the returned time
+  - [ ] Test: `aberratePhoton(β, muzzleDirForWorldDir(β, n̂))` ≈ n̂ within 1e-5 for β = (0.9, 0) and n̂ = (0, 1)
+  - [ ] Test (real `World`, ST-039 provider): a ship at β = 0.8 along +x, facing +y, with a static asteroid 20 u away along +y fires a photon whose sweep hits it
+  - [ ] `./gradlew core:test` passes
+- playtest: With `--controls=auto`, fly around: the guns hit asteroids ahead even at high speed. Check whether it feels like the game plays itself, which is the cost of this option.
+
+### ST-063 Owner decision: default control scheme
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: ST-058, ST-061, ST-062
+- files: `docs/design/game-design.md` §4 and §11; `input/ControlSettings.kt` (default)
+- goal: Record which scheme is the default once the owner has tried all three through `--controls=` or the debug panel selector. The others stay selectable.
+- question: Which control scheme should be the default? (a) Mouse aims and rotates the hull, RMB thrusts forward (today). (b) **Twin-stick (recommended)**: WASD (later the left stick) sets the thrust direction in the world frame, the hull turns toward it, and the mouse (later the right stick) aims an independent turret. Separating aim from thrust lets the player manage momentum near c, which is the core skill, while still shooting. The relativistic aberration of your own shots is also clearly visible, because you aim sideways while moving fast. (c) Auto-aim + steering only. Keep it as an accessibility option rather than the default.
+- acceptance:
+  - [ ] The answer is in game-design.md §11 (decisions) and §4. `ControlSettings` defaults to the chosen scheme. For (b), ask the planner for a gamepad card (gdx-controllers, sticks → `moveAxis`/aim)
+
+### ST-040 Proper time drives ship clocks
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-024, ST-037
+- files: `component/RelativisticComponent.kt`, `physics/PhysicsConstants.kt`, `system/WeaponSystem.kt`, `system/LifetimeSystem.kt`, `system/PhysicsSystem.kt`, `system/RelativisticDynamics.kt`; tests
+- goal: Time dilation becomes gameplay (research E2): the ship's own clock runs at 1/γ. This follows the ST-031 recommendation: guns exact, turning softened.
+- note: There's no gameplay γ cap (ST-032), so at large γ the ship clock nearly freezes the guns: at the γ = 50 safety bound the fire rate is 1/50 (option a of ST-031). That's accepted for now. Keep both exponents as `const`s so the ST-031 softening variant (exponent 0.5 or a `CLOCK_RATE_MIN` floor) is a one-line change.
+- spec:
+  - Constants: `COOLDOWN_DILATION_EXPONENT = 1f`, `ROTATION_DILATION_EXPONENT = 0.5f`.
+  - In `RelativisticComponent.kt`: `fun Entity.clockRate(exponent: Float): Float = relativisticCmpOptional?.let { it.gUsed.pow(-exponent) } ?: 1f`.
+  - `WeaponSystem`: `cooldown -= deltaTime · entity.clockRate(COOLDOWN_DILATION_EXPONENT)`.
+  - `LifetimeSystem`: for the PROPER clock, `remaining -= dt · entity.clockRate(1f)`. WORLD is unchanged.
+  - `PhysicsSystem.applyRotation`: `f = entity.clockRate(ROTATION_DILATION_EXPONENT)`. Time-scale the PD controller by passing `kp·f²`, `kd·f`, `maxAngularAcceleration·f²`, `maxAngularVelocity·f` (from `ShipHandlingComponent` or the `ShipRotationController` defaults). This is exactly the controller on a clock slowed by `f`.
+  - Asteroid spin `ω₀/γ`: in `RelativisticDynamics.beforeStep`, for entities without a `MoveComponent` or with a null `targetAngleRad`, compute `g` and do `body.angularVelocity *= gUsedPrevious / g` before overwriting `gUsed`. This rescales exactly and survives collisions.
+- acceptance:
+  - [ ] Test: a weapon on an entity with `gUsed = 2` fires half as often over 3 s of world time as at `gUsed = 1` (±1 shot)
+  - [ ] Test: a PROPER lifetime of 1.2 at `gUsed = 3.2` lasts 3.84 s ± 1 frame of world time
+  - [ ] Test: a 90° turn at `gUsed = 4` (f = 0.5) takes 2× ± 15 % as long as at γ = 1, with overshoot still < 5°
+  - [ ] Test: an asteroid spinning at 2 rad/s whose `u` is set to γ = 2 spins at 1 ± 0.02 rad/s after one step
+  - [ ] `./gradlew core:test` passes
+- playtest: At high speed the fire rate visibly drops and turning feels heavier but still controllable.
+
 ### ST-042 HUD shows β, γ, τ and t; speed zoom
 - status: ready
 - size: S
@@ -708,7 +921,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - files: `ui/Hud.kt`, `system/HudSystem.kt`, `system/CameraSystem.kt`, `assets/i18n/messages.properties`, `assets/i18n/messages_pl.properties`; tests
 - goal: The "I'm near c and I can feel it" readout (research E6), plus a camera that zooms out with speed, because at c = 60 half the screen is crossed in 0.4 s.
 - spec:
-  - HUD: a `ProgressBar(0f, 1f, 0.001f, false, skin, "default-horizontal")` showing `rapidity / acosh(GAMMA_MAX_MASSIVE)`, which keeps moving near c. Labels: `hud_beta=β = {0,number,0.000} c`, `hud_gamma=γ = {0,number,0.00}`, `hud_time=Ship time {0,number,0.0} s · World time {1,number,0.0} s · τ/t {2,number,0.00}`. Polish: `Czas statku`, `Czas świata`. Keep the existing level, position and velocity labels. `HudSystem` takes the `ObserverState` and feeds `betaRaw.len()`, `gammaRaw`, `tau`, `worldTime`, and `tau/worldTime` (1 when worldTime = 0).
+  - HUD: a `ProgressBar(0f, 1f, 0.001f, false, skin, "default-horizontal")` showing `(rapidity / HUD_RAPIDITY_FULL).coerceAtMost(1f)` with `HUD_RAPIDITY_FULL = acosh(10f)` (≈ 2.993, β = 0.995). It keeps moving near c. The γ safety bound is 50 now (ST-055), so normalising by `acosh(GAMMA_MAX_MASSIVE)` would leave the bar a third full at 0.9c. Labels: `hud_beta=β = {0,number,0.000} c`, `hud_gamma=γ = {0,number,0.00}`, `hud_time=Ship time {0,number,0.0} s · World time {1,number,0.0} s · τ/t {2,number,0.00}`. Polish: `Czas statku`, `Czas świata`. Keep the existing level, position and velocity labels. `HudSystem` takes the `ObserverState` and feeds `betaRaw.len()`, `gammaRaw`, `tau`, `worldTime`, and `tau/worldTime` (1 when worldTime = 0).
   - `CameraSystem`: keep a `wheelZoom` field (the old `camera.zoom` logic, clamped 0.5–2). Add top-level `fun speedZoom(wheelZoom: Float, beta: Float, k: Float = CAMERA_ZOOM_PER_BETA2): Float = (wheelZoom·(1 + k·beta²)).coerceIn(0.5f, 2f)` with `CAMERA_ZOOM_PER_BETA2 = 0.6f`. Set `camera.zoom = speedZoom(wheelZoom, observer.betaVisual.len())`. `CameraSystem` takes the `ObserverState`.
 - acceptance:
   - [ ] Tests: `speedZoom(1f, 0f) == 1f`; `speedZoom(1f, 0.9f) ≈ 1.486`; `speedZoom(2f, 0.9f) == 2f`
@@ -744,9 +957,10 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - goal: In world view, moving objects are flattened along their motion to `L₀/γ` (research E5, exact for the top-down camera). It's done on the CPU with 4-corner quads, so no shader is needed and batching survives. Hitboxes stay uncontracted for now (research E20, later).
 - spec:
   - Constant `CONTRACTION_STRENGTH = 1f`. Add `fun contractOffset(ox, oy, vhx, vhy, k, out: Vector2)`: `o' = o − k·(o·v̂)·v̂`.
+  - Readability clamp: there's no gameplay γ cap (ST-032), so a γ = 50 ship would become an invisible sliver. Add `CONTRACTION_MIN_SCALE = 0.25f` and compute `k = min(CONTRACTION_STRENGTH·(1 − 1/γ), 1 − CONTRACTION_MIN_SCALE)`, so a sprite never drops below 25 % of its rest length along v̂.
   - `RenderSystem.processEntity`: after setting the sprite rotation and position, if the entity has a body with speed > 1e-3: `γ = relativisticCmpOptional?.gUsed ?: gammaFromV(v)` and `k = CONTRACTION_STRENGTH·(1 − 1/γ)`. Copy `sprite.vertices` (20 floats) into a reusable `FloatArray(20)`. For corners at offsets 0, 5, 10, 15, transform `(x − cx, y − cy)` with `contractOffset` around the interpolated centre. Then `batch.draw(sprite.texture, scratch, 0, 20)`. Otherwise use `sprite.draw(batch)` as today.
 - acceptance:
-  - [ ] Tests: `contractOffset` with k = 0 is the identity. A point along v̂ with k = 1 − 1/2.294 is scaled to 0.436. A point perpendicular to v̂ is unchanged
+  - [ ] Tests: `contractOffset` with k = 0 is the identity. A point along v̂ with k = 1 − 1/2.294 is scaled to 0.436. A point perpendicular to v̂ is unchanged. At γ = 50 the computed k gives a scale of exactly 0.25
   - [ ] `./gradlew core:test` passes
 - playtest: The player ship visibly flattens along its direction of travel near c. Slow asteroids look unchanged.
 
@@ -766,19 +980,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] `./gradlew core:test` passes
 - playtest: Fly at an asteroid fast: it turns blue-white and glows. Fly away: asteroids behind turn red and dim.
 
-### ST-046 Enlarge the arena to 200×200
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-025, ST-037
-- files: `provider/MapProvider.kt`, `physics/BoundaryField.kt`
-- goal: Near-c play needs room. This follows the ST-030 recommendation (c): 200×200 with a 10 u skin.
-- spec: `MAP_WIDTH = 200f`, `MAP_HEIGHT = 200f`, `FIELD_SKIN = 10f`. Don't change the asteroid count formula. Tests that depend on map size or skin must already pass an explicit 100×100 map and `skin = 8f`. Fix any that don't, without changing their expected numbers.
-- acceptance:
-  - [ ] `./gradlew core:test` passes
-  - [ ] Screenshot via the harness shows the minimap with the larger arena, and the agent has looked at it
-- playtest: There's room for a straight run to about 0.9c. Asteroids are sparser. Check whether level 1 feels empty.
-
 ### ST-047 Relativistic mass in Box2D collisions
 - status: ready
 - size: S
@@ -787,7 +988,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - files: `component/RelativisticComponent.kt`, `system/RelativisticDynamics.kt`, `physics/PhysicsConstants.kt`; tests
 - goal: Box2D contact impulses conserve `Σ M v`. With `M = γm₀` they conserve relativistic momentum, so a near-c ship hits like a freight train (research E7, owner's "mass going to infinite"). This follows the ST-033 recommendation.
 - spec:
-  - Constants: `GAMMA_MASS_ENABLED = true`, `GAMMA_MASS_CAP = 8f`.
+  - Constants: `GAMMA_MASS_ENABLED = true`, `GAMMA_MASS_CAP = 8f`. This is its own Box2D solver-stability cap (mass ratios much above ~10:1 make contacts mushy). It doesn't depend on the γ safety bound `GAMMA_MAX_MASSIVE` (50 since ST-055), so keep "up to 8×". The kinematics stay exact above it: the readback `u = gUsed·vb` uses the true γ.
   - `RelativisticComponent`: add `restMass`, `restInertia` (captured from the body when the component is attached in the providers) and `massGamma = 1f`.
   - `RelativisticDynamics.beforeStep`, if enabled: `g' = min(g, GAMMA_MASS_CAP)`. If `|g' − massGamma| / massGamma > 0.01`: reuse one `MassData` (`mass = restMass·g'`, `I = restInertia·g'`, `center = body.localCenter`), call `body.setMassData(md)`, and set `massGamma = g'`.
   - The `afterStep` collision readback when enabled: `u = gUsed·vb`, then `clampU`. This is momentum-consistent. The old `uFromV` path stays for when the flag is off.
@@ -814,24 +1015,13 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] `./gradlew core:test` passes
 - playtest: A near-c ram destroys a large asteroid in one hit, and a slow bump does nothing.
 
-### ST-054 RelativisticDynamics review minors
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-037
-- files: `system/RelativisticDynamics.kt`, `system/MoveSystem.kt`, `docs/tech/architecture.md`, tests
-- goal: Minor issues from the ST-037 review.
-- spec: (1) Renumber the architecture.md system table cleanly (no "7a"; RelativisticDynamics = 8, PhysicsSystem = 9, shift the rest) and fix any references. (2) In `afterStep` readback, derive the beta cap from `rel.gammaMax` (`sqrt(1 − 1/gammaMax²)`) instead of `BETA_MAX_MASSIVE`. (3) Add a code comment at the `COLLISION_EPS` readback explaining that velocity changes under the threshold are dropped. (4) Sort imports in `MoveSystem.kt`. (5) Tests: a pooled `RelativisticComponent` is fully reset; providers skip the component when relativity is disabled (if `RELATIVITY_ENABLED` is a `const`, test via a provider parameter or skip and note it).
-- acceptance:
-  - [ ] `./gradlew core:test` passes
-
 ### ST-049 Bring docs in line after M3
 - status: ready
 - size: S
 - agent: junior-dev
-- depends: ST-036, ST-037, ST-038, ST-039, ST-040, ST-041, ST-042, ST-043, ST-044, ST-045, ST-046, ST-047, ST-048
-- files: `docs/tech/architecture.md`, `CLAUDE.md`, `docs/design/game-design.md` (§6 tier table and §11, only to reflect the answered `needs-user` cards)
-- goal: Document the relativistic dynamics layer (step-listener order, `RelativisticComponent`, `RELATIVITY_ENABLED`), `ObserverState`, the projectile sweep and photons, the new constants, and the M3 promotions listed in this milestone's note.
+- depends: ST-036, ST-037, ST-038, ST-039, ST-040, ST-041, ST-042, ST-043, ST-044, ST-045, ST-046, ST-047, ST-048, ST-055, ST-056, ST-057, ST-058, ST-059, ST-060, ST-061, ST-062
+- files: `docs/tech/architecture.md`, `CLAUDE.md`, `docs/design/game-design.md` (§4 controls, §5 arena size, §6 tier table and §11, only to reflect the answered `needs-user` cards)
+- goal: Document the relativistic dynamics layer (step-listener order, `RelativisticComponent`, `RELATIVITY_ENABLED`), `ObserverState`, the projectile sweep and photons, the new constants, the M3 promotions listed in this milestone's note, the runtime `RelativitySettings`/`DebugSettings`/`ControlSettings` singletons, the debug panel (F1, `--debug-panel`), the `ControlScheme` strategies and `--controls=`, and the UI-first input multiplexer order.
 - acceptance:
   - [ ] Every statement in the updated sections can be traced to the current code or to an answered owner decision
 

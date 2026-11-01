@@ -100,6 +100,12 @@ The planner and auto-dev put new questions here or on `needs-user` backlog cards
 2. What should the HUD time readout show: player proper time, world time, or both? *Recommendation: both, with the ratio γ shown prominently.*
 3. Should the effect intensity sliders be exposed to players, or developer-only for now? *Recommendation: developer constants now, with an options menu in M7.*
 
+### Decisions
+
+- 2026-11-01 (ST-030): The arena is **200×200** with a 10 u field skin from M3 on (owner: "feels a bit chaotic, maybe the arena should be bigger"). ST-046 also lowers the engine proper acceleration to 25 u/s² and rescales the asteroid spawn.
+- 2026-11-01 (ST-032): There's **no gameplay γ cap**: "it should be capped by relativity effects themselves". Only a numerical safety bound `GAMMA_MAX_MASSIVE = 50` remains, and it's tunable in the debug panel. In practice the arena and the boundary field limit γ.
+- 2026-11-01: The control scheme is **open**. Mouse-hull (today), twin-stick and auto-aim become switchable at runtime (`--controls=`, debug panel) so the owner can try them. The default is decided in ST-063 (recommendation: twin-stick).
+
 ## 12. Ideas parking lot
 
 - Time-dilation bullet time: going fast gives you "more" time to aim, as a natural slow-mo.

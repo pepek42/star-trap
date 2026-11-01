@@ -7,6 +7,8 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.math.RandomXS128
+import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.ScreenUtils
 import com.badlogic.gdx.utils.viewport.Viewport
@@ -30,6 +32,7 @@ import com.github.pepek42.asteroids.system.BoundaryFieldSystem
 import com.github.pepek42.asteroids.system.CameraSystem
 import com.github.pepek42.asteroids.system.ContactSystem
 import com.github.pepek42.asteroids.system.DeathSystem
+import com.github.pepek42.asteroids.system.DebugPanelSystem
 import com.github.pepek42.asteroids.system.DebugSystem
 import com.github.pepek42.asteroids.system.EndLevelSystem
 import com.github.pepek42.asteroids.system.HudSystem
@@ -45,6 +48,7 @@ import com.github.pepek42.asteroids.system.RemoveSystem
 import com.github.pepek42.asteroids.system.RenderSystem
 import com.github.pepek42.asteroids.system.RelativisticDynamics
 import com.github.pepek42.asteroids.system.WeaponSystem
+import com.github.pepek42.asteroids.ui.DebugPanel
 import com.github.pepek42.asteroids.ui.Hud
 import com.github.pepek42.asteroids.ui.MinimapViewport
 import ktx.app.KtxScreen
@@ -70,6 +74,10 @@ class PlayScreen(
     private val asteroidProvider = AsteroidProvider(game.get<TextureAtlas>(), engine, world, game.get<RandomXS128>(), settings)
     private val gameState = game.get<GameState>()
     private val minimapViewport = MinimapViewport()
+    private val debugSettings = game.get<DebugSettings>()
+    private val debugPanel = DebugPanel(
+        game.get<Skin>(), settings, debugSettings, game.get<ControlSettings>(),
+    ) { visible -> Gdx.graphics.setSystemCursor(if (visible) SystemCursor.Arrow else SystemCursor.Crosshair) }
 
     init {
         setupEcs()
@@ -106,6 +114,7 @@ class PlayScreen(
             if (IS_DEBUG) {
                 engine.addSystem(DebugSystem(world, engine, camera))
             }
+            addSystem(DebugPanelSystem(debugPanel, observerState))
             addSystem(HudSystem(hud))
             addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider))
             addSystem(LifetimeSystem())
@@ -123,7 +132,12 @@ class PlayScreen(
         asteroidProvider.spawnAsteroids(gameState.level, mapProvider)
         hud.toggleHud(show = true)
         hud.updateLevel(gameState.level)
-        Gdx.graphics.setSystemCursor(SystemCursor.Crosshair)
+        if (debugSettings.panelAllowed) {
+            debugPanel.show(game.get<Stage>())
+            game.get<GameEventManager>().addDebugListener(debugPanel)
+        }
+        val panelShown = debugSettings.panelAllowed && debugSettings.panelVisible
+        Gdx.graphics.setSystemCursor(if (panelShown) SystemCursor.Arrow else SystemCursor.Crosshair)
         game.get<GameEventManager>().enablePlayerInputs()
     }
 
@@ -145,6 +159,8 @@ class PlayScreen(
     override fun hide() {
         Gdx.graphics.setSystemCursor(SystemCursor.Arrow)
         hud.toggleHud(show = false)
+        debugPanel.hide()
+        game.get<GameEventManager>().removeDebugListener(debugPanel)
         clearLevel(engine, world)
         super.hide()
     }

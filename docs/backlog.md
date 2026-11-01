@@ -752,7 +752,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The controls feel exactly as before.
 
 ### ST-041 ObserverState: smoothed player β, γ, τ, t
-- status: done (2026-11-01, PENDINGxx)
+- status: done (2026-11-01, b1fb0d6)
 - result: ObserverState plus ObserverSystem, which runs right after PhysicsSystem and tracks the player's raw and smoothed β/γ, rapidity, τ and world time; smoothToward is tested.
 - size: S
 - agent: kotlin-dev
@@ -769,7 +769,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-059 Debug side panel: relativity readouts, toggles and sliders
-- status: ready
+- status: done (2026-11-01, PENDINGxx)
+- result: F1 debug side panel with live readouts, relativity and field toggles, time scale, c/a0/damping/γ-cap sliders and a control picker. The toggle test was skipped because the Skin needs GL, the review didn't finish before the session ended, and polish is in ST-065.
 - size: M
 - agent: kotlin-dev
 - depends: ST-041, ST-056, ST-057, ST-058
@@ -786,10 +787,10 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `DebugPanelSystem(panel, observerState) : EntitySystem()`, family `allOf(PlayerComponent, RelativisticComponent)`. Register it just before `HudSystem` (which acts and draws the stage). It runs only when the panel is visible.
   - Keep the logic you can test separate from the widgets: put `fun formatReadouts(observer: ObserverState, rel: RelativisticComponent?, c: Float, a0: Float, out: StringBuilder)` at top level.
 - acceptance:
-  - [ ] Test: `formatReadouts` with β = 0.9 along +x and c = 60 contains `γ = 2.29`, `|u| = 123.9` and `ship-frame speed = 88.3` (rapidity atanh 0.9 = 1.4722, times 60)
-  - [ ] Test (no GL): `DebugPanel.toggleDebugPanel()` flips `debugSettings.panelVisible`. Skip this if building the `Skin` needs GL, and say so in the result
-  - [ ] `./gradlew core:test` passes
-  - [ ] Screenshot via the harness with `--debug-panel --seed=42 --thrust --frames=150` shows the panel on the right with non-zero β, and the agent has looked at it
+  - [x] Test: `formatReadouts` with β = 0.9 along +x and c = 60 contains `γ = 2.29`, `|u| = 123.9` and `ship-frame speed = 88.3` (rapidity atanh 0.9 = 1.4722, times 60)
+  - [x] Test (no GL): `DebugPanel.toggleDebugPanel()` flips `debugSettings.panelVisible`. Skip this if building the `Skin` needs GL, and say so in the result
+  - [x] `./gradlew core:test` passes
+  - [x] Screenshot via the harness with `--debug-panel --seed=42 --thrust --frames=150` shows the panel on the right with non-zero β, and the agent has looked at it
 - playtest: F1 shows and hides the panel. Dragging a slider doesn't fire or thrust. Dropping c to 30 makes the ship hit "near c" much sooner. 0.25× time makes bounces and aberration easy to watch. Relativity off lets the ship go past c, up to the Box2D clamp.
 
 ### ST-060 Debug vector overlay: v, u and acceleration arrows
@@ -1038,6 +1039,22 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - architecture.md: remove the stale "boundary field until ST-038" wording. Note that `FieldShimmerRenderer`, `MinimapSystem` and `CameraSystem` still read the `FIELD_SKIN` const, not `settings.fieldParams.skin`.
 - acceptance:
   - [ ] The tests above exist, and `./gradlew core:test` passes
+
+### ST-065 Debug panel polish (ST-059 follow-ups)
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-059
+- files: `ui/DebugPanel.kt`, `system/MinimapSystem.kt`
+- goal: Clean up the issues the ST-059 screenshot showed.
+- spec:
+  - The minimap (bottom-right) covers the controls selectbox and the reset button. While the panel is visible, move the minimap left of the panel, or move it to the bottom-left.
+  - Checkbox checked and unchecked states look the same in this skin. Tint the checked state or use a clearer style.
+  - The UI font has no Greek glyphs, so `DebugPanel.update` swaps in ASCII names. Drop that swap if a Greek-capable font is added.
+  - Finish the ST-059 review if it never finished: check the show/hide lifecycle across levels and that slider/selectbox initialisation doesn't overwrite settings.
+- acceptance:
+  - [ ] A screenshot with `--debug-panel` shows every widget unobstructed
+  - [ ] `./gradlew core:test` passes
 
 ### ST-049 Bring docs in line after M3
 - status: ready

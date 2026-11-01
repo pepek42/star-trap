@@ -49,11 +49,16 @@ Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execu
 | 11 | `CameraSystem` | Follows player (clamped to map plus `FIELD_SKIN / 2` margin), mouse wheel zoom 0.5–2 |
 | 12 | `RenderSystem` | Nebula background + `Starfield` (camera-relative parallax), then sprites (interpolated transforms), then the boundary field band via `render/FieldShimmerRenderer` (`assets/shaders/field_shimmer.*`: honeycomb brightening with depth plus ripples expanding at c from `ShimmerImpacts`, additive blend; `u_time` is `ShimmerImpacts.time`; falls back to a pulsing tint if the shader fails to compile). `RenderSystem` is `Disposable` and disposes the renderer |
 | 13 | `DebugSystem` | (only when `IS_DEBUG`) Box2D debug renderer |
-| 14 | `HudSystem` | scene2d HUD |
-| 15 | `MinimapSystem` | Bottom-right minimap (`ui/MinimapViewport`): arena background, entity dots, camera view rectangle, arena border |
-| 16 | `LifetimeSystem` | `LifetimeComponent.remaining -= dt`; at 0 adds `RemoveComponent`; fades sprite alpha over the last `LIFETIME_FADE_SECONDS`. Uses world time for both clock types until ST-040 |
-| 17 | `DeathSystem` | health ≤ 0 → asteroid split, add `RemoveComponent` |
-| 18 | `RemoveSystem` | Out-of-bounds safety net: bodies beyond the map plus a 20 % margin get `RemoveComponent`, except the player, which is clamped to 1 unit inside the map with velocity zeroed. Destroys bodies, removes entities |
+| 14 | `DebugPanelSystem` | (ST-059) Refreshes the `ui/DebugPanel` readouts at 10 Hz via `panel.update(observerState, playerRel)`; runs only while the panel is visible. Placed just before `HudSystem` because `HudSystem` acts and draws the stage |
+| 15 | `HudSystem` | scene2d HUD; also acts and draws the whole `Stage`, including the debug panel |
+| 16 | `MinimapSystem` | Bottom-right minimap (`ui/MinimapViewport`): arena background, entity dots, camera view rectangle, arena border |
+| 17 | `LifetimeSystem` | `LifetimeComponent.remaining -= dt`; at 0 adds `RemoveComponent`; fades sprite alpha over the last `LIFETIME_FADE_SECONDS`. Uses world time for both clock types until ST-040 |
+| 18 | `DeathSystem` | health ≤ 0 → asteroid split, add `RemoveComponent` |
+| 19 | `RemoveSystem` | Out-of-bounds safety net: bodies beyond the map plus a 20 % margin get `RemoveComponent`, except the player, which is clamped to 1 unit inside the map with velocity zeroed. Destroys bodies, removes entities |
+
+## Debug panel (ST-059)
+
+`ui/DebugPanel` is a scene2d `Table` docked on the right of the `Stage` (260 px, translucent black background from the skin's `white` region). It exists only when `DebugSettings.panelAllowed` (`IS_DEBUG` or `--debug-panel`); `PlayScreen.show` adds it and registers it as a `DebugInputListener` (F1 toggles `panelVisible`, and the cursor swaps between Arrow and Crosshair). Contents: readouts (β, γ, τ, world t, |v|, |u|, ship-frame speed, c, a0; text built by the pure `formatReadouts`), toggles (relativity, boundary field, show vectors), time scale buttons, sliders (c, a0, field damping, γ cap) writing `RelativitySettings`, a control scheme `SelectBox` and "reset defaults". Labels are English literals (developer tooling, no i18n).
 
 ## Components (`core/.../component/`)
 

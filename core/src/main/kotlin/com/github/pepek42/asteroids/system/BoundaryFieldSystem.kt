@@ -91,8 +91,26 @@ class BoundaryFieldSystem(
         val x = body.position.x
         val y = body.position.y
         val q = boundaryDepthQ(x, y, rBody, w, h, params)
-        if (q <= SHIMMER_MIN_Q) return
+        if (q <= SHIMMER_WEAK_MIN_Q) return
+        if (!shouldEmitFieldImpact(q, inwardNormalSpeed(body, w, h))) return
         emitAtNearestWall(id, x, y, w, h, q.pow(FIELD_EXPONENT), false)
+    }
+
+    /** Velocity component pointing into the nearest wall (positive = moving towards it). */
+    private fun inwardNormalSpeed(body: Body, w: Float, h: Float): Float {
+        val x = body.position.x
+        val y = body.position.y
+        val vel = body.linearVelocity
+        val dLeft = x
+        val dRight = w - x
+        val dBottom = y
+        val dTop = h - y
+        return when (minOf(minOf(dLeft, dRight), minOf(dBottom, dTop))) {
+            dLeft -> -vel.x
+            dRight -> vel.x
+            dBottom -> -vel.y
+            else -> vel.y
+        }
     }
 
     private fun emitAtNearestWall(id: Int, x: Float, y: Float, w: Float, h: Float, strength: Float, force: Boolean) {
@@ -143,6 +161,11 @@ class BoundaryFieldSystem(
         private val logger = logger<BoundaryFieldSystem>()
         private const val BACKSTOP_GAP = 0.01f
         private const val SHIMMER_MIN_Q = 0.1f
+        const val SHIMMER_WEAK_MIN_Q = 0.05f
+
+        /** Deep bodies always emit; shallow ones (q in 0.05..0.1) only when moving into the wall. */
+        fun shouldEmitFieldImpact(q: Float, inwardSpeed: Float): Boolean =
+            q > SHIMMER_MIN_Q || (q > SHIMMER_WEAK_MIN_Q && inwardSpeed > 0f)
         private const val BACKSTOP_STRENGTH = 1.5f
     }
 }

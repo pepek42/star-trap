@@ -2,7 +2,11 @@
 // plus ripples that expand at the speed of light from boundary impacts.
 // GLSL ES 1.00 (WebGL 1 compatible).
 #ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 #endif
 
 #define MAX_IMPACTS 16
@@ -14,6 +18,7 @@ varying vec2 v_world;
 uniform vec2 u_mapSize;
 uniform float u_skin;
 uniform float u_time;
+uniform float u_pulsePhase; // time wrapped CPU-side to [0, PI) so sin(2 * phase) stays precise
 uniform vec3 u_baseColor;
 uniform float u_baseAlpha;
 uniform float u_c;
@@ -48,7 +53,7 @@ void main() {
     float dy = min(v_world.y, u_mapSize.y - v_world.y);
     float d = max(min(dx, dy), 0.0);
     float q = clamp((u_skin - d) / u_skin, 0.0, 1.0);
-    float hex = hexEdge(v_world) * (0.6 + 0.4 * sin(u_time * 2.0 + v_world.x * 0.3));
+    float hex = hexEdge(v_world) * (0.6 + 0.4 * sin(u_pulsePhase * 2.0 + v_world.x * 0.3));
     float base = u_baseAlpha * q * q * hex;
 
     float ripple = 0.0;
@@ -66,7 +71,9 @@ void main() {
     }
 
     float qSoft = max(q, Q_SOFT_MIN);
-    float intensity = base + ripple * qSoft;
+    float rippleFade = 1.0 - smoothstep(u_skin, 2.0 * u_skin, d);
+    float intensity = base + ripple * qSoft * rippleFade;
+    flash *= rippleFade;
     vec3 color = mix(u_baseColor, vec3(1.0), clamp(flash, 0.0, 1.0));
     gl_FragColor = vec4(color, clamp(intensity, 0.0, 1.0));
 }

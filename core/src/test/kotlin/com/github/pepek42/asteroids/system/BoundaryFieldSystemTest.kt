@@ -151,6 +151,25 @@ class BoundaryFieldSystemTest {
     }
 
     @Test
+    fun weakImpactEmitsOnlyWhenMovingIntoWall() {
+        assertTrue(BoundaryFieldSystem.shouldEmitFieldImpact(0.07f, 1f))
+        assertTrue(!BoundaryFieldSystem.shouldEmitFieldImpact(0.07f, -1f))
+        assertTrue(!BoundaryFieldSystem.shouldEmitFieldImpact(0.04f, 5f))
+        assertTrue(BoundaryFieldSystem.shouldEmitFieldImpact(0.2f, -1f))
+    }
+
+    @Test
+    fun shallowBodyMovingIntoWallEmitsQSquared() {
+        // radius 1, skin 8: x=100-1-8*(1-0.07)... place at depth q=0.07
+        val q = 0.07f
+        val x = 100f - 1f - 8f * (1f - q)
+        addBody(BodyDef.BodyType.KinematicBody, x, 50f, 0.5f)
+        step()
+        assertEquals(1, impacts.count)
+        assertEquals(q * q, impacts.data[3], 0.002f)
+    }
+
+    @Test
     fun backstopEmitsForcedStrongImpact() {
         addBody(BodyDef.BodyType.DynamicBody, 99.8f, 50f, 80f, radius = 0.1f)
         step()

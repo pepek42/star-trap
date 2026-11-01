@@ -16,6 +16,11 @@ import kotlin.math.sin
 
 const val SHIMMER_BASE_ALPHA = 0.08f
 
+/** sin(2 * t) has period PI, so wrapping the phase keeps float precision in long sessions. */
+private const val PULSE_PERIOD = kotlin.math.PI.toFloat()
+
+/** Strips reach this deep inside so ripples can fade out between FIELD_SKIN and 2 * FIELD_SKIN. */
+private const val RIPPLE_DEPTH = 2 * FIELD_SKIN
 private const val VERTEX_SHADER = "shaders/field_shimmer.vert"
 private const val FRAGMENT_SHADER = "shaders/field_shimmer.frag"
 private const val FLOATS_PER_IMPACT = 4
@@ -67,6 +72,7 @@ class FieldShimmerRenderer(
         program.setUniformf("u_mapSize", mapProvider.mapWidth, mapProvider.mapHeight)
         program.setUniformf("u_skin", FIELD_SKIN)
         program.setUniformf("u_time", impacts.time)
+        program.setUniformf("u_pulsePhase", impacts.time % PULSE_PERIOD)
         program.setUniformf("u_baseColor", ARENA_BOUNDARY_COLOR.r, ARENA_BOUNDARY_COLOR.g, ARENA_BOUNDARY_COLOR.b)
         program.setUniformf("u_baseAlpha", SHIMMER_BASE_ALPHA)
         program.setUniformf("u_c", SPEED_OF_LIGHT)
@@ -80,12 +86,12 @@ class FieldShimmerRenderer(
         val h = mapProvider.mapHeight
         val outside = FIELD_SKIN / 2
         val fullWidth = w + 2 * outside
-        val innerHeight = h - 2 * FIELD_SKIN
-        val sideWidth = outside + FIELD_SKIN
+        val innerHeight = h - 2 * RIPPLE_DEPTH
+        val sideWidth = outside + RIPPLE_DEPTH
         batch.draw(texture, -outside, -outside, fullWidth, sideWidth)
-        batch.draw(texture, -outside, h - FIELD_SKIN, fullWidth, sideWidth)
-        batch.draw(texture, -outside, FIELD_SKIN, sideWidth, innerHeight)
-        batch.draw(texture, w - FIELD_SKIN, FIELD_SKIN, sideWidth, innerHeight)
+        batch.draw(texture, -outside, h - RIPPLE_DEPTH, fullWidth, sideWidth)
+        batch.draw(texture, -outside, RIPPLE_DEPTH, sideWidth, innerHeight)
+        batch.draw(texture, w - RIPPLE_DEPTH, RIPPLE_DEPTH, sideWidth, innerHeight)
     }
 
     override fun dispose() {

@@ -457,7 +457,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] Test exists and passes; `./gradlew core:test` passes
 
 ### ST-052 BoundaryFieldSystem test gaps and tidy-up
-- status: done (2026-11-01, PENDING52)
+- status: done (2026-11-01, 642af96)
 - result: Corner and top/bottom wall tests added; imports tidied.
 - size: S
 - agent: junior-dev
@@ -469,7 +469,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] New tests pass; `./gradlew core:test` passes
 
 ### ST-053 Shimmer polish: ripple clipping, precision, emission threshold
-- status: ready
+- status: done (2026-11-01, PENDING53)
+- result: Ripples fade past the skin, highp+pulse phase uniform, weak impacts on inward motion; screenshot checked.
 - size: S
 - agent: kotlin-dev
 - depends: ST-028
@@ -477,8 +478,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - goal: Follow-ups from ST-028 review and screenshots.
 - spec: (1) Ripples are cut off by a hard straight edge at the inner border of the strips (`FIELD_SKIN` inside). Extend the strips to `2·FIELD_SKIN` inside and fade ripple contribution smoothly to 0 between `FIELD_SKIN` and `2·FIELD_SKIN` depth; base honeycomb unchanged. (2) In the frag shader use `highp` when `GL_FRAGMENT_PRECISION_HIGH` is defined; pass `u_time` from `impacts.time` but wrap the pulse phase CPU-side (`time % (PI)`) as a separate `u_pulsePhase` uniform. (3) In normal play the ship rarely reaches `q > 0.1` (it turns back early); emit a weak impact (strength `q²`, throttled as now) for any body with `q > 0.05` and normal velocity into the wall, so bumping the edge visibly ripples.
 - acceptance:
-  - [ ] Screenshot with a forced impact shows no straight cut at the inner band edge (agent looks at it; remove the forcing hack after)
-  - [ ] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
+  - [x] Screenshot with a forced impact shows no straight cut at the inner band edge (agent looks at it; remove the forcing hack after)
+  - [x] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
 - playtest: Bumping into the edge at moderate speed produces a visible ripple.
 
 ## M3 Relativity MVP

@@ -37,6 +37,8 @@ import com.github.pepek42.asteroids.ui.Hud
 import com.github.pepek42.asteroids.ui.MinimapViewport
 import ktx.app.KtxScreen
 import ktx.ashley.add
+import com.badlogic.gdx.math.RandomXS128
+import com.github.pepek42.asteroids.debug.SCREENSHOT_FRAME_DELTA
 import ktx.assets.disposeSafely
 import ktx.box2d.createWorld
 import ktx.log.logger
@@ -53,7 +55,7 @@ class PlayScreen(
     }
     private val engine = PooledEngine()
     private val playerEntityProvider = PlayerEntityProvider(engine, world, mapProvider, game.get<TextureAtlas>())
-    private val asteroidProvider = AsteroidProvider(game.get<TextureAtlas>(), engine, world)
+    private val asteroidProvider = AsteroidProvider(game.get<TextureAtlas>(), engine, world, game.get<RandomXS128>())
     private val gameState = game.get<GameState>()
     private val minimapViewport = MinimapViewport()
 
@@ -79,7 +81,7 @@ class PlayScreen(
             }
             addSystem(HudSystem(hud))
             addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider))
-            addSystem(DeathSystem(engine, asteroidProvider))
+            addSystem(DeathSystem(engine, asteroidProvider, game.get<RandomXS128>()))
             addSystem(RemoveSystem(world, mapProvider))
         }
     }
@@ -100,7 +102,7 @@ class PlayScreen(
         defaultLoggingUtils.onGameLoopTick(delta)
         viewport.apply()
         ScreenUtils.clear(.1f, .1f, .1f, 1f)
-        engine.update(delta)
+        engine.update(if (game.options.screenshotPath != null) SCREENSHOT_FRAME_DELTA else delta)
     }
 
     override fun resize(width: Int, height: Int) {

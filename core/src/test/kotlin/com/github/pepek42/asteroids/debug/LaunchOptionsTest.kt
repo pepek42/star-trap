@@ -23,6 +23,13 @@ class LaunchOptionsTest {
     }
 
     @Test
+    fun seedIsParsed() {
+        assertEquals(42L, parseLaunchOptions(arrayOf("--seed=42")).seed)
+        assertEquals(null, parseLaunchOptions(arrayOf("--seed=abc")).seed)
+        assertEquals(null, parseLaunchOptions(emptyArray()).seed)
+    }
+
+    @Test
     fun unknownFlagsAreIgnored() {
         val o = parseLaunchOptions(arrayOf("--bogus=1", "-x", "--frames=10"))
         assertEquals(LaunchOptions(frames = 10), o)

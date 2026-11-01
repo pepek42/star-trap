@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.math.RandomXS128
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.physics.box2d.Box2D
@@ -34,7 +35,7 @@ import ktx.scene2d.Scene2DSkin
 
 const val IS_DEBUG = true
 
-class Game(private val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() {
+class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() {
     val ctx = Context()
     private val screenshotHarness = ScreenshotHarness(options)
     override fun create() {
@@ -54,6 +55,7 @@ class Game(private val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxSc
         assetManager.finishLoading()
 
         ctx.register {
+            bindSingleton(RandomXS128(options.seed ?: System.nanoTime()))
             bindSingleton(GameState())
             bindSingleton<OrthographicCamera>(OrthographicCamera())
             bindSingleton(GameEventManager())

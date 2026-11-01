@@ -176,7 +176,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] Every statement in the updated sections can be traced to the current code
 
 ### ST-016 Per-ship rotation tuning via ShipHandlingComponent
-- status: done (2026-11-01, 8bb6566)
+- status: done (2026-11-01, 3833b76)
 - result: `ShipHandlingComponent` (kp, kd, max angular accel/velocity) read per substep by `PhysicsSystem`; defaults stay in `ShipRotationController`.
 - size: S
 - agent: kotlin-dev
@@ -190,16 +190,17 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The player ship feels the same as after ST-004. Also check the feel with the real `disc_green` sprite size, since the tests used a 2×2 box.
 
 ### ST-017 Deterministic screenshots with --seed
-- status: ready
+- status: done (2026-11-01, 4684c83)
+- result: `--seed` feeds one `RandomXS128` in DI (AsteroidProvider, DeathSystem); screenshot runs use a fixed 1/60 s delta; two `--seed=42` runs gave byte-identical PNGs.
 - size: S
 - agent: kotlin-dev
 - depends: ST-005
 - files: `debug/ScreenshotHarness.kt` (LaunchOptions), `Game.kt`, providers/systems that use randomness, `LaunchOptionsTest.kt`, `docs/tech/dev-workflow.md`
 - goal: Follow-up from ST-005. Add `--seed=<long>` so two screenshot runs with the same args give the same image. Route all gameplay randomness (asteroid spawn, starfield, splits) through one seeded `RandomXS128` registered in the DI context, instead of `MathUtils.random` and `Random()` calls.
 - acceptance:
-  - [ ] Parsing test for `--seed`
-  - [ ] Running the screenshot command twice with `--seed=42 --frames=60` gives identical PNGs (run once to verify)
-  - [ ] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
+  - [x] Parsing test for `--seed`
+  - [x] Running the screenshot command twice with `--seed=42 --frames=60` gives identical PNGs (run once to verify)
+  - [x] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
 
 ### ST-018 PlayerComponent mapper and property
 - status: done (2026-11-01, be183ef)

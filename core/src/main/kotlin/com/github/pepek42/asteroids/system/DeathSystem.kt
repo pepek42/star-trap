@@ -17,11 +17,12 @@ import ktx.ashley.allOf
 import ktx.ashley.has
 import ktx.math.plus
 import ktx.math.vec2
-import kotlin.random.Random
+import com.badlogic.gdx.math.RandomXS128
 
 class DeathSystem(
     private val engine: Engine,
     private val asteroidProvider: AsteroidProvider,
+    private val random: RandomXS128,
 ) : IteratingSystem(allOf(HealthComponent::class).get()) {
     override fun processEntity(entity: Entity, deltaTime: Float) {
         if (entity.healthCmp.health > 0) {
@@ -47,7 +48,7 @@ class DeathSystem(
         asteroidProvider.spawnAsteroid(
             currentAsteroidSize.nextSize!!,
             firstPosition + position,
-            currentVelocity.cpy().rotateDeg(Random.nextFloat() * -MAX_SPEED_DIFF_DEG),
+            currentVelocity.cpy().rotateDeg(random.nextFloat() * -MAX_SPEED_DIFF_DEG),
             body.angularVelocity
         )
 
@@ -55,7 +56,7 @@ class DeathSystem(
         asteroidProvider.spawnAsteroid(
             currentAsteroidSize.nextSize,
             secondPosition + position,
-            currentVelocity.cpy().rotateDeg(Random.nextFloat() * MAX_SPEED_DIFF_DEG),
+            currentVelocity.cpy().rotateDeg(random.nextFloat() * MAX_SPEED_DIFF_DEG),
             body.angularVelocity
         )
     }

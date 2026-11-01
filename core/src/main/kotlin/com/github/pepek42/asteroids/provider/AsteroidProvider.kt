@@ -15,7 +15,10 @@ import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
+import com.github.pepek42.asteroids.environment.ASTEROID_COUNT_PER_LEVEL_SQ
 import com.github.pepek42.asteroids.environment.ASTEROID_DENSITY
+import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_MIN_RADIUS
+import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_SPEED_MAX
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.BETA_MAX_MASSIVE
@@ -78,17 +81,20 @@ class AsteroidProvider(
     }
 
     fun spawnAsteroids(level: Int, mapProvider: MapProvider) {
-        val maxAsteroids = 1 + level.toDouble().pow(2).toInt()
+        val maxAsteroids = 1 + ASTEROID_COUNT_PER_LEVEL_SQ * level.toDouble().pow(2).toInt()
         val center = vec2(mapProvider.mapWidth / 2f, mapProvider.mapHeight / 2f)
-        val radius = min(center.x, center.y) - FIELD_SKIN - AsteroidSize.LARGE.radius - 1f
+        val maxRadius = min(center.x, center.y) - FIELD_SKIN - AsteroidSize.LARGE.radius - 1f
         val step = MathUtils.PI2 / maxAsteroids
         for (i in 0 until maxAsteroids) {
             val angle = step * i * random.nextDouble().toFloat().let { 0.9f + it * 0.2f }
-            val positionShift = vec2(radius, 0f).rotateRad(angle)
+            val r = ASTEROID_SPAWN_MIN_RADIUS + random.nextFloat() * (maxRadius - ASTEROID_SPAWN_MIN_RADIUS)
+            val positionShift = vec2(r, 0f).rotateRad(angle)
+            val vx = random.nextFloat() * 2f * ASTEROID_SPAWN_SPEED_MAX - ASTEROID_SPAWN_SPEED_MAX
+            val vy = random.nextFloat() * 2f * ASTEROID_SPAWN_SPEED_MAX - ASTEROID_SPAWN_SPEED_MAX
             spawnAsteroid(
                 size = AsteroidSize.LARGE,
                 position = center + positionShift,
-                velocity = vec2(random.nextFloat() * 20f - 10f, random.nextFloat() * 20f - 10f),
+                velocity = vec2(vx, vy),
                 angularSpeed = random.nextFloat() * 3f,
             )
         }

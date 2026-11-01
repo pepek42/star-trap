@@ -84,7 +84,7 @@ class LifetimeAndRemoveSystemTest {
     private fun setup(): Pair<PooledEngine, World> {
         val world = World(Vector2(0f, 0f), true)
         val engine = PooledEngine()
-        engine.addSystem(RemoveSystem(world, MapProvider(mock())))
+        engine.addSystem(RemoveSystem(world, MapProvider(mock(), 100f, 100f)))
         return engine to world
     }
 

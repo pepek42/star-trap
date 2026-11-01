@@ -6,7 +6,7 @@ import kotlin.math.min
 import kotlin.math.pow
 
 /** Skin width `s` in world units. */
-const val FIELD_SKIN = 8f
+const val FIELD_SKIN = 10f
 const val FIELD_EXPONENT = 2f
 
 /** Peak field acceleration `A` in u/s^2. */

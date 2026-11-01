@@ -634,7 +634,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The ship accelerates hard at first, then creeps toward c. Turning at high speed is much heavier. Asteroids behave as before at their low speeds.
 
 ### ST-054 RelativisticDynamics review minors
-- status: done (2026-11-01, PENDINGxx)
+- status: done (2026-11-01, 6e19bc6)
 - result: Architecture table renumbered 1-17, readback beta cap derived from per-body gammaMax, EPS comment, sorted imports, pool reset test.
 - size: S
 - agent: junior-dev
@@ -646,7 +646,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-046 Enlarge the arena to 200×200 and calm the pacing
-- status: ready
+- status: done (2026-11-01, PENDINGxx)
+- result: Arena 200×200 with 10 u skin, ENGINE_PROPER_ACCEL 25, asteroids 1+2·level² in a disc ≥30 u from centre at ±8 u/s; tests pin old sizes explicitly.
 - size: S
 - agent: junior-dev
 - depends: ST-025, ST-037
@@ -660,10 +661,10 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `AsteroidProvider.spawnAsteroids`: `maxAsteroids = 1 + ASTEROID_COUNT_PER_LEVEL_SQ·level²` (level 1/2/3 → 3/9/19, was 2/5/10). That is about half the old density on 4× the area. Rename the existing `radius` to `maxRadius` (same formula). For each asteroid, draw from `random` in this order: angle (existing formula), `r = ASTEROID_SPAWN_MIN_RADIUS + random.nextFloat()·(maxRadius − ASTEROID_SPAWN_MIN_RADIUS)`, vx, vy (each `random.nextFloat()·2·ASTEROID_SPAWN_SPEED_MAX − ASTEROID_SPAWN_SPEED_MAX`), spin (existing). Position = centre + `(r, 0).rotateRad(angle)`. Asteroids then fill a disc around the player instead of a ring at the edge.
   - Tests: every test that depends on map size or skin must pass an explicit `MapProvider(mock(), 100f, 100f)` and `BoundaryFieldParams(skin = 8f)`. Keep their expected numbers. Tests use `ENGINE_PROPER_ACCEL` symbolically, so their maths follows the new value. Only fix tests that break.
 - acceptance:
-  - [ ] Test: `MapProvider(mock())` is 200×200, and `MapProvider(mock(), 100f, 100f)` is 100×100
-  - [ ] Test (real `World`, seeded `RandomXS128`): `spawnAsteroids(3, 200×200 map)` creates 19 asteroids. All are between 30 u and `maxRadius` from the centre, and every velocity component is within ±8
-  - [ ] `./gradlew core:test` passes
-  - [ ] Screenshot via the harness (`--seed=42 --frames=120`) shows the minimap with the larger arena and asteroids spread through it, and the agent has looked at it
+  - [x] Test: `MapProvider(mock())` is 200×200, and `MapProvider(mock(), 100f, 100f)` is 100×100
+  - [x] Test (real `World`, seeded `RandomXS128`): `spawnAsteroids(3, 200×200 map)` creates 19 asteroids. All are between 30 u and `maxRadius` from the centre, and every velocity component is within ±8
+  - [x] `./gradlew core:test` passes
+  - [x] Screenshot via the harness (`--seed=42 --frames=120`) shows the minimap with the larger arena and asteroids spread through it, and the agent has looked at it
 - playtest: Less frantic than at 100×100 with a = 60. A straight run from the centre almost reaches 0.9c before the field. Level 1 should feel sparse but not empty, with 3 asteroids within reach. If it's too empty, raise `ASTEROID_COUNT_PER_LEVEL_SQ` to 3. If it's still too hectic, lower `ASTEROID_SPAWN_SPEED_MAX`. Try a0 = 15/25/40 in the debug panel (ST-059) to pick the feel.
 
 ### ST-055 Raise the γ safety cap to 50 (no gameplay cap)

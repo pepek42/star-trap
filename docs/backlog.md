@@ -13,7 +13,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - result: Gradle 9.8.1, Kotlin DSL, version catalog, `build-logic` convention plugin, JDK 25 toolchain.
 
 ### ST-002 Set up agents, skills and design/tech docs
-- status: done (2026-11-01, 3a2feaa)
+- status: done (2026-11-01, de6161b)
 - result: `.claude/agents/*`, `.claude/skills/{auto-dev,plan-backlog}`, `docs/` structure.
 
 ---
@@ -21,7 +21,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 ## M1 Fix phase
 
 ### ST-003 Fix angle wrapping in player rotation
-- status: ready
+- status: done (2026-11-01, c3da65f)
+- result: Added `math/Angles.kt` (wrapAngleRad, shortestAngleDiffRad) with tests; PlayerInputSystem now rotates the short way.
 - size: S
 - agent: junior-dev
 - depends: —
@@ -32,9 +33,9 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `fun shortestAngleDiffRad(from: Float, to: Float): Float = wrapAngleRad(to - from)`.
   - In `PlayerInputSystem`: `getTargetAngleRad` returns `aimVector.angleRad()` (remove `+ MathUtils.PI`). `handleAngle` sets `moveCmp.rotationRequired = shortestAngleDiffRad(body.angle, targetAngleRad)` and drops the `+ PI` on `currentAngleRads`. Keep the debug logging and adjust its variable names.
 - acceptance:
-  - [ ] Parameterized test: `wrapAngleRad` for 0, π/2, π (→ −π), −π, 3π/2 (→ −π/2), 7π (→ −π), −7.5π (→ π/2), and 100.0; results stay in [−π, π) within 1e-5
-  - [ ] Test: `shortestAngleDiffRad(from = 10π + 0.1, to = −0.1)` ≈ −0.2
-  - [ ] `./gradlew core:test` passes
+  - [x] Parameterized test: `wrapAngleRad` for 0, π/2, π (→ −π), −π, 3π/2 (→ −π/2), 7π (→ −π), −7.5π (→ π/2), and 100.0; results stay in [−π, π) within 1e-5
+  - [x] Test: `shortestAngleDiffRad(from = 10π + 0.1, to = −0.1)` ≈ −0.2
+  - [x] `./gradlew core:test` passes
 
 ### ST-004 Torque-based rotation controller with tunable feel
 - status: ready

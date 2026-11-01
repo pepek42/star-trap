@@ -16,6 +16,7 @@ import com.github.pepek42.asteroids.component.weaponCmpOptional
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
+import com.github.pepek42.asteroids.math.shortestAngleDiffRad
 import ktx.ashley.allOf
 import ktx.log.logger
 import ktx.math.minus
@@ -56,14 +57,13 @@ class PlayerInputSystem(
         moveCmp: MoveComponent
     ) {
         val targetAngleRad = getTargetAngleRad(body)
-        val currentAngleRads = body.angle + MathUtils.PI
-        val angleDiff = targetAngleRad - currentAngleRads
-        moveCmp.rotationRequired = (angleDiff - MathUtils.PI) % MathUtils.PI2 + MathUtils.PI
+        val currentAngleRad = body.angle
+        moveCmp.rotationRequired = shortestAngleDiffRad(currentAngleRad, targetAngleRad)
         defaultLoggingUtils.tryLogging {
             logger.debug {
                 """
                     target angle deg        -> ${targetAngleRad * MathUtils.radiansToDegrees}
-                    from angle deg          -> ${currentAngleRads * MathUtils.radiansToDegrees}
+                    from angle deg          -> ${currentAngleRad * MathUtils.radiansToDegrees}
                     rotation required deg   -> ${moveCmp.rotationRequired * MathUtils.radiansToDegrees}
                 """.trimIndent()
             }
@@ -75,7 +75,7 @@ class PlayerInputSystem(
             .run { camera.unproject(vec3(x, y)) }
             .run { vec2(x, y) }
         val aimVector = gameAimPoint.minus(body.position)
-        return aimVector.angleRad() + MathUtils.PI
+        return aimVector.angleRad()
 
     }
 

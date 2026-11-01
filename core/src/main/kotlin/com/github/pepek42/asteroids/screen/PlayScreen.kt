@@ -78,7 +78,7 @@ class PlayScreen(
                 engine.addSystem(DebugSystem(world, engine, camera))
             }
             addSystem(HudSystem(hud))
-            addSystem(MinimapSystem(spriteBatch, minimapViewport))
+            addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider))
             addSystem(DeathSystem(engine, asteroidProvider))
             addSystem(RemoveSystem(world, mapProvider))
         }
@@ -107,7 +107,7 @@ class PlayScreen(
         logger.info { "Resize event $width x $height" }
         viewport.update(width, height)
         hud.resize(width, height)
-        minimapViewport.updateViewportSize(width, height)
+        minimapViewport.resize(width, height, mapProvider.mapWidth, mapProvider.mapHeight)
     }
 
     override fun hide() {

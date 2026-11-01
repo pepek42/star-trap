@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-018**.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-019**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -116,7 +116,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] The YAML is valid (`python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" .github/workflows/workflows.yaml`)
 
 ### ST-010 Fix asteroid split velocity mutation
-- status: done (2026-11-01, a355caa)
+- status: done (2026-11-01, 6704cb8)
 - result: `DeathSystem.spawnSmallerAsteroids` copies position/velocity so each child gets its own rotation.
 - size: S
 - agent: junior-dev
@@ -127,7 +127,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] The fix is made, and `./gradlew core:test` passes
 
 ### ST-011 Readable minimap
-- status: ready
+- status: done (2026-11-01, 8c4652d)
+- result: Minimap anchored to the window's bottom-right (logical px, HiDPI-safe), one ShapeRenderer pass, `ARENA_BOUNDARY_COLOR` in `ui/Colors.kt`, view rectangle tracks zoom; screenshot checked.
 - size: M
 - agent: kotlin-dev
 - depends: ST-005
@@ -140,9 +141,9 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - A rectangle showing the main camera's visible area (it accounts for zoom).
   - Dispose the `ShapeRenderer` (the system implements `Disposable`).
 - acceptance:
-  - [ ] Pure function `minimapBounds(screenW, screenH): Rectangle` with a unit test for 800×600 and 1920×1080
-  - [ ] Screenshot via the ST-005 harness shows the framed minimap, and the agent has looked at it
-  - [ ] `./gradlew core:test` passes
+  - [x] Pure function `minimapBounds(screenW, screenH): Rectangle` with a unit test for 800×600 and 1920×1080
+  - [x] Screenshot via the ST-005 harness shows the framed minimap, and the agent has looked at it
+  - [x] `./gradlew core:test` passes
 - playtest: The minimap is readable at a glance. You can tell asteroids from yourself, and the view rectangle tracks zoom.
 
 ### ST-012 Readable, camera-relative starfield (Doppler-ready)
@@ -197,6 +198,17 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] Parsing test for `--seed`
   - [ ] Running the screenshot command twice with `--seed=42 --frames=60` gives identical PNGs (run once to verify)
   - [ ] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
+
+### ST-018 PlayerComponent mapper and property
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `component/PlayerComponent.kt`, `system/MinimapSystem.kt`
+- goal: Follow-up from ST-011. `PlayerComponent` has no `playerMapper` or `Entity.playerCmp`/`playerCmpOptional` properties, unlike the other components. Add them following the component convention in CLAUDE.md. Then switch `MinimapSystem`'s player detection (currently SHIP type + PLAYER faction) to `entity.playerCmpOptional != null`.
+- acceptance:
+  - [ ] The mapper and properties exist, and MinimapSystem uses them
+  - [ ] `./gradlew core:test` passes
 
 ---
 

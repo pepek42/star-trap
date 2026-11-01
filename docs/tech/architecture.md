@@ -45,14 +45,15 @@ Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execu
 | 7 | `ProjectileSweepSystem` | Registered before `PhysicsSystem` and passed as its third step listener (order: thrust, field, sweep). `afterStep`: for each unspent projectile, `world.rayCast` from `TransformComponent.prevPosition` (start-of-tick position) to the current body position, so fast sensor projectiles can't tunnel through small targets. Ignores own body, sensors and non-colliding factions (`collidesWith`), keeps the nearest hit and calls `applyProjectileHit`. Valid while `PHYSICS_SUBSTEPS = 1`. Known limitation: a projectile reflected by the boundary backstop gets a chord ray from its old position to the post-reflection position (low risk) |
 | 8 | `RelativisticDynamics` | Registered right before `PhysicsSystem` and passed as its LAST step listener (order: thrust, field, sweep, relativistic). `beforeStep`: resets non-finite `u`/`accel` to zero, `u += accel·dt`, `clampU` to `gammaMax`, writes `v = u/γ` into the body, remembers `vSet` and `gUsed`. `afterStep`: if the body velocity differs from `vSet` by more than `COLLISION_EPS` (contact, backstop), clamps it to `BETA_MAX_MASSIVE·c` and sets `u = uFromV(v)`; then `tau += dt/gUsed` and clears `accel`. Family `RelativisticComponent` + `BodyComponent` |
 | 9 | `PhysicsSystem` | Accumulator stepping (max 5 steps/frame). Per step: listeners' `beforeStep`, `ShipRotationController` angular impulse for entities with `targetAngleRad`, `world.step`, listeners' `afterStep`, `clearForces`. Transform interpolation runs once per frame |
-| 10 | `CameraSystem` | Follows player (clamped to map plus `FIELD_SKIN / 2` margin), mouse wheel zoom 0.5–2 |
-| 11 | `RenderSystem` | Nebula background + `Starfield` (camera-relative parallax), then sprites (interpolated transforms), then the boundary field band via `render/FieldShimmerRenderer` (`assets/shaders/field_shimmer.*`: honeycomb brightening with depth plus ripples expanding at c from `ShimmerImpacts`, additive blend; `u_time` is `ShimmerImpacts.time`; falls back to a pulsing tint if the shader fails to compile). `RenderSystem` is `Disposable` and disposes the renderer |
-| 12 | `DebugSystem` | (only when `IS_DEBUG`) Box2D debug renderer |
-| 13 | `HudSystem` | scene2d HUD |
-| 14 | `MinimapSystem` | Bottom-right minimap (`ui/MinimapViewport`): arena background, entity dots, camera view rectangle, arena border |
-| 15 | `LifetimeSystem` | `LifetimeComponent.remaining -= dt`; at 0 adds `RemoveComponent`; fades sprite alpha over the last `LIFETIME_FADE_SECONDS`. Uses world time for both clock types until ST-040 |
-| 16 | `DeathSystem` | health ≤ 0 → asteroid split, add `RemoveComponent` |
-| 17 | `RemoveSystem` | Out-of-bounds safety net: bodies beyond the map plus a 20 % margin get `RemoveComponent`, except the player, which is clamped to 1 unit inside the map with velocity zeroed. Destroys bodies, removes entities |
+| 10 | `ObserverSystem` | Fills `physics/ObserverState` from the player once per frame: position, `betaRaw = v/c` (v from `velocityFromU(u)`), `gammaRaw`, `rapidity`, `tau` (from `RelativisticComponent`, else world time), `worldTime`, plus `betaVisual`/`gammaVisual` low-pass filtered with `VISUAL_BETA_SMOOTHING` (`smoothToward`). Owned by `PlayScreen`, reset in `show()` |
+| 11 | `CameraSystem` | Follows player (clamped to map plus `FIELD_SKIN / 2` margin), mouse wheel zoom 0.5–2 |
+| 12 | `RenderSystem` | Nebula background + `Starfield` (camera-relative parallax), then sprites (interpolated transforms), then the boundary field band via `render/FieldShimmerRenderer` (`assets/shaders/field_shimmer.*`: honeycomb brightening with depth plus ripples expanding at c from `ShimmerImpacts`, additive blend; `u_time` is `ShimmerImpacts.time`; falls back to a pulsing tint if the shader fails to compile). `RenderSystem` is `Disposable` and disposes the renderer |
+| 13 | `DebugSystem` | (only when `IS_DEBUG`) Box2D debug renderer |
+| 14 | `HudSystem` | scene2d HUD |
+| 15 | `MinimapSystem` | Bottom-right minimap (`ui/MinimapViewport`): arena background, entity dots, camera view rectangle, arena border |
+| 16 | `LifetimeSystem` | `LifetimeComponent.remaining -= dt`; at 0 adds `RemoveComponent`; fades sprite alpha over the last `LIFETIME_FADE_SECONDS`. Uses world time for both clock types until ST-040 |
+| 17 | `DeathSystem` | health ≤ 0 → asteroid split, add `RemoveComponent` |
+| 18 | `RemoveSystem` | Out-of-bounds safety net: bodies beyond the map plus a 20 % margin get `RemoveComponent`, except the player, which is clamped to 1 unit inside the map with velocity zeroed. Destroys bodies, removes entities |
 
 ## Components (`core/.../component/`)
 

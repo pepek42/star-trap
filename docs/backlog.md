@@ -730,7 +730,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Main menu buttons and the level-cleared button still work. In play, LMB fires and RMB thrusts as before.
 
 ### ST-058 ControlScheme abstraction; current mouse-hull scheme as the first strategy
-- status: done (2026-11-01, PENDINGxx)
+- status: done (2026-11-01, 3616c29)
 - result: Added ControlScheme, ControlSettings and --controls=, plus a ControlStrategy interface with MouseHullStrategy porting today's controls; WeaponComponent.aimAngleRad allows turret aiming. Reviewer approved; minor issues went to ST-064.
 - size: M
 - agent: kotlin-dev
@@ -752,7 +752,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The controls feel exactly as before.
 
 ### ST-041 ObserverState: smoothed player β, γ, τ, t
-- status: ready
+- status: done (2026-11-01, PENDINGxx)
+- result: ObserverState plus ObserverSystem, which runs right after PhysicsSystem and tracks the player's raw and smoothed β/γ, rapidity, τ and world time; smoothToward is tested.
 - size: S
 - agent: kotlin-dev
 - depends: ST-037
@@ -764,8 +765,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `ObserverSystem(state) : IteratingSystem(allOf(PlayerComponent, BodyComponent, TransformComponent))`, registered right after `PhysicsSystem`. `worldTime += dt`. `position = interpolatedPosition`. `betaRaw = v/c`, where `v` comes from `velocityFromU(u)` if a `RelativisticComponent` exists, otherwise the body velocity. `gammaRaw` and `rapidity` come from `u` (or `gammaFromV`). `tau` comes from the component (or `worldTime`). `betaVisual` smooths x and y separately, and `gammaVisual = gammaFromV(betaVisual·c)`.
   - `PlayScreen` owns one `ObserverState`, passes it to the systems that need it (ST-042/043/045), and calls `reset()` in `show()`.
 - acceptance:
-  - [ ] Tests: `smoothToward` reaches 63 % ± 1 % of a step after one time constant, and is stable for dt ≫ timeConstant (no overshoot)
-  - [ ] `./gradlew core:test` passes
+  - [x] Tests: `smoothToward` reaches 63 % ± 1 % of a step after one time constant, and is stable for dt ≫ timeConstant (no overshoot)
+  - [x] `./gradlew core:test` passes
 
 ### ST-059 Debug side panel: relativity readouts, toggles and sliders
 - status: ready

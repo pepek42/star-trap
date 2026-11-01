@@ -36,6 +36,8 @@ import com.github.pepek42.asteroids.system.HudSystem
 import com.github.pepek42.asteroids.system.LifetimeSystem
 import com.github.pepek42.asteroids.system.MinimapSystem
 import com.github.pepek42.asteroids.system.MoveSystem
+import com.github.pepek42.asteroids.physics.ObserverState
+import com.github.pepek42.asteroids.system.ObserverSystem
 import com.github.pepek42.asteroids.system.PhysicsSystem
 import com.github.pepek42.asteroids.system.PlayerInputSystem
 import com.github.pepek42.asteroids.system.ProjectileSweepSystem
@@ -56,6 +58,7 @@ class PlayScreen(
 ) : KtxScreen {
     private val hud = Hud(game)
     private val settings = game.get<RelativitySettings>()
+    private val observerState = ObserverState()
     private val mapProvider = game.get<MapProvider>()
     private val camera = game.get<OrthographicCamera>()
     private val viewport: Viewport = game.get<Viewport>()
@@ -97,6 +100,7 @@ class PlayScreen(
                     listOf(moveSystem, boundaryFieldSystem, projectileSweepSystem, relativisticDynamics),
                 )
             )
+            addSystem(ObserverSystem(observerState, settings))
             addSystem(CameraSystem(camera, gameEventManager, mapProvider))
             addSystem(RenderSystem(game, spriteBatch, viewport, FieldShimmerRenderer(shimmerImpacts, mapProvider, settings)))
             if (IS_DEBUG) {
@@ -112,6 +116,7 @@ class PlayScreen(
 
     override fun show() {
         super.show()
+        observerState.reset()
         gameState.nextLevel()
         mapProvider.loadMap()
         playerEntityProvider.spawnPlayerEntity()

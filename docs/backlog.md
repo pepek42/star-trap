@@ -634,7 +634,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The ship accelerates hard at first, then creeps toward c. Turning at high speed is much heavier. Asteroids behave as before at their low speeds.
 
 ### ST-054 RelativisticDynamics review minors
-- status: ready
+- status: done (2026-11-01, PENDINGxx)
+- result: Architecture table renumbered 1-17, readback beta cap derived from per-body gammaMax, EPS comment, sorted imports, pool reset test.
 - size: S
 - agent: junior-dev
 - depends: ST-037
@@ -642,7 +643,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - goal: Minor issues from the ST-037 review.
 - spec: (1) Renumber the architecture.md system table cleanly (no "7a"; RelativisticDynamics = 8, PhysicsSystem = 9, shift the rest) and fix any references. (2) In `afterStep` readback, derive the beta cap from `rel.gammaMax` (`sqrt(1 − 1/gammaMax²)`) instead of `BETA_MAX_MASSIVE`. (3) Add a code comment at the `COLLISION_EPS` readback explaining that velocity changes under the threshold are dropped. (4) Sort imports in `MoveSystem.kt`. (5) Tests: a pooled `RelativisticComponent` is fully reset. (The provider-skip test is dropped: ST-056 makes providers always attach the component, and relativity on/off becomes a runtime setting.)
 - acceptance:
-  - [ ] `./gradlew core:test` passes
+  - [x] `./gradlew core:test` passes
 
 ### ST-046 Enlarge the arena to 200×200 and calm the pacing
 - status: ready

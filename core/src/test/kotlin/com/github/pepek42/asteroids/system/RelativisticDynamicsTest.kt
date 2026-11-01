@@ -12,6 +12,7 @@ import com.badlogic.gdx.physics.box2d.Box2D
 import com.badlogic.gdx.physics.box2d.CircleShape
 import com.badlogic.gdx.physics.box2d.World
 import com.badlogic.gdx.utils.GdxNativesLoader
+import com.badlogic.gdx.utils.Pool
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
@@ -27,6 +28,7 @@ import com.github.pepek42.asteroids.render.ShimmerImpacts
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -199,6 +201,30 @@ class RelativisticDynamicsTest {
         val uBefore = ship.rel.u.x
         step()
         assertEquals(uBefore, ship.rel.u.x, 1e-4f)
+    }
+
+    @Test
+    fun pooledRelativisticComponentIsFullyReset() {
+        val pool = object : Pool<RelativisticComponent>() {
+            override fun newObject() = RelativisticComponent()
+        }
+        val rel = pool.obtain()
+        rel.u.set(1f, 2f)
+        rel.accel.set(3f, 4f)
+        rel.tau = 5f
+        rel.gUsed = 2f
+        rel.vSet.set(6f, 7f)
+        rel.gammaMax = 3f
+        pool.free(rel)
+
+        val reused = pool.obtain()
+        assertSame(rel, reused)
+        assertEquals(0f, reused.u.len())
+        assertEquals(0f, reused.accel.len())
+        assertEquals(0f, reused.tau)
+        assertEquals(1f, reused.gUsed)
+        assertEquals(0f, reused.vSet.len())
+        assertEquals(GAMMA_MAX_MASSIVE, reused.gammaMax)
     }
 
     @Test

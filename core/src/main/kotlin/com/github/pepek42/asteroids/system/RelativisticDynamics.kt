@@ -11,7 +11,6 @@ import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.relativisticCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
-import com.github.pepek42.asteroids.physics.BETA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.COLLISION_EPS
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
@@ -22,6 +21,7 @@ import com.github.pepek42.asteroids.physics.uFromV
 import com.github.pepek42.asteroids.physics.velocityFromU
 import ktx.ashley.allOf
 import ktx.log.logger
+import kotlin.math.sqrt
 
 /**
  * Integrates the proper velocity u = γv of every [RelativisticComponent] body once per physics step (research §2, E1).
@@ -69,9 +69,13 @@ class RelativisticDynamics : EntitySystem(), PhysicsStepListener {
             val rel = entity.relativisticCmp
             // Box2D hands out a shared vector, so copy it before modifying.
             bodyVelocity.set(entity.bodyCmp.body.linearVelocity)
+            // Velocity changes under COLLISION_EPS are dropped on purpose: they are float noise from Box2D's own
+            // solver, and feeding them back would make u drift every step. Larger changes are contact or backstop
+            // impulses and are converted back into u.
             if (bodyVelocity.dst(rel.vSet) > COLLISION_EPS) {
-                clampSpeed(bodyVelocity, BETA_MAX_MASSIVE * SPEED_OF_LIGHT)
-                uFromV(bodyVelocity.x, bodyVelocity.y, SPEED_OF_LIGHT, BETA_MAX_MASSIVE, rel.u)
+                val betaMax = sqrt(1f - 1f / (rel.gammaMax * rel.gammaMax))
+                clampSpeed(bodyVelocity, betaMax * SPEED_OF_LIGHT)
+                uFromV(bodyVelocity.x, bodyVelocity.y, SPEED_OF_LIGHT, betaMax, rel.u)
             }
             rel.tau += dt / rel.gUsed
             rel.accel.setZero()

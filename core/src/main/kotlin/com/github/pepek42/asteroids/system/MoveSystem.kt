@@ -1,14 +1,15 @@
 package com.github.pepek42.asteroids.system
 
 import com.badlogic.ashley.core.Engine
+import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.core.EntitySystem
 import com.badlogic.ashley.utils.ImmutableArray
-import com.badlogic.ashley.core.Entity
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.Body
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.MoveComponent
-import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.RelativisticComponent
+import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.moveCmp
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
@@ -18,7 +19,6 @@ import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.physics.gammaFromU
 import com.github.pepek42.asteroids.physics.thrustAccelWorld
 import com.github.pepek42.asteroids.physics.velocityFromU
-import com.badlogic.gdx.math.Vector2
 import ktx.ashley.allOf
 import ktx.math.times
 import ktx.math.vec2

@@ -769,7 +769,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-059 Debug side panel: relativity readouts, toggles and sliders
-- status: done (2026-11-01, PENDINGxx)
+- status: done (2026-11-01, 411a63f)
 - result: F1 debug side panel with live readouts, relativity and field toggles, time scale, c/a0/damping/γ-cap sliders and a control picker. The toggle test was skipped because the Skin needs GL, the review didn't finish before the session ended, and polish is in ST-065.
 - size: M
 - agent: kotlin-dev

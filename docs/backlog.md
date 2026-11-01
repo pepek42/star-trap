@@ -231,7 +231,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - goal: Once `docs/research/relativity-effects.md` exists, turn its "Arena boundary force field" section into M2 cards. These are a pure force-law function plus tests, a `BoundaryFieldSystem` placed before `PhysicsSystem`, removal of the `WrapSystem` and `WrapComponent` usage, projectile lifetime replacing out-of-bounds removal, and a field shimmer visual.
 
 ### ST-019 Set SPEED_OF_LIGHT to 60 u/s
-- status: done (2026-11-01, e7a7d0a)
+- status: done (2026-11-01, 5add849)
 - result: c = 60 u/s with a test guarding the Box2D cap; docs updated.
 - size: S
 - agent: junior-dev
@@ -257,7 +257,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] `./gradlew core:test` passes
 
 ### ST-021 Per-step physics listener hook; thrust applied per step
-- status: ready
+- status: done (2026-11-01, 10b8124)
+- result: PhysicsStepListener hook added; thrust is applied in beforeStep and moveForcesApplied is gone.
 - size: S
 - agent: kotlin-dev
 - depends: —
@@ -285,10 +286,10 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - Delete `BodyComponent.moveForcesApplied` and its reset in `PhysicsSystem.preProcess`.
   - `PlayScreen.setupEcs`: keep `val moveSystem = MoveSystem()`, add it at the same position, and construct `PhysicsSystem(world, engine, listOf(moveSystem))`.
 - acceptance:
-  - [ ] `MoveSystemTest` thrust tests call `moveSystem.beforeStep(dt)` instead of `update`. The "once per step" test asserts that two `beforeStep` calls apply the force twice and that `update` alone applies nothing
-  - [ ] New test with a real `World`: a 1-unit box with thrusters = 1 driven through `PhysicsSystem` for 45 steps reaches `|v| = MAIN_ENGINE_THRUST / mass × 1 s` within 1 %, both with 1 step per frame and with 3 steps per frame (frame time `3 × PHYSICS_UPDATE_INTERVAL + 1e-4`)
-  - [ ] The existing rotation tests still pass unchanged
-  - [ ] `./gradlew core:test` passes
+  - [x] `MoveSystemTest` thrust tests call `moveSystem.beforeStep(dt)` instead of `update`. The "once per step" test asserts that two `beforeStep` calls apply the force twice and that `update` alone applies nothing
+  - [x] New test with a real `World`: a 1-unit box with thrusters = 1 driven through `PhysicsSystem` for 45 steps reaches `|v| = MAIN_ENGINE_THRUST / mass × 1 s` within 1 %, both with 1 step per frame and with 3 steps per frame (frame time `3 × PHYSICS_UPDATE_INTERVAL + 1e-4`)
+  - [x] The existing rotation tests still pass unchanged
+  - [x] `./gradlew core:test` passes
 - playtest: Thrust feels exactly as before.
 
 ### ST-022 Boundary field force law (pure functions)

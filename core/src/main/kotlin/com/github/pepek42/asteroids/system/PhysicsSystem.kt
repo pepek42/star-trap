@@ -10,6 +10,7 @@ import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.moveCmp
 import com.github.pepek42.asteroids.component.shipHandlingCmpOptional
 import com.github.pepek42.asteroids.math.shortestAngleDiffRad
+import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
@@ -21,6 +22,7 @@ import kotlin.math.min
 class PhysicsSystem(
     private val world: World,
     engine: Engine,
+    private val stepListeners: List<PhysicsStepListener> = emptyList(),
 ) : EntitySystem() {
     private val entities = engine.getEntitiesFor(allOf(BodyComponent::class, TransformComponent::class).get())
     private val rotatingEntities = engine.getEntitiesFor(allOf(MoveComponent::class, BodyComponent::class).get())
@@ -34,16 +36,17 @@ class PhysicsSystem(
 
     override fun update(deltaTime: Float) {
         accumulator += min(maxTimeToProcess, deltaTime)
-        var runSimulation = false
         while (accumulator >= PHYSICS_UPDATE_INTERVAL) {
             preProcess()
-            applyRotation()
-            world.step(PHYSICS_UPDATE_INTERVAL, 6, 2)
+            val subDt = PHYSICS_UPDATE_INTERVAL / PHYSICS_SUBSTEPS
+            repeat(PHYSICS_SUBSTEPS) {
+                stepListeners.forEach { it.beforeStep(subDt) }
+                applyRotation()
+                world.step(subDt, 6, 2)
+                stepListeners.forEach { it.afterStep(subDt) }
+                world.clearForces()
+            }
             accumulator -= PHYSICS_UPDATE_INTERVAL
-            runSimulation = true
-        }
-        if (runSimulation) {
-            world.clearForces()
         }
 
         interpolateTransforms()
@@ -95,7 +98,6 @@ class PhysicsSystem(
                     body.position.y,
                 )
                 transformCmp.prevRotationDeg = body.angle * MathUtils.radiansToDegrees
-                moveForcesApplied = false
             }
         }
     }
@@ -117,6 +119,7 @@ class PhysicsSystem(
     companion object {
         private val logger = logger<PhysicsSystem>()
         const val PHYSICS_UPDATE_INTERVAL = 1f / 45
+        const val PHYSICS_SUBSTEPS = 1
     }
 
 }

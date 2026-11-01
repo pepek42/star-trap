@@ -36,6 +36,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 
 private const val DELTA_TIME = 0.5f
@@ -68,14 +69,14 @@ class MoveSystemTest {
         moveSystem.addedToEngine(engineMock)
 
         // when
-        moveSystem.update(DELTA_TIME)
+        moveSystem.beforeStep(DELTA_TIME)
 
         // then
         verify(bodyMock).applyForceToCenter(vec2(expectedForceX, expectedForceY), true)
     }
 
     @Test
-    fun thrustersShouldWorkOnlyOncePerStep() {
+    fun thrustersShouldApplyOncePerStep() {
         // given
         moveComponent.thrusters = 1f
         `when`(bodyMock.angle).doReturn(MathUtils.PI / 3)
@@ -83,10 +84,12 @@ class MoveSystemTest {
 
         // when
         moveSystem.update(DELTA_TIME)
-        moveSystem.update(DELTA_TIME)
+        verify(bodyMock, never()).applyForceToCenter(any<Vector2>(), any<Boolean>())
+        moveSystem.beforeStep(DELTA_TIME)
+        moveSystem.beforeStep(DELTA_TIME)
 
         // then
-        verify(bodyMock).applyForceToCenter(vec2(149.99998f, 259.80765f), true)
+        verify(bodyMock, times(2)).applyForceToCenter(vec2(149.99998f, 259.80765f), true)
     }
 
     @Test
@@ -97,10 +100,38 @@ class MoveSystemTest {
         moveSystem.addedToEngine(engineMock)
 
         // when
-        moveSystem.update(DELTA_TIME)
+        moveSystem.beforeStep(DELTA_TIME)
 
         // then
         verify(bodyMock, never()).applyForceToCenter(any<Vector2>(), any<Boolean>())
+    }
+
+    @ParameterizedTest
+    @CsvSource("1", "3")
+    fun thrustReachesExpectedVelocityThroughPhysicsSystem(stepsPerFrame: Int) {
+        if (Gdx.app == null) Gdx.app = mock<Application>()
+        GdxNativesLoader.load()
+        Box2D.init()
+        val world = World(Vector2.Zero, true)
+        world.setAutoClearForces(false)
+        val body = world.createBody(BodyDef().apply { type = BodyDef.BodyType.DynamicBody })
+        val shape = PolygonShape().apply { setAsBox(0.5f, 0.5f) }
+        body.createFixture(shape, 10f) // mass 10 keeps v well below the Box2D translation clamp
+        shape.dispose()
+        val engine = Engine()
+        val ship = Entity()
+            .add(BodyComponent().apply { this.body = body })
+            .add(TransformComponent())
+            .add(MoveComponent(thrusters = 1f))
+        engine.addEntity(ship)
+        val move = MoveSystem()
+        engine.addSystem(move)
+        val physics = PhysicsSystem(world, engine, listOf(move))
+        val frameTime = stepsPerFrame * PhysicsSystem.PHYSICS_UPDATE_INTERVAL + 1e-4f
+        repeat(45 / stepsPerFrame) { physics.update(frameTime) }
+        val expected = MoveSystem.MAIN_ENGINE_THRUST / body.mass
+        assertEquals(expected, body.linearVelocity.len(), expected * 0.01f)
+        world.dispose()
     }
 
     private class Sim(val angles: List<Float>, val velocities: List<Float>)

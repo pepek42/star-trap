@@ -16,7 +16,7 @@ Check, in order of importance:
    - Rendering uses interpolated transforms.
    - New systems are in the right place in `PlayScreen.setupEcs()`.
    - Components are `Poolable` with a full `reset()`, and follow the mapper/propertyFor convention.
-   - Forces respect `moveForcesApplied`, i.e. they're applied once per physics step.
+   - Forces are applied from a `PhysicsStepListener.beforeStep`, i.e. once per physics step.
    - Box2D speeds stay under about 90 u/s (2 units per step at 45 Hz).
 3. **Relativity physics**, if touched: the formulas match `docs/research/relativity-effects.md`, gamma never divides by zero or goes NaN (clamp v below c), and the code is clear about which frame (world vs player) each quantity is in.
 4. **Tests**: is the new logic covered? Are the tests meaningful, or do they only re-state the implementation?

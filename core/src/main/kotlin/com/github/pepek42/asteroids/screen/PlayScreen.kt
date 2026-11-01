@@ -66,13 +66,14 @@ class PlayScreen(
     private fun setupEcs() {
         val gameEventManager = game.get<GameEventManager>()
         val spriteBatch = game.get<SpriteBatch>()
+        val moveSystem = MoveSystem()
         engine.add {
             addSystem(EndLevelSystem(game))
             addSystem(PlayerInputSystem(gameEventManager, camera))
-            addSystem(MoveSystem())
+            addSystem(moveSystem)
             addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world)))
             addSystem(ContactSystem(world))
-            addSystem(PhysicsSystem(world, engine))
+            addSystem(PhysicsSystem(world, engine, listOf(moveSystem)))
             addSystem(CameraSystem(camera, gameEventManager, mapProvider))
             addSystem(WrapSystem(mapProvider))
             addSystem(RenderSystem(game, spriteBatch, viewport))

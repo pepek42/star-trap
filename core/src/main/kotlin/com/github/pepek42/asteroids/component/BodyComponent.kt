@@ -10,7 +10,6 @@ import ktx.ashley.propertyFor
 
 class BodyComponent : Component, Pool.Poolable {
     lateinit var body: Body
-    var moveForcesApplied = false
 
     override fun reset() {
         assert(body.userData == null) { "Body userData should be null from remove component" }

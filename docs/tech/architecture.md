@@ -36,7 +36,7 @@ Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execu
 |---|---|---|
 | 1 | `EndLevelSystem` | No asteroids left → `game.finishLevel()` |
 | 2 | `PlayerInputSystem` | Input listener → `MoveComponent.thrusters`, `targetAngleRad` (aim angle, set every frame for the player), `WeaponComponent.doAttack` |
-| 3 | `MoveSystem` | Applies thrust force, once per frame (`moveForcesApplied`) |
+| 3 | `MoveSystem` | Step listener: applies thrust in `beforeStep` (once per physics step) |
 | 4 | `WeaponSystem` | Cooldown, spawns projectiles via `WeaponProjectileProvider` |
 | 5 | `ContactSystem` | Box2D `ContactListener`: projectile damage into `HealthComponent` |
 | 6 | `PhysicsSystem` | Accumulator stepping (max 5 steps/frame). Before each substep applies the `ShipRotationController` angular impulse for entities with `targetAngleRad`. Then `clearForces` and interpolation of transforms |
@@ -51,14 +51,14 @@ Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execu
 
 ## Components (`core/.../component/`)
 
-`BaseInfoComponent` (id, faction, `EntityType`; every entity has one), `BodyComponent` (Box2D body, `moveForcesApplied`), `TransformComponent` (prev + interpolated position/rotation), `SpriteComponent`, `MoveComponent` (thrusters −1..1, `targetAngleRad` world angle or null), `WeaponComponent`, `ProjectileComponent` (sealed projectile types, currently `LaserProjectile`), `HealthComponent`, `AsteroidComponent`, `PlayerComponent` (mapper and `playerCmpOptional`), `ShipHandlingComponent` (per-ship PD gains, defaults from `ShipRotationController`), `WrapComponent`, `RemoveComponent`.
+`BaseInfoComponent` (id, faction, `EntityType`; every entity has one), `BodyComponent` (Box2D body), `TransformComponent` (prev + interpolated position/rotation), `SpriteComponent`, `MoveComponent` (thrusters −1..1, `targetAngleRad` world angle or null), `WeaponComponent`, `ProjectileComponent` (sealed projectile types, currently `LaserProjectile`), `HealthComponent`, `AsteroidComponent`, `PlayerComponent` (mapper and `playerCmpOptional`), `ShipHandlingComponent` (per-ship PD gains, defaults from `ShipRotationController`), `WrapComponent`, `RemoveComponent`.
 
 The convention is described in `CLAUDE.md`: a `Poolable` class, `xxxMapper`, and `Entity.xxxCmp`/`xxxCmpOptional`.
 
 ## Physics loop details
 
 - `PHYSICS_UPDATE_INTERVAL = 1/45 s`, velocity iterations 6, position iterations 2.
-- `autoClearForces = false`. `MoveSystem` applies thrust only while `moveForcesApplied == false`, then sets it to true. `PhysicsSystem.preProcess()` resets the flag before each step, and `world.clearForces()` runs only after a frame that actually stepped. The result is that the force applied once per frame persists through every sub-step of that frame, and frames with zero steps don't double-apply it. **Revisit this when relativistic dynamics replace the force model.** At that point it's simpler to apply forces inside the step loop, through a per-step hook.
+- `autoClearForces = false`. `PhysicsSystem` takes a list of `PhysicsStepListener`s. For every step it runs `beforeStep(dt)` on each, then `applyRotation()`, `world.step`, `afterStep(dt)`, then `world.clearForces()`. `MoveSystem` applies thrust in `beforeStep`, so forces act exactly once per step. `PHYSICS_SUBSTEPS = 1` splits each tick into sub-steps if needed.
 - **Rotation (ST-004):** `PlayerInputSystem` writes the world angle to `MoveComponent.targetAngleRad`. `ShipRotationController` is a PD controller (kp 80, kd 2√kp, acceleration clamp ±200 rad/s², angular velocity cap 2π rad/s). `PhysicsSystem` turns its output into an angular impulse before **every** `world.step`, so it stays correct with several substeps per frame. Entities with a null `targetAngleRad` are not rotated. Angle error uses `shortestAngleDiffRad`, so the ship always turns the short way.
 - **Box2D speed cap:** `b2_maxTranslation = 2.0` units per step, so the effective max speed is **90 u/s** at 45 Hz. `SPEED_OF_LIGHT = 60` (in `physics/PhysicsConstants.kt`): c = 60 u/s fits under the 90 u/s Box2D cap.
 - Units: 1 world unit = 18 px (`UNIT_SCALE`). The map is 100×100 units. The view is 48×27 units at zoom 1.

@@ -51,7 +51,20 @@ flowchart LR
 
 ## Visual checks
 
-Planned in ST-005. A screenshot harness (`./gradlew lwjgl3:run --args="--screenshot=/abs/path.png --frames=120"`) will let agents render a frame and inspect the PNG with their image-reading tool, for minimap, starfield and shader work. This section will be completed when ST-005 lands.
+Agents can render the game headlessly-ish (a display is needed) and inspect the result with the image-reading tool:
+
+```bash
+./gradlew lwjgl3:run --args="--screenshot=/abs/path/st.png --frames=120"
+```
+
+Options (parsed by `parseLaunchOptions` in `core/.../debug/ScreenshotHarness.kt`):
+
+- `--screenshot=<path.png>`: enables the harness. Use an absolute path, because the run task's working dir is `assets/`.
+- `--frames=<N>`: frames to render before capturing (default 180).
+- `--scene=play|menu`: `play` skips the main menu (default), `menu` stays on it.
+- `--thrust`: hold the thrusters during the run.
+
+No player input is sent otherwise. After frame N the framebuffer is saved as PNG and the app exits by itself. Wrap the command in `timeout 120` to be safe. Unknown flags and invalid values are ignored.
 
 ## Optional: IntelliJ MCP
 

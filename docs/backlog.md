@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-017**.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-018**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -38,7 +38,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-004 Torque-based rotation controller with tunable feel
-- status: done (2026-11-01, be3404b)
+- status: done (2026-11-01, f40ff03)
 - result: PD controller in `ShipRotationController` (kp=80 instead of ≈60 to meet the 0.6 s target, kd=2√kp, ±200 rad/s², ω ≤ 2π) applied as an angular impulse by `PhysicsSystem` before every substep; `MoveComponent.targetAngleRad` replaces `rotationRequired`.
 - size: M
 - agent: kotlin-dev
@@ -53,17 +53,18 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The ship follows the cursor snappily with no wobble, including when the cursor crosses behind the ship.
 
 ### ST-005 Screenshot harness for automated visual checks
-- status: ready
+- status: done (2026-11-01, 8455fa4)
+- result: `debug/ScreenshotHarness.kt` with `LaunchOptions` parsing; `./gradlew lwjgl3:run --args="--screenshot=/abs/path.png --frames=120"` writes the PNG and exits (verified, also exits if the write fails).
 - size: M
 - agent: kotlin-dev
 - depends: —
 - files: `lwjgl3/.../Lwjgl3Launcher.kt`, `Game.kt`, new `core/.../debug/ScreenshotHarness.kt`
 - goal: Let agents "see" the game. Add launch arguments: `--screenshot=<path.png>`, `--frames=<N>` (default 180), `--scene=play|menu` (default play). With `--screenshot`, the game skips the main menu when the scene is `play`, runs N frames with no player input (optionally with `--thrust` held), saves the framebuffer with `Pixmap.createFromFrameBuffer` + `PixmapIO.writePNG`, and calls `Gdx.app.exit()`. It must be usable as `./gradlew lwjgl3:run --args="--screenshot=/tmp/st.png --frames=120"`. Note that the run task's working dir is `assets/`, so paths must be absolute. Pass the parsed options into `Game` through a constructor data class with defaults, so the TeaVM launcher still compiles.
 - acceptance:
-  - [ ] An argument-parsing function with unit tests (valid, missing value, unknown flag ignored)
-  - [ ] Running the command above produces a non-empty PNG and the process exits by itself (run it once to verify; a display is available)
-  - [ ] A "Visual checks" section is added to `docs/tech/dev-workflow.md` explaining usage
-  - [ ] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
+  - [x] An argument-parsing function with unit tests (valid, missing value, unknown flag ignored)
+  - [x] Running the command above produces a non-empty PNG and the process exits by itself (run it once to verify; a display is available)
+  - [x] A "Visual checks" section is added to `docs/tech/dev-workflow.md` explaining usage
+  - [x] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
 
 ### ST-006 Clear all entities and bodies between levels
 - status: ready
@@ -179,6 +180,18 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] Test: an entity with a lower max angular velocity never exceeds it during a 180° turn
   - [ ] `./gradlew core:test` passes
 - playtest: The player ship feels the same as after ST-004. Also check the feel with the real `disc_green` sprite size, since the tests used a 2×2 box.
+
+### ST-017 Deterministic screenshots with --seed
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-005
+- files: `debug/ScreenshotHarness.kt` (LaunchOptions), `Game.kt`, providers/systems that use randomness, `LaunchOptionsTest.kt`, `docs/tech/dev-workflow.md`
+- goal: Follow-up from ST-005. Add `--seed=<long>` so two screenshot runs with the same args give the same image. Route all gameplay randomness (asteroid spawn, starfield, splits) through one seeded `RandomXS128` registered in the DI context, instead of `MathUtils.random` and `Random()` calls.
+- acceptance:
+  - [ ] Parsing test for `--seed`
+  - [ ] Running the screenshot command twice with `--seed=42 --frames=60` gives identical PNGs (run once to verify)
+  - [ ] `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin` passes
 
 ---
 

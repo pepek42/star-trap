@@ -15,6 +15,9 @@ import com.badlogic.gdx.utils.Logger
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.badlogic.gdx.utils.viewport.Viewport
+import com.github.pepek42.asteroids.debug.LaunchOptions
+import com.github.pepek42.asteroids.debug.ScreenshotHarness
+import com.github.pepek42.asteroids.debug.ScreenshotScene
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.provider.BackgroundProvider
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -31,8 +34,9 @@ import ktx.scene2d.Scene2DSkin
 
 const val IS_DEBUG = true
 
-class Game : KtxGame<KtxScreen>() {
+class Game(private val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() {
     val ctx = Context()
+    private val screenshotHarness = ScreenshotHarness(options)
     override fun create() {
         logger.info { "Starting setup" }
 
@@ -76,7 +80,17 @@ class Game : KtxGame<KtxScreen>() {
 
         Gdx.graphics.setTitle(TITLE)
         logger.info { "Finished setup" }
-        setScreen<MainMenuScreen>()
+        if (options.screenshotPath != null && options.scene == ScreenshotScene.PLAY) {
+            setScreen<PlayScreen>()
+            if (options.thrust) ctx.inject<GameEventManager>().thrusters(1f)
+        } else {
+            setScreen<MainMenuScreen>()
+        }
+    }
+
+    override fun render() {
+        super.render()
+        screenshotHarness.afterRender()
     }
 
     fun finishLevel() {

@@ -88,7 +88,7 @@ class GameEventManager : KtxInputAdapter {
         playerInputListeners.forEach { it.screenAimPoint(screenX, screenY) }
     }
 
-    private fun thrusters(thrusters: Float) {
+    fun thrusters(thrusters: Float) {
         playerInputListeners.forEach { it.movement(thrusters) }
     }
 

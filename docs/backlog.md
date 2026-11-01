@@ -602,7 +602,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Lasers reliably hit small asteroids and disappear on impact.
 
 ### ST-037 RelativisticComponent and RelativisticDynamics integrator
-- status: done (2026-11-01, PENDING37)
+- status: done (2026-11-01, 914d53b)
 - result: Proper-velocity integrator with relativistic thrust, γ≤10 cap, NaN guard and collision readback; reviewer approved, minors in ST-054.
 - size: M
 - agent: kotlin-dev

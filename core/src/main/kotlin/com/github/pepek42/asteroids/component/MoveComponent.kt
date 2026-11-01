@@ -9,14 +9,12 @@ import ktx.ashley.propertyFor
 class MoveComponent(
     /** From -1 (opposite direction thruster) to 1 (max main thrusters). */
     var thrusters: Float = 0f,
-    /**
-     * Between -PI and PI. -PI means rotate half a circle clock wise, PI means half a circle rotation counter-clock wise.
-     */
-    var rotationRequired: Float = 0f,
+    /** World angle (rad) the ship should face, or null when no rotation is requested. */
+    var targetAngleRad: Float? = null,
 ) : Component, Pool.Poolable {
     override fun reset() {
         thrusters = 0f
-        rotationRequired = 0f
+        targetAngleRad = null
     }
 }
 

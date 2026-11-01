@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-016**.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-017**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -21,7 +21,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 ## M1 Fix phase
 
 ### ST-003 Fix angle wrapping in player rotation
-- status: done (2026-11-01, c3da65f)
+- status: done (2026-11-01, bf13c42)
 - result: Added `math/Angles.kt` (wrapAngleRad, shortestAngleDiffRad) with tests; PlayerInputSystem now rotates the short way.
 - size: S
 - agent: junior-dev
@@ -38,17 +38,18 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-004 Torque-based rotation controller with tunable feel
-- status: ready
+- status: done (2026-11-01, be3404b)
+- result: PD controller in `ShipRotationController` (kp=80 instead of ≈60 to meet the 0.6 s target, kd=2√kp, ±200 rad/s², ω ≤ 2π) applied as an angular impulse by `PhysicsSystem` before every substep; `MoveComponent.targetAngleRad` replaces `rotationRequired`.
 - size: M
 - agent: kotlin-dev
 - depends: ST-003
 - files: `system/MoveSystem.kt`, `component/MoveComponent.kt` (or a new `ShipHandlingComponent`), `system/MoveSystemTest.kt`
 - goal: `MoveSystem.rotate` sets `angularVelocity` directly and caps it at π/2 rad/s, which feels sluggish. Replace this with a PD controller that applies torque (`body.applyTorque`) from `rotationRequired` and the current angular velocity: `torque = I · (kp·err − kd·ω)`, clamped to `maxTorque`, and ω clamped to `maxAngularVelocity`. Use `body.inertia` so the controller is independent of mass. Starting values: maxAngularVelocity 2π rad/s, kp ≈ 60, kd ≈ 2·√kp. Tune so it's critically damped. Keep apply-once-per-step semantics (`moveForcesApplied`). Remember Box2D's own per-step rotation cap of 0.5π rad/step.
 - acceptance:
-  - [ ] Test with a real Box2D `World` and the player-sized box body: a ship at angle 0 that targets π/2 reaches it within 0.6 s of simulated steps, with overshoot < 5°
-  - [ ] Test: a target of π − 0.01 turns counter-clockwise, and π + 0.01 (wrapped) turns clockwise
-  - [ ] Constants are named in a companion object, and the old commented-out `applyTorque` block is deleted
-  - [ ] `./gradlew core:test` passes
+  - [x] Test with a real Box2D `World` and the player-sized box body: a ship at angle 0 that targets π/2 reaches it within 0.6 s of simulated steps, with overshoot < 5°
+  - [x] Test: a target of π − 0.01 turns counter-clockwise, and π + 0.01 (wrapped) turns clockwise
+  - [x] Constants are named in a companion object, and the old commented-out `applyTorque` block is deleted
+  - [x] `./gradlew core:test` passes
 - playtest: The ship follows the cursor snappily with no wobble, including when the cursor crosses behind the ship.
 
 ### ST-005 Screenshot harness for automated visual checks
@@ -165,6 +166,19 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - goal: Update the "Known issues" list (remove the fixed items, reference their card IDs), the system table and the component list, so they match the code after M1.
 - acceptance:
   - [ ] Every statement in the updated sections can be traced to the current code
+
+### ST-016 Per-ship rotation tuning via ShipHandlingComponent
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-004
+- files: create `component/ShipHandlingComponent.kt`, edit `system/ShipRotationController.kt`, `system/PhysicsSystem.kt`, `provider/PlayerEntityProvider.kt`, tests
+- goal: Follow-up from ST-004. Move the rotation gains (kp, kd, max angular acceleration, max angular velocity) from `ShipRotationController` constants into a `ShipHandlingComponent` (follow the component convention), with the current values as defaults, so enemies and ship variants can feel different. `PhysicsSystem` reads the component when present and falls back to the defaults otherwise.
+- acceptance:
+  - [ ] The player entity gets a `ShipHandlingComponent` with the defaults
+  - [ ] Test: an entity with a lower max angular velocity never exceeds it during a 180° turn
+  - [ ] `./gradlew core:test` passes
+- playtest: The player ship feels the same as after ST-004. Also check the feel with the real `disc_green` sprite size, since the tests used a 2×2 box.
 
 ---
 

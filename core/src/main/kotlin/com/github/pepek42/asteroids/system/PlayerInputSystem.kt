@@ -58,13 +58,13 @@ class PlayerInputSystem(
     ) {
         val targetAngleRad = getTargetAngleRad(body)
         val currentAngleRad = body.angle
-        moveCmp.rotationRequired = shortestAngleDiffRad(currentAngleRad, targetAngleRad)
+        moveCmp.targetAngleRad = targetAngleRad
         defaultLoggingUtils.tryLogging {
             logger.debug {
                 """
                     target angle deg        -> ${targetAngleRad * MathUtils.radiansToDegrees}
                     from angle deg          -> ${currentAngleRad * MathUtils.radiansToDegrees}
-                    rotation required deg   -> ${moveCmp.rotationRequired * MathUtils.radiansToDegrees}
+                    rotation required deg   -> ${shortestAngleDiffRad(currentAngleRad, targetAngleRad) * MathUtils.radiansToDegrees}
                 """.trimIndent()
             }
         }

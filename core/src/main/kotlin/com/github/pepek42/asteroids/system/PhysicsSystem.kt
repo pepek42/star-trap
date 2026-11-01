@@ -5,7 +5,10 @@ import com.badlogic.ashley.core.EntitySystem
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.component.BodyComponent
+import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.TransformComponent
+import com.github.pepek42.asteroids.component.moveCmp
+import com.github.pepek42.asteroids.math.shortestAngleDiffRad
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
@@ -19,6 +22,7 @@ class PhysicsSystem(
     engine: Engine,
 ) : EntitySystem() {
     private val entities = engine.getEntitiesFor(allOf(BodyComponent::class, TransformComponent::class).get())
+    private val rotatingEntities = engine.getEntitiesFor(allOf(MoveComponent::class, BodyComponent::class).get())
     private var accumulator = 0f
 
     init {
@@ -32,6 +36,7 @@ class PhysicsSystem(
         var runSimulation = false
         while (accumulator >= PHYSICS_UPDATE_INTERVAL) {
             preProcess()
+            applyRotation()
             world.step(PHYSICS_UPDATE_INTERVAL, 6, 2)
             accumulator -= PHYSICS_UPDATE_INTERVAL
             runSimulation = true
@@ -41,6 +46,19 @@ class PhysicsSystem(
         }
 
         interpolateTransforms()
+    }
+
+    private fun applyRotation() {
+        for (entity in rotatingEntities) {
+            val targetAngle = entity.moveCmp.targetAngleRad ?: continue
+            val body = entity.bodyCmp.body
+            val impulse = ShipRotationController.computeAngularImpulse(
+                error = shortestAngleDiffRad(body.angle, targetAngle),
+                angularVelocity = body.angularVelocity,
+                inertia = body.inertia,
+            )
+            body.applyAngularImpulse(impulse, true)
+        }
     }
 
     private fun preProcess() {

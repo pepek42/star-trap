@@ -39,30 +39,32 @@ Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execu
 | 3 | `MoveSystem` | Step listener: applies thrust in `beforeStep` (once per physics step) |
 | 4 | `WeaponSystem` | Cooldown, spawns projectiles via `WeaponProjectileProvider` |
 | 5 | `ContactSystem` | Box2D `ContactListener`: projectile damage into `HealthComponent` |
-| 5b | `BoundaryFieldSystem` | Step listener (registered just before `PhysicsSystem`). `beforeStep`: mass-independent repulsive boundary field (`physics/BoundaryField.kt`) as force on dynamic bodies, velocity change on kinematic ones. `afterStep`: hard backstop (clamp inside, reflect outward velocity). Lazily fills `BodyComponent.boundingRadius` |
-| 6 | `PhysicsSystem` | Accumulator stepping (max 5 steps/frame). Before each substep applies the `ShipRotationController` angular impulse for entities with `targetAngleRad`. Then `clearForces` and interpolation of transforms |
-| 7 | `CameraSystem` | Follows player (clamped to map), mouse wheel zoom 0.5–2 |
+| 6 | `BoundaryFieldSystem` | Physics step listener, passed to `PhysicsSystem`. `beforeStep`: mass-independent repulsive boundary field (`physics/BoundaryField.kt`) as force on dynamic bodies, velocity change on kinematic projectiles. `afterStep`: hard backstop (clamp inside, reflect outward velocity), emits shimmer impacts into `ShimmerImpacts` and advances its clock. Lazily fills `BodyComponent.boundingRadius` |
+| 7 | `PhysicsSystem` | Accumulator stepping (max 5 steps/frame). Per step: listeners' `beforeStep`, `ShipRotationController` angular impulse for entities with `targetAngleRad`, `world.step`, listeners' `afterStep`, `clearForces`. Transform interpolation runs once per frame |
+| 8 | `CameraSystem` | Follows player (clamped to map plus `FIELD_SKIN / 2` margin), mouse wheel zoom 0.5–2 |
 | 9 | `RenderSystem` | Nebula background + `Starfield` (camera-relative parallax), then sprites (interpolated transforms), then the boundary field band via `render/FieldShimmerRenderer` (`assets/shaders/field_shimmer.*`: honeycomb brightening with depth plus ripples expanding at c from `ShimmerImpacts`, additive blend; `u_time` is `ShimmerImpacts.time`; falls back to a pulsing tint if the shader fails to compile). `RenderSystem` is `Disposable` and disposes the renderer |
 | 10 | `DebugSystem` | (only when `IS_DEBUG`) Box2D debug renderer |
 | 11 | `HudSystem` | scene2d HUD |
 | 12 | `MinimapSystem` | Bottom-right minimap (`ui/MinimapViewport`): arena background, entity dots, camera view rectangle, arena border |
-| 13 | `LifetimeSystem` | `LifetimeComponent.remaining -= dt`; at 0 adds `RemoveComponent`; fades sprite alpha over the last `LIFETIME_FADE_SECONDS` |
+| 13 | `LifetimeSystem` | `LifetimeComponent.remaining -= dt`; at 0 adds `RemoveComponent`; fades sprite alpha over the last `LIFETIME_FADE_SECONDS`. Uses world time for both clock types until ST-040 |
 | 14 | `DeathSystem` | health ≤ 0 → asteroid split, add `RemoveComponent` |
-| 15 | `RemoveSystem` | Out-of-bounds safety net (20 % map margin: player is clamped back inside, others get `RemoveComponent`), destroys bodies, removes entities |
+| 15 | `RemoveSystem` | Out-of-bounds safety net: bodies beyond the map plus a 20 % margin get `RemoveComponent`, except the player, which is clamped to 1 unit inside the map with velocity zeroed. Destroys bodies, removes entities |
 
 ## Components (`core/.../component/`)
 
-`BaseInfoComponent` (id, faction, `EntityType`; every entity has one), `BodyComponent` (Box2D body), `TransformComponent` (prev + interpolated position/rotation), `SpriteComponent`, `MoveComponent` (thrusters −1..1, `targetAngleRad` world angle or null), `WeaponComponent`, `ProjectileComponent` (sealed projectile types, currently `LaserProjectile`), `HealthComponent`, `AsteroidComponent`, `PlayerComponent` (mapper and `playerCmpOptional`), `ShipHandlingComponent` (per-ship PD gains, defaults from `ShipRotationController`), `LifetimeComponent` (remaining/total, `LifetimeClock` WORLD or PROPER, `bouncesLeft`, -1 = unlimited), `RemoveComponent`.
+`BaseInfoComponent` (id, faction, `EntityType`; every entity has one), `BodyComponent` (Box2D body, `boundingRadius` for the boundary field, -1 until computed), `TransformComponent` (prev + interpolated position/rotation), `SpriteComponent`, `MoveComponent` (thrusters −1..1, `targetAngleRad` world angle or null), `WeaponComponent`, `ProjectileComponent` (sealed projectile types, currently `LaserProjectile`), `HealthComponent`, `AsteroidComponent`, `PlayerComponent` (mapper and `playerCmpOptional`), `ShipHandlingComponent` (per-ship PD gains, defaults from `ShipRotationController`), `LifetimeComponent` (remaining/total, `LifetimeClock` WORLD or PROPER, `bouncesLeft`, -1 = unlimited), `RemoveComponent`.
 
 The convention is described in `CLAUDE.md`: a `Poolable` class, `xxxMapper`, and `Entity.xxxCmp`/`xxxCmpOptional`.
 
 ## Physics loop details
 
-- `PHYSICS_UPDATE_INTERVAL = 1/45 s`, velocity iterations 6, position iterations 2.
-- `autoClearForces = false`. `PhysicsSystem` takes a list of `PhysicsStepListener`s. For every step it runs `beforeStep(dt)` on each, then `applyRotation()`, `world.step`, `afterStep(dt)`, then `world.clearForces()`. `MoveSystem` applies thrust in `beforeStep`, so forces act exactly once per step. `PHYSICS_SUBSTEPS = 1` splits each tick into sub-steps if needed.
+- `PHYSICS_UPDATE_INTERVAL = 1/45 s`, velocity iterations 6, position iterations 2. The accumulator is capped at 5 intervals per frame.
+- Once per frame, `preProcess` stores each body's previous position and rotation. After the stepping loop, `interpolateTransforms` lerps `TransformComponent.interpolatedPosition/RotationDeg` with `alpha = accumulator / interval`. Rendering uses only these interpolated values.
+- `autoClearForces = false`. `PhysicsSystem` takes a list of `PhysicsStepListener`s (`MoveSystem`, `BoundaryFieldSystem`). For every step it runs `beforeStep(dt)` on each listener, then `applyRotation()`, `world.step`, `afterStep(dt)` on each, then `world.clearForces()`. Thrust is applied in `beforeStep`, so it acts once per step. `PHYSICS_SUBSTEPS = 1` splits each step into sub-steps if needed.
 - **Rotation (ST-004):** `PlayerInputSystem` writes the world angle to `MoveComponent.targetAngleRad`. `ShipRotationController` is a PD controller (kp 80, kd 2√kp, acceleration clamp ±200 rad/s², angular velocity cap 2π rad/s). `PhysicsSystem` turns its output into an angular impulse before **every** `world.step`, so it stays correct with several substeps per frame. Entities with a null `targetAngleRad` are not rotated. Angle error uses `shortestAngleDiffRad`, so the ship always turns the short way.
-- **Box2D speed cap:** `b2_maxTranslation = 2.0` units per step, so the effective max speed is **90 u/s** at 45 Hz. `SPEED_OF_LIGHT = 60` (in `physics/PhysicsConstants.kt`): c = 60 u/s fits under the 90 u/s Box2D cap.
+- **Box2D speed cap:** `b2_maxTranslation = 2.0` units per step, so the effective max speed is **90 u/s** at 45 Hz. `SPEED_OF_LIGHT = 60` (in `physics/PhysicsConstants.kt`) sits under that cap.
 - Units: 1 world unit = 18 px (`UNIT_SCALE`). The map is 100×100 units. The view is 48×27 units at zoom 1.
+- **Boundary field (`BoundaryFieldSystem`):** the field acts on bodies before each step, and the hard backstop runs after it. Constants are in `physics/BoundaryField.kt`.
 
 ## Collision filtering
 
@@ -86,4 +88,4 @@ Fixed in M1 and removed from this list: ST-006 (level cleanup in `hide()`), ST-0
 
 - **Relativistic dynamics layer**: our own integration of momentum and proper time per entity, writing velocities into Box2D. Box2D keeps collision detection and response.
 - **Observer-frame rendering**: render the scene to an FBO, then run post-process shaders (aberration, Doppler/searchlight, lensing). Per-sprite shaders handle effects that belong to one object (length contraction, Terrell-like distortion).
-- **Arena boundary field**: a radial or edge-distance repulsive force applied in a dedicated system before the physics step. Implemented as `BoundaryFieldSystem` (replaced the old wrap teleport).
+- **Arena boundary field**: implemented as `BoundaryFieldSystem` (see the system table). It replaced the old wrap teleport.

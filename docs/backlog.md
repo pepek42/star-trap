@@ -433,14 +433,15 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The edge reads as a soft energy wall. Bumping into it sends a ripple along the wall at visibly finite speed. The band is not distracting in the middle of the arena.
 
 ### ST-029 Bring docs in line after M2
-- status: ready
+- status: done (2026-11-01, PENDING29)
+- result: architecture.md system table renumbered and synced with M2 code; CLAUDE.md gained a Rendering paragraph.
 - size: S
 - agent: junior-dev
 - depends: ST-019, ST-021, ST-024, ST-025, ST-026, ST-028
 - files: `docs/tech/architecture.md`, `CLAUDE.md`
 - goal: Update the system table (WrapSystem gone, BoundaryFieldSystem and LifetimeSystem added), the component list (LifetimeComponent added, WrapComponent removed, `BodyComponent.boundingRadius`), the "Physics loop details" (the per-step listener hook, clearForces per step, no `moveForcesApplied`), RemoveSystem as a safety net, c = 60, and remove known issue 1 (wrap teleport, fixed by ST-025).
 - acceptance:
-  - [ ] Every statement in the updated sections can be traced to the current code
+  - [x] Every statement in the updated sections can be traced to the current code
 
 ---
 
@@ -469,7 +470,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] New tests pass; `./gradlew core:test` passes
 
 ### ST-053 Shimmer polish: ripple clipping, precision, emission threshold
-- status: done (2026-11-01, PENDING53)
+- status: done (2026-11-01, 70efe24)
 - result: Ripples fade past the skin, highp+pulse phase uniform, weak impacts on inward motion; screenshot checked.
 - size: S
 - agent: kotlin-dev

@@ -18,10 +18,12 @@ data class LaunchOptions(
     val thrust: Boolean = false,
     /** Seed for all gameplay randomness; null means seed from time. */
     val seed: Long? = null,
+    /** Shows the debug side panel at launch (`--debug-panel`). */
+    val debugPanel: Boolean = false,
 )
 
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu` and `--thrust` and `--seed=<long>`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>` and `--debug-panel`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -36,6 +38,7 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
                 ?.let { options = options.copy(scene = it) }
             "--seed" -> value?.toLongOrNull()?.let { options = options.copy(seed = it) }
             "--thrust" -> options = options.copy(thrust = true)
+            "--debug-panel" -> options = options.copy(debugPanel = true)
         }
     }
     return options

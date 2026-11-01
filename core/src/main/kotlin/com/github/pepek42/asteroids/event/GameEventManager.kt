@@ -10,6 +10,7 @@ import ktx.log.logger
 class GameEventManager : KtxInputAdapter {
     private val playerInputListeners = GdxArray<PlayerInputListener>()
     private val mapEventListener = GdxArray<MapEventListener>()
+    private val debugListeners = GdxArray<DebugInputListener>()
     private var ignoreInput = false
 
     fun addInputListener(listener: PlayerInputListener) = playerInputListeners.add(listener)
@@ -19,6 +20,10 @@ class GameEventManager : KtxInputAdapter {
     fun addMapEventListener(listener: MapEventListener) = mapEventListener.add(listener)
 
     fun removeMapEventListener(listener: MapEventListener) = mapEventListener.removeValue(listener, true)
+
+    fun addDebugListener(listener: DebugInputListener) = debugListeners.add(listener)
+
+    fun removeDebugListener(listener: DebugInputListener) = debugListeners.removeValue(listener, true)
 
     init {
         logger.info { "Init finished" }
@@ -33,11 +38,18 @@ class GameEventManager : KtxInputAdapter {
     }
 
     override fun keyDown(keycode: Int): Boolean {
-        if (ignoreInput) return false
-        when (keycode) {
-            Keys.CONTROL_RIGHT -> block()
+        if (keycode == Keys.F1) {
+            debugListeners.forEach { it.toggleDebugPanel() }
+            return true
         }
-        return true
+        if (ignoreInput) return false
+        return when (keycode) {
+            Keys.CONTROL_RIGHT -> {
+                block()
+                true
+            }
+            else -> false
+        }
     }
 
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {

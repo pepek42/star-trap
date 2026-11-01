@@ -16,6 +16,7 @@ import com.badlogic.gdx.utils.Logger
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.badlogic.gdx.utils.viewport.Viewport
+import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.debug.LaunchOptions
 import com.github.pepek42.asteroids.debug.ScreenshotHarness
 import com.github.pepek42.asteroids.debug.ScreenshotScene
@@ -59,6 +60,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             bindSingleton(RandomXS128(options.seed ?: System.nanoTime()))
             bindSingleton(GameState())
             bindSingleton(RelativitySettings())
+            bindSingleton(DebugSettings(panelAllowed = IS_DEBUG || options.debugPanel, panelVisible = options.debugPanel))
             bindSingleton<OrthographicCamera>(OrthographicCamera())
             bindSingleton(GameEventManager())
             bindSingleton(SpriteBatch())
@@ -76,7 +78,9 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             bindSingleton(PlayScreen(inject<Game>()))
             bindSingleton(LevelClearedScreen(inject<Game>()))
         }
-        Gdx.input.inputProcessor = InputMultiplexer(ctx.inject<GameEventManager>(), ctx.inject<Stage>())
+        // Stage goes first so UI widgets get clicks; it returns true only when a widget handled the event.
+        // GameEventManager comes second so clicks on empty space still reach the game.
+        Gdx.input.inputProcessor = InputMultiplexer(ctx.inject<Stage>(), ctx.inject<GameEventManager>())
 
         addScreen(ctx.inject<MainMenuScreen>())
         addScreen(ctx.inject<PlayScreen>())

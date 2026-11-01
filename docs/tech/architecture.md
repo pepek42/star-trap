@@ -28,6 +28,8 @@ flowchart LR
 
 Singletons registered in `Game.create()` and fetched with `game.get<T>()`: `RandomXS128` (seeded from `LaunchOptions.seed`, or the clock), `GameState`, `OrthographicCamera`, `GameEventManager`, `SpriteBatch`, `TextureAtlas` (textures), `Skin`, `I18NBundle`, `Viewport` (`FitViewport` 48×27 world units), `Stage`, `AssetManager`, `MapProvider`, `BackgroundProvider`, and the screens. `Game` takes a `LaunchOptions`, which `Lwjgl3Launcher` parses from the command line.
 
+Input: `Gdx.input.inputProcessor` is `InputMultiplexer(Stage, GameEventManager)`. Stage goes first; `GameEventManager.keyDown` returns `true` only for keys it handles.
+
 ## ECS system order
 
 Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execution order.**

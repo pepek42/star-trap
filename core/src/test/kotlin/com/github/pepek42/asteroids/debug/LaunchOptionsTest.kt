@@ -30,6 +30,12 @@ class LaunchOptionsTest {
     }
 
     @Test
+    fun debugPanelFlagIsParsed() {
+        assertEquals(true, parseLaunchOptions(arrayOf("--debug-panel")).debugPanel)
+        assertEquals(false, parseLaunchOptions(emptyArray()).debugPanel)
+    }
+
+    @Test
     fun unknownFlagsAreIgnored() {
         val o = parseLaunchOptions(arrayOf("--bogus=1", "-x", "--frames=10"))
         assertEquals(LaunchOptions(frames = 10), o)

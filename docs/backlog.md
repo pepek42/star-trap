@@ -686,7 +686,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-056 RelativitySettings: runtime tunables replace consts at the call sites
-- status: done (2026-11-01, PENDINGxx)
+- status: done (2026-11-01, 5b37f88)
 - result: RelativitySettings singleton in DI with clamping setters; every runtime const read goes through it, with runtime relativity and field switches (backstop stays). Reviewer approved; minors went to ST-064.
 - size: M
 - agent: kotlin-dev
@@ -710,7 +710,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: With the defaults, the game plays exactly as after ST-046.
 
 ### ST-057 Debug plumbing: --debug-panel flag, F1 event, UI-first input, time scale
-- status: ready
+- status: done (2026-11-01, PENDINGxx)
+- result: Added the --debug-panel flag, DebugSettings with a time scale, and an F1 DebugInputListener that fires even while input is ignored; the Stage now comes first in the input multiplexer.
 - size: S
 - agent: junior-dev
 - depends: —
@@ -723,9 +724,9 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `Game.create`: the multiplexer order becomes `InputMultiplexer(stage, gameEventManager)`. Stage returns `true` only when a widget handled the event, so clicks on empty space still reach the game. Add a comment saying why.
   - `PlayScreen.render`: `engine.update(baseDelta · debugSettings.timeScale)`, where `baseDelta` is the existing screenshot-or-real delta.
 - acceptance:
-  - [ ] Test: `--debug-panel` sets `debugPanel = true`, and the existing `LaunchOptionsTest` cases still pass (update the `LaunchOptions(...)` constructor calls if they're positional)
-  - [ ] Test: `GameEventManager.keyDown(Keys.F1)` calls a registered `DebugInputListener` once, also after `ignorePlayerInputs()`. `keyDown(Keys.A)` returns false
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: `--debug-panel` sets `debugPanel = true`, and the existing `LaunchOptionsTest` cases still pass (update the `LaunchOptions(...)` constructor calls if they're positional)
+  - [x] Test: `GameEventManager.keyDown(Keys.F1)` calls a registered `DebugInputListener` once, also after `ignorePlayerInputs()`. `keyDown(Keys.A)` returns false
+  - [x] `./gradlew core:test` passes
 - playtest: Main menu buttons and the level-cleared button still work. In play, LMB fires and RMB thrusts as before.
 
 ### ST-058 ControlScheme abstraction; current mouse-hull scheme as the first strategy

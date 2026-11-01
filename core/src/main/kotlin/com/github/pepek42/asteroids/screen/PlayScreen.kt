@@ -13,6 +13,7 @@ import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.IS_DEBUG
+import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.debug.SCREENSHOT_FRAME_DELTA
 import com.github.pepek42.asteroids.ecs.clearLevel
@@ -124,7 +125,8 @@ class PlayScreen(
         defaultLoggingUtils.onGameLoopTick(delta)
         viewport.apply()
         ScreenUtils.clear(.1f, .1f, .1f, 1f)
-        engine.update(if (game.options.screenshotPath != null) SCREENSHOT_FRAME_DELTA else delta)
+        val baseDelta = if (game.options.screenshotPath != null) SCREENSHOT_FRAME_DELTA else delta
+        engine.update(baseDelta * game.get<DebugSettings>().timeScale)
     }
 
     override fun resize(width: Int, height: Int) {

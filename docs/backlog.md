@@ -105,7 +105,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] The change is made, and `./gradlew core:test` passes
 
 ### ST-009 CI on JDK 25 and on all branches/PRs
-- status: done (2026-11-01, 56ed6fb)
+- status: done (2026-11-01, 44719a8)
 - result: Workflow runs on all pushes and PRs with JDK 25 and setup-gradle@v4; YAML validated (not yet run on GitHub, nothing pushed).
 - size: S
 - agent: junior-dev
@@ -116,14 +116,15 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] The YAML is valid (`python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" .github/workflows/workflows.yaml`)
 
 ### ST-010 Fix asteroid split velocity mutation
-- status: in-progress
+- status: done (2026-11-01, a355caa)
+- result: `DeathSystem.spawnSmallerAsteroids` copies position/velocity so each child gets its own rotation.
 - size: S
 - agent: junior-dev
 - depends: —
 - files: `system/DeathSystem.kt`
 - goal: In `spawnSmallerAsteroids`, `currentVelocity` is `body.linearVelocity`, a vector Box2D reuses. `rotateDeg` mutates it in place, so the second child's velocity is rotated by both angles. Use copies: `currentVelocity.cpy().rotateDeg(-r1)` and `currentVelocity.cpy().rotateDeg(+r2)`. Do the same for `position` (take `body.position.cpy()` once).
 - acceptance:
-  - [ ] The fix is made, and `./gradlew core:test` passes
+  - [x] The fix is made, and `./gradlew core:test` passes
 
 ### ST-011 Readable minimap
 - status: ready

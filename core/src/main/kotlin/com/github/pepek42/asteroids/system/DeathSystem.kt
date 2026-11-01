@@ -39,15 +39,15 @@ class DeathSystem(
     }
 
     private fun spawnSmallerAsteroids(body: Body, currentAsteroidSize: AsteroidSize) {
-        val position = body.position
-        val currentVelocity = body.linearVelocity
+        val position = body.position.cpy()
+        val currentVelocity = body.linearVelocity.cpy()
         val speedAngle = currentVelocity.angleDeg()
 
         val firstPosition = vec2(0f, -currentAsteroidSize.radius / 2).rotateDeg(speedAngle)
         asteroidProvider.spawnAsteroid(
             currentAsteroidSize.nextSize!!,
             firstPosition + position,
-            currentVelocity.rotateDeg(Random.nextFloat() * -MAX_SPEED_DIFF_DEG),
+            currentVelocity.cpy().rotateDeg(Random.nextFloat() * -MAX_SPEED_DIFF_DEG),
             body.angularVelocity
         )
 
@@ -55,7 +55,7 @@ class DeathSystem(
         asteroidProvider.spawnAsteroid(
             currentAsteroidSize.nextSize,
             secondPosition + position,
-            currentVelocity.rotateDeg(Random.nextFloat() * MAX_SPEED_DIFF_DEG),
+            currentVelocity.cpy().rotateDeg(Random.nextFloat() * MAX_SPEED_DIFF_DEG),
             body.angularVelocity
         )
     }

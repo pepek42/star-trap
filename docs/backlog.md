@@ -79,7 +79,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-007 Fix faction collision bit naming and the projectile filter
-- status: done (2026-11-01, 0e560cd)
+- status: done (2026-11-01, 74bcd75)
 - result: `FactionEnum` fields renamed to `ownCategoryBit`/`collidesWithMask` with `collidesWith()`; all providers (including projectiles, which now set a mask) use category=own, mask=collidesWith.
 - size: S
 - agent: junior-dev
@@ -94,17 +94,18 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The player's lasers hit asteroids and don't hit the player ship.
 
 ### ST-008 Small asteroids use their own texture
-- status: ready
+- status: done (2026-11-01, 614cd18)
+- result: `AsteroidSize.SMALL` uses `asteroid_small`.
 - size: S
 - agent: junior-dev
 - depends: —
 - files: `environment/asteroid.kt`
 - goal: `AsteroidSize.SMALL` uses `"asteroid_big"`. Change it to `"asteroid_small"` (the region exists in `textures.atlas`).
 - acceptance:
-  - [ ] The change is made, and `./gradlew core:test` passes
+  - [x] The change is made, and `./gradlew core:test` passes
 
 ### ST-009 CI on JDK 25 and on all branches/PRs
-- status: ready
+- status: in-progress
 - size: S
 - agent: junior-dev
 - depends: —
@@ -114,7 +115,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] The YAML is valid (`python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" .github/workflows/workflows.yaml`)
 
 ### ST-010 Fix asteroid split velocity mutation
-- status: ready
+- status: in-progress
 - size: S
 - agent: junior-dev
 - depends: —

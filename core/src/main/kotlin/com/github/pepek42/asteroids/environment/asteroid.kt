@@ -5,7 +5,7 @@ enum class AsteroidSize(
     val nextSize: AsteroidSize?,
     val textureRegionName: String,
 ) {
-    SMALL(1f, null, "asteroid_big"),
+    SMALL(1f, null, "asteroid_small"),
     LARGE(2.25f, SMALL, "asteroid_big"),
 }
 

@@ -11,11 +11,23 @@ import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
+import com.github.pepek42.asteroids.physics.FIELD_SKIN
 import com.github.pepek42.asteroids.provider.MapProvider
 import ktx.ashley.allOf
 import ktx.log.logger
 
 private const val ZOOM_SPEED = 10
+private const val CAMERA_ARENA_MARGIN = FIELD_SKIN / 2
+
+/**
+ * Clamps the camera centre on one axis so the view stays within the map, allowed to extend [margin] past each edge.
+ * If the view is larger than the map, centres on the map.
+ */
+fun clampCameraAxis(target: Float, halfView: Float, mapSize: Float, margin: Float): Float {
+    val lo = halfView - margin
+    val hi = mapSize - halfView + margin
+    return if (lo > hi) mapSize / 2 else target.coerceIn(lo, hi)
+}
 
 class CameraSystem(
     private val camera: OrthographicCamera,
@@ -66,10 +78,8 @@ class CameraSystem(
         val interpolatedPosition = entity.transformCmp.interpolatedPosition
         val realCamWidthHalved = camera.viewportWidth / 2 * camera.zoom
         val realCamHeightHalved = camera.viewportHeight / 2 * camera.zoom
-        val maxCamX = mapProvider.mapWidth - realCamWidthHalved
-        val maxCamY = mapProvider.mapHeight - realCamHeightHalved
-        val camX = interpolatedPosition.x.coerceIn(realCamWidthHalved, maxCamX)
-        val camY = interpolatedPosition.y.coerceIn(realCamHeightHalved, maxCamY)
+        val camX = clampCameraAxis(interpolatedPosition.x, realCamWidthHalved, mapProvider.mapWidth, CAMERA_ARENA_MARGIN)
+        val camY = clampCameraAxis(interpolatedPosition.y, realCamHeightHalved, mapProvider.mapHeight, CAMERA_ARENA_MARGIN)
         camera.position.set(camX, camY, camera.position.z)
     }
 

@@ -16,6 +16,7 @@ import com.github.pepek42.asteroids.component.asteroidMapper
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
+import com.github.pepek42.asteroids.physics.FIELD_SKIN
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.ui.ARENA_BOUNDARY_COLOR
 import com.github.pepek42.asteroids.ui.MinimapViewport
@@ -31,6 +32,7 @@ private const val BORDER_INSET_PX = 0.5f
 private val BACKGROUND_COLOR = Color(0.02f, 0.02f, 0.06f, BACKGROUND_ALPHA)
 private val VIEW_RECT_COLOR = Color(1f, 1f, 1f, 0.8f)
 private val PLAYER_COLOR = Color(0.4f, 0.8f, 1f, 1f)
+private val FIELD_SKIN_COLOR = ARENA_BOUNDARY_COLOR.cpy().apply { a = 0.35f }
 
 /**
  * Minimap anchored to the bottom-right corner of the window (not the letterboxed game viewport),
@@ -78,6 +80,8 @@ class MinimapSystem(
         val insetX = mapW / minimapViewport.screenWidth * BORDER_INSET_PX
         val insetY = mapH / minimapViewport.screenHeight * BORDER_INSET_PX
         shape.rect(insetX, insetY, mapW - 2 * insetX, mapH - 2 * insetY)
+        shape.color = FIELD_SKIN_COLOR
+        shape.rect(FIELD_SKIN, FIELD_SKIN, mapW - 2 * FIELD_SKIN, mapH - 2 * FIELD_SKIN)
         shape.end()
 
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)

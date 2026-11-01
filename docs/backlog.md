@@ -355,7 +355,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Lasers fade out after about 2 s instead of vanishing at the map edge.
 
 ### ST-025 BoundaryFieldSystem replaces the wrap teleport
-- status: done (2026-11-01, a08cc50)
+- status: done (2026-11-01, df90e41)
 - result: Edge field + backstop replace wrap; reviewer approved, minors in ST-052.
 - size: M
 - agent: kotlin-dev
@@ -379,7 +379,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Flying into the edge curves you back smoothly with no teleport. Asteroids drift off the edges. Lasers fired at the wall curve back and can hit asteroids on the rebound.
 
 ### ST-026 Camera may show the field skin; minimap shows the skin
-- status: ready
+- status: done (2026-11-01, 7d89449)
+- result: clampCameraAxis with margin plus minimap skin rectangle; 4 tests.
 - size: S
 - agent: junior-dev
 - depends: ST-025
@@ -389,8 +390,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - In `CameraSystem.kt` add a top-level `fun clampCameraAxis(target: Float, halfView: Float, mapSize: Float, margin: Float): Float`. Let `lo = halfView − margin` and `hi = mapSize − halfView + margin`. If `lo > hi`, return `mapSize / 2`. Otherwise return `target.coerceIn(lo, hi)`. `handleCameraPosition` uses it for x and y with `margin = CAMERA_ARENA_MARGIN`, where `private const val CAMERA_ARENA_MARGIN = FIELD_SKIN / 2`.
   - `MinimapSystem.update`: after the arena border, in the same `Line` pass, draw a second rectangle inset by `FIELD_SKIN` on each side, in a private copy of `ARENA_BOUNDARY_COLOR` with alpha 0.35 (`ARENA_BOUNDARY_COLOR.cpy().apply { a = 0.35f }` stored in a `private val`). Don't mutate the shared colour.
 - acceptance:
-  - [ ] Tests: `clampCameraAxis(0f, 24f, 100f, 4f) == 20f`; `clampCameraAxis(100f, 24f, 100f, 4f) == 80f`; `clampCameraAxis(50f, 24f, 100f, 4f) == 50f`; `clampCameraAxis(0f, 60f, 100f, 4f) == 50f`
-  - [ ] `./gradlew core:test` passes
+  - [x] Tests: `clampCameraAxis(0f, 24f, 100f, 4f) == 20f`; `clampCameraAxis(100f, 24f, 100f, 4f) == 80f`; `clampCameraAxis(50f, 24f, 100f, 4f) == 50f`; `clampCameraAxis(0f, 60f, 100f, 4f) == 50f`
+  - [x] `./gradlew core:test` passes
 - playtest: Near the edge you can see a strip of space beyond the arena. The minimap shows an inner rectangle where the field starts.
 
 ### ST-027 Shimmer impact buffer and emission from the field

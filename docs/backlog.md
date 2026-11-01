@@ -413,7 +413,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-028 Field shimmer shader
-- status: done (2026-11-01, ce9ba9e)
+- status: done (2026-11-01, fbf4f82)
 - result: Shimmer shader renders edge band and ripples; screenshot checked; reviewer approved, polish in ST-053.
 - size: M
 - agent: kotlin-dev
@@ -445,7 +445,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 ---
 
 ### ST-051 WeaponProjectileProviderTest asserts laser lifetime
-- status: ready
+- status: done (2026-11-01, PENDING51)
+- result: Laser provider test asserts LifetimeComponent values.
 - size: S
 - agent: junior-dev
 - depends: ST-024
@@ -453,10 +454,10 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - goal: The test is a TODO stub (follow-up from ST-024).
 - spec: Build a laser via `WeaponProjectileProvider` with a `PooledEngine` and real `World`; assert it has `LifetimeComponent` with `remaining == total == PHOTON_WORLD_LIFETIME`, `clock == WORLD`, `bouncesLeft == PHOTON_MAX_BOUNCES`.
 - acceptance:
-  - [ ] Test exists and passes; `./gradlew core:test` passes
+  - [x] Test exists and passes; `./gradlew core:test` passes
 
 ### ST-052 BoundaryFieldSystem test gaps and tidy-up
-- status: ready
+- status: in-progress
 - size: S
 - agent: junior-dev
 - depends: ST-025

@@ -12,10 +12,9 @@ import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.moveCmp
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
-import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.physics.REVERSE_THRUST_FRACTION
-import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaFromU
 import com.github.pepek42.asteroids.physics.thrustAccelWorld
 import com.github.pepek42.asteroids.physics.velocityFromU
@@ -25,7 +24,9 @@ import ktx.math.vec2
 import kotlin.math.cos
 import kotlin.math.sin
 
-class MoveSystem : EntitySystem(), PhysicsStepListener {
+class MoveSystem(
+    private val settings: RelativitySettings = RelativitySettings(),
+) : EntitySystem(), PhysicsStepListener {
     private var entities: ImmutableArray<Entity>? = null
     private val velocity = Vector2()
     private val thrustAccel = Vector2()
@@ -43,7 +44,7 @@ class MoveSystem : EntitySystem(), PhysicsStepListener {
         val list = entities ?: return
         for (entity in list) {
             val relativistic = entity.relativisticCmpOptional
-            if (relativistic != null) {
+            if (relativistic != null && settings.relativityEnabled) {
                 addProperAcceleration(entity.moveCmp, entity.bodyCmp.body, relativistic)
             } else {
                 applyMainThrusters(entity.moveCmp, entity.bodyCmp.body)
@@ -60,10 +61,10 @@ class MoveSystem : EntitySystem(), PhysicsStepListener {
         if (thrusters == 0f) return
         val thr = if (thrusters > 0f) thrusters else thrusters * REVERSE_THRUST_FRACTION
         val angle = body.angle
-        velocityFromU(rel.u.x, rel.u.y, SPEED_OF_LIGHT, velocity)
-        val gamma = gammaFromU(rel.u.x, rel.u.y, SPEED_OF_LIGHT)
+        velocityFromU(rel.u.x, rel.u.y, settings.c, velocity)
+        val gamma = gammaFromU(rel.u.x, rel.u.y, settings.c)
         thrustAccelWorld(
-            ENGINE_PROPER_ACCEL * thr, cos(angle), sin(angle), velocity.x, velocity.y, gamma, thrustAccel,
+            settings.engineProperAccel * thr, cos(angle), sin(angle), velocity.x, velocity.y, gamma, thrustAccel,
         )
         rel.accel.add(thrustAccel)
     }

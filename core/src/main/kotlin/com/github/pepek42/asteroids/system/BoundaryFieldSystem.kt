@@ -14,10 +14,10 @@ import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
-import com.github.pepek42.asteroids.physics.BoundaryFieldParams
 import com.github.pepek42.asteroids.physics.FIELD_BACKSTOP_RESTITUTION
 import com.github.pepek42.asteroids.physics.FIELD_EXPONENT
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.boundaryAcceleration
 import com.github.pepek42.asteroids.physics.boundaryDepthQ
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -33,7 +33,7 @@ import ktx.log.logger
 class BoundaryFieldSystem(
     private val mapProvider: MapProvider,
     private val impacts: ShimmerImpacts = ShimmerImpacts(),
-    private val params: BoundaryFieldParams = BoundaryFieldParams(),
+    private val settings: RelativitySettings = RelativitySettings(),
 ) : EntitySystem(), PhysicsStepListener {
     private var entities: ImmutableArray<Entity> = ImmutableArray(Array())
     private val accel = Vector2()
@@ -46,6 +46,9 @@ class BoundaryFieldSystem(
     override fun update(deltaTime: Float) = Unit
 
     override fun beforeStep(dt: Float) {
+        // Field off: the arena is a hard-walled box, only the backstop in afterStep acts.
+        if (!settings.fieldEnabled) return
+        val params = settings.fieldParams
         for (i in 0 until entities.size()) {
             val bodyCmp = entities[i].bodyCmp
             val body = bodyCmp.body
@@ -90,7 +93,7 @@ class BoundaryFieldSystem(
         val h = mapProvider.mapHeight
         val x = body.position.x
         val y = body.position.y
-        val q = boundaryDepthQ(x, y, rBody, w, h, params)
+        val q = boundaryDepthQ(x, y, rBody, w, h, settings.fieldParams)
         if (q <= SHIMMER_WEAK_MIN_Q) return
         if (!shouldEmitFieldImpact(q, inwardNormalSpeed(body, w, h))) return
         emitAtNearestWall(id, x, y, w, h, q.pow(FIELD_EXPONENT), false)
@@ -128,7 +131,7 @@ class BoundaryFieldSystem(
     }
 
     private fun enforceBackstop(id: Int, body: Body, rBody: Float) {
-        val r = if (params.useBodyRadius) rBody else 0f
+        val r = if (settings.fieldParams.useBodyRadius) rBody else 0f
         val w = mapProvider.mapWidth
         val h = mapProvider.mapHeight
         var x = body.position.x

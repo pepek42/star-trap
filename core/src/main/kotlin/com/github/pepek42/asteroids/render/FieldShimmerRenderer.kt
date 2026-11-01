@@ -8,7 +8,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.Disposable
 import com.github.pepek42.asteroids.physics.FIELD_SKIN
-import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.ui.ARENA_BOUNDARY_COLOR
 import ktx.log.logger
@@ -36,6 +36,7 @@ private const val FALLBACK_PULSE_SPEED = 2f
 class FieldShimmerRenderer(
     private val impacts: ShimmerImpacts,
     private val mapProvider: MapProvider,
+    private val settings: RelativitySettings = RelativitySettings(),
 ) : Disposable {
     private val texture: Texture = createWhiteTexture()
     private val program: ShaderProgram
@@ -75,7 +76,7 @@ class FieldShimmerRenderer(
         program.setUniformf("u_pulsePhase", impacts.time % PULSE_PERIOD)
         program.setUniformf("u_baseColor", ARENA_BOUNDARY_COLOR.r, ARENA_BOUNDARY_COLOR.g, ARENA_BOUNDARY_COLOR.b)
         program.setUniformf("u_baseAlpha", SHIMMER_BASE_ALPHA)
-        program.setUniformf("u_c", SPEED_OF_LIGHT)
+        program.setUniformf("u_c", settings.c)
         program.setUniform4fv("u_impacts", impacts.data, 0, impacts.capacity * FLOATS_PER_IMPACT)
         program.setUniformi("u_impactCount", impacts.count)
     }

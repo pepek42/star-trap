@@ -17,8 +17,7 @@ import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.faction.FactionEnum
-import com.github.pepek42.asteroids.physics.RELATIVITY_ENABLED
-import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.ashley.add
 import ktx.ashley.entity
@@ -32,6 +31,7 @@ class PlayerEntityProvider(
     private val world: World,
     private val mapProvider: MapProvider,
     private val textureAtlas: TextureAtlas,
+    private val settings: RelativitySettings = RelativitySettings(),
 ) {
     fun spawnPlayerEntity() {
         val playerSprite = textureAtlas.createSprite("spaceship/disc_green")
@@ -45,7 +45,7 @@ class PlayerEntityProvider(
                 with<BodyComponent> {
                     body = world.body(BodyDef.BodyType.DynamicBody) {
                         // RelativisticDynamics rewrites the velocity every step, so the body must never sleep.
-                        allowSleep = !RELATIVITY_ENABLED
+                        allowSleep = false
                         this.position.set(playerSpawnPosition)
                         box(
                             width = worldUnitsWidth,
@@ -69,7 +69,7 @@ class PlayerEntityProvider(
                     )
                 }
                 with<MoveComponent>()
-                if (RELATIVITY_ENABLED) with<RelativisticComponent>() // starts at rest: u = 0
+                with<RelativisticComponent>() // starts at rest: u = 0
                 with<ShipHandlingComponent>()
                 with<PlayerComponent>()
                 with<WeaponComponent> {
@@ -77,7 +77,7 @@ class PlayerEntityProvider(
                     weaponType = WeaponType.LASER
                     weaponPosition = vec2(worldUnitsWidth / 2, 0f)
                     shotsPerSecond = 3f
-                    projectileSpeed = SPEED_OF_LIGHT
+                    projectileSpeed = settings.c
                     projectileDamage = 50f
                     projectileRadius = 0.1f
                 }

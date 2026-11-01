@@ -17,6 +17,7 @@ import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.bodyCmp
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.weapon.PHOTON_MAX_BOUNCES
 import com.github.pepek42.asteroids.weapon.PHOTON_WORLD_LIFETIME
 import com.github.pepek42.asteroids.weapon.WeaponType
@@ -31,6 +32,7 @@ class WeaponProjectileProvider(
     private val textureAtlas: TextureAtlas,
     private val engine: Engine,
     private val world: World,
+    private val settings: RelativitySettings = RelativitySettings(),
 ) {
     fun spawnProjectile(weaponCmp: WeaponComponent, entity: Entity) {
         val bodyCmp = entity.bodyCmp
@@ -49,7 +51,7 @@ class WeaponProjectileProvider(
                     this.position.set(position.x, position.y)
                     val velocity = when (weaponCmp.weaponType) {
                         WeaponType.LASER -> vec2(
-                            weaponCmp.projectileSpeed,
+                            settings.c,
                             0f
                         ).rotateRad(bodyCmp.body.angle)
                     }

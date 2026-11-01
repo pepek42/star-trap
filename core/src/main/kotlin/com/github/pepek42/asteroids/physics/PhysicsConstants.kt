@@ -5,6 +5,12 @@ package com.github.pepek42.asteroids.physics
  */
 const val SPEED_OF_LIGHT = 60.0f
 
+/** Lowest c the runtime settings allow (ST-056). */
+const val C_MIN = 20f
+
+/** Highest c the runtime settings allow: 0.75 × 2 u/step × 45 Hz = 67.5, rounded down. */
+const val C_MAX_BOX2D_SAFE = 67f
+
 /**
  * Numerical safety bound, not a gameplay cap (owner decision ST-032). Runtime value lives in `RelativitySettings.gammaMaxMassive` (ST-056).
  * Enforced by clamping proper velocity (research §2).
@@ -17,7 +23,7 @@ const val GAMMA_MAX_PROJECTILE = 50f
 /** Speed cap as a fraction of c for massive bodies: sqrt(1 - 1/γmax²) ≈ 0.99499. */
 val BETA_MAX_MASSIVE: Float = kotlin.math.sqrt(1f - 1f / (GAMMA_MAX_MASSIVE * GAMMA_MAX_MASSIVE))
 
-/** Master switch for the relativistic integrator. When false, providers skip RelativisticComponent and ships use Newtonian thrust. */
+/** Default for `RelativitySettings.relativityEnabled`, the runtime master switch. When false, ships use Newtonian thrust and bodies keep a synced `RelativisticComponent`. */
 const val RELATIVITY_ENABLED = true
 
 /**

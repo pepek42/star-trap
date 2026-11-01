@@ -17,6 +17,7 @@ import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingU
 import com.github.pepek42.asteroids.debug.SCREENSHOT_FRAME_DELTA
 import com.github.pepek42.asteroids.ecs.clearLevel
 import com.github.pepek42.asteroids.event.GameEventManager
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
@@ -52,6 +53,7 @@ class PlayScreen(
     private val game: Game,
 ) : KtxScreen {
     private val hud = Hud(game)
+    private val settings = game.get<RelativitySettings>()
     private val mapProvider = game.get<MapProvider>()
     private val camera = game.get<OrthographicCamera>()
     private val viewport: Viewport = game.get<Viewport>()
@@ -59,8 +61,8 @@ class PlayScreen(
         autoClearForces = false
     }
     private val engine = PooledEngine()
-    private val playerEntityProvider = PlayerEntityProvider(engine, world, mapProvider, game.get<TextureAtlas>())
-    private val asteroidProvider = AsteroidProvider(game.get<TextureAtlas>(), engine, world, game.get<RandomXS128>())
+    private val playerEntityProvider = PlayerEntityProvider(engine, world, mapProvider, game.get<TextureAtlas>(), settings)
+    private val asteroidProvider = AsteroidProvider(game.get<TextureAtlas>(), engine, world, game.get<RandomXS128>(), settings)
     private val gameState = game.get<GameState>()
     private val minimapViewport = MinimapViewport()
 
@@ -71,18 +73,18 @@ class PlayScreen(
     private fun setupEcs() {
         val gameEventManager = game.get<GameEventManager>()
         val spriteBatch = game.get<SpriteBatch>()
-        val moveSystem = MoveSystem()
+        val moveSystem = MoveSystem(settings)
         // Shared by the boundary field (emits) and the shimmer renderer (draws).
         val shimmerImpacts = ShimmerImpacts()
-        val boundaryFieldSystem = BoundaryFieldSystem(mapProvider, shimmerImpacts)
+        val boundaryFieldSystem = BoundaryFieldSystem(mapProvider, shimmerImpacts, settings)
         val projectileSweepSystem = ProjectileSweepSystem(world)
         // Must be the last step listener: it integrates the accelerations the others added.
-        val relativisticDynamics = RelativisticDynamics()
+        val relativisticDynamics = RelativisticDynamics(settings)
         engine.add {
             addSystem(EndLevelSystem(game))
             addSystem(PlayerInputSystem(gameEventManager, camera))
             addSystem(moveSystem)
-            addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world)))
+            addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world, settings)))
             addSystem(ContactSystem(world))
             addSystem(boundaryFieldSystem)
             addSystem(projectileSweepSystem)
@@ -94,7 +96,7 @@ class PlayScreen(
                 )
             )
             addSystem(CameraSystem(camera, gameEventManager, mapProvider))
-            addSystem(RenderSystem(game, spriteBatch, viewport, FieldShimmerRenderer(shimmerImpacts, mapProvider)))
+            addSystem(RenderSystem(game, spriteBatch, viewport, FieldShimmerRenderer(shimmerImpacts, mapProvider, settings)))
             if (IS_DEBUG) {
                 engine.addSystem(DebugSystem(world, engine, camera))
             }

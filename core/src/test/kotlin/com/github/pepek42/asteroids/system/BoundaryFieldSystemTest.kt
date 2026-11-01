@@ -16,6 +16,7 @@ import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.physics.BoundaryFieldParams
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.MapProvider
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -30,7 +31,7 @@ class BoundaryFieldSystemTest {
     private val engine = Engine()
     private val mapProvider = MapProvider(mock(), 100f, 100f)
     private val impacts = com.github.pepek42.asteroids.render.ShimmerImpacts()
-    private val field = BoundaryFieldSystem(mapProvider, impacts, BoundaryFieldParams(skin = 8f))
+    private val field = BoundaryFieldSystem(mapProvider, impacts, RelativitySettings(fieldParams = BoundaryFieldParams(skin = 8f)))
     private val physics: PhysicsSystem
 
     init {

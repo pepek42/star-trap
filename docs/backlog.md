@@ -668,7 +668,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Less frantic than at 100×100 with a = 60. A straight run from the centre almost reaches 0.9c before the field. Level 1 should feel sparse but not empty, with 3 asteroids within reach. If it's too empty, raise `ASTEROID_COUNT_PER_LEVEL_SQ` to 3. If it's still too hectic, lower `ASTEROID_SPAWN_SPEED_MAX`. Try a0 = 15/25/40 in the debug panel (ST-059) to pick the feel.
 
 ### ST-055 Raise the γ safety cap to 50 (no gameplay cap)
-- status: done (2026-11-01, PENDINGxx)
+- status: done (2026-11-01, bbeb967)
 - result: GAMMA_MAX_MASSIVE and GAMMA_MAX_PROJECTILE are 50 (safety bound only); tests cover the γ 10–50 round trip and a one-step clamp from u = 100c.
 - size: S
 - agent: junior-dev
@@ -686,7 +686,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-056 RelativitySettings: runtime tunables replace consts at the call sites
-- status: ready
+- status: done (2026-11-01, PENDINGxx)
+- result: RelativitySettings singleton in DI with clamping setters; every runtime const read goes through it, with runtime relativity and field switches (backstop stays). Reviewer approved; minors went to ST-064.
 - size: M
 - agent: kotlin-dev
 - depends: ST-046, ST-054, ST-055
@@ -700,12 +701,12 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - **Field off.** `BoundaryFieldSystem` skips the field acceleration (both paths) when `!settings.fieldEnabled`, but it **keeps the backstop**. The arena becomes a hard-walled box, and bodies never leave it, so `RemoveSystem` never deletes the player.
   - Changing `c` mid-flight keeps `u`, so v = u/γ(u, c) changes on the next step. Photons already in flight keep their speed until they bounce. That's acceptable for a debug knob, and the KDoc should say so.
 - acceptance:
-  - [ ] Test: `RelativitySettings(c = 100f).c == 67f`; `gammaMaxMassive = 1f` clamps to 2; `fieldDamping = 2f` updates `fieldParams.damping` and keeps the other params
-  - [ ] Test (real `World`): with `settings.c = 30f`, a ship thrusting for 10 s from rest has |v| < 30 and β (against 30) > 0.9
-  - [ ] Test: with `relativityEnabled = false`, an entity that has a `RelativisticComponent` gets the Newtonian force (same velocity after N steps as the existing `MoveSystemTest` Newtonian case), and `u` tracks `uFromV(body velocity)`
-  - [ ] Test: with `gammaMaxMassive = 5f`, `u = (100c, 0)` is clamped to γ = 5 ± 0.01 after one step
-  - [ ] Test: with `fieldEnabled = false`, a body inside the skin gets no field acceleration, and a body past the wall is still reflected by the backstop
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: `RelativitySettings(c = 100f).c == 67f`; `gammaMaxMassive = 1f` clamps to 2; `fieldDamping = 2f` updates `fieldParams.damping` and keeps the other params
+  - [x] Test (real `World`): with `settings.c = 30f`, a ship thrusting for 10 s from rest has |v| < 30 and β (against 30) > 0.9
+  - [x] Test: with `relativityEnabled = false`, an entity that has a `RelativisticComponent` gets the Newtonian force (same velocity after N steps as the existing `MoveSystemTest` Newtonian case), and `u` tracks `uFromV(body velocity)`
+  - [x] Test: with `gammaMaxMassive = 5f`, `u = (100c, 0)` is clamped to γ = 5 ± 0.01 after one step
+  - [x] Test: with `fieldEnabled = false`, a body inside the skin gets no field acceleration, and a body past the wall is still reflected by the backstop
+  - [x] `./gradlew core:test` passes
 - playtest: With the defaults, the game plays exactly as after ST-046.
 
 ### ST-057 Debug plumbing: --debug-panel flag, F1 event, UI-first input, time scale
@@ -1017,6 +1018,22 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] Tests: 10 u/s vs rest gives 0. Head-on at ±0.5c gives more damage than overtaking at 0.9c vs 0.4c with the same masses. Damage grows with the masses
   - [ ] `./gradlew core:test` passes
 - playtest: A near-c ram destroys a large asteroid in one hit, and a slow bump does nothing.
+
+### ST-064 RelativitySettings follow-ups (review minors)
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-056
+- files: `core/src/test/kotlin/com/github/pepek42/asteroids/system/RelativitySettingsRuntimeTest.kt`, `provider/PlayerEntityProvider.kt`, provider tests, `docs/tech/architecture.md`
+- goal: Tidy the gaps the ST-056 review found.
+- spec:
+  - Relativity-off test: compare against a reference run with a Newtonian-only setup (an entity without `RelativisticComponent`), using tolerance 0.1 instead of 1 u/s against `MAIN_ENGINE_THRUST / mass`.
+  - Field-off test: add a control. In the same setup with `fieldEnabled = true`, the body does get accelerated.
+  - `PlayerEntityProvider`: comment that `projectileSpeed` is ignored for LASER (it fires at `settings.c`), or drop the assignment if nothing reads it.
+  - Tests: `WeaponProjectileProvider` gives a laser speed `settings.c` (e.g. `c = 40` gives |v| = 40). Player and asteroid providers always attach `RelativisticComponent`.
+  - architecture.md: remove the stale "boundary field until ST-038" wording. Note that `FieldShimmerRenderer`, `MinimapSystem` and `CameraSystem` still read the `FIELD_SKIN` const, not `settings.fieldParams.skin`.
+- acceptance:
+  - [ ] The tests above exist, and `./gradlew core:test` passes
 
 ### ST-049 Bring docs in line after M3
 - status: ready

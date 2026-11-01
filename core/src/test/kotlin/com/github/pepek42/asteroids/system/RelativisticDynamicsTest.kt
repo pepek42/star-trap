@@ -22,6 +22,7 @@ import com.github.pepek42.asteroids.physics.BoundaryFieldParams
 import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.REVERSE_THRUST_FRACTION
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.physics.gammaFromU
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -46,7 +47,7 @@ class RelativisticDynamicsTest {
     private val engine = Engine()
     private val move = MoveSystem()
     private val dynamics = RelativisticDynamics()
-    private val field = BoundaryFieldSystem(MapProvider(mock(), 100f, 100f), ShimmerImpacts(), BoundaryFieldParams(skin = 8f))
+    private val field = BoundaryFieldSystem(MapProvider(mock(), 100f, 100f), ShimmerImpacts(), RelativitySettings(fieldParams = BoundaryFieldParams(skin = 8f)))
     private lateinit var physics: PhysicsSystem
 
     @AfterEach

@@ -21,10 +21,8 @@ import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_MIN_RADIUS
 import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_SPEED_MAX
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.faction.FactionEnum
-import com.github.pepek42.asteroids.physics.BETA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.FIELD_SKIN
-import com.github.pepek42.asteroids.physics.RELATIVITY_ENABLED
-import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.uFromV
 import ktx.ashley.entity
 import ktx.ashley.with
@@ -40,6 +38,7 @@ class AsteroidProvider(
     private val engine: Engine,
     private val world: World,
     private val random: RandomXS128,
+    private val settings: RelativitySettings = RelativitySettings(),
 ) {
     fun spawnAsteroid(size: AsteroidSize, position: Vector2, velocity: Vector2, angularSpeed: Float) {
         engine.entity {
@@ -72,10 +71,8 @@ class AsteroidProvider(
             }
             with<HealthComponent> { health = 150f }
             with<AsteroidComponent> { asteroidSize = size }
-            if (RELATIVITY_ENABLED) {
-                with<RelativisticComponent> {
-                    uFromV(velocity.x, velocity.y, SPEED_OF_LIGHT, BETA_MAX_MASSIVE, u)
-                }
+            with<RelativisticComponent> {
+                uFromV(velocity.x, velocity.y, settings.c, settings.betaMaxMassive, u)
             }
         }
     }

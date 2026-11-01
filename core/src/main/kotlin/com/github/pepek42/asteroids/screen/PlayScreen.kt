@@ -33,7 +33,7 @@ import com.github.pepek42.asteroids.system.PlayerInputSystem
 import com.github.pepek42.asteroids.system.RemoveSystem
 import com.github.pepek42.asteroids.system.RenderSystem
 import com.github.pepek42.asteroids.system.WeaponSystem
-import com.github.pepek42.asteroids.system.WrapSystem
+import com.github.pepek42.asteroids.system.BoundaryFieldSystem
 import com.github.pepek42.asteroids.ui.Hud
 import com.github.pepek42.asteroids.ui.MinimapViewport
 import ktx.app.KtxScreen
@@ -68,15 +68,16 @@ class PlayScreen(
         val gameEventManager = game.get<GameEventManager>()
         val spriteBatch = game.get<SpriteBatch>()
         val moveSystem = MoveSystem()
+        val boundaryFieldSystem = BoundaryFieldSystem(mapProvider)
         engine.add {
             addSystem(EndLevelSystem(game))
             addSystem(PlayerInputSystem(gameEventManager, camera))
             addSystem(moveSystem)
             addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world)))
             addSystem(ContactSystem(world))
-            addSystem(PhysicsSystem(world, engine, listOf(moveSystem)))
+            addSystem(boundaryFieldSystem)
+            addSystem(PhysicsSystem(world, engine, listOf(moveSystem, boundaryFieldSystem)))
             addSystem(CameraSystem(camera, gameEventManager, mapProvider))
-            addSystem(WrapSystem(mapProvider))
             addSystem(RenderSystem(game, spriteBatch, viewport))
             if (IS_DEBUG) {
                 engine.addSystem(DebugSystem(world, engine, camera))

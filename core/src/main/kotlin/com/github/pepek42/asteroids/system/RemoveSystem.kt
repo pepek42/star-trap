@@ -12,7 +12,6 @@ import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.bodyMapper
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.removeMapper
-import com.github.pepek42.asteroids.component.wrapMapper
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.provider.MapProvider
 import ktx.ashley.has
@@ -24,7 +23,7 @@ class RemoveSystem(
     private val mapProvider: MapProvider,
 ) : IteratingSystem(oneOf(RemoveComponent::class, TransformComponent::class).get()) {
     override fun processEntity(entity: Entity, deltaTime: Float) {
-        if (entity.has(bodyMapper) && !entity.has(wrapMapper) && !entity.has(removeMapper)) {
+        if (entity.has(bodyMapper) && !entity.has(removeMapper)) {
             val body = entity.bodyCmp.body
             if (isOutOfBounds(body.position)) {
                 if (entity.playerCmpOptional != null) {

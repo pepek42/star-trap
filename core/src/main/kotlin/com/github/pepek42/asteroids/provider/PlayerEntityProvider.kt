@@ -15,7 +15,6 @@ import com.github.pepek42.asteroids.component.ShipHandlingComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
-import com.github.pepek42.asteroids.component.WrapComponent
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.weapon.WeaponType
@@ -68,7 +67,6 @@ class PlayerEntityProvider(
                 with<MoveComponent>()
                 with<ShipHandlingComponent>()
                 with<PlayerComponent>()
-                with<WrapComponent>()
                 with<WeaponComponent> {
                     ready = true
                     weaponType = WeaponType.LASER

@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-052**.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-053**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -335,7 +335,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] `./gradlew core:test` passes
 
 ### ST-024 Projectile lifetime; out-of-bounds removal becomes a safety net
-- status: done (2026-11-01, ef13301)
+- status: done (2026-11-01, c96e32f)
 - result: LifetimeComponent/LifetimeSystem added; lasers fade after 2 s; player is clamped, never removed.
 - size: S
 - agent: kotlin-dev
@@ -355,7 +355,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Lasers fade out after about 2 s instead of vanishing at the map edge.
 
 ### ST-025 BoundaryFieldSystem replaces the wrap teleport
-- status: ready
+- status: done (2026-11-01, a08cc50)
+- result: Edge field + backstop replace wrap; reviewer approved, minors in ST-052.
 - size: M
 - agent: kotlin-dev
 - depends: ST-021, ST-022, ST-024
@@ -369,12 +370,12 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - Delete `WrapSystem`, `WrapComponent`, `wrapMapper`, every `with<WrapComponent>()`, the `wrapMapper` check in `RemoveSystem`, and `WeaponType.trapped`, so it becomes `enum class WeaponType { LASER }`.
   - `AsteroidProvider.spawnAsteroids`: the spawn ring radius `radius * 0.85f` becomes `min(center.x, center.y) − FIELD_SKIN − AsteroidSize.LARGE.radius − 1f`, so asteroids don't spawn inside the skin.
 - acceptance:
-  - [ ] Test (real `World`, `PhysicsSystem` with this listener, 100×100 map): a dynamic circle (r = 1) at (85, 50) moving +x at 30 u/s never has `x + r > 100` during 3 s, and ends with `vx < 0`
-  - [ ] Test: mass independence. Circles of density 1 and 100, same radius and speed, reach the same maximum x within 0.05
-  - [ ] Test: a kinematic sensor body (r = 0.1) at 60 u/s toward the right wall turns back before x = 100
-  - [ ] Test: backstop. A body at x = 100.5 moving +x is inside after one step and moving −x
-  - [ ] `grep -r "WrapComponent\|WrapSystem\|trapped" core/src` returns nothing
-  - [ ] `./gradlew core:test` passes
+  - [x] Test (real `World`, `PhysicsSystem` with this listener, 100×100 map): a dynamic circle (r = 1) at (85, 50) moving +x at 30 u/s never has `x + r > 100` during 3 s, and ends with `vx < 0`
+  - [x] Test: mass independence. Circles of density 1 and 100, same radius and speed, reach the same maximum x within 0.05
+  - [x] Test: a kinematic sensor body (r = 0.1) at 60 u/s toward the right wall turns back before x = 100
+  - [x] Test: backstop. A body at x = 100.5 moving +x is inside after one step and moving −x
+  - [x] `grep -r "WrapComponent\|WrapSystem\|trapped" core/src` returns nothing
+  - [x] `./gradlew core:test` passes
 - playtest: Flying into the edge curves you back smoothly with no teleport. Asteroids drift off the edges. Lasers fired at the wall curve back and can hit asteroids on the rebound.
 
 ### ST-026 Camera may show the field skin; minimap shows the skin
@@ -450,6 +451,17 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - spec: Build a laser via `WeaponProjectileProvider` with a `PooledEngine` and real `World`; assert it has `LifetimeComponent` with `remaining == total == PHOTON_WORLD_LIFETIME`, `clock == WORLD`, `bouncesLeft == PHOTON_MAX_BOUNCES`.
 - acceptance:
   - [ ] Test exists and passes; `./gradlew core:test` passes
+
+### ST-052 BoundaryFieldSystem test gaps and tidy-up
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-025
+- files: `core/src/test/kotlin/com/github/pepek42/asteroids/system/BoundaryFieldSystemTest.kt`, `system/BoundaryFieldSystem.kt`, `screen/PlayScreen.kt`
+- goal: Review minors from ST-025.
+- spec: Add a corner backstop test (body at (100.5, 100.5) moving (+10, +10) ends inside with both velocity components negative) and a top/bottom wall turn-back test. In `fieldIsMassIndependent`, keep the `Body` reference instead of looking it up via `getBodies`. Replace the fully qualified `com.badlogic.gdx.utils.Array()` with an import or `lateinit`; sort imports in `BoundaryFieldSystem.kt` and `PlayScreen.kt`.
+- acceptance:
+  - [ ] New tests pass; `./gradlew core:test` passes
 
 ## M3 Relativity MVP
 

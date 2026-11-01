@@ -15,7 +15,6 @@ import com.github.pepek42.asteroids.component.ProjectileComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
-import com.github.pepek42.asteroids.component.WrapComponent
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.weapon.PHOTON_MAX_BOUNCES
@@ -81,9 +80,6 @@ class WeaponProjectileProvider(
             with<BaseInfoComponent> {
                 this.faction = faction
                 entityType = EntityType.PROJECTILE
-            }
-            if (weaponCmp.weaponType.trapped) {
-                with<WrapComponent>()
             }
             if (weaponCmp.weaponType == WeaponType.LASER) {
                 with<LifetimeComponent> {

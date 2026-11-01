@@ -39,9 +39,9 @@ Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execu
 | 3 | `MoveSystem` | Step listener: applies thrust in `beforeStep` (once per physics step) |
 | 4 | `WeaponSystem` | Cooldown, spawns projectiles via `WeaponProjectileProvider` |
 | 5 | `ContactSystem` | Box2D `ContactListener`: projectile damage into `HealthComponent` |
+| 5b | `BoundaryFieldSystem` | Step listener (registered just before `PhysicsSystem`). `beforeStep`: mass-independent repulsive boundary field (`physics/BoundaryField.kt`) as force on dynamic bodies, velocity change on kinematic ones. `afterStep`: hard backstop (clamp inside, reflect outward velocity). Lazily fills `BodyComponent.boundingRadius` |
 | 6 | `PhysicsSystem` | Accumulator stepping (max 5 steps/frame). Before each substep applies the `ShipRotationController` angular impulse for entities with `targetAngleRad`. Then `clearForces` and interpolation of transforms |
 | 7 | `CameraSystem` | Follows player (clamped to map), mouse wheel zoom 0.5–2 |
-| 8 | `WrapSystem` | Teleports `WrapComponent` bodies to the opposite edge |
 | 9 | `RenderSystem` | Nebula background + `Starfield` (camera-relative parallax), then sprites, using interpolated transforms |
 | 10 | `DebugSystem` | (only when `IS_DEBUG`) Box2D debug renderer |
 | 11 | `HudSystem` | scene2d HUD |
@@ -52,7 +52,7 @@ Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execu
 
 ## Components (`core/.../component/`)
 
-`BaseInfoComponent` (id, faction, `EntityType`; every entity has one), `BodyComponent` (Box2D body), `TransformComponent` (prev + interpolated position/rotation), `SpriteComponent`, `MoveComponent` (thrusters −1..1, `targetAngleRad` world angle or null), `WeaponComponent`, `ProjectileComponent` (sealed projectile types, currently `LaserProjectile`), `HealthComponent`, `AsteroidComponent`, `PlayerComponent` (mapper and `playerCmpOptional`), `ShipHandlingComponent` (per-ship PD gains, defaults from `ShipRotationController`), `WrapComponent`, `LifetimeComponent` (remaining/total, `LifetimeClock` WORLD or PROPER, `bouncesLeft`, -1 = unlimited), `RemoveComponent`.
+`BaseInfoComponent` (id, faction, `EntityType`; every entity has one), `BodyComponent` (Box2D body), `TransformComponent` (prev + interpolated position/rotation), `SpriteComponent`, `MoveComponent` (thrusters −1..1, `targetAngleRad` world angle or null), `WeaponComponent`, `ProjectileComponent` (sealed projectile types, currently `LaserProjectile`), `HealthComponent`, `AsteroidComponent`, `PlayerComponent` (mapper and `playerCmpOptional`), `ShipHandlingComponent` (per-ship PD gains, defaults from `ShipRotationController`), `LifetimeComponent` (remaining/total, `LifetimeClock` WORLD or PROPER, `bouncesLeft`, -1 = unlimited), `RemoveComponent`.
 
 The convention is described in `CLAUDE.md`: a `Poolable` class, `xxxMapper`, and `Entity.xxxCmp`/`xxxCmpOptional`.
 
@@ -72,8 +72,7 @@ The convention is described in `CLAUDE.md`: a `Poolable` class, `xxxMapper`, and
 
 These are input for the backlog. Card IDs are given where a card exists.
 
-1. **Wrap teleport is confusing.** It's planned to be replaced by a boundary force field. → milestone M2
-2. `BaseInfoComponent.reset()` doesn't reset `entityType`. The global id counter is a static mutable. (No card yet.)
+1. `BaseInfoComponent.reset()` doesn't reset `entityType`. The global id counter is a static mutable. (No card yet.)
 
 Fixed in M1 and removed from this list: ST-006 (level cleanup in `hide()`), ST-007 (faction filter bits), ST-008 (small asteroid texture), ST-009 (CI on JDK 25), ST-011 (minimap rework), ST-012 (starfield).
 
@@ -87,4 +86,4 @@ Fixed in M1 and removed from this list: ST-006 (level cleanup in `hide()`), ST-0
 
 - **Relativistic dynamics layer**: our own integration of momentum and proper time per entity, writing velocities into Box2D. Box2D keeps collision detection and response.
 - **Observer-frame rendering**: render the scene to an FBO, then run post-process shaders (aberration, Doppler/searchlight, lensing). Per-sprite shaders handle effects that belong to one object (length contraction, Terrell-like distortion).
-- **Arena boundary field**: a radial or edge-distance repulsive force applied in a dedicated system before the physics step. It replaces `WrapSystem`.
+- **Arena boundary field**: a radial or edge-distance repulsive force applied in a dedicated system before the physics step. Implemented as `BoundaryFieldSystem` (replaced the old wrap teleport).

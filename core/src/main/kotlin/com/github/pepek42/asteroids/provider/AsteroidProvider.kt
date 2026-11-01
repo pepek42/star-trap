@@ -14,10 +14,10 @@ import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
-import com.github.pepek42.asteroids.component.WrapComponent
 import com.github.pepek42.asteroids.environment.ASTEROID_DENSITY
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.faction.FactionEnum
+import com.github.pepek42.asteroids.physics.FIELD_SKIN
 import ktx.ashley.entity
 import ktx.ashley.with
 import ktx.box2d.body
@@ -58,7 +58,6 @@ class AsteroidProvider(
             with<TransformComponent> {
                 prevPosition.set(position)
             }
-            with<WrapComponent>()
             with<BaseInfoComponent> {
                 faction = FactionEnum.NEUTRAL
                 entityType = EntityType.ASTEROID
@@ -71,11 +70,11 @@ class AsteroidProvider(
     fun spawnAsteroids(level: Int, mapProvider: MapProvider) {
         val maxAsteroids = 1 + level.toDouble().pow(2).toInt()
         val center = vec2(mapProvider.mapWidth / 2f, mapProvider.mapHeight / 2f)
-        val radius = min(center.x, center.y)
+        val radius = min(center.x, center.y) - FIELD_SKIN - AsteroidSize.LARGE.radius - 1f
         val step = MathUtils.PI2 / maxAsteroids
         for (i in 0 until maxAsteroids) {
             val angle = step * i * random.nextDouble().toFloat().let { 0.9f + it * 0.2f }
-            val positionShift = vec2(radius * 0.85f, 0f).rotateRad(angle)
+            val positionShift = vec2(radius, 0f).rotateRad(angle)
             spawnAsteroid(
                 size = AsteroidSize.LARGE,
                 position = center + positionShift,

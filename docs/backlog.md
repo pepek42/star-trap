@@ -94,7 +94,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: The player's lasers hit asteroids and don't hit the player ship.
 
 ### ST-008 Small asteroids use their own texture
-- status: done (2026-11-01, 614cd18)
+- status: done (2026-11-01, 7ce5a63)
 - result: `AsteroidSize.SMALL` uses `asteroid_small`.
 - size: S
 - agent: junior-dev
@@ -105,14 +105,15 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] The change is made, and `./gradlew core:test` passes
 
 ### ST-009 CI on JDK 25 and on all branches/PRs
-- status: in-progress
+- status: done (2026-11-01, 56ed6fb)
+- result: Workflow runs on all pushes and PRs with JDK 25 and setup-gradle@v4; YAML validated (not yet run on GitHub, nothing pushed).
 - size: S
 - agent: junior-dev
 - depends: —
 - files: `.github/workflows/workflows.yaml`
 - goal: CI installs JDK 17, but the toolchain is 25. Use `actions/checkout@v4` and `actions/setup-java@v4` with `java-version: "25"`, `distribution: temurin`, add `gradle/actions/setup-gradle@v4` before the test step, and trigger on `push` (all branches) and `pull_request`.
 - acceptance:
-  - [ ] The YAML is valid (`python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" .github/workflows/workflows.yaml`)
+  - [x] The YAML is valid (`python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" .github/workflows/workflows.yaml`)
 
 ### ST-010 Fix asteroid split velocity mutation
 - status: in-progress

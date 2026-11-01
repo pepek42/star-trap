@@ -13,3 +13,15 @@ const val GAMMA_MAX_PROJECTILE = 20f
 
 /** Speed cap as a fraction of c for massive bodies: sqrt(1 - 1/γmax²) ≈ 0.99499. */
 val BETA_MAX_MASSIVE: Float = kotlin.math.sqrt(1f - 1f / (GAMMA_MAX_MASSIVE * GAMMA_MAX_MASSIVE))
+
+/** Master switch for the relativistic integrator. When false, providers skip RelativisticComponent and ships use Newtonian thrust. */
+const val RELATIVITY_ENABLED = true
+
+/** Engine proper acceleration (u/s²) at full thrust, felt by the pilot. With c = 60 the ship reaches 0.9c in about 2.1 s. */
+const val ENGINE_PROPER_ACCEL = 60f
+
+/** Reverse thrusters are this fraction as strong as the main engine. */
+const val REVERSE_THRUST_FRACTION = 0.5f
+
+/** A post-step body velocity further than this (u/s) from the one we set means a contact changed it. */
+const val COLLISION_EPS = 0.05f

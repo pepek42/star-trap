@@ -11,11 +11,13 @@ import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
+import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.ShipHandlingComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.faction.FactionEnum
+import com.github.pepek42.asteroids.physics.RELATIVITY_ENABLED
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.ashley.add
@@ -42,6 +44,8 @@ class PlayerEntityProvider(
             entity {
                 with<BodyComponent> {
                     body = world.body(BodyDef.BodyType.DynamicBody) {
+                        // RelativisticDynamics rewrites the velocity every step, so the body must never sleep.
+                        allowSleep = !RELATIVITY_ENABLED
                         this.position.set(playerSpawnPosition)
                         box(
                             width = worldUnitsWidth,
@@ -65,6 +69,7 @@ class PlayerEntityProvider(
                     )
                 }
                 with<MoveComponent>()
+                if (RELATIVITY_ENABLED) with<RelativisticComponent>() // starts at rest: u = 0
                 with<ShipHandlingComponent>()
                 with<PlayerComponent>()
                 with<WeaponComponent> {

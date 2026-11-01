@@ -12,12 +12,17 @@ import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.HealthComponent
+import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.environment.ASTEROID_DENSITY
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.faction.FactionEnum
+import com.github.pepek42.asteroids.physics.BETA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.FIELD_SKIN
+import com.github.pepek42.asteroids.physics.RELATIVITY_ENABLED
+import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
+import com.github.pepek42.asteroids.physics.uFromV
 import ktx.ashley.entity
 import ktx.ashley.with
 import ktx.box2d.body
@@ -64,6 +69,11 @@ class AsteroidProvider(
             }
             with<HealthComponent> { health = 150f }
             with<AsteroidComponent> { asteroidSize = size }
+            if (RELATIVITY_ENABLED) {
+                with<RelativisticComponent> {
+                    uFromV(velocity.x, velocity.y, SPEED_OF_LIGHT, BETA_MAX_MASSIVE, u)
+                }
+            }
         }
     }
 

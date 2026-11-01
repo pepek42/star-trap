@@ -8,14 +8,27 @@ import com.badlogic.gdx.physics.box2d.Body
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.bodyCmp
+import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.moveCmp
+import com.github.pepek42.asteroids.component.relativisticCmpOptional
+import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
+import com.github.pepek42.asteroids.physics.REVERSE_THRUST_FRACTION
+import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
+import com.github.pepek42.asteroids.physics.gammaFromU
+import com.github.pepek42.asteroids.physics.thrustAccelWorld
+import com.github.pepek42.asteroids.physics.velocityFromU
+import com.badlogic.gdx.math.Vector2
 import ktx.ashley.allOf
 import ktx.math.times
 import ktx.math.vec2
+import kotlin.math.cos
+import kotlin.math.sin
 
 class MoveSystem : EntitySystem(), PhysicsStepListener {
     private var entities: ImmutableArray<Entity>? = null
+    private val velocity = Vector2()
+    private val thrustAccel = Vector2()
 
     override fun addedToEngine(engine: Engine) {
         super.addedToEngine(engine)
@@ -29,11 +42,30 @@ class MoveSystem : EntitySystem(), PhysicsStepListener {
     override fun beforeStep(dt: Float) {
         val list = entities ?: return
         for (entity in list) {
-            applyMainThrusters(entity.moveCmp, entity.bodyCmp.body)
+            val relativistic = entity.relativisticCmpOptional
+            if (relativistic != null) {
+                addProperAcceleration(entity.moveCmp, entity.bodyCmp.body, relativistic)
+            } else {
+                applyMainThrusters(entity.moveCmp, entity.bodyCmp.body)
+            }
         }
     }
 
     override fun afterStep(dt: Float) {
+    }
+
+    /** Relativistic ships feel a constant proper acceleration. RelativisticDynamics integrates the sum into u. */
+    private fun addProperAcceleration(moveComponent: MoveComponent, body: Body, rel: RelativisticComponent) {
+        val thrusters = moveComponent.thrusters
+        if (thrusters == 0f) return
+        val thr = if (thrusters > 0f) thrusters else thrusters * REVERSE_THRUST_FRACTION
+        val angle = body.angle
+        velocityFromU(rel.u.x, rel.u.y, SPEED_OF_LIGHT, velocity)
+        val gamma = gammaFromU(rel.u.x, rel.u.y, SPEED_OF_LIGHT)
+        thrustAccelWorld(
+            ENGINE_PROPER_ACCEL * thr, cos(angle), sin(angle), velocity.x, velocity.y, gamma, thrustAccel,
+        )
+        rel.accel.add(thrustAccel)
     }
 
     private fun applyMainThrusters(

@@ -38,6 +38,7 @@ import com.github.pepek42.asteroids.system.PlayerInputSystem
 import com.github.pepek42.asteroids.system.ProjectileSweepSystem
 import com.github.pepek42.asteroids.system.RemoveSystem
 import com.github.pepek42.asteroids.system.RenderSystem
+import com.github.pepek42.asteroids.system.RelativisticDynamics
 import com.github.pepek42.asteroids.system.WeaponSystem
 import com.github.pepek42.asteroids.ui.Hud
 import com.github.pepek42.asteroids.ui.MinimapViewport
@@ -75,6 +76,8 @@ class PlayScreen(
         val shimmerImpacts = ShimmerImpacts()
         val boundaryFieldSystem = BoundaryFieldSystem(mapProvider, shimmerImpacts)
         val projectileSweepSystem = ProjectileSweepSystem(world)
+        // Must be the last step listener: it integrates the accelerations the others added.
+        val relativisticDynamics = RelativisticDynamics()
         engine.add {
             addSystem(EndLevelSystem(game))
             addSystem(PlayerInputSystem(gameEventManager, camera))
@@ -83,7 +86,13 @@ class PlayScreen(
             addSystem(ContactSystem(world))
             addSystem(boundaryFieldSystem)
             addSystem(projectileSweepSystem)
-            addSystem(PhysicsSystem(world, engine, listOf(moveSystem, boundaryFieldSystem, projectileSweepSystem)))
+            addSystem(relativisticDynamics)
+            addSystem(
+                PhysicsSystem(
+                    world, engine,
+                    listOf(moveSystem, boundaryFieldSystem, projectileSweepSystem, relativisticDynamics),
+                )
+            )
             addSystem(CameraSystem(camera, gameEventManager, mapProvider))
             addSystem(RenderSystem(game, spriteBatch, viewport, FieldShimmerRenderer(shimmerImpacts, mapProvider)))
             if (IS_DEBUG) {

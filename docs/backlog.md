@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-054**.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-055**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -583,7 +583,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-036 Swept raycast for projectile hits; projectiles are consumed on hit
-- status: done (2026-11-01, PENDING36)
+- status: done (2026-11-01, d0da175)
 - result: ProjectileSweepSystem raycasts each step; projectiles hit once and are consumed; reviewer fixes applied to tests.
 - size: M
 - agent: kotlin-dev
@@ -602,7 +602,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Lasers reliably hit small asteroids and disappear on impact.
 
 ### ST-037 RelativisticComponent and RelativisticDynamics integrator
-- status: ready
+- status: done (2026-11-01, PENDING37)
+- result: Proper-velocity integrator with relativistic thrust, γ≤10 cap, NaN guard and collision readback; reviewer approved, minors in ST-054.
 - size: M
 - agent: kotlin-dev
 - depends: ST-025, ST-035, ST-036
@@ -618,13 +619,13 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
     - `afterStep(dt)`: copy `body.linearVelocity` into a scratch vector (Box2D reuses it). If `dst(vb, vSet) > COLLISION_EPS` (a contact changed it): `clampSpeed(vb, BETA_MAX_MASSIVE·c)`, `u = uFromV(vb)`. Then `tau += dt / gUsed`, `accel.setZero()`.
   - Providers, when `RELATIVITY_ENABLED`: the player and all asteroids (including split children through `spawnAsteroid`) get a `RelativisticComponent` with `u = uFromV(initial velocity)`. The player body gets `allowSleep = false`. Projectiles don't get one (photons are ST-039).
 - acceptance:
-  - [ ] Test (real `World`, `PhysicsSystem` + `MoveSystem` + `RelativisticDynamics`, no walls): a ship from rest with thrusters = 1 and fixed facing, after 94 steps (`t = 94/45` s), has β = `(a0t/c)/sqrt(1+(a0t/c)²)` ± 0.005 and τ = `(c/a0)·asinh(a0t/c)` ± 0.02
-  - [ ] Test: 20 s of thrust gives β < `BETA_MAX_MASSIVE`, γ ≤ 10 + 1e-3, and no NaN
-  - [ ] Test: at β = 0.9 along +x, thrust along +y for one step changes the velocity direction by `a0·dt/(γ²v)` rad ± 10 %
-  - [ ] Test: setting `u = NaN` leads, after one step, to `u = 0` and a finite body velocity
-  - [ ] Test: two relativistic circles collide head-on at 10 u/s each, and afterwards `u` equals `γ(v_body)·v_body` within 1e-3 for both
-  - [ ] With `RELATIVITY_ENABLED = false` the existing `MoveSystemTest` Newtonian tests pass unchanged
-  - [ ] `./gradlew core:test` passes
+  - [x] Test (real `World`, `PhysicsSystem` + `MoveSystem` + `RelativisticDynamics`, no walls): a ship from rest with thrusters = 1 and fixed facing, after 94 steps (`t = 94/45` s), has β = `(a0t/c)/sqrt(1+(a0t/c)²)` ± 0.005 and τ = `(c/a0)·asinh(a0t/c)` ± 0.02
+  - [x] Test: 20 s of thrust gives β < `BETA_MAX_MASSIVE`, γ ≤ 10 + 1e-3, and no NaN
+  - [x] Test: at β = 0.9 along +x, thrust along +y for one step changes the velocity direction by `a0·dt/(γ²v)` rad ± 10 %
+  - [x] Test: setting `u = NaN` leads, after one step, to `u = 0` and a finite body velocity
+  - [x] Test: two relativistic circles collide head-on at 10 u/s each, and afterwards `u` equals `γ(v_body)·v_body` within 1e-3 for both
+  - [x] With `RELATIVITY_ENABLED = false` the existing `MoveSystemTest` Newtonian tests pass unchanged
+  - [x] `./gradlew core:test` passes
 - playtest: The ship accelerates hard at first, then creeps toward c. Turning at high speed is much heavier. Asteroids behave as before at their low speeds.
 
 ### ST-038 Boundary field acts on proper velocity
@@ -812,6 +813,17 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] Tests: 10 u/s vs rest gives 0. Head-on at ±0.5c gives more damage than overtaking at 0.9c vs 0.4c with the same masses. Damage grows with the masses
   - [ ] `./gradlew core:test` passes
 - playtest: A near-c ram destroys a large asteroid in one hit, and a slow bump does nothing.
+
+### ST-054 RelativisticDynamics review minors
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-037
+- files: `system/RelativisticDynamics.kt`, `system/MoveSystem.kt`, `docs/tech/architecture.md`, tests
+- goal: Minor issues from the ST-037 review.
+- spec: (1) Renumber the architecture.md system table cleanly (no "7a"; RelativisticDynamics = 8, PhysicsSystem = 9, shift the rest) and fix any references. (2) In `afterStep` readback, derive the beta cap from `rel.gammaMax` (`sqrt(1 − 1/gammaMax²)`) instead of `BETA_MAX_MASSIVE`. (3) Add a code comment at the `COLLISION_EPS` readback explaining that velocity changes under the threshold are dropped. (4) Sort imports in `MoveSystem.kt`. (5) Tests: a pooled `RelativisticComponent` is fully reset; providers skip the component when relativity is disabled (if `RELATIVITY_ENABLED` is a `const`, test via a provider parameter or skip and note it).
+- acceptance:
+  - [ ] `./gradlew core:test` passes
 
 ### ST-049 Bring docs in line after M3
 - status: ready

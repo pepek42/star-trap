@@ -552,7 +552,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] The answer is added to game-design.md §11. For (b) or (c), ask the planner for a slug card in M3
 
 ### ST-035 Relativity math module (pure functions)
-- status: done (2026-11-01, PENDING35)
+- status: done (2026-11-01, 190ad9f)
 - result: Relativity.kt with γ, proper velocity, velocity addition, aberration, Doppler, thrust and γ_rel; 24 tests.
 - size: S
 - agent: kotlin-dev
@@ -583,7 +583,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] `./gradlew core:test` passes
 
 ### ST-036 Swept raycast for projectile hits; projectiles are consumed on hit
-- status: ready
+- status: done (2026-11-01, PENDING36)
+- result: ProjectileSweepSystem raycasts each step; projectiles hit once and are consumed; reviewer fixes applied to tests.
 - size: M
 - agent: kotlin-dev
 - depends: ST-021
@@ -594,10 +595,10 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - Extract `fun applyProjectileHit(engine: Engine, projectile: Entity, target: Entity)` (top-level, in `ContactSystem.kt`): if spent, return. Apply damage as today if the target has health. Set `spent = true` and add `RemoveComponent` if not already present. `ContactSystem.beginContact` uses it (it needs the engine, so use `EntitySystem.engine` once added).
   - `ProjectileSweepSystem(world) : EntitySystem(), PhysicsStepListener`, with family `allOf(ProjectileComponent, BodyComponent, TransformComponent)`. Register it before `PhysicsSystem` and add it to the listener list. `afterStep`: for each unspent projectile, `world.rayCast(callback, transform.prevPosition, body.position)` (`prevPosition` is the start-of-tick position set in `preProcess`; valid while `PHYSICS_SUBSTEPS = 1`). The callback ignores the projectile's own body, sensor fixtures, and targets whose `baseInfoCmp.faction` doesn't satisfy `projectileFaction.collidesWith(targetFaction)`. It keeps the smallest fraction. On a hit, call `applyProjectileHit`. Reuse one callback instance and preallocated vectors.
 - acceptance:
-  - [ ] Test (real `World`): a kinematic sensor projectile (r = 0.1) at 89 u/s whose consecutive step positions straddle a static circle target (r = 0.3) without overlapping it damages the target exactly once and gets `RemoveComponent`
-  - [ ] Test: a projectile that overlaps the target in `beginContact` and is also swept in the same step damages it only once
-  - [ ] Test: a PLAYER projectile ignores a PLAYER-faction target in the sweep
-  - [ ] `./gradlew core:test` passes
+  - [x] Test (real `World`): a kinematic sensor projectile (r = 0.1) at 89 u/s whose consecutive step positions straddle a static circle target (r = 0.3) without overlapping it damages the target exactly once and gets `RemoveComponent`
+  - [x] Test: a projectile that overlaps the target in `beginContact` and is also swept in the same step damages it only once
+  - [x] Test: a PLAYER projectile ignores a PLAYER-faction target in the sweep
+  - [x] `./gradlew core:test` passes
 - playtest: Lasers reliably hit small asteroids and disappear on impact.
 
 ### ST-037 RelativisticComponent and RelativisticDynamics integrator

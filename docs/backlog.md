@@ -379,7 +379,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Flying into the edge curves you back smoothly with no teleport. Asteroids drift off the edges. Lasers fired at the wall curve back and can hit asteroids on the rebound.
 
 ### ST-026 Camera may show the field skin; minimap shows the skin
-- status: done (2026-11-01, 7d89449)
+- status: done (2026-11-01, 45fb6fc)
 - result: clampCameraAxis with margin plus minimap skin rectangle; 4 tests.
 - size: S
 - agent: junior-dev
@@ -395,7 +395,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Near the edge you can see a strip of space beyond the arena. The minimap shows an inner rectangle where the field starts.
 
 ### ST-027 Shimmer impact buffer and emission from the field
-- status: ready
+- status: done (2026-11-01, e5e8c1d)
+- result: ShimmerImpacts buffer (16 slots, throttled, decay eviction) fed from field and backstop; 7 tests.
 - size: S
 - agent: kotlin-dev
 - depends: ST-025
@@ -407,9 +408,9 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `fun prune()`: drops entries older than `SHIMMER_IMPACT_LIFETIME` and compacts the array.
   - `BoundaryFieldSystem` takes a `ShimmerImpacts` (created in `PlayScreen`, which later also gives it to the renderer). In `afterStep`, for each body with `q = boundaryDepthQ(...) > 0.1`, it emits at the centre projected onto the nearest wall, with strength `q^FIELD_EXPONENT` and id `baseInfoCmp.id`. Backstop hits emit with `strength = 1.5f, force = true`. It calls `prune()` once per `afterStep`.
 - acceptance:
-  - [ ] Tests: the same id twice within 0.25 s stores one impact, and after 0.3 s stores two. `force = true` bypasses the throttle. 20 emits into capacity 16 keep 16 and evict the weakest decayed one. `prune` removes entries older than 1.5 s
-  - [ ] No allocation in `emit` or `prune` (arrays are preallocated)
-  - [ ] `./gradlew core:test` passes
+  - [x] Tests: the same id twice within 0.25 s stores one impact, and after 0.3 s stores two. `force = true` bypasses the throttle. 20 emits into capacity 16 keep 16 and evict the weakest decayed one. `prune` removes entries older than 1.5 s
+  - [x] No allocation in `emit` or `prune` (arrays are preallocated)
+  - [x] `./gradlew core:test` passes
 
 ### ST-028 Field shimmer shader
 - status: ready

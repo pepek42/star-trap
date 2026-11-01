@@ -9,15 +9,20 @@ import com.badlogic.gdx.physics.box2d.Body
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.TransformComponent
+import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.physics.BoundaryFieldParams
 import com.github.pepek42.asteroids.physics.FIELD_BACKSTOP_RESTITUTION
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
+import com.github.pepek42.asteroids.physics.FIELD_EXPONENT
 import com.github.pepek42.asteroids.physics.boundaryAcceleration
+import com.github.pepek42.asteroids.physics.boundaryDepthQ
+import com.github.pepek42.asteroids.render.ShimmerImpacts
 import com.github.pepek42.asteroids.provider.MapProvider
 import ktx.ashley.allOf
+import kotlin.math.pow
 import ktx.log.logger
 
 /**
@@ -26,6 +31,7 @@ import ktx.log.logger
  */
 class BoundaryFieldSystem(
     private val mapProvider: MapProvider,
+    private val impacts: ShimmerImpacts = ShimmerImpacts(),
     private val params: BoundaryFieldParams = BoundaryFieldParams(),
 ) : EntitySystem(), PhysicsStepListener {
     private var entities: ImmutableArray<Entity> = ImmutableArray(com.badlogic.gdx.utils.Array())
@@ -62,16 +68,47 @@ class BoundaryFieldSystem(
     }
 
     override fun afterStep(dt: Float) {
+        impacts.time += dt
         for (i in 0 until entities.size()) {
             val bodyCmp = entities[i].bodyCmp
             val body = bodyCmp.body
             if (body.type == BodyDef.BodyType.StaticBody) continue
             if (bodyCmp.boundingRadius < 0f) bodyCmp.boundingRadius = computeBoundingRadius(body)
-            enforceBackstop(body, bodyCmp.boundingRadius)
+            val id = entityId(entities[i])
+            emitFieldImpact(id, body, bodyCmp.boundingRadius)
+            enforceBackstop(id, body, bodyCmp.boundingRadius)
+        }
+        impacts.prune()
+    }
+
+    /** BaseInfoComponent id, or the entity identity hash for entities without one (e.g. in tests). */
+    private fun entityId(entity: Entity): Int = baseInfoMapper.get(entity)?.id ?: System.identityHashCode(entity)
+
+    private fun emitFieldImpact(id: Int, body: Body, rBody: Float) {
+        val w = mapProvider.mapWidth
+        val h = mapProvider.mapHeight
+        val x = body.position.x
+        val y = body.position.y
+        val q = boundaryDepthQ(x, y, rBody, w, h, params)
+        if (q <= SHIMMER_MIN_Q) return
+        emitAtNearestWall(id, x, y, w, h, q.pow(FIELD_EXPONENT), false)
+    }
+
+    private fun emitAtNearestWall(id: Int, x: Float, y: Float, w: Float, h: Float, strength: Float, force: Boolean) {
+        val dLeft = x
+        val dRight = w - x
+        val dBottom = y
+        val dTop = h - y
+        val dMin = minOf(minOf(dLeft, dRight), minOf(dBottom, dTop))
+        when (dMin) {
+            dLeft -> impacts.emit(id, 0f, y, strength, force)
+            dRight -> impacts.emit(id, w, y, strength, force)
+            dBottom -> impacts.emit(id, x, 0f, strength, force)
+            else -> impacts.emit(id, x, h, strength, force)
         }
     }
 
-    private fun enforceBackstop(body: Body, rBody: Float) {
+    private fun enforceBackstop(id: Int, body: Body, rBody: Float) {
         val r = if (params.useBodyRadius) rBody else 0f
         val w = mapProvider.mapWidth
         val h = mapProvider.mapHeight
@@ -97,11 +134,14 @@ class BoundaryFieldSystem(
         if (!hit) return
         body.setTransform(x, y, body.angle)
         body.setLinearVelocity(vx, vy)
+        emitAtNearestWall(id, x, y, w, h, BACKSTOP_STRENGTH, true)
         defaultLoggingUtils.tryLogging { logger.debug { "Boundary backstop hit at ($x, $y)" } }
     }
 
     companion object {
         private val logger = logger<BoundaryFieldSystem>()
         private const val BACKSTOP_GAP = 0.01f
+        private const val SHIMMER_MIN_Q = 0.1f
+        private const val BACKSTOP_STRENGTH = 1.5f
     }
 }

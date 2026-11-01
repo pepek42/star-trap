@@ -28,7 +28,8 @@ class BoundaryFieldSystemTest {
     private val world = World(Vector2.Zero, true).apply { setAutoClearForces(false) }
     private val engine = Engine()
     private val mapProvider = MapProvider(mock())
-    private val field = BoundaryFieldSystem(mapProvider)
+    private val impacts = com.github.pepek42.asteroids.render.ShimmerImpacts()
+    private val field = BoundaryFieldSystem(mapProvider, impacts)
     private val physics: PhysicsSystem
 
     init {
@@ -109,6 +110,23 @@ class BoundaryFieldSystemTest {
         step()
         assertTrue(body.position.x + 0.1f < 100f, "x=${body.position.x}")
         assertTrue(body.linearVelocity.x < 0f)
+    }
+
+    @Test
+    fun bodyInSkinEmitsImpactOnNearestWall() {
+        addBody(BodyDef.BodyType.DynamicBody, 97f, 50f, 0f, radius = 0.1f)
+        step()
+        assertEquals(1, impacts.count)
+        assertEquals(100f, impacts.data[0])
+        assertEquals(50f, impacts.data[1], 0.01f)
+    }
+
+    @Test
+    fun backstopEmitsForcedStrongImpact() {
+        addBody(BodyDef.BodyType.DynamicBody, 99.8f, 50f, 80f, radius = 0.1f)
+        step()
+        assertTrue(impacts.count >= 2)
+        assertEquals(1.5f, impacts.data[(impacts.count - 1) * 4 + 3])
     }
 
     @Test

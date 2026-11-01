@@ -22,6 +22,7 @@ import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.system.CameraSystem
 import com.github.pepek42.asteroids.system.ContactSystem
 import com.github.pepek42.asteroids.system.DeathSystem
+import com.github.pepek42.asteroids.system.LifetimeSystem
 import com.github.pepek42.asteroids.system.DebugSystem
 import com.github.pepek42.asteroids.system.EndLevelSystem
 import com.github.pepek42.asteroids.system.HudSystem
@@ -82,6 +83,7 @@ class PlayScreen(
             }
             addSystem(HudSystem(hud))
             addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider))
+            addSystem(LifetimeSystem())
             addSystem(DeathSystem(engine, asteroidProvider, game.get<RandomXS128>()))
             addSystem(RemoveSystem(world, mapProvider))
         }

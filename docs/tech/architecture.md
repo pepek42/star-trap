@@ -46,12 +46,13 @@ Systems are registered in `PlayScreen.setupEcs()`. **Registration order is execu
 | 10 | `DebugSystem` | (only when `IS_DEBUG`) Box2D debug renderer |
 | 11 | `HudSystem` | scene2d HUD |
 | 12 | `MinimapSystem` | Bottom-right minimap (`ui/MinimapViewport`): arena background, entity dots, camera view rectangle, arena border |
-| 13 | `DeathSystem` | health ≤ 0 → asteroid split, add `RemoveComponent` |
-| 14 | `RemoveSystem` | Out-of-bounds tagging, destroys bodies, removes entities |
+| 13 | `LifetimeSystem` | `LifetimeComponent.remaining -= dt`; at 0 adds `RemoveComponent`; fades sprite alpha over the last `LIFETIME_FADE_SECONDS` |
+| 14 | `DeathSystem` | health ≤ 0 → asteroid split, add `RemoveComponent` |
+| 15 | `RemoveSystem` | Out-of-bounds safety net (20 % map margin: player is clamped back inside, others get `RemoveComponent`), destroys bodies, removes entities |
 
 ## Components (`core/.../component/`)
 
-`BaseInfoComponent` (id, faction, `EntityType`; every entity has one), `BodyComponent` (Box2D body), `TransformComponent` (prev + interpolated position/rotation), `SpriteComponent`, `MoveComponent` (thrusters −1..1, `targetAngleRad` world angle or null), `WeaponComponent`, `ProjectileComponent` (sealed projectile types, currently `LaserProjectile`), `HealthComponent`, `AsteroidComponent`, `PlayerComponent` (mapper and `playerCmpOptional`), `ShipHandlingComponent` (per-ship PD gains, defaults from `ShipRotationController`), `WrapComponent`, `RemoveComponent`.
+`BaseInfoComponent` (id, faction, `EntityType`; every entity has one), `BodyComponent` (Box2D body), `TransformComponent` (prev + interpolated position/rotation), `SpriteComponent`, `MoveComponent` (thrusters −1..1, `targetAngleRad` world angle or null), `WeaponComponent`, `ProjectileComponent` (sealed projectile types, currently `LaserProjectile`), `HealthComponent`, `AsteroidComponent`, `PlayerComponent` (mapper and `playerCmpOptional`), `ShipHandlingComponent` (per-ship PD gains, defaults from `ShipRotationController`), `WrapComponent`, `LifetimeComponent` (remaining/total, `LifetimeClock` WORLD or PROPER, `bouncesLeft`, -1 = unlimited), `RemoveComponent`.
 
 The convention is described in `CLAUDE.md`: a `Poolable` class, `xxxMapper`, and `Entity.xxxCmp`/`xxxCmpOptional`.
 

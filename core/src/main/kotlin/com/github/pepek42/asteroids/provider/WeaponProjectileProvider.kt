@@ -9,6 +9,8 @@ import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.LaserProjectile
+import com.github.pepek42.asteroids.component.LifetimeClock
+import com.github.pepek42.asteroids.component.LifetimeComponent
 import com.github.pepek42.asteroids.component.ProjectileComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
@@ -16,6 +18,8 @@ import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.component.WrapComponent
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.bodyCmp
+import com.github.pepek42.asteroids.weapon.PHOTON_MAX_BOUNCES
+import com.github.pepek42.asteroids.weapon.PHOTON_WORLD_LIFETIME
 import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.ashley.entity
 import ktx.ashley.with
@@ -80,6 +84,14 @@ class WeaponProjectileProvider(
             }
             if (weaponCmp.weaponType.trapped) {
                 with<WrapComponent>()
+            }
+            if (weaponCmp.weaponType == WeaponType.LASER) {
+                with<LifetimeComponent> {
+                    remaining = PHOTON_WORLD_LIFETIME
+                    total = PHOTON_WORLD_LIFETIME
+                    clock = LifetimeClock.WORLD
+                    bouncesLeft = PHOTON_MAX_BOUNCES
+                }
             }
             with<ProjectileComponent> {
                 projectile = LaserProjectile().apply { damage = 50f }

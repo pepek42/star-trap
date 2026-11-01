@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-051**.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-052**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -293,7 +293,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - playtest: Thrust feels exactly as before.
 
 ### ST-022 Boundary field force law (pure functions)
-- status: done (2026-11-01, 251856f)
+- status: done (2026-11-01, e0fc27a)
 - result: BoundaryField.kt implements research §3 force law; 11 tests incl. Euler bounce simulation.
 - size: S
 - agent: kotlin-dev
@@ -335,7 +335,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] `./gradlew core:test` passes
 
 ### ST-024 Projectile lifetime; out-of-bounds removal becomes a safety net
-- status: ready
+- status: done (2026-11-01, ef13301)
+- result: LifetimeComponent/LifetimeSystem added; lasers fade after 2 s; player is clamped, never removed.
 - size: S
 - agent: kotlin-dev
 - depends: —
@@ -348,9 +349,9 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `WeaponProjectileProvider`: lasers get `LifetimeComponent(remaining = total = PHOTON_WORLD_LIFETIME, clock = WORLD, bouncesLeft = PHOTON_MAX_BOUNCES)`.
   - `RemoveSystem`: rename `REMOVE_BUFFER_MULTIPLAYER` to `REMOVE_BUFFER_FRACTION = 0.20f`. When out of bounds: if `entity.playerCmpOptional != null`, `setTransform` the body to the position clamped into `[1, W−1] × [1, H−1]`, zero its linear velocity, and log a warning (throttled via `defaultLoggingUtils.tryLogging`). Never remove the player. Otherwise add `RemoveComponent` and log a throttled warning. Keep the `wrapMapper` exemption for now (ST-025 deletes it).
 - acceptance:
-  - [ ] Test (`PooledEngine` + `LifetimeSystem`): lifetime 0.5. After `update(0.3)` there's no `RemoveComponent`. After another `update(0.3)` there is
-  - [ ] Test: a player entity with a real body at (130, 50) on a 100×100 map is moved inside and not removed. A non-player body entity at (130, 50) gets `RemoveComponent`. A body at (110, 50) is left alone (inside the 20 % margin)
-  - [ ] `./gradlew core:test` passes
+  - [x] Test (`PooledEngine` + `LifetimeSystem`): lifetime 0.5. After `update(0.3)` there's no `RemoveComponent`. After another `update(0.3)` there is
+  - [x] Test: a player entity with a real body at (130, 50) on a 100×100 map is moved inside and not removed. A non-player body entity at (130, 50) gets `RemoveComponent`. A body at (110, 50) is left alone (inside the 20 % margin)
+  - [x] `./gradlew core:test` passes
 - playtest: Lasers fade out after about 2 s instead of vanishing at the map edge.
 
 ### ST-025 BoundaryFieldSystem replaces the wrap teleport
@@ -438,6 +439,17 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] Every statement in the updated sections can be traced to the current code
 
 ---
+
+### ST-051 WeaponProjectileProviderTest asserts laser lifetime
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-024
+- files: `core/src/test/kotlin/com/github/pepek42/asteroids/provider/WeaponProjectileProviderTest.kt`
+- goal: The test is a TODO stub (follow-up from ST-024).
+- spec: Build a laser via `WeaponProjectileProvider` with a `PooledEngine` and real `World`; assert it has `LifetimeComponent` with `remaining == total == PHOTON_WORLD_LIFETIME`, `clock == WORLD`, `bouncesLeft == PHOTON_MAX_BOUNCES`.
+- acceptance:
+  - [ ] Test exists and passes; `./gradlew core:test` passes
 
 ## M3 Relativity MVP
 

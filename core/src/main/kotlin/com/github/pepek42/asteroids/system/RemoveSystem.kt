@@ -10,6 +10,7 @@ import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.bodyMapper
+import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.removeMapper
 import com.github.pepek42.asteroids.component.wrapMapper
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
@@ -24,9 +25,18 @@ class RemoveSystem(
 ) : IteratingSystem(oneOf(RemoveComponent::class, TransformComponent::class).get()) {
     override fun processEntity(entity: Entity, deltaTime: Float) {
         if (entity.has(bodyMapper) && !entity.has(wrapMapper) && !entity.has(removeMapper)) {
-            if (isOutOfBounds(entity.bodyCmp.body.position)) {
-                entity.add(RemoveComponent())
-                defaultLoggingUtils.tryLogging { logger.debug { "Adding remove component to ${entity.baseInfoCmp}" } }
+            val body = entity.bodyCmp.body
+            if (isOutOfBounds(body.position)) {
+                if (entity.playerCmpOptional != null) {
+                    val x = body.position.x.coerceIn(PLAYER_CLAMP_MARGIN, mapProvider.mapWidth - PLAYER_CLAMP_MARGIN)
+                    val y = body.position.y.coerceIn(PLAYER_CLAMP_MARGIN, mapProvider.mapHeight - PLAYER_CLAMP_MARGIN)
+                    body.setTransform(x, y, body.angle)
+                    body.setLinearVelocity(0f, 0f)
+                    defaultLoggingUtils.tryLogging { logger.info { "WARN: Player out of bounds, clamped to ($x, $y)" } }
+                } else {
+                    entity.add(RemoveComponent())
+                    defaultLoggingUtils.tryLogging { logger.info { "WARN: Out of bounds, removing ${entity.baseInfoCmp}" } }
+                }
             }
         }
         if (entity.has(removeMapper)) {
@@ -40,13 +50,14 @@ class RemoveSystem(
     }
 
     private fun isOutOfBounds(position: Vector2) =
-        position.x < -mapProvider.mapWidth * REMOVE_BUFFER_MULTIPLAYER
-            || position.x > mapProvider.mapWidth * (1 + REMOVE_BUFFER_MULTIPLAYER)
-            || position.y < -mapProvider.mapHeight * REMOVE_BUFFER_MULTIPLAYER
-            || position.y > mapProvider.mapHeight * (1 + REMOVE_BUFFER_MULTIPLAYER)
+        position.x < -mapProvider.mapWidth * REMOVE_BUFFER_FRACTION
+            || position.x > mapProvider.mapWidth * (1 + REMOVE_BUFFER_FRACTION)
+            || position.y < -mapProvider.mapHeight * REMOVE_BUFFER_FRACTION
+            || position.y > mapProvider.mapHeight * (1 + REMOVE_BUFFER_FRACTION)
 
     companion object {
         private val logger = logger<RemoveSystem>()
-        private const val REMOVE_BUFFER_MULTIPLAYER = 0.05f
+        private const val PLAYER_CLAMP_MARGIN = 1f
+        private const val REMOVE_BUFFER_FRACTION = 0.20f
     }
 }

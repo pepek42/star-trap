@@ -15,7 +15,7 @@ Argument: a number N (cards to finish this run, default 3), or a card id to do j
 - All agent work happens on the **`AI-slop`** branch. If you're on another branch, `git switch AI-slop` (or `git switch -c AI-slop` if it doesn't exist). Never commit to `master` or `stack-update`. Never push.
 
 ## 1. Pick a card
-Read `docs/backlog.md`. Take the first card in milestone order with `status: ready` whose `depends` are all `done`.
+Read `docs/backlog.md`. If it has a `## Implementation order` list, take the first card in that list with `status: ready` whose `depends` are all `done`. Otherwise take the first such card in milestone order. Cards added as follow-ups go into the order list right after the card that produced them.
 - None ready, but there are roadmap items with no cards (`docs/design/todo.md`, game-design milestones) or new research in `docs/research/`: spawn **planner** with "Plan the next milestone", then re-read.
 - A card has `size: L`: spawn **planner** to split it first.
 - Nothing left: stop and report.

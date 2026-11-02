@@ -96,7 +96,7 @@ Tunables: the speed of light `c` (it has to fit Box2D's ~90 u/s speed cap at 45 
 
 The planner and auto-dev put new questions here or on `needs-user` backlog cards.
 
-1. Should black holes move, and may they leave the map? *Recommendation: they're static or slowly drifting, always inside the arena, and the boundary field also acts on them.*
+1. ~~Should black holes move, and may they leave the map?~~ *Answered 2026-11-02: they start static and then move under gravity, and the boundary field keeps them inside the arena (see Decisions).*
 2. What should the HUD time readout show: player proper time, world time, or both? *Recommendation: both, with the ratio γ shown prominently.*
 3. Should the effect intensity sliders be exposed to players, or developer-only for now? *Recommendation: developer constants now, with an options menu in M7.*
 
@@ -106,7 +106,17 @@ The planner and auto-dev put new questions here or on `needs-user` backlog cards
 - 2026-11-01 (ST-032): There's **no gameplay γ cap**: "it should be capped by relativity effects themselves". Only a numerical safety bound `GAMMA_MAX_MASSIVE = 50` remains, and it's tunable in the debug panel. In practice the arena and the boundary field limit γ.
 - 2026-11-01: The control scheme is **open**. Mouse-hull (today), twin-stick and auto-aim become switchable at runtime (`--controls=`, debug panel) so the owner can try them. The default is decided in ST-063 (recommendation: twin-stick).
 
+- 2026-11-02 (interview): **The game is perceived from the pilot's frame.** Owner: "In relativity there is no world clock... I want the game to be perceived from player time perspective." The game clock is the pilot's proper time τ (research E21): the arena advances γ·dt_real per frame, and guns and turning run normally in τ. Fast-forward is capped at about 10× (declared FAKE past the cap, shown on the HUD). The sim stays in the arena frame. The main screen becomes the pilot view (E8/E9, pulled forward from M4). The minimap stays a "tactical computer" with true arena positions. Aim help is a lead marker. This replaces ST-031.
+- 2026-11-02 (ST-033): Ramming: **yes**. Box2D mass = γ·m₀ (capped at 8), and impact damage comes from relativistic kinetic energy.
+- 2026-11-02 (ST-034): The default weapon is the **photon laser at c** with muzzle aberration. The slug comes later as an upgrade.
+- 2026-11-02: **Braking boost.** Engine proper accel = a0·(1 + k·max(0, −cos θ)), with k = 2 (3× when burning straight against your motion).
+- 2026-11-02: **Shots leave the arena.** The boundary field ignores projectiles (no mirrors or bounces). A ripple shows where they cross.
+- 2026-11-02: The next big areas are relativistic visuals and gravity/black holes. Black holes are **fixed, 1–2 per level**: gravity bends ships and shots, the horizon kills, and a bright accretion disk makes them readable.
+- 2026-11-02 (follow-up, Q1): Black holes, planets and decoration **start static but are dynamic**: they feel gravity from each other (n-body) and from the player, and the boundary field keeps them in the arena; counts stay low for performance. **Lighting:** the accretion disk (not the hole) and a distant star light nearby sprites with falloff and direction, and planets and large asteroids cast shadows; in pilot view, emitter light delay is skipped as a declared approximation.
+
 ## 12. Ideas parking lot
+
+- Control modes in settings (later): (a) auto-aim + auto-shoot (Brotato / vampire-survivors style, where the player mostly manages momentum) and (b) slow-mo aim: holding LMB strongly slows time (a declared FAKE "targeting trance"), with a lead indicator and an instant turn toward the aim.
 
 - Time-dilation bullet time: going fast gives you "more" time to aim, as a natural slow-mo.
 - A "light weapon" fired at exactly c: you can't outrun it, but you can dodge it if you see it coming late.

@@ -1,8 +1,72 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-064**.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-100**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
+
+## Implementation order
+
+Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
+
+M3 Relativity MVP:
+1. ST-066 Braking boost
+2. ST-067 Shots leave the arena; ripple where they cross
+3. ST-039 Photon lasers: muzzle aberration
+4. ST-068 Pilot clock: time-warp functions, GameClock, settings
+5. ST-069 Pilot clock wiring
+6. ST-040 Ship clocks under the pilot clock
+7. ST-070 LightHistory ring buffer and retarded-time solver
+8. ST-071 LightHistorySystem
+9. ST-072 PilotFrame transforms
+10. ST-073 PhotonAim
+11. ST-044 Length contraction of moving sprites (needed by ST-074)
+12. ST-074 Pilot view: retarded, boosted sprites
+13. ST-076 Pilot-frame aiming
+14. ST-078 Lead markers
+15. ST-075 Pilot view: Terrell rotation
+16. ST-043 Doppler colour and searchlight on the starfield
+17. ST-077 Pilot view: starfield, field band and shimmer
+18. ST-045 Doppler tint on sprites
+19. ST-038 Boundary field acts on proper velocity
+20. ST-047 Relativistic mass in Box2D collisions
+21. ST-048 Impact damage from relativistic kinetic energy
+22. ST-042 HUD: β, γ, ship/world time, warp; speed zoom
+23. ST-060 Debug vector overlay
+24. ST-061 Twin-stick control scheme
+25. ST-064 RelativitySettings follow-ups
+26. ST-065 Debug panel polish
+27. ST-020 Owner decision: value of c (**needs-user**)
+28. ST-023 Owner decision: boundary field damping (**needs-user**)
+29. ST-049 Bring docs in line after M3
+
+M4 Relativistic view:
+30. ST-079 Ghosts of removed entities
+31. ST-080 Searchlight k = 2 in pilot view
+32. ST-081 Doppler-scaled photon damage
+
+M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
+33. ST-092 Owner decision: how strongly gravity sources pull each other (**needs-user**, ask early; ST-083 uses the recommended 0.1)
+34. ST-082 Gravity math (pure)
+35. ST-083 GravitySystem: n-body sources, bodies and photons
+36. ST-084 Player death ends the run
+37. ST-085 Black holes: spawn, horizon, merge, shadow, rings
+38. ST-093 Planets: solid gravity sources
+39. ST-094 Level decoration: drifting debris
+40. ST-086 Gravitational time dilation
+41. ST-087 Accretion disk
+42. ST-089 Accretion disk in pilot view
+43. ST-095 Lighting math (pure)
+44. ST-096 Normal maps from alpha in the texture packer
+45. ST-097 Lit sprites: accretion disks light ships, asteroids and planets
+46. ST-098 Shadows from planets and large asteroids
+47. ST-099 A distant star as a directional light
+48. ST-088 Gravitational lensing of the backdrop
+49. ST-090 Bring docs in line after M4/M5
+
+Parked:
+50. ST-062 Auto-aim + auto-shoot scheme
+51. ST-091 Targeting-trance scheme
+52. ST-063 Owner decision: default control scheme (**needs-user**)
 
 ---
 
@@ -488,6 +552,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - note: Source is `docs/research/relativity-effects.md` §2, §4 Tier 1 (E1–E7) and §7 items 7–15. **Differences from `docs/design/game-design.md` §6:** the research promotes relativistic velocity addition for projectiles (GDD "Maybe") to MVP because Galilean addition breaks the c cap. It also moves length contraction (GDD "Next") into MVP in world view, and adds γ-mass collisions, speed zoom and a mild searchlight (k = 1) to MVP. The HUD shows ship time τ and world time t, which answers GDD §11 Q2 with "both". The GDD parking-lot idea "fast = bullet time" is physically backwards (research E2), so it's not planned. The GDD isn't edited here. ST-049 reconciles it once the owner has answered the questions below. **Feature flag:** `RELATIVITY_ENABLED` (ST-037). When false, providers don't attach `RelativisticComponent` and the Newtonian M2 path runs unchanged. (Superseded by ST-056: the flag becomes a runtime setting, and providers always attach the component.) **Owner questions** ST-030 … ST-034 are `needs-user`. Every other card is planned around their recommended answers and isn't blocked by them.
 - note (2026-11-01, owner playtest after M2 + ST-037): "Feels a bit chaotic, maybe the arena should be bigger" → ST-030 answered (c), and ST-046 now also calms a0 and the asteroid spawn. "Relativity debug options on the side" → ST-056 (runtime `RelativitySettings`), ST-057 (plumbing), ST-059 (panel), ST-060 (vector overlay). Controls are undecided → ST-058/ST-061/ST-062 make schemes (a)/(b)/(c) switchable at runtime, and ST-063 asks for the default. γ: no gameplay cap (ST-032), safety bound 50 (ST-055). **From ST-056 on**, runtime code reads c, a0, the γ cap, field params and relativity/field on/off from the DI singleton `RelativitySettings`, not the consts (the consts are its defaults). Cards written earlier (ST-038 … ST-048) that say `SPEED_OF_LIGHT`, `ENGINE_PROPER_ACCEL`, `BETA_MAX_MASSIVE` or `RELATIVITY_ENABLED` mean the corresponding setting once ST-056 is done.
 
+- note (2026-11-02, owner interview, game-design.md §11): **The game is perceived from the pilot's frame.** The game clock is the pilot's proper time (research E21): the arena advances `γ·dt_real` per frame, capped at about 10× (declared FAKE past the cap, shown on the HUD), and the player's guns and turning run on real time (ST-068, ST-069, ST-040). **Pilot view is the main rendering** and is pulled forward from M4 into this milestone (E8 light delay + E9 aberration: ST-070 … ST-078, default on). The minimap stays true arena positions ("tactical computer"). Aim help is a lead marker (ST-078). Also decided: braking boost (ST-066), shots leave the arena instead of bouncing (ST-067, reworks ST-039), ramming yes (ST-033), photon laser default (ST-034). The alternative control modes (auto-aim + auto-shoot, targeting trance) are **parked** at the end of the backlog.
+
 ### ST-015 Plan M3 (relativity MVP) from research
 - status: done (2026-11-01)
 - result: Created ST-030 … ST-049 for M3 (ST-030 … ST-034 are `needs-user`) and the M4 planning placeholder ST-050. The choice of c moved to M2 (ST-019/ST-020).
@@ -511,7 +577,9 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] The answer is added to game-design.md §11. If not (c): change ST-046's values (or set it to done with "not needed" for (a))
 
 ### ST-031 Owner decision: what time dilation does to gameplay
-- status: needs-user
+- status: done (2026-11-02)
+- result: Replaced: the game clock is the pilot's proper time (owner interview 2026-11-02, research E21, game-design.md §11). The arena advances γ·dt_real per frame (capped ~10×, FAKE past the cap). Guns and turning run on real time, so they are not dilated from the player's view. None of options (a)–(c) applies. Implemented by ST-068, ST-069 and the rewritten ST-040.
+- answer: replaced, game clock = pilot proper time.
 - size: S
 - agent: junior-dev
 - depends: —
@@ -535,7 +603,9 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] The answer is added to game-design.md §11. For (b), set `GAMMA_MAX_MASSIVE = 30f` (still a safety bound). For (c), ask the planner for a card
 
 ### ST-033 Owner decision: ramming at relativistic mass
-- status: needs-user
+- status: done (2026-11-02)
+- result: Owner chose (a): Box2D mass = γ·m₀ (capped at 8), impact damage from relativistic kinetic energy. Recorded in game-design.md §11. ST-047/ST-048 implement it as planned.
+- answer: (a).
 - size: S
 - agent: junior-dev
 - depends: —
@@ -546,7 +616,9 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] The answer is added to game-design.md §11. For (b): set `GAMMA_MASS_ENABLED = false` and mark ST-048 done with "not needed" (or revert it if already done)
 
 ### ST-034 Owner decision: default weapon
-- status: needs-user
+- status: done (2026-11-02)
+- result: Owner chose (a): the photon laser at exactly c with muzzle aberration is the default; the slug at 0.7c comes later as a roguelike upgrade (plan it with M7). Recorded in game-design.md §11. ST-039 implements the laser (field mirrors dropped by the same interview, see ST-067).
+- answer: (a).
 - size: S
 - agent: junior-dev
 - depends: —
@@ -793,6 +865,48 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [x] Screenshot via the harness with `--debug-panel --seed=42 --thrust --frames=150` shows the panel on the right with non-zero β, and the agent has looked at it
 - playtest: F1 shows and hides the panel. Dragging a slider doesn't fire or thrust. Dropping c to 30 makes the ship hit "near c" much sooner. 0.25× time makes bounces and aberration easy to watch. Relativity off lets the ship go past c, up to the Box2D clamp.
 
+### ST-066 Braking boost: engines push harder against the motion
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-056, ST-059
+- files: `physics/Relativity.kt`, `physics/PhysicsConstants.kt`, `physics/RelativitySettings.kt`, `system/MoveSystem.kt`, `ui/DebugPanel.kt`; tests in `physics/RelativityTest.kt`, `physics/RelativitySettingsTest.kt`, `system/MoveSystemTest.kt`, `ui/DebugPanelTest.kt`
+- goal: Owner decision 2026-11-02 (top priority). Shedding speed near c takes too long, so the engine's proper acceleration grows when it burns against the current motion: `a = a0·(1 + k·max(0, −cos θ))`, with θ the angle between the thrust direction and the velocity and k = 2 (3× when burning straight against the motion). Burning along or across the motion is unchanged.
+- spec:
+  - `PhysicsConstants.kt`: `const val BRAKE_BOOST_K = 2f` with KDoc citing the owner decision.
+  - `Relativity.kt`: `fun brakeBoostFactor(dirX: Float, dirY: Float, vx: Float, vy: Float, k: Float): Float`. `dir` is the unit thrust direction. `speed = sqrt(vx² + vy²)`. If `speed < 1e-6f` return `1f`. Otherwise `cos = (dirX·vx + dirY·vy) / speed` and return `1f + k·max(0f, −cos)`.
+  - `RelativitySettings`: append a last constructor param `brakeBoost: Float = BRAKE_BOOST_K` and a `var brakeBoost` whose setter clamps to `[0f, 5f]` (same pattern as `engineProperAccel`).
+  - `MoveSystem.addProperAcceleration`: after computing `thr`, `velocity` and `gamma`, let `s = sign(thr)` (reverse thrust pushes backwards, so the thrust direction is `s·(cos angle, sin angle)`). `boost = brakeBoostFactor(s·cos(angle), s·sin(angle), velocity.x, velocity.y, settings.brakeBoost)`. Pass `settings.engineProperAccel * thr * boost` as the first argument of `thrustAccelWorld` (it was `settings.engineProperAccel * thr`). The Newtonian path (`applyMainThrusters`, relativity off) is unchanged.
+  - `DebugPanel.build`: add `slider("brake boost", 0f, 5f, 0.1f, 1, { relativitySettings.brakeBoost }) { relativitySettings.brakeBoost = it }` right after the `a0` slider. `resetDebugDefaults` sets `relativity.brakeBoost = BRAKE_BOOST_K`.
+- acceptance:
+  - [ ] Tests for `brakeBoostFactor` with k = 2: thrust along v gives 1; against v gives 3; perpendicular gives 1; at 120° from v gives 2 ± 1e-5; v = 0 gives 1; k = 0 always gives 1
+  - [ ] Test: `RelativitySettings(brakeBoost = 9f).brakeBoost == 5f`, `brakeBoost = -1f` clamps to 0
+  - [ ] Test (`MoveSystemTest`, call `beforeStep` directly and read `rel.accel` before `RelativisticDynamics` clears it): a ship with `u` for β = 0.5 along +x, facing −x, thrusters = 1, gets `accel.x = −3·a0 ± 1e-3` and `accel.y ≈ 0`. With `settings.brakeBoost = 0f` it gets `−a0`. Facing +x with thrusters = −1 (reverse), it gets `−3·a0·REVERSE_THRUST_FRACTION`
+  - [ ] Test: `resetDebugDefaults` restores `brakeBoost` to `BRAKE_BOOST_K`
+  - [ ] `./gradlew core:test` passes
+- playtest: Near c, flip around and burn: speed drops about three times faster than it built up. Sideways burns still feel heavy (γ² turning cost). Try k = 0/2/4 on the debug slider.
+
+### ST-067 Shots leave the arena; a ripple marks where they cross the field
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-025, ST-027, ST-036
+- files: `system/BoundaryFieldSystem.kt`, `component/ProjectileComponent.kt`, `component/LifetimeComponent.kt`, `weapon/ProjectileConstants.kt`, `provider/WeaponProjectileProvider.kt`, `system/RemoveSystem.kt`, `CLAUDE.md` (Architecture, entity removal paragraph), `docs/tech/architecture.md`; tests in `system/BoundaryFieldSystemTest.kt`, `provider/WeaponProjectileProviderTest.kt`
+- goal: Owner decision 2026-11-02 (top priority). The boundary field ignores projectiles entirely: no kinematic velocity kick, no backstop, no bounces. Shots fly out of the arena and are removed by their lifetime or by `RemoveSystem`'s out-of-bounds safety net. The field shows one shimmer ripple where each shot crosses the wall.
+- spec:
+  - `ProjectileComponent`: add `var exitRippleEmitted = false`, reset to false in `reset()`.
+  - `BoundaryFieldSystem.beforeStep`: skip any entity that has a `ProjectileComponent` (`projectileMapper.has(entity)`), before the field acceleration. Kinematic bodies that are not projectiles keep today's velocity-kick path.
+  - `BoundaryFieldSystem.afterStep`: for projectile entities, skip `emitFieldImpact` and `enforceBackstop` and call a new `emitProjectileExit(id, entity, body)` instead: if `!exitRippleEmitted` and the body position is outside the arena rectangle (`x < 0 || x > w || y < 0 || y > h`), call `impacts.emit(id, x.coerceIn(0f, w), y.coerceIn(0f, h), PROJECTILE_EXIT_RIPPLE_STRENGTH, force = true)` and set `exitRippleEmitted = true`. Add `private const val PROJECTILE_EXIT_RIPPLE_STRENGTH = 1f` to the companion. This also runs when `settings.fieldEnabled` is false (only the field acceleration is gated by that flag).
+  - Remove photon bounces, which nothing uses any more: delete `LifetimeComponent.bouncesLeft` (field, KDoc and reset line), `PHOTON_MAX_BOUNCES` in `ProjectileConstants.kt`, the `bouncesLeft = …` line in `WeaponProjectileProvider` and the matching assertion in `WeaponProjectileProviderTest`.
+  - `RemoveSystem`: shots leaving the arena is now normal, so for entities whose `baseInfoCmp.entityType == EntityType.PROJECTILE` log the out-of-bounds removal at `debug` instead of the `"WARN: …"` info line. Behaviour is unchanged (they still get `RemoveComponent`).
+  - Docs: in `CLAUDE.md` and `docs/tech/architecture.md`, replace "velocity change on kinematic projectiles" with "projectiles are ignored: they leave the arena, leaving one ripple where they cross the wall". Don't touch game-design.md (ST-049 reconciles it).
+- acceptance:
+  - [ ] Test (`MapProvider(mock(), 100f, 100f)`, real `World`, kinematic sensor body with `ProjectileComponent`, `BaseInfoComponent` and `TransformComponent`): starting at (95, 50) with velocity (60, 0), after 10 steps of `beforeStep` + `world.step` + `afterStep`, x > 100 and the velocity is still (60, 0) exactly. `impacts.count == 1`, with the impact at x = 100 and y = 50 ± 1e-3. Ten more steps add no impact
+  - [ ] Test: a kinematic body **without** `ProjectileComponent` in the skin still gets the inward velocity kick (existing behaviour)
+  - [ ] Test: with `fieldEnabled = false` a projectile also passes the wall untouched and still emits its one ripple
+  - [ ] `./gradlew core:test` passes
+- playtest: Shoot at the edge: the bolt passes through with one ripple and disappears off-screen. Asteroids and the ship still bounce softly.
+
 ### ST-060 Debug vector overlay: v, u and acceleration arrows
 - status: ready
 - size: S
@@ -847,95 +961,107 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - [ ] `./gradlew core:test` passes
 - playtest: Bouncing off the edge at high speed feels like a strong rubber wall. Very fast hits snap back with a backstop ripple.
 
-### ST-039 Photon lasers: velocity aberration at the muzzle and field mirrors
+### ST-039 Photon lasers: velocity aberration at the muzzle
 - status: ready
-- size: M
+- size: S
 - agent: kotlin-dev
-- depends: ST-024, ST-025, ST-035
-- files: create `component/PhotonComponent.kt`; edit `provider/WeaponProjectileProvider.kt`, `system/BoundaryFieldSystem.kt`; tests
-- goal: Lasers fly at exactly c in a direction that aberrates with the shooter's velocity (research E3). Today projectiles ignore the ship's velocity, so a ship near c would outrun its own bullets. The field doesn't push photons. Instead they mirror at mid-skin and use up a bounce (research §3 [FAKE] rule). This follows the ST-034 recommendation.
+- depends: ST-024, ST-035, ST-056, ST-067
+- files: create `component/PhotonComponent.kt`; edit `provider/WeaponProjectileProvider.kt`; tests in `provider/WeaponProjectileProviderTest.kt`
+- goal: Lasers fly at exactly c in a direction that aberrates with the shooter's velocity (research E3). Today projectiles ignore the ship's velocity, so at speed the shots don't sweep forward as they physically should. This follows ST-034 (a). **Reworked 2026-11-02:** the field-mirror and bounce part is dropped, because shots now leave the arena (ST-067). `PhotonComponent.dir` stays because gravity bends photons later (ST-083).
 - spec:
-  - `PhotonComponent { val dir = Vector2() }` (unit vector, Poolable, convention).
-  - `WeaponProjectileProvider`: `n̂' = (cos aim, sin aim)` with `aim = weaponCmp.aimAngleRad ?: body.angle` (ST-058 adds the turret aim, null = hull facing; aim is in W for M3). `β = v_ship / c`, where `v_ship` is `relativisticCmpOptional?.vSet ?: body.linearVelocity` and `c = settings.c` once ST-056 is done. `n̂ = aberratePhoton(β, n̂')`. Body velocity = `SPEED_OF_LIGHT·n̂`, and the body angle (and the TransformComponent `prevRotationDeg`, in degrees) = `atan2(n̂)`. Add `PhotonComponent(dir = n̂)`. The lifetime from ST-024 stays.
-  - `BoundaryFieldSystem.beforeStep`: photon entities skip the kinematic kick. For each wall, with `r = 0`, if `qᵢ ≥ FIELD_PHOTON_MIRROR_Q` and `dir·n̂ᵢ < 0`: if `lifetime.bouncesLeft == 0`, add `RemoveComponent`. Otherwise reflect `dir → dir − 2(dir·n̂ᵢ)n̂ᵢ`, decrement `bouncesLeft`, set the velocity to `c·dir` and the angle to `atan2(dir)`, and if `ShimmerImpacts` exists, `emit(id, …, strength = 1f, force = true)`.
+  - `PhotonComponent { val dir = Vector2() }` (unit vector, Poolable, reset to zero, mapper + `photonCmp` / `photonCmpOptional`, per the component convention).
+  - `WeaponProjectileProvider`: the shooter-frame direction is `n̂' = (cos aim, sin aim)` with `aim = weaponCmp.aimAngleRad ?: body.angle` (`aimAngleRad` and the hull angle are treated as shooter-frame angles; ST-076 later converts the hull fallback properly). `v_ship = relativisticCmpOptional?.vSet ?: body.linearVelocity`, `β = v_ship / settings.c`. `n̂ = aberratePhoton(β, n̂')`. If `!settings.relativityEnabled`, `n̂ = n̂'`. Body velocity = `settings.c·n̂`. The body angle **and** `TransformComponent.prevRotationDeg` = `atan2(n̂)`, the latter in **degrees** (today it is set to radians, a bug). Add `PhotonComponent(dir = n̂)`. The muzzle offset keeps using `aim`. The lifetime from ST-024 stays.
 - acceptance:
-  - [ ] Test: a ship at rest facing +x fires a laser with velocity (60, 0) ± 1e-3
-  - [ ] Test: a ship moving at β = 0.9 along +x, facing +y, fires a laser at a W angle of 25.84° ± 0.1° with |v| = 60 ± 1e-3
-  - [ ] Test (`MapProvider(mock(), 100f, 100f)`, skin 8): a photon moving +x reflects between x = 95.5 and 96.5, `bouncesLeft` goes 3 → 2, and the speed stays 60. With `bouncesLeft = 0` it gets `RemoveComponent` instead
+  - [ ] Test: a ship at rest facing +x fires a laser with velocity (60, 0) ± 1e-3 and `prevRotationDeg == 0`
+  - [ ] Test: a ship moving at β = 0.9 along +x, facing +y, fires a laser at a W angle of 25.84° ± 0.1° with |v| = 60 ± 1e-3, and `prevRotationDeg ≈ 25.84`
+  - [ ] Test: same ship with `relativityEnabled = false` fires straight along +y
   - [ ] `./gradlew core:test` passes
-- playtest: Lasers fired sideways at speed visibly sweep forward. Lasers bounce off the edge up to 3 times with a ripple, which allows bank shots.
+- playtest: Lasers fired sideways at speed visibly sweep forward.
 
-### ST-062 Auto-aim control scheme (steer + guns pick targets in a cone)
+### ST-068 Pilot clock: time-warp functions, GameClock and settings
 - status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-039, ST-058
-- files: create `input/AutoAim.kt`, `input/AutoAimStrategy.kt`; edit `system/PlayerInputSystem.kt`, `screen/PlayScreen.kt`; tests
-- goal: Scheme (c), which is also an accessibility option. Movement is as in (a): the mouse steers the hull and RMB thrusts. The guns fire on their own at the nearest target inside a forward cone. Because photons fly at exactly c in the world frame and their direction aberrates at the muzzle (ST-039), the aim has to lead the target and pre-compensate the aberration, or auto-aim misses at speed. That's why this card depends on ST-039.
-- spec:
-  - Pure functions in `AutoAim.kt` (no allocation):
-    - `fun pickTargetIndex(sx, sy, facingRad, coneHalfRad, range, xs: FloatArray, ys: FloatArray, n: Int): Int` returns the index of the nearest candidate with `dist ≤ range` and `|shortestAngleDiffRad(facing, atan2(dy, dx))| ≤ coneHalfRad`, or −1.
-    - `fun photonInterceptDir(rx, ry, vtx, vty, c, out: Vector2): Boolean`: `r` is target minus shooter, `v_t` is the target's world velocity. Solve `|r + v_t·t| = c·t`, i.e. `a = v_t² − c²` (< 0), `b = 2 r·v_t`, `k = r²`, `t = (−b − sqrt(b² − 4ak)) / (2a)`, `out = (r + v_t·t)/(c·t)`. Return false if `t` isn't finite or is ≤ 0. The shooter's velocity doesn't enter, because the photon moves at c in W anyway.
-    - `fun muzzleDirForWorldDir(betaX, betaY, nWx, nWy, out)` = `aberratePhoton(−β, n̂_W)`, the inverse of the ST-039 muzzle aberration.
-  - `AutoAimStrategy(targets: ImmutableArray<Entity>, relativitySettings)`: the targets are the engine family `allOf(HealthComponent, BodyComponent, BaseInfoComponent)`, minus the player faction (filtered when filling the scratch arrays, which are reused and grow as needed). Movement is the same as `MouseHullStrategy`. Fire: `i = pickTargetIndex(…, AUTO_AIM_CONE_HALF_DEG = 30°, AUTO_AIM_RANGE = 40f)`. If `i ≥ 0`: the target velocity comes from `relativisticCmpOptional?.vSet ?: body.linearVelocity`. `photonInterceptDir` → `muzzleDirForWorldDir(β_ship, …)` → `weapon.aimAngleRad = atan2`, `doAttack = true`. Otherwise `doAttack = fireHeld` (LMB still fires along the hull) and `aimAngleRad = null`.
-  - Register it in `PlayerInputSystem.strategies[AUTO_AIM]`. `PlayScreen` passes the family.
-- acceptance:
-  - [ ] Tests: `pickTargetIndex` picks the nearest in-cone target, skips a nearer one at 45° off the facing and one beyond range, and returns −1 for none
-  - [ ] Test: `photonInterceptDir` for a static target gives r̂. For a target at (30, 0) moving (0, 20) with c = 60, a photon from the origin along `out` meets the target within 1e-3 u at the returned time
-  - [ ] Test: `aberratePhoton(β, muzzleDirForWorldDir(β, n̂))` ≈ n̂ within 1e-5 for β = (0.9, 0) and n̂ = (0, 1)
-  - [ ] Test (real `World`, ST-039 provider): a ship at β = 0.8 along +x, facing +y, with a static asteroid 20 u away along +y fires a photon whose sweep hits it
-  - [ ] `./gradlew core:test` passes
-- playtest: With `--controls=auto`, fly around: the guns hit asteroids ahead even at high speed. Check whether it feels like the game plays itself, which is the cost of this option.
-
-### ST-063 Owner decision: default control scheme
-- status: needs-user
 - size: S
 - agent: junior-dev
-- depends: ST-058, ST-061, ST-062
-- files: `docs/design/game-design.md` §4 and §11; `input/ControlSettings.kt` (default)
-- goal: Record which scheme is the default once the owner has tried all three through `--controls=` or the debug panel selector. The others stay selectable.
-- question: Which control scheme should be the default? (a) Mouse aims and rotates the hull, RMB thrusts forward (today). (b) **Twin-stick (recommended)**: WASD (later the left stick) sets the thrust direction in the world frame, the hull turns toward it, and the mouse (later the right stick) aims an independent turret. Separating aim from thrust lets the player manage momentum near c, which is the core skill, while still shooting. The relativistic aberration of your own shots is also clearly visible, because you aim sideways while moving fast. (c) Auto-aim + steering only. Keep it as an accessibility option rather than the default.
+- depends: ST-056
+- files: create `physics/TimeWarp.kt`; edit `physics/PhysicsConstants.kt`, `physics/RelativitySettings.kt`; create `core/src/test/kotlin/com/github/pepek42/asteroids/physics/TimeWarpTest.kt`, edit `physics/RelativitySettingsTest.kt`
+- goal: The pure first slice of the pilot-time game clock (owner decision 2026-11-02, research E21). Per rendered frame the pilot lives `dt_real`, and the arena must advance `γ·dt_real`. The fast-forward is capped at about 10×. Past the cap the world stops speeding up, which is a declared FAKE. No system uses this yet (ST-069 wires it).
+- spec:
+  - `PhysicsConstants.kt`: `const val TIME_WARP_ENABLED = true`, `const val TIME_WARP_MAX = 10f`, `const val TIME_WARP_MAX_LIMIT = 12f` (upper clamp for the setting; at 60 fps a 12× warp needs 9 physics steps per frame, under the 10-step cap of ST-069). KDoc: "Game clock = pilot proper time (owner decision 2026-11-02, research E21). Past TIME_WARP_MAX the world advances slower than the pilot's γ demands: declared FAKE."
+  - `TimeWarp.kt`:
+    - `fun timeWarpFactor(gamma: Float, enabled: Boolean, max: Float): Float` = `1f` if `!enabled` or `!gamma.isFinite()`, else `gamma.coerceIn(1f, max)`.
+    - `fun isWarpCapped(gamma: Float, enabled: Boolean, max: Float): Boolean` = `enabled && gamma.isFinite() && gamma > max + 1e-4f`.
+    - `fun worldDelta(realDt: Float, warp: Float, maxWorldDt: Float): Float` = `min(realDt·warp, maxWorldDt)`.
+    - `class GameClock { var realDt = 0f; var warp = 1f; var worldDt = 0f; var warpCapped = false; var stepsCapped = false; var worldTime = 0f; var interpolationAlpha = 0f; fun reset() }` (reset sets every field back to these defaults). KDoc per field: `realDt` is the pilot's frame time (after the debug time scale); `worldDt` the arena time to simulate this frame; `stepsCapped` true when the physics step cap cut `worldDt`; `worldTime` sums the simulated physics steps; `interpolationAlpha` is `PhysicsSystem`'s render lerp factor.
+  - `RelativitySettings`: append two last constructor params, `timeWarpEnabled: Boolean = TIME_WARP_ENABLED` (plain `var`) and `timeWarpMax: Float = TIME_WARP_MAX` (`var`, setter clamps to `[1f, TIME_WARP_MAX_LIMIT]`).
 - acceptance:
-  - [ ] The answer is in game-design.md §11 (decisions) and §4. `ControlSettings` defaults to the chosen scheme. For (b), ask the planner for a gamepad card (gdx-controllers, sticks → `moveAxis`/aim)
+  - [ ] Tests: `timeWarpFactor(3f, true, 10f) == 3f`; `(25f, true, 10f) == 10f`; `(0.5f, true, 10f) == 1f`; `(3f, false, 10f) == 1f`; `(NaN, true, 10f) == 1f`. `isWarpCapped(25f, true, 10f)` is true, `(10f, true, 10f)` and `(25f, false, 10f)` are false. `worldDelta(1/60f, 10f, 10/45f) ≈ 1/6`, `worldDelta(0.1f, 10f, 10/45f) == 10/45f`
+  - [ ] Test: `GameClock.reset()` restores all defaults; `RelativitySettings(timeWarpMax = 50f).timeWarpMax == 12f`, `0f` clamps to 1
+  - [ ] `./gradlew core:test` passes
 
-### ST-040 Proper time drives ship clocks
+### ST-069 Pilot clock wiring: the arena advances γ·dt per frame, up to 10 steps
 - status: ready
 - size: M
 - agent: kotlin-dev
-- depends: ST-024, ST-037
-- files: `component/RelativisticComponent.kt`, `physics/PhysicsConstants.kt`, `system/WeaponSystem.kt`, `system/LifetimeSystem.kt`, `system/PhysicsSystem.kt`, `system/RelativisticDynamics.kt`; tests
-- goal: Time dilation becomes gameplay (research E2): the ship's own clock runs at 1/γ. This follows the ST-031 recommendation: guns exact, turning softened.
-- note: There's no gameplay γ cap (ST-032), so at large γ the ship clock nearly freezes the guns: at the γ = 50 safety bound the fire rate is 1/50 (option a of ST-031). That's accepted for now. Keep both exponents as `const`s so the ST-031 softening variant (exponent 0.5 or a `CLOCK_RATE_MIN` floor) is a one-line change.
+- depends: ST-041, ST-059, ST-068
+- files: create `system/TimeWarpSystem.kt`; edit `system/PhysicsSystem.kt`, `system/ObserverSystem.kt`, `system/LifetimeSystem.kt`, `screen/PlayScreen.kt`, `ui/DebugPanel.kt`, `system/DebugPanelSystem.kt`; tests (create `system/TimeWarpSystemTest.kt`, extend `system/LifetimeAndRemoveSystemTest.kt`, `ui/DebugPanelTest.kt`)
+- goal: Make the arena run on the pilot's clock (owner decision 2026-11-02, research E21). `engine.update` keeps receiving real (pilot) time, so cameras, UI and the player's own systems are unchanged. Only the physics accumulator, world lifetimes and the world-time readout consume `worldDt = warp·realDt`. Box2D's fixed step stays 1/45 s; fast-forward means more steps per frame, at most 10.
 - spec:
-  - Constants: `COOLDOWN_DILATION_EXPONENT = 1f`, `ROTATION_DILATION_EXPONENT = 0.5f`.
-  - In `RelativisticComponent.kt`: `fun Entity.clockRate(exponent: Float): Float = relativisticCmpOptional?.let { it.gUsed.pow(-exponent) } ?: 1f`.
-  - `WeaponSystem`: `cooldown -= deltaTime · entity.clockRate(COOLDOWN_DILATION_EXPONENT)`.
-  - `LifetimeSystem`: for the PROPER clock, `remaining -= dt · entity.clockRate(1f)`. WORLD is unchanged.
-  - `PhysicsSystem.applyRotation`: `f = entity.clockRate(ROTATION_DILATION_EXPONENT)`. Time-scale the PD controller by passing `kp·f²`, `kd·f`, `maxAngularAcceleration·f²`, `maxAngularVelocity·f` (from `ShipHandlingComponent` or the `ShipRotationController` defaults). This is exactly the controller on a clock slowed by `f`.
-  - Asteroid spin `ω₀/γ`: in `RelativisticDynamics.beforeStep`, for entities without a `MoveComponent` or with a null `targetAngleRad`, compute `g` and do `body.angularVelocity *= gUsedPrevious / g` before overwriting `gUsed`. This rescales exactly and survives collisions.
+  - `PhysicsSystem` companion: `const val MAX_STEPS_PER_FRAME = 10` and `maxTimeToProcess = MAX_STEPS_PER_FRAME·PHYSICS_UPDATE_INTERVAL` (raised from 5 steps). Constructor gets a last param `clock: GameClock? = null`. In `update`: `val dt = clock?.worldDt ?: deltaTime`, then the existing `accumulator += min(maxTimeToProcess, dt)` loop. Inside each step add `clock?.worldTime += PHYSICS_UPDATE_INTERVAL`. After the loop, `clock?.interpolationAlpha = alpha` (the value used by `interpolateTransforms`). With no clock, behaviour equals today's apart from the higher catch-up cap.
+  - `TimeWarpSystem(clock: GameClock, settings: RelativitySettings) : EntitySystem()`, with the family `allOf(PlayerComponent, RelativisticComponent)`. Register it **first** in `PlayScreen.setupEcs` (before `EndLevelSystem`). `update(deltaTime)`: `clock.realDt = deltaTime`; `gamma = player's rel.gUsed` (the γ of the last physics step; `1f` if there is no player); `enabled = settings.timeWarpEnabled && settings.relativityEnabled`; `clock.warp = timeWarpFactor(gamma, enabled, settings.timeWarpMax)`; `clock.warpCapped = isWarpCapped(gamma, enabled, settings.timeWarpMax)`; `val maxWorld = PhysicsSystem.MAX_STEPS_PER_FRAME·PHYSICS_UPDATE_INTERVAL`; `clock.worldDt = worldDelta(deltaTime, clock.warp, maxWorld)`; `clock.stepsCapped = deltaTime·clock.warp > maxWorld + 1e-6f`.
+  - `ObserverSystem(state, settings, clock: GameClock? = null)`: `state.worldTime = clock?.worldTime ?: (state.worldTime + deltaTime)`. The fallback `tau = worldTime` path (no `RelativisticComponent`) is unchanged.
+  - `LifetimeSystem(clock: GameClock? = null)`: the WORLD clock subtracts `clock?.worldDt ?: deltaTime`. PROPER stays as it is until ST-040. The fade logic is unchanged.
+  - `PlayScreen`: own one `GameClock`, `reset()` it in `show()` next to `observerState.reset()`, and pass it to `TimeWarpSystem`, `PhysicsSystem`, `ObserverSystem`, `LifetimeSystem` and `DebugPanelSystem`. `ShimmerImpacts.time` already advances per physics step, so ripples keep running at c in arena time.
+  - Debug panel: a checkbox "time warp" → `settings.timeWarpEnabled`, a slider "warp cap" 1–12 step 1 → `settings.timeWarpMax`, both restored by `resetDebugDefaults`. `formatReadouts` gets a last param `clock: GameClock? = null`; when non-null it appends a line `warp = ×N.N` (1 dp) followed by ` (capped)` if `warpCapped || stepsCapped`.
+  - The debug time scale (ST-057) still multiplies the real delta before all of this, so 0.25× slows the pilot and the warped world together.
 - acceptance:
-  - [ ] Test: a weapon on an entity with `gUsed = 2` fires half as often over 3 s of world time as at `gUsed = 1` (±1 shot)
-  - [ ] Test: a PROPER lifetime of 1.2 at `gUsed = 3.2` lasts 3.84 s ± 1 frame of world time
-  - [ ] Test: a 90° turn at `gUsed = 4` (f = 0.5) takes 2× ± 15 % as long as at γ = 1, with overshoot still < 5°
+  - [ ] Test (`TimeWarpSystemTest`, real `World` with `PhysicsSystem` + `RelativisticDynamics` + `TimeWarpSystem`): a player whose `u` gives γ = 4, with no thrust, after one `engine.update(1/45f)` has run exactly 4 physics steps (`clock.worldTime == 4/45 ± 1e-5`, position advanced by `4·v/45 ± 1e-3`)
+  - [ ] Test: γ = 20 with `timeWarpMax = 10` → `warp == 10`, `warpCapped`; `engine.update(0.1f)` → `worldDt == 10/45`, `stepsCapped`, and at most 10 steps ran
+  - [ ] Test: `timeWarpEnabled = false` or `relativityEnabled = false` → `warp == 1` at any γ
+  - [ ] Test: a WORLD lifetime of 2 s on an entity expires after 0.5 s of real time at warp 4 (±1 frame)
+  - [ ] Test: `formatReadouts(..., clock)` with warp 4 and `stepsCapped = true` contains `warp = ×4.0 (capped)`
+  - [ ] `./gradlew core:test` passes
+- playtest: At speed the asteroids and the world visibly speed up while the ship handles as usual. Past γ = 10 the debug panel shows "(capped)". With "time warp" off the game plays as before.
+
+### ST-040 Ship clocks under the pilot clock: player on real time, others on proper time
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-024, ST-037, ST-069
+- files: `component/RelativisticComponent.kt`, `system/WeaponSystem.kt`, `system/LifetimeSystem.kt`, `system/PhysicsSystem.kt`, `system/RelativisticDynamics.kt`, `screen/PlayScreen.kt`; tests
+- goal: **Rewritten 2026-11-02** for the pilot-time game clock (ST-031 replaced). The player's gun cooldown and turning run on τ, which is real time, so from the player's view they are never dilated. Everything else runs on its own proper time `dτ = dt_world/γ` (research E2), which matters for enemies (M6) and asteroid spin. Physics stays in the arena frame, so the player's PD rotation controller must be slowed in world time by the warp to look normal in real time.
+- spec:
+  - In `RelativisticComponent.kt`: `fun Entity.properDelta(clock: GameClock?, frameDt: Float): Float`. With `realDt = clock?.realDt ?: frameDt` and `worldDt = clock?.worldDt ?: frameDt`: the player (`playerCmpOptional != null`) returns `realDt` (exact while the warp is uncapped, FAKE past the cap: the pilot's clock never slows); an entity with a `RelativisticComponent` returns `worldDt / rel.gUsed`; others return `worldDt`.
+  - `WeaponSystem(provider, clock: GameClock? = null)`: `cooldown -= entity.properDelta(clock, deltaTime)`.
+  - `LifetimeSystem`: the PROPER clock subtracts `entity.properDelta(clock, deltaTime)`. WORLD stays as in ST-069.
+  - `PhysicsSystem.applyRotation` (runs every world-time substep): time factor `f` = `1f / clock.warp` for the player (the turn takes the same real time at any warp), `1f / rel.gUsed` for other entities with a `RelativisticComponent`, `1f` otherwise or with no clock. Pass `kp·f²`, `kd·f`, `maxAngularAcceleration·f²`, `maxAngularVelocity·f` (from `ShipHandlingComponent` or the `ShipRotationController` defaults). This is exactly the PD controller on a clock slowed by `f`.
+  - Asteroid spin `ω₀/γ`: in `RelativisticDynamics.beforeStep`, for entities without a `MoveComponent` or with a null `targetAngleRad`, compute `g` and do `body.angularVelocity *= gUsedPrevious / g` before overwriting `gUsed`. This rescales exactly and survives collisions.
+  - `PlayScreen` passes the `GameClock` to `WeaponSystem` and `LifetimeSystem`.
+  - No `COOLDOWN_DILATION_EXPONENT` / `ROTATION_DILATION_EXPONENT` constants: the old ST-031 options are gone.
+- acceptance:
+  - [ ] Test: the player's weapon fires the same number of shots over 3 s of real time at warp 4 as at warp 1 (±1 shot)
+  - [ ] Test: a non-player weapon entity with `gUsed = 2` fires half as often per second of world time as at `gUsed = 1` (±1 shot)
+  - [ ] Test: a non-player PROPER lifetime of 1.2 at `gUsed = 3.2` lasts 3.84 s ± 1 step of world time
+  - [ ] Test: a player 90° turn with the clock at warp 4 takes 4× ± 15 % as much world time as at warp 1 (so the same real time), with overshoot still < 5°
   - [ ] Test: an asteroid spinning at 2 rad/s whose `u` is set to γ = 2 spins at 1 ± 0.02 rad/s after one step
   - [ ] `./gradlew core:test` passes
-- playtest: At high speed the fire rate visibly drops and turning feels heavier but still controllable.
+- playtest: Near c the world rushes past (warp) but the fire rate and turning feel the same as at rest. Asteroids spin slower when they move fast.
 
-### ST-042 HUD shows β, γ, τ and t; speed zoom
+### ST-042 HUD shows β, γ, ship and world time and the time warp; speed zoom
 - status: ready
 - size: S
 - agent: kotlin-dev
-- depends: ST-041
-- files: `ui/Hud.kt`, `system/HudSystem.kt`, `system/CameraSystem.kt`, `assets/i18n/messages.properties`, `assets/i18n/messages_pl.properties`; tests
-- goal: The "I'm near c and I can feel it" readout (research E6), plus a camera that zooms out with speed, because at c = 60 half the screen is crossed in 0.4 s.
+- depends: ST-041, ST-069
+- files: `ui/Hud.kt`, `system/HudSystem.kt`, `system/CameraSystem.kt`, `screen/PlayScreen.kt`, `assets/i18n/messages.properties`, `assets/i18n/messages_pl.properties`; tests
+- goal: The "I'm near c and I can feel it" readout (research E6), plus a camera that zooms out with speed, because at c = 60 half the screen is crossed in 0.4 s. **Updated 2026-11-02:** with the pilot clock, ship time τ tracks real time and the world fast-forwards, so the HUD shows the fast-forward factor and whether it is capped (owner decision).
 - spec:
-  - HUD: a `ProgressBar(0f, 1f, 0.001f, false, skin, "default-horizontal")` showing `(rapidity / HUD_RAPIDITY_FULL).coerceAtMost(1f)` with `HUD_RAPIDITY_FULL = acosh(10f)` (≈ 2.993, β = 0.995). It keeps moving near c. The γ safety bound is 50 now (ST-055), so normalising by `acosh(GAMMA_MAX_MASSIVE)` would leave the bar a third full at 0.9c. Labels: `hud_beta=β = {0,number,0.000} c`, `hud_gamma=γ = {0,number,0.00}`, `hud_time=Ship time {0,number,0.0} s · World time {1,number,0.0} s · τ/t {2,number,0.00}`. Polish: `Czas statku`, `Czas świata`. Keep the existing level, position and velocity labels. `HudSystem` takes the `ObserverState` and feeds `betaRaw.len()`, `gammaRaw`, `tau`, `worldTime`, and `tau/worldTime` (1 when worldTime = 0).
+  - HUD: a `ProgressBar(0f, 1f, 0.001f, false, skin, "default-horizontal")` showing `(rapidity / HUD_RAPIDITY_FULL).coerceAtMost(1f)` with `HUD_RAPIDITY_FULL = acosh(10f)` (≈ 2.993, β = 0.995). It keeps moving near c. Labels: `hud_beta=β = {0,number,0.000} c`, `hud_gamma=γ = {0,number,0.00}`, `hud_time=Ship time {0,number,0.0} s · World time {1,number,0.0} s`, `hud_warp=Time warp ×{0,number,0.0}`, `hud_warp_capped=Time warp ×{0,number,0.0} (capped)`. Polish: `Czas statku`, `Czas świata`, `Przyspieszenie czasu ×{0,number,0.0}`, `… (limit)`. Keep the existing level, position and velocity labels. `HudSystem` takes the `ObserverState` and the `GameClock` and feeds `betaRaw.len()`, `gammaRaw`, `tau`, `worldTime` and `clock.warp`, using `hud_warp_capped` when `warpCapped || stepsCapped`. Hide the warp label while `warp < 1.05` and nothing is capped, so it doesn't clutter low speeds.
   - `CameraSystem`: keep a `wheelZoom` field (the old `camera.zoom` logic, clamped 0.5–2). Add top-level `fun speedZoom(wheelZoom: Float, beta: Float, k: Float = CAMERA_ZOOM_PER_BETA2): Float = (wheelZoom·(1 + k·beta²)).coerceIn(0.5f, 2f)` with `CAMERA_ZOOM_PER_BETA2 = 0.6f`. Set `camera.zoom = speedZoom(wheelZoom, observer.betaVisual.len())`. `CameraSystem` takes the `ObserverState`.
+  - Put the label choice in a pure top-level `fun warpLabelKey(warp: Float, capped: Boolean): String?` (null = hidden).
 - acceptance:
-  - [ ] Tests: `speedZoom(1f, 0f) == 1f`; `speedZoom(1f, 0.9f) ≈ 1.486`; `speedZoom(2f, 0.9f) == 2f`
+  - [ ] Tests: `speedZoom(1f, 0f) == 1f`; `speedZoom(1f, 0.9f) ≈ 1.486`; `speedZoom(2f, 0.9f) == 2f`. `warpLabelKey(1f, false) == null`, `(4f, false) == "hud_warp"`, `(10f, true) == "hud_warp_capped"`, `(1f, true) == "hud_warp_capped"`
   - [ ] The i18n keys exist in both properties files
   - [ ] `./gradlew core:test` passes
-- playtest: The β bar fills fast at first, then slowly near c. τ visibly falls behind t at speed. The view widens smoothly as you speed up.
+- playtest: The β bar fills fast at first, then slowly near c. World time races ahead of ship time at speed, and the warp label shows the factor, marked capped above 10×. The view widens smoothly as you speed up.
 
 ### ST-043 Doppler colour and mild searchlight on the starfield
 - status: ready
@@ -949,6 +1075,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - `RelativityVisuals.kt` constants: `DOPPLER_COLOR_STRENGTH = 1f`, `DOPPLER_D_MIN = 0.25f`, `DOPPLER_D_MAX = 4f`, `BRIGHTNESS_EXPONENT_MVP = 1f`, `B_MIN = 0.25f`, `B_MAX = 3f`. `fun effectiveDoppler(d: Float) = exp(DOPPLER_COLOR_STRENGTH·ln d).coerceIn(DOPPLER_D_MIN, DOPPLER_D_MAX)`. `fun starDoppler(betaX, betaY, gamma, sx, sy) = gamma·(1 + betaX·sx + betaY·sy)`, where ŝ is the unit vector from the player to the star's on-screen position. This is the static-source case of `dopplerFactor`.
   - `Starfield.render(batch, camera, zoom, logicalWidthPx, observer: ObserverState)`: if `observer.betaVisual.len() < 1e-4`, use the cached `packedColor` (fast path). Otherwise, per drawn star: ŝ = normalize((cx + dx, cy + dy) − `observer.position`), i.e. from the player to where the star is drawn; `D = effectiveDoppler(starDoppler(betaVisual, gammaVisual, ŝ))`; `rgb = lut(kelvin·D)`; `B = D^BRIGHTNESS_EXPONENT_MVP` clamped to `[B_MIN, B_MAX]`; colour = `rgb·brightness·min(B, 1)` packed with `Color.toFloatBits`; size × `sqrt(max(B, 1))`. No allocation.
   - `BackgroundProvider.renderBg` and `RenderSystem` pass the `ObserverState` through.
+- note (2026-11-02): pilot view (ST-074, ST-077) moves where stars are drawn, but `starDoppler` keeps using the arena-frame `ŝ` from the player to the star's unaberrated offset. That is the correct source direction for `D`, so this card needs no pilot-view branch.
 - acceptance:
   - [ ] Tests: `starDoppler` at β = 0.9 (+x) gives 4.36 for ŝ = (1, 0), 0.229 for (−1, 0), and 2.294 for (0, 1). `effectiveDoppler` clamps to [0.25, 4]. `BlackbodyLut.rgbInto` matches `blackbodyRgb` within 1/255 at 2000, 6500 and 20000 K
   - [ ] Screenshot via the harness with `--seed=42 --thrust --frames=150` shows a blue-shifted side and a red-shifted side, and the agent has looked at it
@@ -967,6 +1094,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
   - Constant `CONTRACTION_STRENGTH = 1f`. Add `fun contractOffset(ox, oy, vhx, vhy, k, out: Vector2)`: `o' = o − k·(o·v̂)·v̂`.
   - Readability clamp: there's no gameplay γ cap (ST-032), so a γ = 50 ship would become an invisible sliver. Add `CONTRACTION_MIN_SCALE = 0.25f` and compute `k = min(CONTRACTION_STRENGTH·(1 − 1/γ), 1 − CONTRACTION_MIN_SCALE)`, so a sprite never drops below 25 % of its rest length along v̂.
   - `RenderSystem.processEntity`: after setting the sprite rotation and position, if the entity has a body with speed > 1e-3: `γ = relativisticCmpOptional?.gUsed ?: gammaFromV(v)` and `k = CONTRACTION_STRENGTH·(1 − 1/γ)`. Copy `sprite.vertices` (20 floats) into a reusable `FloatArray(20)`. For corners at offsets 0, 5, 10, 15, transform `(x − cx, y − cy)` with `contractOffset` around the interpolated centre. Then `batch.draw(sprite.texture, scratch, 0, 20)`. Otherwise use `sprite.draw(batch)` as today.
+- note (2026-11-02): this is the world-view path. Pilot view (ST-074) reuses `contractOffset` on the retarded corners before the boost, so keep it a pure top-level function.
 - acceptance:
   - [ ] Tests: `contractOffset` with k = 0 is the identity. A point along v̂ with k = 1 − 1/2.294 is scaled to 0.436. A point perpendicular to v̂ is unchanged. At γ = 50 the computed k gives a scale of exactly 0.25
   - [ ] `./gradlew core:test` passes
@@ -982,11 +1110,186 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - spec:
   - `fun spriteTint(d: Float, lut: BlackbodyLut, out: FloatArray)`: `out = lut(6500·d) / lut(6500)` per channel, with each channel clamped to [0, 1]. `T_REF = 6500f`.
   - `RenderSystem`, for every non-player entity: `n̂ = normalize(observer.position − entity pos)` (source → observer). `β_s = entity velocity / c` (from `u` if relativistic). `D = effectiveDoppler(dopplerFactor(observer.betaVisual, β_s, n̂))`. `B = D` clamped to `[B_MIN, B_MAX]`. Write `Color.toFloatBits(tint.r, tint.g, tint.b, min(B, 1)·spriteAlpha)` into the vertex colour slots (indices 2, 7, 12, 17) of the ST-044 scratch vertices. Always use the vertex path for tinted sprites. If `D > 1`, push the vertex copy into a reusable additive queue with alpha `clamp(D − 1, 0, 1)`. After all sprites, switch once to `GL_SRC_ALPHA, GL_ONE`, draw the queue, and restore the blend. The player sprite isn't tinted.
+- note (2026-11-02): in pilot view (ST-074), compute `n̂` from the entity's **retarded** position to the observer and `β_s` from the retarded velocity (`RetardedState`), not the current ones. Write the tint into the same vertex array ST-074 builds.
 - acceptance:
   - [ ] Tests: `spriteTint(1f)` ≈ (1, 1, 1) ± 0.01; `spriteTint(2f)` has blue ≥ red; `spriteTint(0.5f)` has red > blue
   - [ ] No per-frame allocation (preallocated queue, max 256 sprites; beyond that, skip the additive pass)
   - [ ] `./gradlew core:test` passes
 - playtest: Fly at an asteroid fast: it turns blue-white and glows. Fly away: asteroids behind turn red and dim.
+
+### ST-070 LightHistory ring buffer and retarded-time solver (pure)
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-035
+- files: create `physics/LightHistory.kt`; create `core/src/test/kotlin/com/github/pepek42/asteroids/physics/LightHistoryTest.kt`
+- goal: The first slice of the pilot view (owner decision 2026-11-02: pilot view becomes the main rendering, research E8). The pilot sees every object where it was when the light now arriving left it. This card is the pure data structure and solver, with no ECS.
+- spec:
+  - `const val LIGHT_HISTORY_CAPACITY = 659`: `ceil((arenaDiagonal / C_MIN + 0.5 s) / PHYSICS_UPDATE_INTERVAL)` with the 200×200 arena (diagonal 282.8 u, C_MIN = 20). KDoc the derivation. A sample is 6 floats, so about 16 KB per entity.
+  - `class LightHistory(capacity: Int = LIGHT_HISTORY_CAPACITY)`: parallel `FloatArray`s `t, x, y, angle, vx, vy`, plus `head`, `size`, `wrapped: Boolean` (true once a sample has been overwritten) and `eternal: Boolean` (set by the caller: the entity existed at level start, so it is treated as having moved uniformly forever before its first sample). `fun record(t, x, y, angle, vx, vy)` appends and overwrites the oldest when full. `fun clear()`. Samples must have strictly increasing `t`.
+  - `class RetardedState { var t; var x; var y; var angle; var vx; var vy }` (reusable output).
+  - `fun LightHistory.retarded(ox: Float, oy: Float, now: Float, c: Float, out: RetardedState): Boolean`. It finds the emission time `t_e` with `|x(t_e) − o| = c·(now − t_e)`. Define `h(t_e) = |x(t_e) − o| − c·(now − t_e)`. It is increasing in `t_e`, because |v| < c.
+    1. If `size == 0`, return false. If `h(newest) < 0`, the light from the newest sample hasn't arrived yet, which only happens when `now` is ahead of the buffer. Treat it as the newest segment and extrapolate forward with the step-3 formula (allowed for τ₁ < 0).
+    2. Bisect over sample indices for the last sample `i` with `h(t_i) ≤ 0`. Then within the segment `[i, i+1]`, use constant velocity `v = (x_{i+1} − x_i)/(t_{i+1} − t_i)`.
+    3. Closed form, looking back `s ≥ 0` from sample `i+1`: with `r₁ = x_{i+1} − o` and `τ₁ = now − t_{i+1}`, solve `|r₁ − v·s| = c·(τ₁ + s)`. That is `(c² − v²)s² + 2(r₁·v + c²τ₁)s + (c²τ₁² − r₁²) = 0`, so `s = [−(r₁·v + c²τ₁) + √((r₁·v + c²τ₁)² − (c² − v²)(c²τ₁² − r₁²))] / (c² − v²)`. With `τ₁ = 0` this is research E8's `T = [−(r₀·v) + √((r₀·v)² + (c² − v²)|r₀|²)]/(c² − v²)`. If `c² − v² < 1e-3·c²` (photons, which fly at c), bisect `s` over the segment for 24 iterations instead.
+    4. Output `t = t_{i+1} − s` and the lerped `x, y, vx, vy, angle` (shortest-arc for the angle).
+    5. If the root is older than the oldest sample: when `wrapped || eternal`, extrapolate backward from the oldest sample with its velocity (the step-3 formula with sample `oldest` as `i+1`), return true. Otherwise the object is younger than its light travel time and isn't visible yet, so return false.
+  - No allocation in `retarded` or `record`.
+- acceptance:
+  - [ ] Test: a static object at distance 30, sampled every 1/45 s for 2 s, with c = 60 → `retarded` gives `t = now − 0.5 ± 1e-4` and the recorded position
+  - [ ] Test: constant velocity (20, 0) from (30, 0), observer at origin → `t` matches the E8 closed form within 1e-4, and `|x(t) − o| = c·(now − t)` within 1e-3
+  - [ ] Test: circular motion (radius 20 around (40, 0), ω = 1) → the light-cone equation holds within 1e-2 u
+  - [ ] Test: a photon moving at exactly c (radially away) still returns a solution that satisfies the light-cone equation within 1e-2
+  - [ ] Test: an entity with 0.1 s of history at distance 30 (not eternal, not wrapped) → false; the same with `eternal = true` → true, position extrapolated backward
+  - [ ] Test: after more than `capacity` records the buffer has `wrapped`, and lookups still work
+  - [ ] `./gradlew core:test` passes
+
+### ST-071 LightHistorySystem: record every body each physics step
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-069, ST-070
+- files: create `system/LightHistorySystem.kt`; edit `screen/PlayScreen.kt`; create `system/LightHistorySystemTest.kt`
+- goal: Fill a `LightHistory` per entity in arena time, so that the pilot-view renderer (ST-074) and later the AI (E13, M6) can ask "where did the light now reaching point o leave this entity?".
+- spec:
+  - `LightHistorySystem : EntitySystem(), PhysicsStepListener, EntityListener`, with the family `allOf(BodyComponent, BaseInfoComponent, TransformComponent)`. It owns `time: Float` (starts at 0 and gains `dt` in every `afterStep`, so it equals `GameClock.worldTime`) and an `IntMap<LightHistory>` keyed by `BaseInfoComponent.id` (ids are unique per run; Ashley pools `Entity` objects, so don't key by `Entity`). It keeps a free list of `LightHistory` objects for reuse.
+  - Register it as the **last** step listener, after `relativisticDynamics`, so it records the post-step state. `afterStep`: for every family entity record `(time, body.x, body.y, body.angle, v.x, v.y)`. An entity first seen at `time ≤ PHYSICS_UPDATE_INTERVAL` gets `eternal = true`.
+  - `entityRemoved`: keep the history and store `removedAt = time` (an `IntFloatMap`). Prune entries in `afterStep` once `time − removedAt > LIGHT_HISTORY_CAPACITY·PHYSICS_UPDATE_INTERVAL` and return them to the free list. ST-079 draws these ghosts.
+  - Query API: `fun historyOf(id: Int): LightHistory?`, `fun removedAt(id: Int): Float` (NaN while alive), `val now: Float`.
+  - `PlayScreen` adds it to the engine and the listener list and calls `clear()` (all histories back to the free list, `time = 0`) in `show()`.
+- acceptance:
+  - [ ] Test (real `World` with `PhysicsSystem`): after 45 steps a body moving at (10, 0) has 45 samples, the newest at `time = 1 ± 1e-5`, with x advanced 10 ± 1e-3
+  - [ ] Test: an entity added at step 0 is `eternal`; one added at step 20 isn't
+  - [ ] Test: after removal the history stays, `removedAt` is set, and it is pruned after the capacity window
+  - [ ] `./gradlew core:test` passes
+
+### ST-072 PilotFrame: apparent position and hull-angle transforms (pure)
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-035
+- files: create `physics/PilotFrame.kt`; create `core/src/test/kotlin/com/github/pepek42/asteroids/physics/PilotFrameTest.kt`
+- goal: Pure functions for the boost into the pilot frame (research E9) and for the ship's hull angle between the arena frame and the ship's rest frame. Used by the pilot-view renderer (ST-074) and pilot-frame aiming (ST-076).
+- spec (all allocation-free; `β = (betaX, betaY)`; if `|β| < 1e-6` every function is the identity):
+  - `fun apparentOffset(rx: Float, ry: Float, betaX: Float, betaY: Float, out: Vector2): Vector2`. Here `r` is the arena-frame offset from the observer to the source's **retarded** position. With `b̂ = β/|β|`, `r∥ = r·b̂` and `r⊥ = r − r∥·b̂`: `r'∥ = γ·(r∥ + |β|·|r|)`, `r'⊥ = r⊥`, and `out = r'∥·b̂ + r'⊥`. Then `|r'| = D·|r|` with `D = γ(1 + β·r̂)`. KDoc: "Lorentz boost of the light-reception event into the pilot frame (research E9). Objects slide toward the direction of motion."
+  - `fun worldHullToPilot(angleW: Float, betaX: Float, betaY: Float): Float`: take the unit vector at `angleW`, multiply its component along `b̂` by `γ`, return `atan2`. A rod at rest in the ship is contracted in the arena frame, so `tan θ_W = γ·tan θ_P` (angles measured from `b̂`).
+  - `fun pilotHullToWorld(angleP: Float, betaX: Float, betaY: Float): Float`: same, but divide the component along `b̂` by `γ`.
+  - `γ = 1/√(1 − β²)` with `β²` clamped to `BETA_MAX_MASSIVE²`.
+- acceptance:
+  - [ ] Test: `apparentOffset((0, 10), β = (0.9, 0))` → (20.65, 10) ± 0.01, i.e. 25.84° ± 0.05° from +x and length 22.94 ± 0.01
+  - [ ] Test: `apparentOffset` at β = 0 is the identity; a point straight ahead `(10, 0)` at β = 0.9 maps to (43.59, 0) (= D·10 with D = 4.359); for 20 random `r` and β with |β| ≤ 0.95, `|r'| = γ(1 + β·r̂)·|r|` within 1e-3 relative
+  - [ ] Test: `worldHullToPilot(45°, (0.9, 0)) = 23.55° ± 0.05°`; `pilotHullToWorld(45°, (0.9, 0)) = 66.45° ± 0.05°`; both functions round-trip within 1e-5 rad for 20 random angles and β; a hull parallel or perpendicular to β is unchanged
+  - [ ] `./gradlew core:test` passes
+
+### ST-073 PhotonAim: photon intercept and muzzle-direction inverse (pure, from ST-062)
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-035
+- files: create `physics/PhotonAim.kt`; create `core/src/test/kotlin/com/github/pepek42/asteroids/physics/PhotonAimTest.kt`
+- goal: Factor the fire-control math out of ST-062, so that both the lead marker (ST-078) and auto-aim (ST-062, parked) use one tested implementation.
+- spec (no allocation):
+  - `fun photonInterceptDir(rx: Float, ry: Float, vtx: Float, vty: Float, c: Float, out: Vector2): Float`. `r` is target minus shooter (now) and `v_t` the target's arena-frame velocity. Solve `|r + v_t·t| = c·t`: `a = v_t² − c²` (< 0), `b = 2·r·v_t`, `k = r²`, `t = (−b − √(b² − 4ak)) / (2a)`. Set `out = (r + v_t·t)/(c·t)` (a unit vector) and return `t`. Return `NaN` (and leave `out` alone) if `t` isn't finite or `t ≤ 0`. The shooter's velocity doesn't enter, because the photon moves at c in the arena frame anyway.
+  - `fun muzzleDirForWorldDir(betaX: Float, betaY: Float, nWx: Float, nWy: Float, out: Vector2): Vector2` = `aberratePhoton(−βx, −βy, nWx, nWy, out)`. This is the inverse of the ST-039 muzzle aberration: the shooter-frame direction to fire so that the photon flies along `n̂_W`.
+- acceptance:
+  - [ ] Test: a static target gives `out = r̂` and `t = |r|/c`
+  - [ ] Test: a target at (30, 0) moving (0, 20) with c = 60: a photon from the origin along `out` for time `t` ends within 1e-3 u of `r + v_t·t`
+  - [ ] Test: `aberratePhoton(β, muzzleDirForWorldDir(β, n̂)) ≈ n̂` within 1e-5 for β = (0.9, 0), n̂ = (0, 1), and for 10 random cases with |β| ≤ 0.95
+  - [ ] Test: `r = 0` returns NaN without crashing
+  - [ ] `./gradlew core:test` passes
+
+### ST-074 Pilot view: sprites drawn at retarded, boosted positions (default on)
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-044, ST-059, ST-071, ST-072
+- files: `physics/RelativitySettings.kt`, `physics/PhysicsConstants.kt`, `system/RenderSystem.kt`, `system/CameraSystem.kt`, `event/PlayerInputListener.kt`, `event/GameEventManager.kt`, `ui/DebugPanel.kt`, `screen/PlayScreen.kt`; tests
+- goal: Make what the pilot actually sees the main rendering (owner decision 2026-11-02, research E8 + E9). Every other object is drawn where its light left it (light delay) and then boosted into the pilot's frame (aberration), so the world slides forward and stretches ahead at speed. Physics, collisions and the minimap stay in true arena positions. A flag keeps the old world view.
+- spec:
+  - Settings (append last, with defaults): `pilotView: Boolean = PILOT_VIEW_DEFAULT` (`const val PILOT_VIEW_DEFAULT = true`), `pilotAberration = true` and `pilotDelay = true` (debug switches for the two halves). All are plain `var`s, restored by `resetDebugDefaults`. Debug panel: three checkboxes "pilot view", "aberration" and "light delay".
+  - The V key toggles `pilotView`: `PlayerInputListener.togglePilotView()` (default no-op). `GameEventManager.keyDown(Keys.V)` calls it on the listeners. `CameraSystem` implements it and flips `settings.pilotView`.
+  - `CameraSystem` in pilot view: centre the camera exactly on the player's interpolated position with **no** arena clamp (the clamp is an arena-frame idea, and the boosted view has no fixed edges).
+  - `RenderSystem` gets `LightHistorySystem`, `ObserverState`, `GameClock` and `RelativitySettings`. In pilot view, with `o` = the player's interpolated position, `β = observer.betaVisual` (the same smoothed β that ST-076 aiming uses) and `now = clock.worldTime − (1 − clock.interpolationAlpha)·PHYSICS_UPDATE_INTERVAL` (the interpolated arena time):
+    - The player is drawn at `o`, unboosted, with rotation `worldHullToPilot(body.angle, β)` (in its own frame the ship is at rest and uncontracted).
+    - Every other sprite entity: `historyOf(id).retarded(o, now, c, state)` (if `!pilotDelay`, use the current interpolated transform). If it returns false, skip the entity (its light hasn't arrived). Build the 4 sprite corners at the retarded position and angle, with the ST-044 contraction for the retarded velocity, in a reusable `FloatArray(20)`. Map each corner `p` to `o + apparentOffset(p − o, β)` (skip the boost if `!pilotAberration`), then `batch.draw(texture, verts, 0, 20)`.
+    - Keep the world-view path unchanged when `pilotView` is false.
+  - The minimap and the HUD keep using true positions.
+  - No per-frame allocation (a reusable `RetardedState`, `Vector2` and vertex array).
+- acceptance:
+  - [ ] Pure test: extract `fun pilotCorner(px, py, ox, oy, betaX, betaY, aberration: Boolean, out: Vector2)`. A corner at o + (0, 10) with β = (0.9, 0) → o + (20.65, 10); with `aberration = false` → o + (0, 10)
+  - [ ] Test (real engine, headless: drive `RenderSystem`'s position logic through a helper that doesn't need a GL batch): a static asteroid 30 u away appears at its true position when the player is at rest. With the player at β = 0.8 it appears shifted toward +x by the E9 formula within 0.05 u
+  - [ ] Test: an asteroid spawned 1 step ago at distance 30 (not eternal) is not drawn
+  - [ ] Screenshot via the harness with `--seed=42 --thrust --frames=150`, viewed by the agent: asteroids bunch up toward the direction of motion
+  - [ ] `./gradlew core:test` passes
+- playtest: Accelerate: the asteroid field visibly crowds forward and stretches ahead; things beside you appear ahead. V switches between pilot view and the true (world) view. Hitting things should still feel fair; note anything that feels like a desync.
+
+### ST-075 Pilot view: per-corner retarded time (Terrell rotation)
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-074
+- files: `system/RenderSystem.kt` (or the pilot-view helper file from ST-074); tests
+- goal: Light from the near and far corners of an object leaves at different times, which makes fast objects look rotated and skewed (Terrell–Penrose, research E8/E9). ST-074 uses the centre's retarded time for all 4 corners. This refines each corner with one Newton step, cheap and exact enough at our sizes.
+- spec:
+  - With the centre solution `(t_c, x_c, v_c)` and corner offset `q` (rotated and contracted at `t_c`), look back `s` from `t_c`: `p(s) = x_c + q − v_c·s` and `h(s) = |p(s) − o| − c·(now − t_c + s)`. Then `h(0) = |x_c + q − o| − c·(now − t_c)` and `h'(s) = −r̂·v_c − c`, so one Newton step gives `s = h(0) / (c + r̂·v_c)` with `r̂ = normalize(x_c + q − o)`. The corner position is `p(s)`, then boost as in ST-074. Ignore rotation during `s` (FAKE, tiny).
+  - Pure helper `fun cornerRetarded(xc, yc, qx, qy, vcx, vcy, ox, oy, lookback: Float, c: Float, out: Vector2)`, where `lookback = now − t_c`.
+- acceptance:
+  - [ ] Test: for a static object, `cornerRetarded` returns `x_c + q` exactly
+  - [ ] Test: for an object moving at (40, 0), 30 u away perpendicular to the motion, with q = (±2, 0), the result satisfies the corner light-cone equation `|p − o| = c·(lookback + s)` within 1e-2 u (one Newton step)
+  - [ ] `./gradlew core:test` passes
+- playtest: Fast asteroids crossing close by look slightly skewed. No flicker or corner jitter.
+
+### ST-076 Pilot-frame aiming: the cursor points in the pilot's frame
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-039, ST-072, ST-074
+- files: `input/PlayerInputState.kt`, `input/MouseHullStrategy.kt`, `system/PlayerInputSystem.kt`, `provider/WeaponProjectileProvider.kt`; tests in `input/MouseHullStrategyTest.kt`, `provider/WeaponProjectileProviderTest.kt`
+- goal: In pilot view the screen shows the pilot's frame, so the cursor direction from the ship is a pilot-frame (P) direction. The hull and the shots must follow the cursor as the pilot sees it. Shots already treat `aimAngleRad` and the hull as shooter-frame angles (ST-039), so this card makes the hull consistent.
+- spec:
+  - `PlayerInputState`: add `val betaShip = Vector2()` and `var pilotView = false`. `PlayerInputSystem` fills them every frame from `ObserverState.betaVisual` and `settings.pilotView && settings.relativityEnabled`.
+  - `MouseHullStrategy`: `θ = atan2(aim − shipPos)`. If `input.pilotView`, then `targetAngleRad = pilotHullToWorld(θ, betaShip)`, so the hull, drawn at `worldHullToPilot(body.angle)` in pilot view, points at the cursor. Otherwise `θ` as today.
+  - `WeaponProjectileProvider` hull fallback (no `aimAngleRad`): `aim = worldHullToPilot(body.angle, β_ship)` when relativity is on (the hull's angle in the ship's rest frame), else `body.angle`. The muzzle offset uses the same `aim`.
+- acceptance:
+  - [ ] Test: `MouseHullStrategy` with `pilotView = true`, `betaShip = (0.9, 0)` and the cursor at 45° from the ship → `targetAngleRad = 66.45° ± 0.05°`; with `pilotView = false` → 45°
+  - [ ] Test: a ship at β = 0.9 along +x with body angle 66.45° and no `aimAngleRad` fires along the shooter-frame 45°, i.e. a W direction of `aberratePhoton(β, 45°)` ± 0.1°
+  - [ ] `./gradlew core:test` passes
+- playtest: In pilot view at speed, the ship's nose and the shots go where the cursor is.
+
+### ST-077 Pilot view: starfield, field band and shimmer through the boost
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-043, ST-074
+- files: `render/Starfield.kt`, `render/FieldShimmerRenderer.kt`, `assets/shaders/field_shimmer.vert`, `system/RenderSystem.kt`; tests
+- goal: Bring the backdrop and the arena edge into the pilot frame, so the whole view is consistent: the sky crowds forward (E9 aberration on the celestial sphere), and the arena band bends.
+- spec:
+  - Starfield in pilot view: treat the stars as a shell at radius `ρ` around the player. For each star within the view half-diagonal of the player, take its drawn offset `d`, compute the apparent direction `normalize(apparentOffset(d, β))`, and draw it at `o + that·|d|` (radius kept, angle aberrated). ST-043's Doppler `D` keeps using the arena-frame `ŝ = d̂` (that is the correct source direction for `D = γ(1 + β·ŝ)`). Pull the per-star mapping into a pure `fun aberrateStarOffset(dx, dy, betaX, betaY, out)`.
+  - Field band and shimmer: the arena is static, so its retarded position equals its true one; only the boost applies. In `FieldShimmerRenderer.drawStrips`, subdivide each of the 4 strips into `PILOT_BAND_SEGMENTS = 64` quads along its length, and map every vertex with `o + apparentOffset(p − o, β)` when pilot view is on. Pass the **arena-frame** position in the texcoords (`u, v` = W x, y), and in `field_shimmer.vert` set `v_world = a_texCoord0` (the fragment shader never samples `v_texCoords`, so the field, the ripples and the band edges are still computed in the arena frame). In world view keep the texcoords equal to the positions, so the output is unchanged.
+  - `FieldShimmerRenderer.render` gets `β`, `o` and the pilot flag.
+- acceptance:
+  - [ ] Test: `aberrateStarOffset` keeps `|d|`, is the identity at β = 0, and maps (0, 10) at β = (0.9, 0) to the angle 25.84°
+  - [ ] Test: the strip builder (extract it into a pure function filling a `FloatArray`) emits 64 quads per side, with texcoords equal to the arena-frame positions and vertex positions equal to the boosted ones
+  - [ ] Screenshot (harness, `--seed=42 --thrust --frames=150`) viewed by the agent: stars crowd toward the direction of motion and the band bends near the edges
+  - [ ] `./gradlew core:test` passes
+- playtest: Near c the sky shrinks into a bright forward cone and the arena wall bulges. Shimmer ripples still appear where shots cross the band.
+
+### ST-078 Lead markers: where to aim so a photon hits
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-039, ST-071, ST-073, ST-074, ST-076
+- files: create `system/LeadMarkerSystem.kt`; edit `physics/PhotonAim.kt`, `input/ControlSettings.kt`, `ui/DebugPanel.kt`, `screen/PlayScreen.kt`; tests
+- goal: Near c, aiming at what you see misses, because you see the past and your own shots aberrate. Mark, for nearby targets, the cursor direction that makes a photon hit. It uses honest fire control: only light that has reached the pilot (the retarded state), extrapolated at constant velocity. It never peeks at true positions.
+- spec:
+  - Add to `PhotonAim.kt`: `fun leadDirection(sx, sy, betaX, betaY, ret: RetardedState, now: Float, c: Float, out: Vector2): Boolean`. Extrapolate `x_e = ret.x + ret.vx·(now − ret.t)` (same for y); `photonInterceptDir(x_e − s, ret.v, c, nW)`; `out = muzzleDirForWorldDir(β, nW)` (the shooter-frame direction n̂'). Return false when the intercept fails.
+  - `LeadMarkerSystem(lightHistory, observer, clock, settings, controlSettings, shapeRenderer, camera)`, registered right after `RenderSystem`. For non-player entities with `HealthComponent` and a history, take the nearest `LEAD_MARKER_MAX = 8` within `LEAD_MARKER_RANGE = 60` u (by retarded distance). For each, `leadDirection`. Screen direction: `n̂'` if pilot view is on or the active scheme aims a turret (`TWIN_STICK`, `AUTO_AIM`); otherwise (world view + mouse-hull) the hull W angle `pilotHullToWorld(n̂', β)`, because the hull fallback fires along `worldHullToPilot(hull)` (ST-076). Draw a ring (radius 0.6 u, line width 1) at `o + dir·dist`, with `dist` = the target's on-screen distance from `o` (its apparent distance in pilot view, its true one in world view), and a thin line from the target's drawn position to the ring. Colour: faction-tinted, alpha 0.7.
+  - `ControlSettings.leadMarkers: Boolean = true`. Debug checkbox "lead markers".
+- acceptance:
+  - [ ] Test: `leadDirection` at β = 0 for a static target returns r̂
+  - [ ] Integration test (real `World` with `PhysicsSystem`, `RelativisticDynamics`, `ProjectileSweepSystem` and `LightHistorySystem`): a ship moving at β = 0.8 along +x, an asteroid 20 u away along +y moving (10, 0), histories warmed up for 1 s; set `aimAngleRad = atan2(leadDirection(...))` and fire. The photon's sweep hits the asteroid within 1 s
+  - [ ] `./gradlew core:test` passes
+- playtest: At speed, aim at the ring instead of the asteroid and the shots hit. Check whether 8 markers clutter the screen.
 
 ### ST-047 Relativistic mass in Box2D collisions
 - status: ready
@@ -1060,21 +1363,466 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 - status: ready
 - size: S
 - agent: junior-dev
-- depends: ST-036, ST-037, ST-038, ST-039, ST-040, ST-041, ST-042, ST-043, ST-044, ST-045, ST-046, ST-047, ST-048, ST-055, ST-056, ST-057, ST-058, ST-059, ST-060, ST-061, ST-062
+- depends: ST-036, ST-037, ST-038, ST-039, ST-040, ST-041, ST-042, ST-043, ST-044, ST-045, ST-046, ST-047, ST-048, ST-055, ST-056, ST-057, ST-058, ST-059, ST-060, ST-061, ST-066, ST-067, ST-068, ST-069, ST-070, ST-071, ST-072, ST-073, ST-074, ST-075, ST-076, ST-077, ST-078
 - files: `docs/tech/architecture.md`, `CLAUDE.md`, `docs/design/game-design.md` (§4 controls, §5 arena size, §6 tier table and §11, only to reflect the answered `needs-user` cards)
-- goal: Document the relativistic dynamics layer (step-listener order, `RelativisticComponent`, `RELATIVITY_ENABLED`), `ObserverState`, the projectile sweep and photons, the new constants, the M3 promotions listed in this milestone's note, the runtime `RelativitySettings`/`DebugSettings`/`ControlSettings` singletons, the debug panel (F1, `--debug-panel`), the `ControlScheme` strategies and `--controls=`, and the UI-first input multiplexer order.
+- goal: Document the relativistic dynamics layer (step-listener order, `RelativisticComponent`, `RELATIVITY_ENABLED`), `ObserverState`, the projectile sweep and photons, the new constants, the M3 promotions listed in this milestone's note, the runtime `RelativitySettings`/`DebugSettings`/`ControlSettings` singletons, the debug panel (F1, `--debug-panel`), the `ControlScheme` strategies and `--controls=`, the UI-first input multiplexer order, and (2026-11-02) the pilot clock (`GameClock`, `TimeWarpSystem`, the 10-step cap), the braking boost, shots leaving the arena, and the pilot view with `LightHistorySystem`, aiming and lead markers.
 - acceptance:
   - [ ] Every statement in the updated sections can be traced to the current code or to an answered owner decision
 
 ---
 
-## M4+ Relativistic view, gravity, enemies, modes
+## M4 Relativistic view
+
+The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead markers) was pulled forward into M3 by the 2026-11-02 interview: ST-070 to ST-078. M4 holds the follow-ups.
 
 ### ST-050 Plan M4 (relativistic view) from research
-- status: blocked
-- blocker: Plan when about half of M3 is done (research §7 items 16–20).
+- status: done (2026-11-02, replaced: planned directly from the 2026-11-02 interview as ST-070–ST-081)
 - size: S
 - agent: planner
 - depends: ST-037
 - files: `docs/backlog.md`
 - goal: Turn research §4 Tier 2 (E8–E13) and §7 items 16–20 into M4 cards, along with owner questions Q5, Q8, Q13 and Q14.
+- outcome: Q5 answered by the owner: pilot view is the default (b). Q8 answered: the minimap shows true positions (a). Q14 is planned around the recommendation (b), a 25 % floor plus outlines (ST-080). Q13 (enemies obey light delay) moves to M6 with the enemies; `LightHistorySystem` (ST-071) already supports it. E11 (apparent animation rate) waits until there are animated sprites.
+
+### ST-079 Pilot view: ghosts of removed entities until their light runs out
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-074
+- files: `system/LightHistorySystem.kt`, `system/RenderSystem.kt`; tests in `system/LightHistorySystemTest.kt`
+- goal: In pilot view a destroyed asteroid must stay visible until the light of its destruction reaches the pilot, or you see things vanish before the hit "happens" (research E8). Its fragments already stay invisible until their light arrives (ST-070, non-eternal histories).
+- spec:
+  - `LightHistorySystem.entityRemoved`: besides `removedAt`, store a `GhostInfo` (pooled; `region: TextureRegion`, `width`, `height`, `originX`, `originY`, `color` packed float), copied from the entity's `SpriteComponent` sprite, keyed by id. Free it when the history is pruned.
+  - Expose `fun forEachGhost(action: (id: Int, history: LightHistory, ghost: GhostInfo, removedAt: Float) -> Unit)` without allocating (an inline function over the `IntMap`).
+  - `RenderSystem` pilot path: after the live sprites, for each ghost `retarded(o, now)`; if it returns true and `state.t < removedAt`, draw it exactly like a live entity (same corner and boost code, ST-075 corners if present). Otherwise skip it.
+  - In world view, ghosts are never drawn.
+- acceptance:
+  - [ ] Test: an asteroid 30 u from a resting observer, removed at `t = 1`: at `now = 1.3` the ghost is visible (`t_ret = 0.8 < 1`), at `now = 1.6` it isn't
+  - [ ] Test: the ghost's `GhostInfo` is freed when the history is pruned
+  - [ ] `./gradlew core:test` passes
+- playtest: Shoot a distant asteroid in pilot view: the shot reaches it, and it breaks a moment later, as seen. No asteroid pops out of existence early.
+
+### ST-080 Searchlight k = 2 in pilot view, with a brightness floor and outlines
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-043, ST-045, ST-074
+- files: `render/RelativityVisuals.kt`, `render/Starfield.kt`, `system/RenderSystem.kt`; tests
+- goal: Full relativistic beaming in the pilot view (research E10, k = 2): things ahead blaze and things behind dim. Q14 is planned around the recommendation (b), so behind you nothing goes below 25 %, and dim hostiles and asteroids get an outline.
+- spec:
+  - `const val BRIGHTNESS_EXPONENT_PILOT = 2f`. Starfield and sprite tint use `B = clamp(D^k, B_MIN, B_MAX)` with `k = BRIGHTNESS_EXPONENT_PILOT` in pilot view and `BRIGHTNESS_EXPONENT_MVP` in world view. Pull it into `fun beamBrightness(d: Float, pilotView: Boolean): Float`.
+  - Outlines: for non-player entities with `HealthComponent`, in pilot view, when `B < OUTLINE_B_THRESHOLD = 0.6f`, draw a `ShapeRenderer` circle (line, 24 segments) at the entity's apparent centre with radius `boundingRadius·1.1`, in the faction colour at alpha `0.5·(1 − B/OUTLINE_B_THRESHOLD)`. One `ShapeRenderer.begin/end` per frame, after the sprite batch ends.
+- acceptance:
+  - [ ] Tests: `beamBrightness(2f, true) == 3f` (clamped from 4); `beamBrightness(0.3f, true) == 0.25f` (floor); `beamBrightness(0.6f, false) == 0.6f`; `beamBrightness(1f, true) == 1f`
+  - [ ] `./gradlew core:test` passes
+- playtest: At speed the view ahead is bright, and asteroids behind you are dim but outlined. Check whether the outline is too strong.
+
+### ST-081 Doppler-scaled photon damage
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-039, ST-048
+- files: `component/ProjectileComponent.kt`, `provider/WeaponProjectileProvider.kt`, `system/ContactSystem.kt`, `physics/Relativity.kt`, `physics/RelativitySettings.kt`; tests
+- goal: A photon's energy as absorbed depends on both ends' motion (research E12, exact): charging enemies take more damage, fleeing ones less, and firing forward while charging hits harder. It makes Doppler colour tactically meaningful.
+- spec:
+  - `ProjectileComponent`: add `shooterBetaX`, `shooterBetaY` (reset to 0). `WeaponProjectileProvider` sets them to `v_ship / c` at emission.
+  - `fun photonEnergyFactor(bsx, bsy, btx, bty, nx, ny): Float = γ_t(1 − β_t·n̂) / (γ_s(1 − β_s·n̂))` in `Relativity.kt`, where `n̂` is the photon's arena direction (`PhotonComponent.dir`), with each β clamped to `BETA_MAX_MASSIVE`.
+  - `applyProjectileHit`: if `settings.photonDopplerDamage` and the projectile has a `PhotonComponent`, `damage = laser.damage·photonEnergyFactor(...).coerceIn(PHOTON_DAMAGE_D_MIN = 0.25f, PHOTON_DAMAGE_D_MAX = 4f)`. β_t comes from the target's `relativisticCmpOptional?.vSet ?: body.linearVelocity`, divided by c. `RelativitySettings` gets a last param `photonDopplerDamage: Boolean = true`, with a debug checkbox.
+- acceptance:
+  - [ ] Tests: shooter at rest, target moving at β = 0.6 against the photon → factor 2.0 ± 1e-3; target fleeing at 0.6 → 0.5; shooter moving at 0.6 along the photon, target at rest → 2.0; everything at rest → 1
+  - [ ] Test: with a laser of damage 50, a head-on target at β = 0.6 loses 100 health; with `photonDopplerDamage = false` it loses 50
+  - [ ] `./gradlew core:test` passes
+- playtest: Head-on passes kill asteroids faster than shooting at ones that run away.
+
+---
+
+## M5 Gravity & black holes
+
+Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends ships and shots, the horizon kills, and a bright accretion disk makes them readable. Research E14–E18 is detailed enough to plan directly. Q12 (lensing) is planned around the recommendation (a): only the backdrop is lensed. Tidal stretching (E19) is left for polish.
+
+- note (2026-11-02, owner follow-up, game-design §11 Q1 answered): black holes, planets and decoration **start static** (placed at level start, zero velocity) but are **dynamic and feel gravity**: n-body among the sources, plus the player's pull. **Decision (planner):** sources are Box2D dynamic bodies on the **Newtonian path** (no `RelativisticComponent`): they are heavy and stay far below 0.1 c, so γ ≈ 1 and they need neither `RelativisticDynamics`, nor the γ-mass of ST-047, nor the ship clocks of ST-040. Black holes get a sensor body (no contacts, ignored by the projectile sweep, which already skips sensors); planets get a solid body. Because they have bodies, `BoundaryFieldSystem` (which acts on every `BodyComponent`) keeps them in the arena with no extra code, and `LightHistorySystem` records them for the pilot view. With the physical pull, two holes 60 u apart would collide in about 6 s, so source–source gravity is scaled by `sourceCoupling = 0.1` (declared FAKE, about 19 s), pending ST-092. Holes that touch merge. Counts stay low for performance: at most 2 holes, 2 planets and 6 debris pieces per level.
+- note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
+
+### ST-092 Owner decision: how strongly gravity sources pull each other
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `docs/design/game-design.md` §11; `physics/Gravity.kt` (`SOURCE_COUPLING_DEFAULT`, only if the answer is not (b))
+- goal: Record the owner's choice. ST-083 implements the recommendation as a debug slider, so this can be tried in-game before answering.
+- question: Black holes and planets pull each other (owner 2026-11-02). With physically consistent strength (black hole GM = 3600 u³/s²), two holes placed 60 u apart fall together and merge in about 6 s, so most levels would start with a merger. How strong should source–source gravity be? (a) Physical (`sourceCoupling = 1`): fast mergers, chaotic. (b) **Scaled down to 0.1 (recommended)**: a declared FAKE; two holes meet in about 19 s, planets drift visibly over a level, and a merger is an event rather than the opening. (c) Off between sources (`0`): sources only feel the player's pull and stay almost static.
+- acceptance:
+  - [ ] The answer is in game-design.md §11 Decisions. If (a) or (c): set `SOURCE_COUPLING_DEFAULT` to 1f or 0f
+  - [ ] `./gradlew core:test` passes
+
+### ST-082 Gravity math: massive and photon laws (pure)
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-035
+- files: create `physics/Gravity.kt`; create `core/src/test/kotlin/com/github/pepek42/asteroids/physics/GravityTest.kt`
+- goal: One gravity law for black holes that gives exact Schwarzschild orbit shapes for ships, and the matching law that bends photons (research E14). Pure functions first, so the orbits and the photon capture can be proven in tests.
+- spec (no allocation; `r⃗` = body minus source):
+  - `const val BH_RS = 2f` (Schwarzschild radius in u), `fun gmFromRs(rs: Float, c: Float) = rs·c²/2` (GM = 3600 at c = 60). KDoc the derived radii: photon sphere 1.5 r_s, shadow `b_c = 2.598 r_s`, ISCO 3 r_s. With `ENGINE_PROPER_ACCEL = 25` the engine can't hold a ship still inside about 12 u (6 r_s).
+  - `fun gravityAccelTau(rx, ry, ux, uy, gm, c, softening, out: Vector2): Vector2`: `r = max(|r⃗|, softening)`, `L = |rx·uy − ry·ux|` (from proper velocity u), `out = −(gm/r³)·(1 + 3L²/(c²r²))·r⃗`. This is du/dτ. Callers in arena time divide by γ.
+  - `fun newtonAccel(rx, ry, gm, softening, out)`: `−gm/r³·r⃗` (for `relativityEnabled = false`).
+  - `fun bendPhoton(rx, ry, nx, ny, gm, c, dt, out: Vector2): Vector2`: `k = c·n̂`, `L_k = |r⃗ × k|`, `k += −(3gm/c²)(L_k²/r⁵)·r⃗·dt`, `out = normalize(k)` (renormalising keeps the path shape, research E14).
+  - `fun circularOrbitL(r: Float, rs: Float, gm: Float): Float = sqrt(gm·r/(1 − 1.5·rs/r))` (test helper and future spawns; NaN inside 1.5 r_s).
+  - Constants for the dynamic sources (owner 2026-11-02): `const val SOURCE_COUPLING_DEFAULT = 0.1f` (scale of source–source pull, declared FAKE, ST-092) and `const val PLAYER_GM = 30f` (the player's pull on sources only; at 10 u it accelerates a hole by 0.3 u/s²). KDoc both.
+  - The inverse of `gmFromRs`: `fun rsFromGm(gm: Float, c: Float) = 2·gm/c²` (used by ST-086 for planets).
+  - `fun mergeSources(m1, x1, y1, vx1, vy1, m2, x2, y2, vx2, vy2, out: FloatArray)`: `out = [m1 + m2, xcm, ycm, vxcm, vycm]` (mass-weighted centre and velocity: momentum is conserved). For black holes `m ∝ rs`, so callers pass rs as the mass and the merged hole gets `rs = rs1 + rs2`.
+- acceptance:
+  - [ ] Test: integrate `gravityAccelTau` with RK4 in τ (step 1e-3) for one orbit starting at r = 12 with tangential `|u| = circularOrbitL(12)/12` → r stays within 12 ± 5 %
+  - [ ] Test: a photon (step `dt = 1/450`) with impact parameter b = 40, starting 400 u away, is deflected by `2r_s/b = 0.1 rad ± 15 %`
+  - [ ] Test: a photon with b = 2.3 r_s ends inside r_s (captured); one with b = 2.9 r_s escapes
+  - [ ] Test: far from the hole (r = 100, small u) `gravityAccelTau` matches `newtonAccel` within 1 %
+  - [ ] Test: two sources with gm 3600 each, at rest 60 u apart, both pulled by `SOURCE_COUPLING_DEFAULT·newtonAccel` (semi-implicit Euler, dt = 1/45) close to 4 u apart after `19.2 s ± 5 %` (radial free fall `t = (π/2)·sqrt(r₀³/(2μ))`, `μ = 0.1·7200`)
+  - [ ] Test: `mergeSources` conserves `m·v` and puts the merged centre on the segment between the two
+  - [ ] `./gradlew core:test` passes
+
+### ST-083 GravitySystem: n-body sources, bodies and photons
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-039, ST-082
+- files: create `component/GravitySourceComponent.kt`, `system/GravitySystem.kt`; edit `physics/RelativitySettings.kt`, `screen/PlayScreen.kt`, `ui/DebugPanel.kt`; create `system/GravitySystemTest.kt`
+- goal: Put gravity into the per-step physics (research E14). Ships and asteroids orbit and slingshot, lasers curve around holes, and the sources themselves move: they start at rest and pull each other, and the player pulls them (owner 2026-11-02).
+- spec:
+  - `enum class GravitySourceKind { BLACK_HOLE, PLANET }`. `GravitySourceComponent { var kind = BLACK_HOLE; var rs = BH_RS; var gm = 0f; var softening = 0.5f; var radius = 0f }` (Poolable, mapper and `gravitySourceCmp`/`gravitySourceCmpOptional`, per the convention). For `BLACK_HOLE` the effective `gm = gmFromRs(rs, settings.c)` is computed each step (c is a setting); for `PLANET` `gm` is used as stored and `radius` is the surface radius. **Every source has a Box2D dynamic body** (ST-085, ST-093) and its position and velocity come from the body. Sources have **no** `RelativisticComponent` (the Newtonian path, see the M5 note).
+  - `GravitySystem(settings) : EntitySystem(), PhysicsStepListener`, families: sources `allOf(GravitySourceComponent, BodyComponent)`, bodies `allOf(BodyComponent, BaseInfoComponent).exclude(GravitySourceComponent)`, player `allOf(PlayerComponent, BodyComponent)`. Register it in the step-listener list after `boundaryFieldSystem` and before `projectileSweepSystem` (so before `relativisticDynamics`). `beforeStep(dt)`, skipped if `!settings.gravityEnabled` or there are no sources:
+    - **Sources (n-body).** For each source i: `a = Σ_{j≠i} settings.sourceCoupling·newtonAccel(r⃗_ij, gm_j, softening = max(radius_i + radius_j, 1f))` + `newtonAccel(r⃗_i,player, settings.playerGm, softening = 2f)` (only if a player exists). Apply `body.applyForceToCenter(a·mass)`. O(n²) with n ≤ 4, so negligible. Asteroids, debris and photons don't pull sources.
+    - **Relativistic bodies** (`RelativisticComponent`, relativity on): for each source, `rel.accel += gravityAccelTau(r⃗, rel.u, gm, c, softening) / rel.gUsed` for black holes, and `newtonAccel(r⃗, gm, softening = radius)/rel.gUsed` for planets (planets are weak, no strong-field term).
+    - **Other dynamic bodies** (or relativity off): `body.applyForceToCenter(newtonAccel·mass)` per source.
+    - **Photons** (`PhotonComponent`): `dir = bendPhoton(r⃗, dir, gm, c, dt)` per source (holes and planets; the player doesn't bend light), `body.linearVelocity = c·dir`, and the body angle follows `dir`.
+    - Other kinematic projectiles: `v += newtonAccel·dt`.
+  - `RelativitySettings`: append `gravityEnabled: Boolean = GRAVITY_ENABLED` (`const val GRAVITY_ENABLED = true`), `sourceCoupling: Float = SOURCE_COUPLING_DEFAULT` (clamped to [0, 1]) and `playerGm: Float = PLAYER_GM` (clamped to [0, 200]), restored by `resetDebugDefaults`. Debug panel: checkbox "gravity", sliders "source coupling" and "player GM".
+  - The system does nothing when there are no sources, so all levels play as before until ST-085.
+- acceptance:
+  - [ ] Test (real `World`, a black-hole source on a dynamic sensor body at the origin, player-like relativistic body): released at rest at r = 30, it falls inward, and after 0.5 s its radial speed matches the integrated `gravityAccelTau/γ` within 5 %
+  - [ ] Test: a photon passing at b = 40 is deflected 0.1 rad ± 15 % (the sweep through the real system)
+  - [ ] Test: two black-hole sources at rest 60 u apart move toward each other with equal and opposite velocities (within 1 %), and with `sourceCoupling = 0` they stay at rest
+  - [ ] Test: a source at rest 10 u from the player gains velocity toward the player of `playerGm/100·t` (± 5 % after 0.5 s); an asteroid next to the source doesn't move the source
+  - [ ] Test: `gravityEnabled = false` → no velocity change on any body
+  - [ ] `./gradlew core:test` passes
+
+### ST-084 Player death ends the run
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: `system/DeathSystem.kt`, `Game.kt`, `screen/PlayScreen.kt`, `screen/MainMenuScreen.kt`, `GameState.kt`, `assets/i18n/messages.properties`, `assets/i18n/messages_pl.properties`; tests
+- goal: Black-hole horizons kill (owner decision), and impact damage (ST-048) can kill too, but today a dead player is just tagged for removal, which breaks the level. Make death end the run cleanly.
+- spec:
+  - `DeathSystem` gets a last constructor param `onPlayerDeath: () -> Unit = {}`. For an entity with `PlayerComponent` and `health ≤ 0`: call `onPlayerDeath()` once (guard with a flag reset in `addedToEngine`) and **don't** add `RemoveComponent`.
+  - `Game.endRun()`: `gameState.resetGame()`, set a `gameState.lastRunEnded = true` flag, `setScreen<MainMenuScreen>()`. `PlayScreen` passes `{ game.endRun() }`. The screen switch must not happen in the middle of `engine.update`: post it with `Gdx.app.postRunnable`.
+  - `MainMenuScreen.show()`: if `gameState.lastRunEnded`, show a label `run_ended_message` above the buttons and clear the flag. i18n: `run_ended_message=Your ship was lost. Run over.` and `run_ended_message=Statek stracony. Koniec gry.` in both files.
+- acceptance:
+  - [ ] Test: `DeathSystem` with a player at health 0 calls the callback once over 3 updates and adds no `RemoveComponent`; an asteroid at health 0 is still split and removed as before
+  - [ ] Test: `GameState.resetGame()` puts the level back to its start value and `lastRunEnded` is settable
+  - [ ] The i18n key exists in both files
+  - [ ] `./gradlew core:test` passes
+- playtest: Die (debug: set health to 0, or fly into a black hole after ST-085): you land on the main menu with the message, and a new game starts at level 1.
+
+### ST-085 Black holes in the arena: spawn, horizon, merge, shadow and rings
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-072, ST-083, ST-084
+- files: create `provider/BlackHoleProvider.kt`, `render/BlackHoleRenderer.kt`; edit `component/BaseInfoComponent.kt`, `provider/AsteroidProvider.kt`, `system/GravitySystem.kt`, `system/RenderSystem.kt`, `system/MinimapSystem.kt`, `physics/RelativitySettings.kt`, `screen/PlayScreen.kt`; tests
+- goal: Black holes, 1–2 per level (owner decision 2026-11-02, research E16): a black shadow, a photon ring and a dashed ISCO danger ring. They start at rest and then move under gravity (ST-083); the boundary field keeps them in the arena. Crossing the horizon kills, and holes that touch merge.
+- spec:
+  - `EntityType.BLACK_HOLE`. `BlackHoleProvider.spawn(level: Int, random: RandomXS128)` creates `count = if (level >= 3) 2 else 1` entities with `BaseInfoComponent(NEUTRAL, BLACK_HOLE)`, `TransformComponent`, `BodyComponent` and `GravitySourceComponent(kind = BLACK_HOLE, rs = BH_RS)`. The body (`world.body {}`, `userData = entity`): `DynamicBody`, `fixedRotation = true`, zero initial velocity, one circle fixture of radius `rs` with `isSensor = true`, `density = 1f`, `filter.categoryBits = FactionEnum.NEUTRAL` category and `filter.maskBits = 0` (no contacts at all; the projectile sweep already skips sensors). Gravity is mass-independent and the boundary field is too, so the Box2D mass doesn't matter. Placement by rejection sampling with the seeded random: at least 30 u from every wall, at least 40 u from the arena centre (the player spawn) and at least 60 u from each other. Return the positions. Pull the rule into a pure `fun validSourcePosition(x, y, wallMargin, others: FloatArray, n: Int, minSep, mapW, mapH): Boolean` (also used by ST-093 and ST-094).
+  - `PlayScreen.show()` spawns black holes before asteroids (if `settings.blackHolesEnabled`, a new last setting, default true, debug checkbox). `AsteroidProvider` rejects spawn points within `BH_ASTEROID_CLEARANCE = 8·BH_RS` of any black hole.
+  - Horizon, in `GravitySystem.afterStep`: any non-source body with centre distance `< rs` from a hole gets a `RemoveComponent` (photons and asteroids included). The player instead gets `health = 0`, so ST-084 ends the run. Absorbed asteroids count as cleared for `EndLevelSystem`.
+  - Merge, in the same pass: two holes with centre distance `< rs₁ + rs₂` merge. The survivor (lower `BaseInfoComponent.id`) takes `mergeSources` (ST-082, with rs as the mass): `rs = rs₁ + rs₂`, the body is moved to the centre of mass (`setTransform`) with the merged velocity, and its fixture is replaced by a circle of the new radius. The other gets a `RemoveComponent`. Planets are handled in ST-093.
+  - `BlackHoleRenderer` (`ShapeRenderer`, called by `RenderSystem` after the backdrop and before sprites): a filled black circle of radius `2.598·rs` (the shadow), a thin bright ring at `1.5·rs` (photon ring, white, alpha 0.6) and a dashed ring at `3·rs` (ISCO, 32 dashes, orange, alpha 0.4). World view: at the interpolated transform. Pilot view: the holes move, so take the hole's retarded position from `LightHistorySystem.historyOf(id).retarded(...)` (holes exist from level start, so their history is `eternal`), then draw each circle as a 64-point polyline/fan through `o + apparentOffset(p − o, β)` around that position.
+  - Minimap: a black dot with a white outline at each hole's true position.
+- acceptance:
+  - [ ] Tests: `validSourcePosition` rejects points 20 u from a wall, 30 u from the centre and 50 u from another hole; accepts a valid point. With seed 42, level 3 spawns two holes satisfying all rules, both with zero velocity
+  - [ ] Test (real `World`): an asteroid dropped at r = 10 from a hole with no velocity is removed within 3 s; a player in the same spot ends up with `health == 0`
+  - [ ] Test: two holes placed 3 u apart merge in one step into one hole with `rs = 4`, at the midpoint, with the summed momentum; the other entity has a `RemoveComponent`
+  - [ ] Test: a hole given a velocity toward a wall stays inside the arena for 10 s (boundary field)
+  - [ ] Test: no asteroid spawns within 16 u of a hole (seed 42, level 4)
+  - [ ] `./gradlew core:test` passes
+- playtest: A black disc with rings sits in the arena and slowly drifts. Ships slingshot around it, and lasers bend near it. Flying close tugs the hole toward you. On level 3+, the two holes drift together and merge. Is the ISCO ring readable as "danger"?
+
+### ST-093 Planets: solid gravity sources and obstacles
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-083, ST-085
+- files: create `provider/PlanetProvider.kt`, `render/PlanetTextures.kt`; edit `component/BaseInfoComponent.kt`, `system/GravitySystem.kt`, `provider/AsteroidProvider.kt`, `system/MinimapSystem.kt`, `physics/RelativitySettings.kt`, `ui/DebugPanel.kt`, `screen/PlayScreen.kt`, `Game.kt`; tests
+- goal: Planets (owner 2026-11-02): smaller gravity sources with a solid surface instead of a horizon. They start at rest, feel the other sources and the player (ST-083), bend paths gently, and are obstacles you can crash into.
+- spec:
+  - Constants (`provider/PlanetProvider.kt`): `PLANET_RADIUS = 5f`, `PLANET_GM = 300f` (surface gravity 12 u/s², half of `ENGINE_PROPER_ACCEL = 25`, so ships can take off), `PLANET_DENSITY = 20f` (heavy relative to ships and asteroids, so ramming barely moves it), `PLANET_ASTEROID_CLEARANCE = PLANET_RADIUS + 6f`. Count: `planetCount(level) = if (level >= 4) 2 else 1` (pure). With ST-085 that's at most 4 sources per level.
+  - `EntityType.PLANET`. `PlanetProvider.spawn(level, random, occupied: FloatArray, n: Int)`: entities with `BaseInfoComponent(NEUTRAL, PLANET)`, `TransformComponent`, `SpriteComponent` (a `PlanetTextures` region, size `2·PLANET_RADIUS`), `BodyComponent` and `GravitySourceComponent(kind = PLANET, gm = PLANET_GM, radius = PLANET_RADIUS, softening = PLANET_RADIUS)`. No `HealthComponent` (indestructible; photons are consumed on hit by the sweep because NEUTRAL collides with every faction) and no `RelativisticComponent`. Body: `DynamicBody`, zero velocity, a solid circle fixture of radius `PLANET_RADIUS`, density `PLANET_DENSITY`, friction 0.3, restitution 0.2, the NEUTRAL faction filter. Placement: `validSourcePosition` (ST-085) with wall margin 25, at least 30 u from the centre and from every hole and planet already placed. Spawn order in `PlayScreen.show()`: holes, planets, then asteroids (`AsteroidProvider` also rejects points within `PLANET_ASTEROID_CLEARANCE` of a planet). Setting `planetsEnabled = true` (last param, debug checkbox).
+  - Black hole eats a planet: in the ST-085 `afterStep` pass, a planet whose centre is within `rs + 0.5·PLANET_RADIUS` of a hole gets a `RemoveComponent` (the hole's rs doesn't change: declared omission, planet mass ≪ hole).
+  - Crashes need no code: Box2D resolves the contact, and impact damage (ST-048) applies to ships hitting the surface.
+  - `PlanetTextures` (DI singleton, created in `Game` after the atlas, disposed in `Game.dispose`): 4 variants built once with the seeded random, each a 96×96 `Pixmap` disc. Pull the colour rule into a pure `fun planetTexel(variant: Int, seed: Long, u: Float, v: Float): Int` (RGBA8888; transparent outside the unit disc; inside, 3–5 horizontal bands from a 1D value-noise in `v` with a palette per variant, plus a darker 1-texel rim). Nearest filtering, matching the pixel-art atlas.
+  - Minimap: a filled circle at true scale and position, grey.
+- acceptance:
+  - [ ] Tests: `planetCount(1) == 1`, `planetCount(4) == 2`; `planetTexel` is transparent at (0.99, 0.99) and opaque at (0.5, 0.5), and is deterministic for the same seed
+  - [ ] Test (seed 42, level 4): 2 planets, each at least 30 u from every hole and from the centre, all at rest; no asteroid within 11 u of a planet
+  - [ ] Test (real `World`): a ship dropped 15 u above a planet with no velocity falls, collides and comes to rest on the surface (centre distance `PLANET_RADIUS + ship radius ± 0.3` after 5 s); a planet placed 10 u from a hole is removed within 3 s
+  - [ ] `./gradlew core:test` passes
+- playtest: A banded planet sits in the arena and drifts slowly toward the hole. Orbit it, slingshot around it, try landing gently. Hitting it fast should hurt. Are the generated planet sprites good enough as placeholders?
+
+### ST-094 Level decoration: drifting debris
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-083, ST-085
+- files: create `provider/DecorationProvider.kt`; edit `component/BaseInfoComponent.kt`, `physics/RelativitySettings.kt`, `screen/PlayScreen.kt`; tests
+- goal: A little light set dressing (owner 2026-11-02): a few small debris pieces that start at rest and then drift under gravity, which makes the pull of holes and planets visible even when nothing else is nearby. Moons on orbits are left out: a moon that starts at rest just falls into its planet.
+- spec:
+  - `EntityType.DEBRIS`. `DEBRIS_COUNT = 6` per level (pure `fun debrisCount(level: Int) = 6`; keep it a function so it can grow). Each piece: `BaseInfoComponent(NEUTRAL, DEBRIS)`, `TransformComponent`, `SpriteComponent` with the existing atlas region `debris`, size `random.range(0.8f, 1.6f)` u, random rotation, `HealthComponent(10f)` so one or two shots destroy it, a dynamic body with a circle fixture of radius `0.4·size`, density 0.5, zero velocity, the NEUTRAL faction filter. No `RelativisticComponent` and no `AsteroidComponent`: debris isn't counted by `EndLevelSystem` and isn't split by `DeathSystem` (check the death path removes it without spawning children).
+  - Placement with `validSourcePosition` (ST-085): wall margin 15, at least 20 u from the centre, at least 12 u from every source, at least 8 u apart. Spawned after asteroids. Setting `decorationEnabled = true` (last param, debug checkbox).
+  - Gravity, the boundary field and light history all apply through the existing families (they're ordinary bodies).
+- acceptance:
+  - [ ] Test (seed 42, level 2): 6 debris entities, all at rest, satisfying the placement rules
+  - [ ] Test: a level with only debris left (no asteroids) counts as cleared; a debris piece at health 0 is removed without spawning anything
+  - [ ] `./gradlew core:test` passes
+- playtest: Debris drifts toward the nearest hole or planet and gets swallowed or settles on the surface. Is 6 pieces the right amount?
+
+### ST-086 Gravitational time dilation in ship clocks and the time warp
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-040, ST-085
+- files: `component/RelativisticComponent.kt`, `system/GravitySystem.kt`, `system/RelativisticDynamics.kt`, `system/TimeWarpSystem.kt`; tests
+- goal: Clocks deep in a gravity well run slow (research E15: `dτ/dt = √(1 − r_s/r)`, combined as `√(1 − r_s/r)/γ`). Hiding near the hole makes the world race ahead ("Interstellar's planet"), and it feeds into the pilot clock warp.
+- spec:
+  - `RelativisticComponent.gravFactor = 1f` (reset 1). `GravitySystem.beforeStep` sets it to `∏ √(1 − rs/max(r, 1.01·rs))` over all sources (1 when gravity is off or there are no sources). For planets use `rs = rsFromGm(gm, c)` (0.17 u for the default planet, so about 2 % at its surface). The player's pull isn't a source here. Sources themselves have no `RelativisticComponent` and run on arena time.
+  - `RelativisticDynamics.afterStep`: `tau += dt·gravFactor/gUsed`.
+  - `properDelta` (ST-040), non-player relativistic entities: `worldDt·gravFactor/gUsed`.
+  - `TimeWarpSystem`: the warp uses `γ_eff = gUsed/gravFactor` instead of `gUsed`. Rotation factor `f` for non-players (ST-040): `gravFactor/gUsed`.
+  - Pure: `fun gravTimeFactor(r: Float, rs: Float): Float`.
+- acceptance:
+  - [ ] Tests: `gravTimeFactor(4f, 2f) ≈ 0.7071`; `gravTimeFactor(1f, 2f) ≈ √(1 − 1/1.01)` (clamped); far away (r = 1000) ≈ 1
+  - [ ] Test: a body held at rest at r = 2 r_s accumulates `tau ≈ 0.707` per second of world time, and with it as the player the warp is `1.414 ± 0.01`
+  - [ ] `./gradlew core:test` passes
+- playtest: Skim close to a hole and watch the world time race ahead on the HUD while your guns feel the same.
+
+### ST-087 Accretion disk: GPU particle disk
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-043, ST-085
+- files: create `render/AccretionDisk.kt`, `assets/shaders/accretion_disk.vert`, `assets/shaders/accretion_disk.frag`; edit `render/BlackHoleRenderer.kt`, `system/RenderSystem.kt`; tests
+- goal: The owner's end-goal visual: "bright matter around it" (research E17). A face-on rotating disk of glowing particles, coloured by temperature and gravitational redshift. It is also a "danger here" signal.
+- spec:
+  - Constants: `DISK_INNER = 3·BH_RS` (ISCO), `DISK_OUTER = 12·BH_RS`, `DISK_PARTICLES = 3000`, `DISK_T_PEAK = 12000f`, `DISK_PARTICLE_SIZE = 0.25f`.
+  - Pure: `fun diskTemperature(r: Float, rIn: Float, tPeak: Float): Float` with `T(r) = T*·x^(−3/4)·(1 − x^(−1/2))^(1/4)`, `x = r/rIn`, and `T*` chosen so the peak, at `x = 49/36`, equals `tPeak`. `fun diskRedshift(r: Float, rs: Float) = sqrt(1 − 1.5·rs/r)` (face-on, includes transverse Doppler). `fun diskOmega(r: Float, gm: Float) = sqrt(gm/r³)`.
+  - `AccretionDisk(seed)`: a static `Mesh` built once per black hole, with 4 vertices and 6 indices per particle. Attributes `a_corner` (vec2, ±1), `a_r`, `a_phi0`, `a_size`, `a_temp` (precomputed `T·g`). Radii sampled with density ∝ 1/r (more near the inside); `φ₀` uniform. No CPU updates per frame.
+  - Holes move (ST-085), so `u_center` is a per-hole uniform set every frame from the hole's interpolated transform, and a merge (rs changes) rebuilds that hole's mesh with radii scaled by the new rs.
+  - Vertex shader: `φ = a_phi0 + sqrt(u_gm/a_r³)·u_time` (`u_time` = `GameClock.worldTime`, so the disk turns at arena speed and visibly fast-forwards with the warp), `pos = u_center + a_r·(cos φ, sin φ) + a_corner·a_size`, colour from a 256×1 blackbody LUT texture built from `BlackbodyLut` (ST-043) at `a_temp`, brightness `g⁴`. Fragment: soft round dot. Additive blending (`GL_SRC_ALPHA, GL_ONE`). GLSL must be TeaVM/WebGL-safe (`#ifdef GL_ES precision mediump float;`).
+  - No radial drift in this version (declared omission). World view only; pilot view comes in ST-089 (in pilot view, skip the disk until then).
+- acceptance:
+  - [ ] Tests: `diskTemperature` peaks at `r = 49/36·rIn` with value `tPeak ± 1 %` and is 0 at `rIn`; `diskRedshift(3·rs, rs) ≈ 0.7071`; `diskOmega(12f, 3600f) ≈ 1.443`
+  - [ ] Test: the mesh builder fills `DISK_PARTICLES·4` vertices with all radii in `[DISK_INNER, DISK_OUTER]`
+  - [ ] Screenshot via the harness (seed 42, level 1) viewed by the agent: a bright disk around the hole, whiter inside, redder outside
+  - [ ] `./gradlew core:test` passes
+- playtest: The disk swirls, faster near the hole. It speeds up when the world fast-forwards.
+
+### ST-088 Gravitational lensing of the backdrop
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-085
+- files: create `render/LensingPass.kt`, `assets/shaders/lensing.vert`, `assets/shaders/lensing.frag`; edit `system/RenderSystem.kt`, `provider/BackgroundProvider.kt`; tests
+- goal: Stars behind a black hole bend into an Einstein ring around the shadow (research E18, thin lens, exact for the top-down camera). Only the backdrop is lensed, which is honest (Q12 (a)): sprites sit in the lens plane and aren't distorted, so hitboxes stay readable.
+- spec:
+  - `const val LENS_EINSTEIN_RADIUS_RS = 4f` (`R_E = 4·r_s`), `LENS_QUAD_HALF = 3f` (in units of `R_E`), `LENS_FADE_START = 0.7f` (fraction of the quad half-size).
+  - Pure: `fun lensSourceOffset(rhoX, rhoY, rE, quadHalf, out: Vector2): Boolean`. Returns false inside the shadow (`|ρ| < 2.598·r_s`, drawn black). Otherwise `out = ρ·(1 − w·R_E²/|ρ|²)` with the fade weight `w = 1 − smoothstep(LENS_FADE_START·quadHalf, quadHalf, max(|ρx|, |ρy|))`, so the deflection is zero at the quad edge and there's no seam (FAKE taper, outside the Einstein ring).
+  - `LensingPass`: render the nebula and the starfield into a `FrameBuffer` the size of the backbuffer (recreated on resize), then blit it to the screen. For each black hole, draw a quad of half-size `LENS_QUAD_HALF·R_E` around it with `lensing.frag` sampling the FBO at the hole's position plus the lensed offset (the GLSL mirrors `lensSourceOffset`). The black-hole shadow and rings (ST-085) and the disk (ST-087) draw on top. In pilot view the lens is centred on the hole's apparent position (FAKE: the aberrated backdrop is lensed as if unaberrated).
+  - A setting `lensingEnabled = true` (last param, debug checkbox). When off, render the backdrop directly as before.
+  - Holes spawn at least 60 u apart (ST-085) and a quad's half-size is 24 u, but they drift together under gravity before merging. When two quads overlap, each samples the unlensed FBO, so the second lens doesn't see the first one's image (declared FAKE; it lasts only until the merge). Centre each quad on the hole's interpolated position (world view) or apparent position (pilot view).
+- acceptance:
+  - [ ] Tests: `lensSourceOffset` returns false at `|ρ| = 5` (shadow 5.196 at r_s 2); at `|ρ| = R_E` it maps to (0, 0) (the Einstein ring images the point behind the hole); at the quad edge `out == ρ`; it is continuous along a radial line (no jump > 0.1 u between samples 0.01 u apart outside the shadow)
+  - [ ] Screenshot via the harness (seed 42) viewed by the agent: an Einstein ring of stars around the shadow
+  - [ ] `./gradlew core:test` passes
+- playtest: Fly past a hole: stars smear into arcs and a ring around it. You can spot holes from the backdrop.
+
+### ST-089 Accretion disk in pilot view, with Doppler beaming
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-074, ST-080, ST-087
+- files: `render/AccretionDisk.kt`, `assets/shaders/accretion_disk.vert`; tests
+- goal: In pilot view each disk particle gets its own Doppler factor toward the pilot, so the side swinging toward you blazes blue-white: the famous lopsided disk (research E17), physically from in-plane motion.
+- spec:
+  - Mirror the vertex shader math in a pure Kotlin `fun diskParticleApparent(r, phi, gm, c, ox, oy, betaX, betaY, cx, cy, out: Vector2): Float` (returns D), and port it to GLSL by hand: the particle's arena position `p = center + r·(cos φ, sin φ)` and velocity `v = Ω·r·(−sin φ, cos φ)`. The retarded position comes from the constant-velocity closed form (`T` from research E8 with `r₀ = p − o`), `p_ret = p − v·T` (approximation: tangent line over `T`). Then the apparent position `o + apparentOffset(p_ret − o, β)` and `D = dopplerFactor(β_obs, v/c, n̂)` with `n̂` from `p_ret` to the observer.
+  - The hole moves (ST-085): `center` is the hole's retarded position from its `LightHistory` (as in ST-085's pilot-view rings), and each particle is then retarded by the tangent-line formula relative to that centre (declared approximation: the centre and the particles use separate retardations; the error is about `v_hole·T`, under 1 u for holes slower than 2 u/s at 30 u).
+  - Colour temperature `a_temp·D`, brightness `g⁴·beamBrightness(D, pilotView = true)`. Uniforms `u_pilot`, `u_observer`, `u_beta`, `u_c`. With `u_pilot = 0` the output equals ST-087.
+- acceptance:
+  - [ ] Tests: with the observer at rest 100 u from the hole, the particle moving toward the observer has D > 1 and the one moving away has D < 1, with `D_toward·D_away` equal for mirrored particles on either side of the line of sight (within 1e-3); with β_obs = 0 the apparent position differs from the true one by less than `|v|·T`
+  - [ ] Screenshot (pilot view, near a hole) viewed by the agent: one side of the disk is brighter and bluer
+  - [ ] `./gradlew core:test` passes
+- playtest: Orbit a hole in pilot view: the approaching half of the disk glows blue-white and the other half dims red.
+
+### ST-095 Lighting math: falloff, wrapped diffuse and light picking (pure)
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-043
+- files: create `render/Lighting.kt`; create `core/src/test/kotlin/com/github/pepek42/asteroids/render/LightingTest.kt`
+- goal: First slice of lighting (owner 2026-11-02: "lighting should work as expected"). Pure functions that the lit-sprite shader (ST-097) mirrors, so falloff and direction can be proven in tests.
+- spec (no allocation; arena units; lights live in the arena plane at a small height):
+  - `class LightSource { var x = 0f; var y = 0f; var z = LIGHT_HEIGHT; var r = 1f; var g = 1f; var b = 1f; var intensity = 1f; var size = 1f; var range = 100f; var directional = false }`. `directional = true` means `(x, y)` is a unit direction toward the light (a light at infinity, ST-099).
+  - Constants: `LIGHT_HEIGHT = 2f`, `LIGHT_AMBIENT = 0.35f` (keeps the unlit side readable, like ST-080's brightness floor), `MAX_LIGHTS_PER_SPRITE = 4`. Accretion-disk light: `DISK_LIGHT_INTENSITY = 3f`, `DISK_LIGHT_SIZE = DISK_OUTER` (24 u), `DISK_LIGHT_RANGE = 120f`, colour `BlackbodyLut` at `0.85·DISK_T_PEAK`. The hole itself emits nothing; the disk is approximated as one soft point light at the hole centre (declared FAKE: an annulus as a point light of size `DISK_OUTER`).
+  - `fun falloff(d: Float, size: Float, range: Float): Float = (1/(1 + (d/size)²))·(1 − smoothstep(0.75·range, range, d))`: inverse square, softened at the emitter size, faded to 0 at the range so lights can be culled.
+  - `fun wrapDiffuse(nDotL: Float, wrap: Float): Float = max(0, (nDotL + wrap)/(1 + wrap))`, with `wrap = clamp(size/d, 0, 1)` for point lights (an extended source seen from close lights more than a hemisphere; inside the disk radius the object is lit from all around), and `wrap = 0` for directional lights.
+  - `fun lightDir(px, py, light, out: Vector3): Float`: unit vector from the point to the light (`(lx − px, ly − py, z)` normalised; for directional `(x, y, LIGHT_HEIGHT/10)` normalised) and returns the in-plane distance (∞ for directional).
+  - `fun shade(nx, ny, nz, px, py, lights: Array<LightSource>, idx: IntArray, n: Int, ambient: Float, out: FloatArray)`: `out(rgb) = ambient + Σ colour·intensity·falloff·wrapDiffuse(N·L)` (falloff 1 for directional).
+  - `fun pickLights(px, py, lights, count, max, outIdx: IntArray): Int`: the indices of up to `max` lights with the largest `intensity·falloff(d)`, skipping those with 0. Insertion into a small sorted array, no allocation.
+- acceptance:
+  - [ ] Tests: `falloff(0, 4, 100) == 1`, `falloff(4, 4, 100) == 0.5`, `falloff(100, 4, 100) == 0`, monotonic in d
+  - [ ] Tests: a normal facing the light gets `ambient + intensity`; facing away with `wrap = 0` gets `ambient` only; with `wrap = 1` the back side still gets half the front side's diffuse
+  - [ ] Test: `pickLights` with 6 lights returns the 4 strongest at the point, in descending order, and skips one beyond its range
+  - [ ] `./gradlew core:test` passes
+
+### ST-096 Normal maps from sprite alpha in the texture packer
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: —
+- files: `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/TexturePacker.kt`, create `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/NormalMaps.kt`, `tool/build.gradle.kts`, create `tool/src/test/kotlin/com/github/pepek42/asteroids/tool/NormalMapsTest.kt`; regenerated `assets/textures/textures.atlas` and `.png`
+- goal: Lit sprites need a per-texel normal so light comes from the right side. Generate a bevelled "pillow" normal map from each sprite's alpha at pack time, so no hand-drawn normal art is needed (the owner has no art pipeline for it).
+- spec:
+  - Pure `fun normalMapFromAlpha(w: Int, h: Int, alpha: FloatArray, bevelPx: Int = 3, strength: Float = 2f): FloatArray` (returns `w·h·4` floats rgba). Inside = `alpha > 0.5`. Height `hgt = min(dist, bevelPx)/bevelPx`, where `dist` is the chamfer (3-4) distance to the nearest outside texel in texels, from a two-pass distance transform. Smooth `hgt` with a 3×3 box filter. Normal `n = normalize(−dhdx·strength, +dhdy·strength, 1)` with central differences, and `+dhdy` because image rows go down while world y goes up. Encode `rgb = n·0.5 + 0.5`, `a = alpha` (so the packer trims both images identically).
+  - `main()`: for every PNG under `raw_assets` whose name starts with `asteroid_`, `debris` or lives in `spaceship/`, write `<name>_n.png` to `tool/build/normals/` (mirroring subdirectories). Copy `raw_assets` (with `pack.json`) and the generated files into `tool/build/packinput/`, then `TexturePacker.process("tool/build/packinput", "assets/textures", "textures")`. Lasers, thrusters, explosions, blast and backgrounds stay without normals (they're unlit or emissive). Read and write PNGs with `javax.imageio` (the tool is JVM-only).
+  - Add JUnit test dependencies to `tool/build.gradle.kts` the same way `core` has them, if missing.
+  - Run `./gradlew tool:packTextures` and commit the regenerated atlas. Region lookups by name in `core` are unchanged (new regions are only added).
+- acceptance:
+  - [ ] Test: for a 32×32 filled disc of radius 12, the centre normal is (0, 0, 1) ± 0.05, a texel at the right rim has `nx > 0.5`, at the top rim (row 4) `ny > 0.5`
+  - [ ] Test: a fully transparent image gives all-transparent output; a fully opaque 8×8 square has flat normals in its inner 2×2
+  - [ ] After packing, `textures.atlas` contains `asteroid_big_n`, `debris_n` and `spaceship/triangle_blue_n` (or the path form the packer uses), with the same width and height as their colour regions
+  - [ ] `./gradlew core:test` and `./gradlew tool:test` pass
+
+### ST-097 Lit sprites: accretion disks light ships, asteroids and planets
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-074, ST-087, ST-093, ST-095, ST-096
+- files: create `render/LitSpriteRenderer.kt`, `render/LightSources.kt`, `assets/shaders/lit_sprite.vert`, `assets/shaders/lit_sprite.frag`; edit `system/RenderSystem.kt`, `physics/RelativitySettings.kt`, `ui/DebugPanel.kt`, `screen/PlayScreen.kt`; tests
+- goal: The glowing plasma around black holes lights nearby ships, asteroids, debris and planets, with distance falloff and the lit side facing the disk (owner 2026-11-02). Black holes emit nothing themselves. Works in world view and pilot view.
+- spec:
+  - `LightSources` (per level, reused arrays of `LightSource`, ST-095): rebuilt every frame. One light per black hole with a disk (ST-087) at the hole's position, with the ST-095 disk constants (after a merge, scale `size` and `range` with `rs/BH_RS`). ST-099 adds the star.
+  - Shader `lit_sprite` (SpriteBatch-compatible attributes `a_position`, `a_color`, `a_texCoord0`, uniform `u_projTrans`; GLSL TeaVM/WebGL-safe with `#ifdef GL_ES precision mediump float;`). Per-sprite uniforms: `u_colorRegion`, `u_normalRegion` (vec4 u, v, u2, v2; the normal texture on unit 1, `u_normals`), `u_normalMode` (0 flat, 1 normal map, 2 analytic sphere), `u_center` (arena position, vec2), `u_rot` (cos, sin of the arena angle), `u_halfSize` (vec2), `u_ambient`, and up to 4 lights `u_lightPos[4]` (vec3), `u_lightColor[4]` (colour·intensity), `u_lightSize[4]`, `u_lightRange[4]`, `u_lightDir[4]` (float flag), `u_lightCount`. In the fragment: local `q = ((uv − region.xy)/(region.zw − region.xy)·2 − 1)·(1, −1)`; normal from the map (mode 1, the normal UV mapped from the colour UV through the two regions), the sphere `(q.x, q.y, sqrt(max(0, 1 − |q|²)))` (mode 2, planets) or (0, 0, 1); rotate `n.xy` by `u_rot`; the texel's arena position `p = u_center + R(u_rot)·(q·u_halfSize)`. Then the ST-095 `shade` math. Output `albedo·shade·v_color`, so the existing vertex colour (Doppler tint and searchlight, ST-045/ST-080) still applies on top.
+  - Pull the per-texel math into a pure Kotlin `fun shadeSpriteTexel(qx, qy, halfW, halfH, cx, cy, rotRad, mode, nTexX, nTexY, nTexZ, lights, idx, n, ambient, out: FloatArray)` that the GLSL mirrors line by line.
+  - `RenderSystem`: when `settings.lightingEnabled` (new last setting, default true, debug checkbox "lighting") and there is at least one light, lit entities (ships, asteroids, debris: those whose region has a `<name>_n` partner; planets: mode 2) are drawn with `batch.shader = lit`, per entity: `pickLights`, set uniforms, draw, `batch.flush()`. Lasers, thrusters and explosions keep the default shader. One draw call per lit sprite is accepted because entity counts are kept low (owner 2026-11-02); KDoc a budget of about 150 lit sprites. Cache the `_n` region lookup per region (an `ObjectMap`, no per-frame string building).
+  - **Pilot view: exact vs FAKE** (KDoc this list on `LitSpriteRenderer`):
+    - Exact (given the pilot view itself): which side of an object is lit is a set of events, so it is the same in every frame. The shader computes it in the arena frame from the sprite's **retarded** position and angle (the same state ST-074 uses for the vertices) and then the sprite is drawn on the boosted vertices. So `u_center` and `u_rot` are always the arena-frame state (current interpolated state in world view, retarded state in pilot view), never the apparent one.
+    - FAKE 1: the emitter position. Exactly, the light hitting the object at its retarded time `t_ret` left the disk earlier still, at `t_ret − |p − e|/c`. We use the hole's position extrapolated to `t_ret` (`e = e_now − v_hole·(now − t_ret)`) and skip the extra emitter-to-object delay. Holes move slowly, so the error is about `v_hole·|p − e|/c`, under 1 u for holes slower than 2 u/s at 30 u.
+    - FAKE 2: the light received by a moving object isn't Doppler-shifted or aberrated at the object (its colour and brightness are computed as if it were at rest in the arena). The pilot's own Doppler on the result still applies through the vertex colour.
+    - FAKE 3: lighting ignores length contraction (ST-044) of the lit sprite, and the disk is one soft point light (ST-095).
+  - With `lightingEnabled = false` (or no lights) the render path and output are unchanged.
+- acceptance:
+  - [ ] Test: an asteroid (mode 2) at (10, 0) with a disk light at the origin: the texel at `q = (−1, 0)` (facing the hole) is brighter than at `q = (1, 0)`, which gets about the ambient plus the wrap term
+  - [ ] Test: a normal-map texel with tangent normal (1, 0, 0) on a sprite rotated by 90° gets the light from +y, not from +x
+  - [ ] Test: pilot-view emitter extrapolation: a hole moving at (2, 0) with the object's `t_ret` 0.5 s ago gives an emitter 1 u behind the current hole position
+  - [ ] Screenshot via the harness (seed 42, level 1, world view and pilot view) viewed by the agent: asteroids near the hole are lit on the side facing the disk
+  - [ ] `./gradlew core:test` passes
+- playtest: Fly near a black hole: your ship and the asteroids pick up a warm glow on the side facing the disk, and it fades with distance. Toggle "lighting" in the debug panel to compare. Check the frame rate on a busy level.
+
+### ST-098 Shadows from planets and large asteroids
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-097
+- files: `render/Lighting.kt`, `render/LitSpriteRenderer.kt`, `assets/shaders/lit_sprite.frag`; tests
+- goal: Planets and large asteroids cast shadows away from the light (owner 2026-11-02). Space itself has nothing to light, so a shadow only shows where it falls on another sprite. That is physically right and means no shadow geometry is needed: an occlusion test in the lit-sprite shader is enough.
+- spec:
+  - Pure `fun circleShadowFactor(px, py, lx, ly, lightSize: Float, directional: Boolean, cx, cy, cr): Float` (1 = lit, 0 = fully shadowed). With `d̂` from the point toward the light and `t = (c − p)·d̂`: if `t ≤ 0` or (point light) `t ≥ |l − p|`, return 1 (the occluder isn't between). `dPerp` = distance from `c` to the ray. The penumbra half-width at the occluder is `w = lightSize·t/|l − p|` for point lights (similar triangles) and `w = STAR_ANGULAR_SIZE·t` for directional ones (`const val STAR_ANGULAR_SIZE = 0.01f` in `Lighting.kt`, used by ST-099), at least 0.05 u. Return `smoothstep(cr − w, cr + w, dPerp)`.
+  - Occluders: planets and asteroids with `boundingRadius ≥ OCCLUDER_MIN_RADIUS = 1.5f`, as circles in the arena frame (current state in world view, retarded state in pilot view, like ST-097). Per lit sprite, the CPU keeps up to `MAX_OCCLUDERS = 6` occluders whose circle comes within `cr + spriteRadius` of a segment from the sprite to one of its picked lights, excluding the sprite itself. Uniforms `u_occ[6]` (vec3 x, y, r), `u_occCount`. In the shader each light's contribution is multiplied by the product of `circleShadowFactor` over the occluders.
+  - Self-shadowing on the far side already comes from N·L. Small asteroids, ships and debris don't cast (performance; KDoc it).
+  - Setting `shadowsEnabled = true` (last param, debug checkbox).
+- acceptance:
+  - [ ] Tests: an occluder exactly between point and light → < 0.05; offset sideways by `cr + 2w` → > 0.95; an occluder behind the point or beyond the light → 1; continuous along a sideways sweep (no jump > 0.1 between samples 0.01 u apart)
+  - [ ] Test: the CPU selection skips the sprite's own circle and keeps at most 6
+  - [ ] Screenshot (seed 42, a debug setup with a ship behind a planet relative to a hole) viewed by the agent: the ship is darker than one beside the planet
+  - [ ] `./gradlew core:test` passes
+- playtest: Hide behind a planet from a black hole's glow: your ship goes dark. Are disk shadows (very soft, because the disk is large) readable?
+
+### ST-099 A distant star as a directional light
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-097, ST-098
+- files: `render/LightSources.kt`, `render/Lighting.kt`, `screen/PlayScreen.kt`, `physics/RelativitySettings.kt`, `ui/DebugPanel.kt`; tests
+- goal: "Maybe some stars as light sources" (owner 2026-11-02). Planned as one distant sun per level: a directional light, so levels without a black hole near you still have a lit side and shading, and each level gets its own mood. In-arena stars (gravity, heat and light together) would be a later, bigger feature.
+- spec:
+  - Per level, from the seeded random in `PlayScreen.show()`: `angle = random.range(0, 2π)`, `temperature = random.range(4000f, 9000f)`. A `LightSource` with `directional = true`, `(x, y) = (cos, sin)`, colour from `BlackbodyLut`, `intensity = STAR_LIGHT_INTENSITY = 0.6f`. Shadows from the star use `STAR_ANGULAR_SIZE` (ST-098). It's always in the list, before the disk lights.
+  - No visible star sprite (it's far beyond the arena, in the plane). Draw a faint arrow on the minimap edge pointing toward it, in the star's colour.
+  - Pilot view: the star is static and infinitely far, so the illumination direction in the arena frame is exact (by the ST-097 events argument), and only FAKE 2 (no Doppler at the object) applies.
+  - Setting `starLightEnabled = true` (last param, debug checkbox).
+- acceptance:
+  - [ ] Test: seed 42 gives the same star direction and temperature on every run of a level; a different level gives a different one
+  - [ ] Test: with only the star light, a sphere-mode texel facing the star direction is brighter than one facing away, and the result doesn't depend on distance
+  - [ ] `./gradlew core:test` passes
+- playtest: Each level has a sun direction: everything is lit from one side. Does it read well with the disk glow on top? Does the owner want visible in-arena stars instead (later card)?
+
+### ST-090 Bring docs in line after M4/M5
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-079, ST-080, ST-081, ST-082, ST-083, ST-084, ST-085, ST-086, ST-087, ST-088, ST-089, ST-093, ST-094, ST-095, ST-096, ST-097, ST-098, ST-099
+- files: `docs/tech/architecture.md`, `CLAUDE.md`, `docs/design/game-design.md` (§6, §7 entities, §9 visuals, §11 decisions only)
+- goal: Document the pilot view render path and its flags (V key), `LightHistorySystem` and ghosts, the step-listener order including `GravitySystem` and `LightHistorySystem`, `GravitySourceComponent` and the n-body source path (Newtonian, sensor bodies for holes, `sourceCoupling`, `playerGm`), black holes (`EntityType.BLACK_HOLE`, horizon kill, merging), planets and debris, the player death flow, the accretion disk, lighting (lit-sprite shader, normal maps from the packer, shadows, star light, the pilot-view exact/FAKE list) and lensing passes, and the new constants and settings.
+- acceptance:
+  - [ ] Every statement in the updated sections can be traced to the current code or to an answered owner decision
+
+---
+
+## Parked (low priority)
+
+Owner 2026-11-02: control modes for later (game-design §12). Keep them ready but behind all other milestones.
+
+### ST-062 Auto-aim + auto-shoot control scheme (the player manages momentum)
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-058, ST-073, ST-078
+- files: create `input/AutoAim.kt`, `input/AutoAimStrategy.kt`; edit `system/PlayerInputSystem.kt`, `screen/PlayScreen.kt`; tests
+- goal: **Reworked 2026-11-02** (owner: parked mode (a), Brotato / vampire-survivors style). Movement is mouse-hull as in scheme (a): the mouse steers the hull and RMB thrusts. The guns pick a target in a forward cone and fire on their own. It uses the honest fire control of the lead markers (ST-078: retarded state, extrapolated), so auto-aim never peeks at true positions. The photon math moved to `physics/PhotonAim.kt` (ST-073).
+- spec:
+  - Pure `fun pickTargetIndex(sx, sy, facingRad, coneHalfRad, range, xs: FloatArray, ys: FloatArray, n: Int): Int` in `AutoAim.kt`: the index of the nearest candidate with `dist ≤ range` and `|shortestAngleDiffRad(facing, atan2(dy, dx))| ≤ coneHalfRad`, or −1. No allocation.
+  - `AutoAimStrategy(targets, lightHistory, observer, clock, settings)`: the targets are the family `allOf(HealthComponent, BodyComponent, BaseInfoComponent)` minus the player faction. Candidate positions are their retarded positions (`LightHistory.retarded`), filled into reused scratch arrays. Movement as in `MouseHullStrategy`. Fire: `i = pickTargetIndex(…, AUTO_AIM_CONE_HALF_DEG = 30°, AUTO_AIM_RANGE = 40f)`. If `i ≥ 0`, then `leadDirection(…)` (ST-078) gives `n̂'`, `weapon.aimAngleRad = atan2(n̂')` and `doAttack = true`. Otherwise `doAttack = fireHeld` and `aimAngleRad = null`.
+  - Register it in `PlayerInputSystem.strategies[AUTO_AIM]`.
+- acceptance:
+  - [ ] Tests: `pickTargetIndex` picks the nearest in-cone target, skips a nearer one at 45° off the facing and one beyond range, and returns −1 for none
+  - [ ] Test (real `World`): a ship at β = 0.8 along +x, facing +y, with an asteroid 20 u away along +y (histories warmed up), fires a photon whose sweep hits it
+  - [ ] `./gradlew core:test` passes
+- playtest: With `--controls=auto`, fly around: the guns hit asteroids ahead even at high speed. Does it feel like the game plays itself?
+
+### ST-091 Targeting-trance control scheme (hold LMB: slow-mo aim, release: one shot)
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-058, ST-069, ST-078
+- files: `input/ControlScheme.kt`, create `input/TranceStrategy.kt`; edit `physics/TimeWarp.kt` (`GameClock`), `component/MoveComponent.kt`, `system/PhysicsSystem.kt`, `system/PlayerInputSystem.kt`, `system/LeadMarkerSystem.kt`, `screen/PlayScreen.kt`; tests
+- goal: Owner's parked mode (b): holding LMB strongly slows time (a declared FAKE "targeting trance"), shows the lead indicators and turns the ship instantly toward the aim. **Releasing LMB fires a single shot**, followed by a cooldown of at least 1 s (owner 2026-11-02). Single shots fit the owner's wish for fewer asteroids and enemies on the map (performance). Continuous fire while held could be revisited if entity counts grow.
+- spec:
+  - `ControlScheme.TRANCE("trance")`. `GameClock.slowMo = 1f` (reset to 1). `PlayScreen.render` multiplies the delta passed to `engine.update` by `clock.slowMo` (after the debug time scale), so the pilot and the world slow together.
+  - `const val TRANCE_TIME_SCALE = 0.2f`, `const val TRANCE_SHOT_COOLDOWN = 1f` (seconds of the pilot's real time = proper time τ, the clock the player's guns run on, ST-040). KDoc both.
+  - `TranceStrategy(clock)` with `cooldownLeft = 0f`: movement as in `MouseHullStrategy`. Each `apply`: `cooldownLeft = max(0, cooldownLeft − dt)`. The trance can only start when `cooldownLeft == 0`, so during the cooldown `slowMo == 1` and the strategy's `dt` is unscaled real time. While `fireHeld` (and off cooldown): `clock.slowMo = TRANCE_TIME_SCALE`, `move.instantTurn = true`, no firing. On the frame LMB is released after a trance: `doAttack = true` for that frame only (exactly one shot), `slowMo = 1`, `instantTurn = false`, `cooldownLeft = max(TRANCE_SHOT_COOLDOWN, weapon cooldown)`. Holding LMB during the cooldown does nothing until it ends, then the trance starts. `onActivate` resets `slowMo`, `instantTurn` and `cooldownLeft`.
+  - `MoveComponent.instantTurn = false` (reset false). `PhysicsSystem.applyRotation`: if set and `targetAngleRad != null`, `body.setTransform(body.position, target)` and `angularVelocity = 0` instead of the PD impulse (FAKE).
+  - `LeadMarkerSystem` draws the markers while the trance is active, even if `controlSettings.leadMarkers` is off.
+- acceptance:
+  - [ ] Test: with LMB held the clock's `slowMo == 0.2` and no shot is fired over 1 s; on release exactly one shot fires and `slowMo == 1`
+  - [ ] Test: pressing and releasing again 0.5 s after a shot fires nothing and doesn't slow time; LMB held from 0.5 s to 1.5 s enters the trance at 1.0 s and the release at 1.5 s fires the second shot
+  - [ ] Test: `instantTurn` sets the body angle to the target in one step with zero angular velocity
+  - [ ] Test: switching away from the scheme mid-trance resets `slowMo` to 1
+  - [ ] `./gradlew core:test` passes
+- playtest: With `--controls=trance`, hold LMB: time crawls, the markers appear and the nose snaps to the cursor; release to fire one shot, then wait a second. Does the 1 s cooldown feel right?
+
+### ST-063 Owner decision: default control scheme
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: ST-058, ST-061, ST-062, ST-091
+- files: `docs/design/game-design.md` §4 and §11; `input/ControlSettings.kt` (default)
+- goal: Record which scheme is the default once the owner has tried them all through `--controls=` or the debug panel selector. The others stay selectable. Parked with the modes (2026-11-02); ask once ST-061, ST-062 and ST-091 are done.
+- question: Which control scheme should be the default? (a) Mouse aims and rotates the hull, RMB thrusts forward (today). (b) **Twin-stick (recommended)**: WASD (later the left stick) sets the thrust direction in the arena frame, the hull turns toward it, and the mouse (later the right stick) aims an independent turret. Separating aim from thrust lets the player manage momentum near c, which is the core skill, while still shooting. (c) Auto-aim + auto-shoot (ST-062): you only steer and manage momentum. Better as an accessibility option. (d) Targeting trance (ST-091): hold LMB for slow-mo aim with an instant turn, release for one shot, then a 1 s cooldown. It's a FAKE time stop, so it's better as an option than as the default.
+- acceptance:
+  - [ ] The answer is in game-design.md §11 (decisions) and §4. `ControlSettings` defaults to the chosen scheme. For (b), ask the planner for a gamepad card (gdx-controllers, sticks → `moveAxis`/aim)

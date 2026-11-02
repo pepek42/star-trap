@@ -21,6 +21,10 @@ import com.github.pepek42.asteroids.event.DebugInputListener
 import com.github.pepek42.asteroids.input.ControlScheme
 import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.BRAKE_BOOST_K
+import com.github.pepek42.asteroids.physics.C_MAX_BOX2D_SAFE
+import com.github.pepek42.asteroids.physics.C_MIN
+import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_MAX
+import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_MIN
 import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
 import com.github.pepek42.asteroids.physics.FIELD_DAMPING
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
@@ -164,8 +168,8 @@ class DebugPanel(
         root.add(Label("time scale", skin)).colspan(2).row()
         root.add(buttons).colspan(2).left().row()
 
-        slider("c", 20f, 67f, 1f, 0, { relativitySettings.c }) { relativitySettings.c = it }
-        slider("a0", 5f, 120f, 1f, 0, { relativitySettings.engineProperAccel }) { relativitySettings.engineProperAccel = it }
+        slider("c", C_MIN, C_MAX_BOX2D_SAFE, 1f, 0, { relativitySettings.c }) { relativitySettings.c = it }
+        slider("a0", ENGINE_ACCEL_MIN, ENGINE_ACCEL_MAX, 0.1f, 1, { relativitySettings.engineProperAccel }) { relativitySettings.engineProperAccel = it }
         slider("brake boost", 0f, 5f, 0.1f, 1, { relativitySettings.brakeBoost }) { relativitySettings.brakeBoost = it }
         slider("field damping", 0f, 5f, 0.1f, 1, { relativitySettings.fieldDamping }) { relativitySettings.fieldDamping = it }
         slider("warp cap", 1f, 12f, 1f, 0, { relativitySettings.timeWarpMax }) { relativitySettings.timeWarpMax = it }

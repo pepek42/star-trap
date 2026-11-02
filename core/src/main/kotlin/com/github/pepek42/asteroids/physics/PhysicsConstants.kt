@@ -1,15 +1,21 @@
 package com.github.pepek42.asteroids.physics
 
+import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_TICK_RATE
+
+/** Box2D `b2_maxTranslation`: the most a body may move in one step (u). Box2D clamps anything faster (research §1). */
+const val BOX2D_MAX_TRANSLATION = 2f
+
 /**
- * World units per second. Must stay ≤ 0.75 × 2 u/step × 45 Hz ≈ 67 so Box2D's b2_maxTranslation never clamps (research §1).
+ * Highest c the runtime settings allow: 0.75 × [BOX2D_MAX_TRANSLATION] × [PHYSICS_TICK_RATE] (90 u/s at 60 Hz), so
+ * Box2D's per-step translation clamp never bites. Changing the tick rate moves this ceiling automatically.
  */
-const val SPEED_OF_LIGHT = 60.0f
+const val C_MAX_BOX2D_SAFE = 0.75f * BOX2D_MAX_TRANSLATION * PHYSICS_TICK_RATE
+
+/** World units per second. Owner decision 2026-11-02: c = 20, a third of the old 60, well under [C_MAX_BOX2D_SAFE]. */
+const val SPEED_OF_LIGHT = 20.0f
 
 /** Lowest c the runtime settings allow (ST-056). */
-const val C_MIN = 20f
-
-/** Highest c the runtime settings allow: 0.75 × 2 u/step × 45 Hz = 67.5, rounded down. */
-const val C_MAX_BOX2D_SAFE = 67f
+const val C_MIN = 10f
 
 /**
  * Numerical safety bound, not a gameplay cap (owner decision ST-032). Runtime value lives in `RelativitySettings.gammaMaxMassive` (ST-056).
@@ -26,11 +32,22 @@ val BETA_MAX_MASSIVE: Float = kotlin.math.sqrt(1f - 1f / (GAMMA_MAX_MASSIVE * GA
 /** Default for `RelativitySettings.relativityEnabled`, the runtime master switch. When false, ships use Newtonian thrust and bodies keep a synced `RelativisticComponent`. */
 const val RELATIVITY_ENABLED = true
 
+/** Target time (arena time) for a straight run from rest to 0.9c under the default engine. */
+const val ENGINE_TIME_TO_09C = 5f
+
+/** γβ at β = 0.9: 0.9 / sqrt(1 − 0.81) = 2.0647. The rapidity-like quantity u/c reached at 0.9c. */
+const val GAMMA_BETA_09C = 2.0647f
+
 /**
- * Engine proper acceleration (u/s²) at full thrust, felt by the pilot. With c = 60 and a = 25 a straight run
- * reaches 0.9c (γβ = 2.065) after t = (c/a)·γβ ≈ 5.0 s, covering d = (c²/a)(γ − 1) ≈ 186 u before the field.
+ * Engine proper acceleration (u/s²) at full thrust, felt by the pilot: a = c·γβ(0.9) / [ENGINE_TIME_TO_09C],
+ * about 0.413·c (8.26 at c = 20). A straight run reaches 0.9c after arena time t = (c/a)·γβ = 5 s (pilot proper
+ * time τ = (c/a)·asinh(γβ) ≈ 3.6 s), covering d = (c²/a)(γ − 1) ≈ 62 u at c = 20 before the field.
  */
-const val ENGINE_PROPER_ACCEL = 25f
+const val ENGINE_PROPER_ACCEL = SPEED_OF_LIGHT * GAMMA_BETA_09C / ENGINE_TIME_TO_09C
+
+/** Runtime engine-acceleration clamp as fractions of c: the default is 0.41c, so it is never clamped. */
+const val ENGINE_ACCEL_MIN = 0.1f * SPEED_OF_LIGHT
+const val ENGINE_ACCEL_MAX = 2f * SPEED_OF_LIGHT
 
 /** Reverse thrusters are this fraction as strong as the main engine. */
 const val REVERSE_THRUST_FRACTION = 0.5f

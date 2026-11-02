@@ -18,7 +18,7 @@ import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.environment.ASTEROID_COUNT_PER_LEVEL_SQ
 import com.github.pepek42.asteroids.environment.ASTEROID_DENSITY
 import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_MIN_RADIUS
-import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_SPEED_MAX
+import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_BETA_MAX
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.FIELD_SKIN
@@ -86,8 +86,9 @@ class AsteroidProvider(
             val angle = step * i * random.nextDouble().toFloat().let { 0.9f + it * 0.2f }
             val r = ASTEROID_SPAWN_MIN_RADIUS + random.nextFloat() * (maxRadius - ASTEROID_SPAWN_MIN_RADIUS)
             val positionShift = vec2(r, 0f).rotateRad(angle)
-            val vx = random.nextFloat() * 2f * ASTEROID_SPAWN_SPEED_MAX - ASTEROID_SPAWN_SPEED_MAX
-            val vy = random.nextFloat() * 2f * ASTEROID_SPAWN_SPEED_MAX - ASTEROID_SPAWN_SPEED_MAX
+            val speedMax = ASTEROID_SPAWN_BETA_MAX * settings.c
+            val vx = random.nextFloat() * 2f * speedMax - speedMax
+            val vy = random.nextFloat() * 2f * speedMax - speedMax
             spawnAsteroid(
                 size = AsteroidSize.LARGE,
                 position = center + positionShift,

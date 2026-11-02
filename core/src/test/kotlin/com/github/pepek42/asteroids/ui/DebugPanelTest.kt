@@ -3,6 +3,7 @@ package com.github.pepek42.asteroids.ui
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.physics.BRAKE_BOOST_K
+import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
@@ -13,9 +14,12 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class DebugPanelTest {
+    private fun fixed1(v: Float) = appendFixed(StringBuilder(), v, 1).toString()
+
+
     @Test
     fun formatReadoutsShowsRelativisticQuantities() {
-        val c = 60f
+        val c = SPEED_OF_LIGHT
         val beta = 0.9f
         val gamma = 1f / sqrt(1f - beta * beta)
         val observer = ObserverState().apply {
@@ -25,39 +29,39 @@ class DebugPanelTest {
         }
         val rel = RelativisticComponent().apply { u.set(gamma * beta * c, 0f) }
         val out = StringBuilder()
-        formatReadouts(observer, rel, c, 25f, out)
+        formatReadouts(observer, rel, c, ENGINE_PROPER_ACCEL, out)
         val s = out.toString()
         assertTrue("β = 0.900" in s, s)
         assertTrue("γ = 2.29" in s, s)
-        assertTrue("|u| = γ|v| = 123.9" in s, s)
-        assertTrue("ship-frame speed = 88.3" in s, s)
+        assertTrue("|u| = γ|v| = ${fixed1(gamma * beta * c)}" in s, s)
+        assertTrue("ship-frame speed = ${fixed1(observer.rapidity * c)}" in s, s)
     }
 
     @Test
     fun formatReadoutsShowsWarpLine() {
         val clock = com.github.pepek42.asteroids.physics.GameClock().apply { warp = 4f; stepsCapped = true }
         val out = StringBuilder()
-        formatReadouts(ObserverState(), null, 60f, 25f, out, clock)
+        formatReadouts(ObserverState(), null, SPEED_OF_LIGHT, ENGINE_PROPER_ACCEL, out, clock)
         assertTrue("warp = ×4.0 (capped)" in out.toString(), out.toString())
         clock.stepsCapped = false
-        formatReadouts(ObserverState(), null, 60f, 25f, out, clock)
+        formatReadouts(ObserverState(), null, SPEED_OF_LIGHT, ENGINE_PROPER_ACCEL, out, clock)
         assertTrue(out.toString().endsWith("warp = ×4.0"), out.toString())
     }
 
     @Test
     fun formatReadoutsShowsSpeedPercentVectorAndMass() {
-        val c = 60f
+        val c = SPEED_OF_LIGHT
         val observer = ObserverState().apply {
             betaRaw.set(0.75f, 0f)
             gammaRaw = 1.5f
         }
         val out = StringBuilder()
-        formatReadouts(observer, null, c, 25f, out, null, 2f)
+        formatReadouts(observer, null, c, ENGINE_PROPER_ACCEL, out, null, 2f)
         val s = out.toString()
-        assertTrue("|v| = 45.0 u/s (75.0 % c)" in s, s)
-        assertTrue("v = (45.0, 0.0) u/s" in s, s)
+        assertTrue("|v| = ${fixed1(0.75f * c)} u/s (75.0 % c)" in s, s)
+        assertTrue("v = (${fixed1(0.75f * c)}, 0.0) u/s" in s, s)
         assertTrue("m = 2.0   γm = 3.0" in s, s)
-        formatReadouts(observer, null, c, 25f, out)
+        formatReadouts(observer, null, c, ENGINE_PROPER_ACCEL, out)
         assertTrue("m =" !in out.toString(), out.toString())
     }
 
@@ -73,7 +77,7 @@ class DebugPanelTest {
     fun appendFixedIsLocaleIndependentAndPadsDecimals() {
         assertEquals("0.050", appendFixed(StringBuilder(), 0.05f, 3).toString())
         assertEquals("-1.5", appendFixed(StringBuilder(), -1.5f, 1).toString())
-        assertEquals("60", appendFixed(StringBuilder(), 60f, 0).toString())
+        assertEquals("60", appendFixed(StringBuilder(), 60f, 0).toString()) // formatting input, not a game constant
     }
 
     @Test

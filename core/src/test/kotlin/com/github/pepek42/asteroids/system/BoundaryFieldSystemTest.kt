@@ -20,6 +20,7 @@ import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.BoundaryFieldParams
 import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.ShimmerImpacts
 import org.junit.jupiter.api.AfterEach
@@ -31,6 +32,12 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 
 class BoundaryFieldSystemTest {
+    /** Test body speed: c, so the bodies move about a third of a unit per step. */
+    private val BODY_SPEED = SPEED_OF_LIGHT
+
+    /** Steps for a [BODY_SPEED] projectile starting 5 u inside the wall to get well past it. */
+    private val CROSS_STEPS = (2f * 5f / (BODY_SPEED * PhysicsSystem.PHYSICS_UPDATE_INTERVAL)).toInt()
+
     private val world = World(Vector2.Zero, true).apply { setAutoClearForces(false) }
     private val engine = Engine()
     private val mapProvider = MapProvider(mock(), 100f, 100f)
@@ -144,7 +151,7 @@ class BoundaryFieldSystemTest {
 
     @Test
     fun kinematicSensorTurnsBack() {
-        val body = addBody(BodyDef.BodyType.KinematicBody, 70f, 50f, 60f, radius = 0.1f, sensor = true)
+        val body = addBody(BodyDef.BodyType.KinematicBody, 70f, 50f, BODY_SPEED, radius = 0.1f, sensor = true)
         repeat(90) {
             step()
             assertTrue(body.position.x < 100f, "x=${body.position.x}")
@@ -154,26 +161,26 @@ class BoundaryFieldSystemTest {
 
     @Test
     fun kinematicNonProjectileStillGetsVelocityKick() {
-        val body = addBody(BodyDef.BodyType.KinematicBody, 95f, 50f, 60f, radius = 0.1f, sensor = true)
+        val body = addBody(BodyDef.BodyType.KinematicBody, 95f, 50f, BODY_SPEED, radius = 0.1f, sensor = true)
         step()
         assertTrue(body.linearVelocity.x < 60f, "vx=${body.linearVelocity.x}")
     }
 
     @Test
     fun projectilePassesWallUntouchedWithOneRipple() {
-        val body = addProjectile(engine, world, 95f, 50f, 60f)
-        repeat(10) {
+        val body = addProjectile(engine, world, 95f, 50f, BODY_SPEED)
+        repeat(CROSS_STEPS) {
             field.beforeStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
             world.step(PhysicsSystem.PHYSICS_UPDATE_INTERVAL, 6, 2)
             field.afterStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
         }
         assertTrue(body.position.x > 100f, "x=${body.position.x}")
-        assertEquals(60f, body.linearVelocity.x, 0f)
+        assertEquals(BODY_SPEED, body.linearVelocity.x, 0f)
         assertEquals(0f, body.linearVelocity.y, 0f)
         assertEquals(1, impacts.count)
         assertEquals(100f, impacts.data[0], 1e-3f)
         assertEquals(50f, impacts.data[1], 1e-3f)
-        repeat(10) {
+        repeat(CROSS_STEPS) {
             field.beforeStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
             world.step(PhysicsSystem.PHYSICS_UPDATE_INTERVAL, 6, 2)
             field.afterStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
@@ -193,14 +200,14 @@ class BoundaryFieldSystemTest {
         )
         localEngine.addSystem(localField)
         try {
-            val body = addProjectile(localEngine, localWorld, 95f, 50f, 60f)
-            repeat(10) {
+            val body = addProjectile(localEngine, localWorld, 95f, 50f, BODY_SPEED)
+            repeat(CROSS_STEPS) {
                 localField.beforeStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
                 localWorld.step(PhysicsSystem.PHYSICS_UPDATE_INTERVAL, 6, 2)
                 localField.afterStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
             }
             assertTrue(body.position.x > 100f, "x=${body.position.x}")
-            assertEquals(60f, body.linearVelocity.x, 0f)
+            assertEquals(BODY_SPEED, body.linearVelocity.x, 0f)
             assertEquals(1, localImpacts.count)
         } finally {
             localWorld.dispose()

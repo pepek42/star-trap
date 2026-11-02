@@ -13,11 +13,13 @@ import com.github.pepek42.asteroids.component.shipHandlingCmpOptional
 import com.github.pepek42.asteroids.math.shortestAngleDiffRad
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
+import com.github.pepek42.asteroids.physics.TIME_WARP_MAX
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import ktx.ashley.allOf
 import ktx.log.logger
+import kotlin.math.ceil
 import kotlin.math.min
 
 
@@ -123,10 +125,25 @@ class PhysicsSystem(
 
     companion object {
         private val logger = logger<PhysicsSystem>()
-        const val PHYSICS_UPDATE_INTERVAL = 1f / 45
+
+        /** Base tick rate (Hz). Everything else (step length, c ceiling, catch-up caps) derives from it. */
+        const val PHYSICS_TICK_RATE = 60f
+
+        /** Fixed length of one physics step (s). */
+        const val PHYSICS_UPDATE_INTERVAL = 1f / PHYSICS_TICK_RATE
         const val PHYSICS_SUBSTEPS = 1
-        const val MAX_STEPS_PER_FRAME = 10
-        const val MAX_LAG_STEPS = 5
+
+        /** Frame rate the catch-up caps are sized for. */
+        private const val REFERENCE_FPS = 60f
+
+        /** Lag budget (s) the world may catch up at warp 1, the budget ST-102 had (5 steps at the old 45 Hz tick). */
+        const val MAX_LAG_SECONDS = 1f / 9f
+
+        /** Steps one frame may run so the default [TIME_WARP_MAX] fits at [REFERENCE_FPS] (10 at 60 Hz). */
+        val MAX_STEPS_PER_FRAME: Int = ceil(TIME_WARP_MAX * PHYSICS_TICK_RATE / REFERENCE_FPS).toInt()
+
+        /** Steps of lag tolerated at warp 1: [MAX_LAG_SECONDS] worth of ticks. */
+        val MAX_LAG_STEPS: Int = ceil(MAX_LAG_SECONDS * PHYSICS_TICK_RATE).toInt()
         private const val STEP_EPSILON = 1e-6f
     }
 

@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 class RelativitySettingsTest {
     @Test
     fun cIsClampedToSafeRange() {
-        assertEquals(67f, RelativitySettings(c = 100f).c)
+        assertEquals(C_MAX_BOX2D_SAFE, RelativitySettings(c = 10 * C_MAX_BOX2D_SAFE).c)
         assertEquals(C_MIN, RelativitySettings().apply { c = 1f }.c)
     }
 
@@ -19,8 +19,8 @@ class RelativitySettingsTest {
 
     @Test
     fun engineAccelIsClamped() {
-        assertEquals(5f, RelativitySettings(engineProperAccel = 0f).engineProperAccel)
-        assertEquals(120f, RelativitySettings().apply { engineProperAccel = 999f }.engineProperAccel)
+        assertEquals(ENGINE_ACCEL_MIN, RelativitySettings(engineProperAccel = 0f).engineProperAccel)
+        assertEquals(ENGINE_ACCEL_MAX, RelativitySettings().apply { engineProperAccel = 999f * SPEED_OF_LIGHT }.engineProperAccel)
     }
 
     @Test

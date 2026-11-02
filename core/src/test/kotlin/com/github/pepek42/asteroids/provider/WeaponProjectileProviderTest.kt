@@ -22,6 +22,7 @@ import com.github.pepek42.asteroids.component.photonCmp
 import com.github.pepek42.asteroids.component.photonCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.lifetimeCmp
 import com.github.pepek42.asteroids.faction.FactionEnum
@@ -47,6 +48,7 @@ class WeaponProjectileProviderTest {
     private val textureAtlas = mock<TextureAtlas> {
         on { createSprite("player_laser", 1) } doReturn laserSprite
     }
+    private val c = SPEED_OF_LIGHT
     private val provider = WeaponProjectileProvider(textureAtlas, engine, world)
 
     @AfterEach
@@ -126,7 +128,7 @@ class WeaponProjectileProviderTest {
         val laser = fireFrom(provider, 0f)
 
         val v = laser.bodyCmp.body.linearVelocity
-        assertEquals(60f, v.x, 1e-3f)
+        assertEquals(c, v.x, 1e-3f)
         assertEquals(0f, v.y, 1e-3f)
         assertEquals(0f, laser.transformCmp.prevRotationDeg, 1e-3f)
         assertEquals(1f, laser.photonCmp.dir.x, 1e-4f)
@@ -134,12 +136,12 @@ class WeaponProjectileProviderTest {
 
     @Test
     fun laserFromFastShipAberratesForward() {
-        val laser = fireFrom(provider, Math.PI.toFloat() / 2f, Vector2(0.9f * 60f, 0f))
+        val laser = fireFrom(provider, Math.PI.toFloat() / 2f, Vector2(0.9f * c, 0f))
 
         val body = laser.bodyCmp.body
         val deg = MathUtils.atan2(body.linearVelocity.y, body.linearVelocity.x) * MathUtils.radiansToDegrees
         assertEquals(25.84f, deg, 0.1f)
-        assertEquals(60f, body.linearVelocity.len(), 1e-3f)
+        assertEquals(c, body.linearVelocity.len(), 1e-3f)
         assertEquals(25.84f, laser.transformCmp.prevRotationDeg, 0.1f)
         assertEquals(25.84f, body.angle * MathUtils.radiansToDegrees, 0.1f)
         assertEquals(1f, laser.photonCmp.dir.len(), 1e-4f)
@@ -148,11 +150,11 @@ class WeaponProjectileProviderTest {
     @Test
     fun laserIgnoresShipVelocityWhenRelativityDisabled() {
         val plain = WeaponProjectileProvider(textureAtlas, engine, world, RelativitySettings(relativityEnabled = false))
-        val laser = fireFrom(plain, Math.PI.toFloat() / 2f, Vector2(0.9f * 60f, 0f))
+        val laser = fireFrom(plain, Math.PI.toFloat() / 2f, Vector2(0.9f * c, 0f))
 
         val v = laser.bodyCmp.body.linearVelocity
         assertEquals(0f, v.x, 1e-3f)
-        assertEquals(60f, v.y, 1e-3f)
+        assertEquals(c, v.y, 1e-3f)
         assertEquals(90f, laser.transformCmp.prevRotationDeg, 1e-2f)
     }
 

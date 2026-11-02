@@ -12,7 +12,7 @@ Tags: **FAKE** is a deliberate departure. **APPROX** is a simplification that is
 |---|---|---|---|---|---|
 | 1 | The pilot clock's fast-forward is capped at ~10×. Past the cap the arena stops speeding up relative to the pilot | FAKE, ENGINE | Each step multiplies CPU cost (γ physics steps per frame) | ST-068, ST-069 | Raise the cap if profiling allows |
 | 2 | The arena is simulated in one frame (the arena rest frame), and Box2D collisions/contacts aren't Lorentz-covariant | APPROX | Box2D can only work in one inertial frame | whole sim | — |
-| 3 | Box2D clamps movement to 2 u per step, so c = 60 u/s is chosen to stay under ~90 u/s | ENGINE | Box2D limitation | `PhysicsConstants.kt`, ST-101 | Substeps (costs CPU) |
+| 3 | Box2D clamps movement to 2 u per step, so c = 20 u/s, well under the ~90 u/s Box2D cap at 60 Hz | ENGINE | Box2D limitation | `PhysicsConstants.kt`, ST-101 | Substeps (costs CPU) |
 | 4 | γ safety bound at 50 | ENGINE | Float precision | ST-055 | — |
 | 5 | Ships rotate as non-relativistic rigid bodies | APPROX | Rim speed ωr ≪ c, so it's exact enough in the ship frame | `ShipRotationController` | — |
 

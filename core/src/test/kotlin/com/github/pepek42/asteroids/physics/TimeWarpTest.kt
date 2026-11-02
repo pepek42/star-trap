@@ -1,5 +1,6 @@
 package com.github.pepek42.asteroids.physics
 
+import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -24,8 +25,8 @@ class TimeWarpTest {
 
     @Test
     fun worldDeltaIsLimitedByMaxStep() {
-        assertEquals(1f / 6f, worldDelta(1f / 60f, 10f, 10f / 45f), 1e-5f)
-        assertEquals(10f / 45f, worldDelta(0.1f, 10f, 10f / 45f))
+        assertEquals(1f / 6f, worldDelta(1f / 60f, 10f, TIME_WARP_MAX * PHYSICS_UPDATE_INTERVAL), 1e-5f)
+        assertEquals(TIME_WARP_MAX * PHYSICS_UPDATE_INTERVAL, worldDelta(0.1f, 10f, TIME_WARP_MAX * PHYSICS_UPDATE_INTERVAL))
     }
 
     @Test

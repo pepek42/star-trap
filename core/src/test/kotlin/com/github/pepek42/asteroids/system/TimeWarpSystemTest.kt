@@ -18,6 +18,7 @@ import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
+import com.github.pepek42.asteroids.physics.TIME_WARP_MAX
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -29,6 +30,9 @@ import kotlin.math.sqrt
 
 class TimeWarpSystemTest {
     private val c = SPEED_OF_LIGHT
+    private val dt1 = PhysicsSystem.PHYSICS_UPDATE_INTERVAL
+    private val maxSteps = PhysicsSystem.MAX_STEPS_PER_FRAME
+    private val lagSteps = PhysicsSystem.MAX_LAG_STEPS
     private val world = World(Vector2.Zero, true).apply { setAutoClearForces(false) }
     private val engine = Engine()
     private val clock = GameClock()
@@ -68,23 +72,23 @@ class TimeWarpSystemTest {
         val entity = setup(4f).first
         val body = entity.getComponent(BodyComponent::class.java).body
         val v = body.linearVelocity.x
-        engine.update(1f / 45f)
+        engine.update(dt1)
         assertEquals(4f, clock.warp, 1e-4f)
-        assertEquals(4f / 45f, clock.worldTime, 1e-5f)
-        assertEquals(4f * v / 45f, body.position.x, 1e-3f)
+        assertEquals(4f * dt1, clock.worldTime, 1e-5f)
+        assertEquals(4f * v * dt1, body.position.x, 1e-3f)
     }
 
     @Test
     fun gammaTwentyIsCappedAtTen() {
         setup(20f)
-        engine.update(1f / 45f)
-        assertEquals(10f, clock.warp)
+        engine.update(dt1)
+        assertEquals(TIME_WARP_MAX, clock.warp)
         assertTrue(clock.warpCapped)
         val before = clock.worldTime
         engine.update(0.1f)
-        assertEquals(10f / 45f, clock.worldDt, 1e-6f)
+        assertEquals(maxSteps * dt1, clock.worldDt, 1e-6f)
         assertTrue(clock.stepsCapped)
-        assertTrue(clock.worldTime - before <= 10f / 45f + 1e-5f)
+        assertTrue(clock.worldTime - before <= maxSteps * dt1 + 1e-5f)
     }
 
     @Test
@@ -92,12 +96,12 @@ class TimeWarpSystemTest {
         setup(4f)
         settings.timeWarpEnabled = false
         val before = clock.worldTime
-        engine.update(1f / 45f)
+        engine.update(dt1)
         assertEquals(1f, clock.warp)
-        assertEquals(1f / 45f, clock.worldTime - before, 1e-5f)
+        assertEquals(dt1, clock.worldTime - before, 1e-5f)
         settings.timeWarpEnabled = true
         settings.relativityEnabled = false
-        engine.update(1f / 45f)
+        engine.update(dt1)
         assertEquals(1f, clock.warp)
     }
 
@@ -107,7 +111,7 @@ class TimeWarpSystemTest {
         engine.update(0.5f)
         assertEquals(1f, clock.warp)
         assertTrue(clock.stepsCapped)
-        assertTrue(clock.worldTime <= 5f / 45f + 1e-5f)
+        assertTrue(clock.worldTime <= lagSteps * dt1 + 1e-5f)
     }
 
     @Test
@@ -115,7 +119,7 @@ class TimeWarpSystemTest {
         setup(4f)
         engine.update(0.5f)
         assertEquals(4f, clock.warp, 1e-4f)
-        assertEquals(10f / 45f, clock.worldTime, 1e-5f)
+        assertEquals(maxSteps * dt1, clock.worldTime, 1e-5f)
     }
 
     @Test
@@ -125,7 +129,7 @@ class TimeWarpSystemTest {
         val timed = Entity().add(LifetimeComponent(remaining = 2f, total = 2f))
         engine.addEntity(timed)
         var t = 0f
-        val dt = 1f / 45f
+        val dt = dt1
         while (timed.getComponent(LifetimeComponent::class.java).remaining > 0f && t < 2f) {
             engine.update(dt)
             t += dt

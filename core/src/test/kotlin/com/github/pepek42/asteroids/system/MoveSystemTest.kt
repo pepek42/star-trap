@@ -134,7 +134,7 @@ class MoveSystemTest {
         engine.addSystem(move)
         val physics = PhysicsSystem(world, engine, listOf(move))
         val frameTime = stepsPerFrame * PhysicsSystem.PHYSICS_UPDATE_INTERVAL + 1e-4f
-        repeat(45 / stepsPerFrame) { physics.update(frameTime) }
+        repeat(PhysicsSystem.PHYSICS_TICK_RATE.toInt() / stepsPerFrame) { physics.update(frameTime) }
         val expected = MoveSystem.MAIN_ENGINE_THRUST / body.mass
         assertEquals(expected, body.linearVelocity.len(), expected * 0.01f)
         world.dispose()

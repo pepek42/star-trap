@@ -10,6 +10,7 @@ import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.Box2D
 import com.badlogic.gdx.physics.box2d.CircleShape
 import com.badlogic.gdx.physics.box2d.World
+import com.github.pepek42.asteroids.physics.BOX2D_MAX_TRANSLATION
 import com.badlogic.gdx.utils.GdxNativesLoader
 import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
@@ -101,9 +102,9 @@ class ProjectileSweepSystemTest {
 
     @Test
     fun fastProjectileThatStraddlesStaticTargetHitsOnce() {
-        // 89 u/s at 45 Hz = ~1.98 u per step: steps land at x=0 and x~1.98 and x~3.96; target at 1 (r 0.3).
+        // 99% of the Box2D translation cap per step (~1.98 u): steps land at x=0 and x~1.98 and x~3.96; target at 1 (r 0.3).
         val target = addTarget(BodyDef.BodyType.StaticBody, 1f)
-        val projectile = addProjectile(0f, 89f)
+        val projectile = addProjectile(0f, 0.99f * BOX2D_MAX_TRANSLATION * PhysicsSystem.PHYSICS_TICK_RATE)
         // Projectile positions skip the target: [-0.1,0.1] then [1.88,2.08] never overlap [0.7,1.3].
         repeat(3) { step() }
         assertEquals(90f, target.getComponent(HealthComponent::class.java).health, 1e-4f)
@@ -157,7 +158,7 @@ class ProjectileSweepSystemTest {
     @Test
     fun spentProjectileDoesNotHitAgain() {
         val a = addTarget(BodyDef.BodyType.StaticBody, 1f)
-        val projectile = addProjectile(0f, 89f)
+        val projectile = addProjectile(0f, 0.99f * BOX2D_MAX_TRANSLATION * PhysicsSystem.PHYSICS_TICK_RATE)
         repeat(3) { step() }
         val b = addTarget(BodyDef.BodyType.StaticBody, 1.2f)
         val remove = removeMapper.get(projectile)

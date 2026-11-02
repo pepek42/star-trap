@@ -79,7 +79,7 @@ class RelativitySettingsRuntimeTest {
         val settings = RelativitySettings().apply { c = 30f }
         val physics = physics(settings)
         val ship = addShip(settings, thrusters = 1f)
-        repeat(10 * 45) { physics.step() }
+        repeat((10 * PhysicsSystem.PHYSICS_TICK_RATE).toInt()) { physics.step() }
         val speed = ship.body.linearVelocity.len()
         assertTrue(speed < 30f, "speed $speed")
         assertTrue(speed / 30f > 0.9f, "beta ${speed / 30f}")
@@ -91,12 +91,12 @@ class RelativitySettingsRuntimeTest {
         val physics = physics(settings)
         // Mass 10 keeps v well below the Box2D translation clamp.
         val ship = addShip(settings, thrusters = 1f, density = 10f / (Math.PI.toFloat() * 0.25f))
-        repeat(45) { physics.step() }
+        repeat(PhysicsSystem.PHYSICS_TICK_RATE.toInt()) { physics.step() }
         assertEquals(MoveSystem.MAIN_ENGINE_THRUST / ship.body.mass, ship.body.linearVelocity.len(), 1f)
         val expectedU = Vector2()
         val v = ship.body.linearVelocity
         uFromV(v.x, v.y, settings.c, settings.betaMaxMassive, expectedU)
-        assertEquals(expectedU.x, ship.rel.u.x, 0.1f)
+        assertEquals(expectedU.x, ship.rel.u.x, expectedU.x * 1e-3f) // relative: u is huge near the cap
         assertEquals(1f, ship.rel.gUsed)
         assertTrue(ship.rel.tau > 0.9f)
     }

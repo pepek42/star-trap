@@ -1,6 +1,7 @@
 package com.github.pepek42.asteroids.physics
 
 import com.badlogic.gdx.math.Vector2
+import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -85,7 +86,7 @@ class BoundaryFieldTest {
 
     /** Returns (max depth, exit speed). */
     private fun simulate(v: Float, params: BoundaryFieldParams): Pair<Float, Float> {
-        val dt = 1f / 45f
+        val dt = PHYSICS_UPDATE_INTERVAL
         var x = 20f
         var vx = -v
         var maxDepth = 0f
@@ -107,7 +108,7 @@ class BoundaryFieldTest {
             val r = simulate(v, p)
             val depth = r.first
             val exit = r.second
-            assertEquals(newtonianTurnAroundDepth(v, p), depth, v / 45f, "depth v=$v")
+            assertEquals(newtonianTurnAroundDepth(v, p), depth, v * PHYSICS_UPDATE_INTERVAL, "depth v=$v")
             assertEquals(v, exit, v * 0.02f, "exit v=$v")
         }
     }

@@ -24,7 +24,7 @@ These are the idioms used in this codebase, plus gotchas that have bitten us or 
 ## Gotchas
 
 - **Box2D vectors are shared.** `body.position` and `body.linearVelocity` return the *same reused* `Vector2` instance every call. Mutating it (`rotateDeg`, `scl`, `add`) corrupts later reads. Always call `.cpy()`, or copy into your own preallocated vector. Similarly, `Vector2.rotateDeg/rotateRad/scl/nor` **mutate the receiver** and return `this`.
-- **Box2D speed caps.** `b2_maxTranslation = 2` units per step and `b2_maxRotation = 0.5π` per step. At 45 Hz that's 90 u/s and 11.25 π rad/s. Anything faster is silently clamped.
+- **Box2D speed caps.** `b2_maxTranslation = 2` units per step and `b2_maxRotation = 0.5π` per step. At the 60 Hz tick that's 120 u/s and 30 π rad/s (`PHYSICS_TICK_RATE` × the per-step cap). Anything faster is silently clamped.
 - **No body changes during `world.step` callbacks.** Inside `ContactListener` you can't create or destroy bodies, or change fixtures in a way that alters the broadphase. Record the intent in a component and act in a system. (Setting `isSensor` in `DeathSystem` is fine because it runs outside the step.)
 - **Kotlin `%` is `rem`.** The result has the sign of the dividend, so `-1 % 5 == -1`. For angles use `math/Angles.kt` (`wrapAngleRad`, once ST-003 lands) or `floorMod`-style formulas.
 - **Radians vs degrees.** `body.angle` is in radians. `Sprite.rotation` and `TransformComponent.*RotationDeg` are in degrees. Name variables with a `Rad`/`Deg` suffix.

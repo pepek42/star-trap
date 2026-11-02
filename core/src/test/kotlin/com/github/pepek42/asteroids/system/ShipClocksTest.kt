@@ -186,7 +186,7 @@ class ShipClocksTest {
         val rotor = addRotor(engine, player, target, gUsed)
         var settledAt = -1f
         var overshoot = 0f
-        for (i in 1..45 * 20) {
+        for (i in 1..(PhysicsSystem.PHYSICS_TICK_RATE * 20).toInt()) {
             clock.worldDt = step
             clock.realDt = step / warp
             physics.update(step)

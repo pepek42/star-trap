@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-107**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-108**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -21,6 +21,7 @@ M3 Relativity MVP:
 6. ST-040 Ship clocks under the pilot clock
 6a. ST-105 ST-040 follow-ups: spin restore test, null-target spin
 6b. ST-106 Derive physics from base constants; 60 Hz tick; c = 20 (owner 2026-11-02)
+6c. ST-107 ST-106 follow-ups: c-relative engine and thresholds, warp step cap
 7. ST-070 LightHistory ring buffer and retarded-time solver
 8. ST-071 LightHistorySystem
 9. ST-072 PilotFrame transforms
@@ -1492,7 +1493,7 @@ Parked:
   - [x] `./gradlew core:test` passes
 
 ### ST-106 Derive physics from base constants; 60 Hz tick; c = 20
-- status: ready
+- status: done (2026-11-02, SHA)
 - size: M
 - agent: kotlin-dev
 - depends: —
@@ -1509,11 +1510,31 @@ Parked:
   - Physics-lies row 3: update to "c = 20 u/s, well under the ~90 u/s Box2D cap at 60 Hz".
   - Perf: add a tagged/ignored-by-default benchmark test or a `main` in tests that builds a world with the level-5 asteroid count (25 large asteroids + player), runs 600 steps, and prints mean ms per `world.step`. Run it once and put the number in the report.
 - acceptance:
-  - [ ] Test: changing `PHYSICS_TICK_RATE` is a one-line change. A unit test asserts `C_MAX_BOX2D_SAFE == 0.75f * 2f * PHYSICS_TICK_RATE` and `MAX_STEPS_PER_FRAME * PHYSICS_UPDATE_INTERVAL * 60f >= TIME_WARP_MAX`
-  - [ ] Test: default engine reaches 0.9c in 5 s ± 0.3 s of proper time
-  - [ ] `grep -rnE "1f ?/ ?45|\b45f\b" core/src` finds nothing
-  - [ ] `./gradlew core:test` passes; benchmark number reported
+  - [x] Test: changing `PHYSICS_TICK_RATE` is a one-line change. A unit test asserts `C_MAX_BOX2D_SAFE == 0.75f * 2f * PHYSICS_TICK_RATE` and `MAX_STEPS_PER_FRAME * PHYSICS_UPDATE_INTERVAL * 60f >= TIME_WARP_MAX`
+  - [x] Test: default engine reaches 0.9c in 5 s ± 0.3 s of proper time
+  - [x] `grep -rnE "1f ?/ ?45|\b45f\b" core/src` finds nothing
+  - [x] `./gradlew core:test` passes; benchmark number reported
+- result: Tick is 60 Hz and c = 20; the Box2D speed cap, step caps, engine accel (0.9c in 5 s arena time) and asteroid speeds derive from the base constants. Benchmark: 0.015 ms per world.step with 51 asteroids (~1 % of a frame at warp 10).
 - playtest: The ship tops out at a third of the old speed (c = 20) but takes as long to get relativistic. Time warp and Doppler effects show up at much lower on-screen speeds. Motion looks a bit smoother at 60 Hz.
+
+### ST-107 ST-106 follow-ups: c-relative engine and thresholds, warp step cap, slider literals
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-106
+- files: `physics/PhysicsConstants.kt`, `physics/RelativitySettings.kt`, `system/PhysicsSystem.kt`, `ui/DebugPanel.kt`, `system/MoveSystem.kt`; tests
+- goal: Minor issues from the ST-106 review and the implementer's notes, so changing c or the tick rate at runtime/compile time keeps the feel (CLAUDE.md "Constants are the single source of truth").
+- spec:
+  - Engine accel follows runtime c: `RelativitySettings` stores the engine as a fraction of c (`engineAccelPerC`, default `ENGINE_PROPER_ACCEL / SPEED_OF_LIGHT`), and exposes `engineProperAccel get() = engineAccelPerC * c`. The debug slider edits the fraction (or a0 in u/s² mapped back). Changing c keeps the 0.9c-in-5 s feel.
+  - `COLLISION_EPS` as a fraction of c (`COLLISION_EPS_BETA = 0.05f / 60f`, used as `COLLISION_EPS_BETA * settings.c`).
+  - `MAX_STEPS_PER_FRAME` sized from `TIME_WARP_MAX_LIMIT`, not `TIME_WARP_MAX`, so warp 11–12 is not silently step-capped at 60 Hz. Fix the stale "9 steps per frame" KDoc.
+  - DebugPanel γ-cap and warp-cap sliders use `GAMMA_MAX_MIN`/`GAMMA_MAX_MASSIVE` and `TIME_WARP_MAX_LIMIT` (make `GAMMA_MAX_MIN` public in PhysicsConstants).
+  - Tests: `RelativitySettingsRuntimeTest:85` divides by the c it sets, not a literal `30f`; `PhysicsConstantsTest` uses `BOX2D_MAX_TRANSLATION` instead of `2f`.
+- acceptance:
+  - [ ] Test: setting `settings.c = 2 × default` doubles `engineProperAccel`, and a run still reaches 0.9c in 5 s ± 0.3 s of arena time
+  - [ ] Test: `MAX_STEPS_PER_FRAME * PHYSICS_UPDATE_INTERVAL * 60f >= TIME_WARP_MAX_LIMIT`
+  - [ ] `./gradlew core:test` passes
+- playtest: Moving the c slider in the debug panel keeps the ship's acceleration feel; warp 12 is reachable.
 
 ## M4 Relativistic view
 

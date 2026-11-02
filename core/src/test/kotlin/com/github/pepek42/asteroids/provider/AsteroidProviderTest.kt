@@ -14,7 +14,8 @@ import com.badlogic.gdx.utils.GdxNativesLoader
 import com.github.pepek42.asteroids.component.AsteroidComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_MIN_RADIUS
-import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_SPEED_MAX
+import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_BETA_MAX
+import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.physics.FIELD_SKIN
@@ -60,13 +61,14 @@ class AsteroidProviderTest {
         // then
         val asteroids = engine.entities.filter { it.getComponent(AsteroidComponent::class.java) != null }
         assertEquals(19, asteroids.size)
+        val speedMax = ASTEROID_SPAWN_BETA_MAX * SPEED_OF_LIGHT
         for (asteroid in asteroids) {
             val body = asteroid.getComponent(BodyComponent::class.java).body
             val distance = hypot(body.position.x - centerX, body.position.y - centerY)
             assertTrue(distance >= ASTEROID_SPAWN_MIN_RADIUS - 1e-3f, "distance $distance below min")
             assertTrue(distance <= maxRadius + 1e-3f, "distance $distance above max $maxRadius")
-            assertTrue(body.linearVelocity.x in -ASTEROID_SPAWN_SPEED_MAX..ASTEROID_SPAWN_SPEED_MAX)
-            assertTrue(body.linearVelocity.y in -ASTEROID_SPAWN_SPEED_MAX..ASTEROID_SPAWN_SPEED_MAX)
+            assertTrue(body.linearVelocity.x in -speedMax..speedMax)
+            assertTrue(body.linearVelocity.y in -speedMax..speedMax)
         }
     }
 

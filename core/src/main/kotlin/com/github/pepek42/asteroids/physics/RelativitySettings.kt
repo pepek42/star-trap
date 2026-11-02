@@ -2,8 +2,6 @@ package com.github.pepek42.asteroids.physics
 
 import kotlin.math.sqrt
 
-private const val ENGINE_ACCEL_MIN = 5f
-private const val ENGINE_ACCEL_MAX = 120f
 private const val GAMMA_MAX_MIN = 2f
 private const val FIELD_DAMPING_MAX = 5f
 private const val BRAKE_BOOST_MAX = 5f

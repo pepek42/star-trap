@@ -20,6 +20,7 @@ import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.physics.BETA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.BoundaryFieldParams
 import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
+import com.github.pepek42.asteroids.physics.ENGINE_TIME_TO_09C
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.REVERSE_THRUST_FRACTION
 import com.github.pepek42.asteroids.physics.RelativitySettings
@@ -103,7 +104,7 @@ class RelativisticDynamicsTest {
     fun constantThrustMatchesHyperbolicMotion() {
         setup()
         val ship = addShip(thrusters = 1f)
-        val steps = 94
+        val steps = (2f * PhysicsSystem.PHYSICS_TICK_RATE).toInt()
         repeat(steps) { step() }
         val t = steps * PhysicsSystem.PHYSICS_UPDATE_INTERVAL
         val x = a0 * t / c
@@ -113,14 +114,29 @@ class RelativisticDynamicsTest {
     }
 
     @Test
+    fun defaultEngineReachesNinetyPercentCInAboutFiveSeconds() {
+        setup()
+        val ship = addShip(thrusters = 1f)
+        val gammaBeta = 0.9f / sqrt(1f - 0.9f * 0.9f)
+        // Closed form, arena time: t = (c/a)·γβ.
+        assertEquals(ENGINE_TIME_TO_09C, c / a0 * gammaBeta, 0.05f)
+        var steps = 0
+        while (beta(ship.rel) < 0.9f && steps < 20 * PhysicsSystem.PHYSICS_TICK_RATE) {
+            step()
+            steps++
+        }
+        assertEquals(ENGINE_TIME_TO_09C, steps * PhysicsSystem.PHYSICS_UPDATE_INTERVAL, 0.3f)
+    }
+
+    @Test
     fun longThrustNeverReachesCap() {
         setup()
         val ship = addShip(thrusters = 1f)
-        repeat(20 * 45) {
+        repeat((20 * PhysicsSystem.PHYSICS_TICK_RATE).toInt()) {
             step()
             assertTrue(ship.body.linearVelocity.len().isFinite())
         }
-        // The γ cap (50) is not reached in 20 s: at a = 25 it takes about 120 s of thrust.
+        // The γ cap (50) is not reached in 20 s: at the default a0 it takes a couple of minutes of thrust.
         assertTrue(beta(ship.rel) <= BETA_MAX_MASSIVE + 1e-5f, "beta ${beta(ship.rel)}")
         assertTrue(ship.body.linearVelocity.len() < c)
         assertTrue(gammaFromU(ship.rel.u.x, ship.rel.u.y, c) <= GAMMA_MAX_MASSIVE * (1 + 1e-4f))
@@ -253,7 +269,7 @@ class RelativisticDynamicsTest {
             Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent())
                 .add(MoveComponent(thrusters = 1f))
         )
-        repeat(45) { step() }
+        repeat(PhysicsSystem.PHYSICS_TICK_RATE.toInt()) { step() }
         assertEquals(MoveSystem.MAIN_ENGINE_THRUST / body.mass, body.linearVelocity.len(), 1f)
     }
 

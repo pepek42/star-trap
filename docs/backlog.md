@@ -1433,7 +1433,7 @@ Parked:
   - [ ] `./gradlew core:test` passes
 
 ### ST-103 Edge pointers to off-screen asteroids and enemies (replaces the centre pointer)
-- status: done (2026-11-02, SHA103)
+- status: done (2026-11-02, 267a7a4)
 - size: M
 - agent: kotlin-dev
 - depends: ST-100
@@ -1454,7 +1454,7 @@ Parked:
 - playtest: Arrows at the screen edge point at the nearest asteroids out of view. The nearest arrow shows its distance, and far ones are fainter. There is no arrow to the map centre any more.
 
 ### ST-104 Debug panel: ship mass, velocity vector, % of c
-- status: ready
+- status: done (2026-11-02, SHA104)
 - size: S
 - agent: junior-dev
 - depends: —
@@ -1467,8 +1467,9 @@ Parked:
   - When `mass` is finite, add a line `m = 12.3   γm = 45.6`, both 1 dp (rest mass and relativistic mass `γ·m`). When it isn't finite, leave the line out.
   - Keep the existing lines and their order otherwise. Insert the new lines right after the `|v|` line.
 - acceptance:
-  - [ ] Test: β = 0.75 with c = 60 gives a line containing `|v| = 45.0 u/s (75.0 % c)`; `mass = 2f` with γ = 1.5 gives `m = 2.0   γm = 3.0`; the default mass has no `m =` line
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: β = 0.75 with c = 60 gives a line containing `|v| = 45.0 u/s (75.0 % c)`; `mass = 2f` with γ = 1.5 gives `m = 2.0   γm = 3.0`; the default mass has no `m =` line
+  - [x] `./gradlew core:test` passes
+- result: The debug panel shows `|v|` with a percentage of c, the velocity vector, and the rest and relativistic mass (from the player body).
 - playtest: F1 shows the ship's mass, its velocity vector and the speed as a percentage of c.
 
 ## M4 Relativistic view

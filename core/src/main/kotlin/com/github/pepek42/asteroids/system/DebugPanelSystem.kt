@@ -6,6 +6,7 @@ import com.badlogic.ashley.utils.ImmutableArray
 import com.badlogic.ashley.core.Entity
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
+import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
@@ -36,6 +37,7 @@ class DebugPanelSystem(
         timer += deltaTime
         if (timer < DEBUG_PANEL_REFRESH_SECONDS) return
         timer = 0f
-        panel.update(observerState, entities.firstOrNull()?.relativisticCmpOptional, clock)
+        val player = entities.firstOrNull()
+        panel.update(observerState, player?.relativisticCmpOptional, clock, player?.bodyCmpOptional?.body?.mass ?: Float.NaN)
     }
 }

@@ -45,6 +45,23 @@ class DebugPanelTest {
     }
 
     @Test
+    fun formatReadoutsShowsSpeedPercentVectorAndMass() {
+        val c = 60f
+        val observer = ObserverState().apply {
+            betaRaw.set(0.75f, 0f)
+            gammaRaw = 1.5f
+        }
+        val out = StringBuilder()
+        formatReadouts(observer, null, c, 25f, out, null, 2f)
+        val s = out.toString()
+        assertTrue("|v| = 45.0 u/s (75.0 % c)" in s, s)
+        assertTrue("v = (45.0, 0.0) u/s" in s, s)
+        assertTrue("m = 2.0   γm = 3.0" in s, s)
+        formatReadouts(observer, null, c, 25f, out)
+        assertTrue("m =" !in out.toString(), out.toString())
+    }
+
+    @Test
     fun resetRestoresTimeWarp() {
         val rel = RelativitySettings(timeWarpEnabled = false, timeWarpMax = 3f)
         resetDebugDefaults(rel, DebugSettings(panelAllowed = true, panelVisible = true, timeScale = 1f, showVectors = false))

@@ -61,7 +61,7 @@ fun appendFixed(out: StringBuilder, value: Float, decimals: Int): StringBuilder 
 }
 
 /** Writes the readout block into [out] (cleared first). Pure so it can be tested without widgets. */
-fun formatReadouts(observer: ObserverState, rel: RelativisticComponent?, c: Float, a0: Float, out: StringBuilder, clock: GameClock? = null) {
+fun formatReadouts(observer: ObserverState, rel: RelativisticComponent?, c: Float, a0: Float, out: StringBuilder, clock: GameClock? = null, mass: Float = Float.NaN) {
     out.setLength(0)
     val speed = observer.betaRaw.len() * c
     val properSpeed = rel?.u?.len() ?: (speed * observer.gammaRaw)
@@ -69,7 +69,14 @@ fun formatReadouts(observer: ObserverState, rel: RelativisticComponent?, c: Floa
     out.append("γ = "); appendFixed(out, observer.gammaRaw, 2).append('\n')
     out.append("τ = "); appendFixed(out, observer.tau, 1).append(" s\n")
     out.append("world t = "); appendFixed(out, observer.worldTime, 1).append(" s\n")
-    out.append("|v| = "); appendFixed(out, speed, 1).append(" u/s\n")
+    out.append("|v| = "); appendFixed(out, speed, 1).append(" u/s (")
+    appendFixed(out, observer.betaRaw.len() * 100f, 1).append(" % c)\n")
+    out.append("v = ("); appendFixed(out, observer.betaRaw.x * c, 1).append(", ")
+    appendFixed(out, observer.betaRaw.y * c, 1).append(") u/s\n")
+    if (mass.isFinite()) {
+        out.append("m = "); appendFixed(out, mass, 1).append("   γm = ")
+        appendFixed(out, mass * observer.gammaRaw, 1).append('\n')
+    }
     out.append("|u| = γ|v| = "); appendFixed(out, properSpeed, 1).append(" u/s\n")
     out.append("ship-frame speed = "); appendFixed(out, observer.rapidity * c, 1).append(" u/s\n")
     out.append("c = "); appendFixed(out, c, 0).append("   a0 = "); appendFixed(out, a0, 0)
@@ -239,8 +246,8 @@ class DebugPanel(
     }
 
     /** Refreshes the readout label. Called at 10 Hz by DebugPanelSystem. */
-    fun update(observer: ObserverState, rel: RelativisticComponent?, clock: GameClock? = null) {
-        formatReadouts(observer, rel, relativitySettings.c, relativitySettings.engineProperAccel, text, clock)
+    fun update(observer: ObserverState, rel: RelativisticComponent?, clock: GameClock? = null, mass: Float = Float.NaN) {
+        formatReadouts(observer, rel, relativitySettings.c, relativitySettings.engineProperAccel, text, clock, mass)
         // The UI bitmap font has no Greek glyphs, so spell the letters out on screen.
         readouts.setText(text.toString().replace("\u03B2", "beta").replace("\u03B3", "gamma").replace("\u03C4", "tau"))
     }

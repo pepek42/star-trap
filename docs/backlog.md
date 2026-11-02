@@ -1028,7 +1028,7 @@ Parked:
 - playtest: At speed the asteroids and the world visibly speed up while the ship handles as usual. Past γ = 10 the debug panel shows "(capped)". With "time warp" off the game plays as before.
 
 ### ST-040 Ship clocks under the pilot clock: player on real time, others on proper time
-- status: done (2026-11-02, SHA)
+- status: done (2026-11-02, 8440066)
 - size: M
 - agent: kotlin-dev
 - depends: ST-024, ST-037, ST-069
@@ -1421,7 +1421,7 @@ Parked:
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
 
 ### ST-102 Physics catch-up cap: 10 steps only under time warp
-- status: done (2026-11-02, 44f6e3f)
+- status: done (2026-11-02, da5d6a8)
 - size: S
 - agent: junior-dev
 - depends: ST-069
@@ -1476,7 +1476,7 @@ Parked:
 - playtest: F1 shows the ship's mass, its velocity vector and the speed as a percentage of c.
 
 ### ST-105 ST-040 follow-ups: relativity-off spin restore test, null-target spin
-- status: done (2026-11-02, SHA)
+- status: done (2026-11-02, 1b1e3ea)
 - size: S
 - agent: junior-dev
 - depends: ST-040

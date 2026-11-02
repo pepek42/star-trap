@@ -960,7 +960,7 @@ Parked:
 - playtest: Bouncing off the edge at high speed feels like a strong rubber wall. Very fast hits snap back with a backstop ripple.
 
 ### ST-039 Photon lasers: velocity aberration at the muzzle
-- status: done (2026-11-02, 684a83d)
+- status: done (2026-11-02, 49f9823)
 - size: S
 - agent: kotlin-dev
 - depends: ST-024, ST-035, ST-056, ST-067

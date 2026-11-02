@@ -1372,7 +1372,7 @@ Parked:
 ---
 
 ### ST-100 Readable backdrop: calmer nebula, reference grid, arena-centre pointer
-- status: ready
+- status: done (2026-11-02, 87a1b7e)
 - size: M
 - agent: kotlin-dev
 - depends: —
@@ -1385,8 +1385,9 @@ Parked:
   - Toggles `GRID_ENABLED`, `CENTRE_POINTER_ENABLED` in settings and the debug panel.
   - Pilot view note for ST-077: the grid is a set of static arena points, so it goes through the same static-point transform and bends visibly at high β. This is a nice readout, not a bug.
 - acceptance:
-  - [ ] Test: `edgePointer` with a target to the right, off-screen, gives angle 0 and `out.x` = right inset edge; a diagonal target lands on a corner region; an on-screen target is flagged (e.g. returns NaN)
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: `edgePointer` with a target to the right, off-screen, gives angle 0 and `out.x` = right inset edge; a diagonal target lands on a corner region; an on-screen target is flagged (e.g. returns NaN)
+  - [x] `./gradlew core:test` passes
+- result: Star layers dimmed to {0.25, 0.4, 1}, a 20 u ShapeRenderer grid is drawn between the backdrop and the sprites, and a HUD edge arrow with a distance label points to the arena centre. Both have debug-panel toggles.
 - playtest: The background is calmer. Gliding over the grid shows your speed. The arrow always leads you back to the centre.
 
 ### ST-101 Balance pass: headless sim games, pick c and tune the physics

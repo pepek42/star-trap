@@ -27,8 +27,8 @@ val STAR_LAYER_PARALLAX = floatArrayOf(0.15f, 0.4f, 0.75f)
 /** On-screen star diameter in pixels per layer (far to near). */
 val STAR_LAYER_PIXELS = floatArrayOf(1.5f, 2.2f, 3.2f)
 
-/** Brightness multiplier per layer, so near stars are a bit stronger. */
-val STAR_LAYER_BRIGHTNESS = floatArrayOf(0.55f, 0.8f, 1f)
+/** Brightness multiplier per layer, so only the nearest, sparsest-looking layer is at full brightness (ST-100). */
+val STAR_LAYER_BRIGHTNESS = floatArrayOf(0.25f, 0.4f, 1f)
 
 private const val DOT_TEXTURE_SIZE = 8
 private const val KELVIN_PER_TEMP_UNIT = 100f

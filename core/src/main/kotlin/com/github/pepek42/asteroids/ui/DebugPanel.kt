@@ -26,6 +26,8 @@ import com.github.pepek42.asteroids.physics.FIELD_DAMPING
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RELATIVITY_ENABLED
+import com.github.pepek42.asteroids.render.CENTRE_POINTER_ENABLED
+import com.github.pepek42.asteroids.render.GRID_ENABLED
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import kotlin.math.abs
@@ -81,6 +83,8 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     relativity.gammaMaxMassive = GAMMA_MAX_MASSIVE
     debug.timeScale = 1f
     debug.showVectors = false
+    debug.gridEnabled = GRID_ENABLED
+    debug.centrePointerEnabled = CENTRE_POINTER_ENABLED
 }
 
 /** Right-docked relativity debug panel, toggled with F1 (ST-059). */
@@ -119,6 +123,8 @@ class DebugPanel(
 
         checkBox("relativity", { relativitySettings.relativityEnabled }) { relativitySettings.relativityEnabled = it }
         checkBox("boundary field", { relativitySettings.fieldEnabled }) { relativitySettings.fieldEnabled = it }
+        checkBox("grid", { debugSettings.gridEnabled }) { debugSettings.gridEnabled = it }
+        checkBox("centre pointer", { debugSettings.centrePointerEnabled }) { debugSettings.centrePointerEnabled = it }
         checkBox("show vectors", { debugSettings.showVectors }) { debugSettings.showVectors = it }
 
         val initialScale = debugSettings.timeScale

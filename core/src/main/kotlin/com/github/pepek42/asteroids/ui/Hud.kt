@@ -21,7 +21,13 @@ class Hud(
     private val speedLabel: Label = scene2d.label("")
     private val levelLabel: Label = scene2d.label("")
     private val centerLabel: Label = scene2d.label("").apply { isVisible = false }
+    private val pointerLabel: Label = scene2d.label("").apply { isVisible = false }
     private val table: Table = Table()
+    private val pointerPos = Vector2()
+
+    /** False after toggleHud(false). */
+    var isShown: Boolean = false
+        private set
 
     init {
         table.setFillParent(true)
@@ -48,10 +54,13 @@ class Hud(
     }
 
     fun toggleHud(show: Boolean) {
+        isShown = show
         if (show) {
             stage.addActor(table)
+            stage.addActor(pointerLabel)
         } else {
             table.remove()
+            pointerLabel.remove()
         }
     }
 
@@ -87,11 +96,31 @@ class Hud(
         )
     }
 
+    /** Distance label next to the arena-centre arrow. [screenX], [screenY] are window pixels with y pointing down. */
+    fun showCentrePointer(screenX: Float, screenY: Float, distance: Float) {
+        pointerLabel.setText(i18NBundle.format("hud_centre_distance", distance.roundToInt()))
+        pointerLabel.pack()
+        val p = stage.screenToStageCoordinates(pointerPos.set(screenX, screenY))
+        val w = stage.viewport.worldWidth
+        val h = stage.viewport.worldHeight
+        // Centre the label on the arrow, then keep it inside the stage; nudge towards the screen centre.
+        val x = (p.x - pointerLabel.width / 2f).coerceIn(0f, w - pointerLabel.width)
+        val towardsCentreY = if (p.y > h / 2f) -POINTER_LABEL_OFFSET else POINTER_LABEL_OFFSET
+        val y = (p.y - pointerLabel.height / 2f + towardsCentreY).coerceIn(0f, h - pointerLabel.height)
+        pointerLabel.setPosition(x, y)
+        pointerLabel.isVisible = true
+    }
+
+    fun hideCentrePointer() {
+        pointerLabel.isVisible = false
+    }
+
     fun updateLevel(level: Int) {
         levelLabel.setText(i18NBundle.format("hud_level", level))
     }
 
     companion object {
         private const val MAX_DELTA_TIME = 1f / 30
+        private const val POINTER_LABEL_OFFSET = 40f
     }
 }

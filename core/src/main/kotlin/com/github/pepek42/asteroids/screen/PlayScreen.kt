@@ -27,6 +27,7 @@ import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
+import com.github.pepek42.asteroids.render.ReferenceGridRenderer
 import com.github.pepek42.asteroids.render.ShimmerImpacts
 import com.github.pepek42.asteroids.system.BoundaryFieldSystem
 import com.github.pepek42.asteroids.system.CameraSystem
@@ -87,6 +88,7 @@ class PlayScreen(
         val gameEventManager = game.get<GameEventManager>()
         val spriteBatch = game.get<SpriteBatch>()
         val moveSystem = MoveSystem(settings)
+        val gridRenderer = ReferenceGridRenderer()
         // Shared by the boundary field (emits) and the shimmer renderer (draws).
         val shimmerImpacts = ShimmerImpacts()
         val boundaryFieldSystem = BoundaryFieldSystem(mapProvider, shimmerImpacts, settings)
@@ -110,12 +112,18 @@ class PlayScreen(
             )
             addSystem(ObserverSystem(observerState, settings))
             addSystem(CameraSystem(camera, gameEventManager, mapProvider))
-            addSystem(RenderSystem(game, spriteBatch, viewport, FieldShimmerRenderer(shimmerImpacts, mapProvider, settings)))
+            addSystem(
+                RenderSystem(
+                    game, spriteBatch, viewport,
+                    FieldShimmerRenderer(shimmerImpacts, mapProvider, settings),
+                    gridRenderer, mapProvider, debugSettings,
+                )
+            )
             if (IS_DEBUG) {
                 engine.addSystem(DebugSystem(world, engine, camera))
             }
             addSystem(DebugPanelSystem(debugPanel, observerState))
-            addSystem(HudSystem(hud))
+            addSystem(HudSystem(hud, camera, viewport, mapProvider, debugSettings, gridRenderer))
             addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider))
             addSystem(LifetimeSystem())
             addSystem(DeathSystem(engine, asteroidProvider, game.get<RandomXS128>()))

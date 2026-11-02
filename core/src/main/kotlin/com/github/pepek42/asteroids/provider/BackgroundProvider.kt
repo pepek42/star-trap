@@ -54,6 +54,6 @@ class BackgroundProvider(
     }
 
     companion object {
-        private const val NEBULA_ALPHA = 0.35f
+        const val NEBULA_ALPHA = 0.35f
     }
 }

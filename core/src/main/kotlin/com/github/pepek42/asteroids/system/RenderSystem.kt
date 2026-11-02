@@ -14,7 +14,10 @@ import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.provider.BackgroundProvider
+import com.github.pepek42.asteroids.debug.DebugSettings
+import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
+import com.github.pepek42.asteroids.render.ReferenceGridRenderer
 import ktx.ashley.allOf
 import ktx.graphics.use
 import ktx.log.logger
@@ -24,6 +27,9 @@ class RenderSystem(
     private val batch: SpriteBatch,
     private val viewport: Viewport,
     private val fieldShimmerRenderer: FieldShimmerRenderer,
+    private val gridRenderer: ReferenceGridRenderer,
+    private val mapProvider: MapProvider,
+    private val debugSettings: DebugSettings,
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()), Disposable {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
 
@@ -33,10 +39,15 @@ class RenderSystem(
 
     override fun update(deltaTime: Float) {
         viewport.apply()
-        batch.use(viewport.camera) {
-            val camera = viewport.camera as OrthographicCamera
+        val camera = viewport.camera as OrthographicCamera
+        batch.use(camera) {
             // Logical width (not back buffer) keeps star sizes HiDPI independent.
             backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width)
+        }
+        if (debugSettings.gridEnabled) {
+            gridRenderer.render(camera, camera.zoom, mapProvider.mapWidth, mapProvider.mapHeight)
+        }
+        batch.use(camera) {
             super.update(deltaTime)
             fieldShimmerRenderer.render(batch)
         }
@@ -44,6 +55,7 @@ class RenderSystem(
 
     override fun dispose() {
         fieldShimmerRenderer.dispose()
+        gridRenderer.dispose()
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {

@@ -7,6 +7,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.Box2D
 import com.badlogic.gdx.physics.box2d.BodyDef
@@ -15,7 +16,12 @@ import com.badlogic.gdx.utils.GdxNativesLoader
 import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.LifetimeClock
+import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
+import com.github.pepek42.asteroids.component.photonCmp
+import com.github.pepek42.asteroids.component.photonCmpOptional
+import com.github.pepek42.asteroids.component.transformCmp
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.lifetimeCmp
 import com.github.pepek42.asteroids.faction.FactionEnum
@@ -97,6 +103,57 @@ class WeaponProjectileProviderTest {
         val body = engine.entities.first().bodyCmp.body
         assertTrue(body.linearVelocity.x > 0f)
         assertEquals(0f, body.linearVelocity.y, 1e-3f)
+    }
+
+    private fun fireFrom(
+        provider: WeaponProjectileProvider,
+        aimRad: Float?,
+        shipVelocity: Vector2? = null,
+    ): Entity {
+        val shipBody = world.createBody(BodyDef().apply { type = BodyDef.BodyType.DynamicBody })
+        val ship = Entity()
+            .add(BodyComponent().apply { body = shipBody })
+            .add(BaseInfoComponent(faction = FactionEnum.PLAYER))
+        if (shipVelocity != null) {
+            ship.add(RelativisticComponent().apply { vSet.set(shipVelocity) })
+        }
+        provider.spawnProjectile(WeaponComponent(projectileRadius = 0.1f, aimAngleRad = aimRad), ship)
+        return engine.entities.first { it.bodyCmp.body !== shipBody && it.photonCmpOptional != null }
+    }
+
+    @Test
+    fun laserFromRestingShipFliesAtCAlongAim() {
+        val laser = fireFrom(provider, 0f)
+
+        val v = laser.bodyCmp.body.linearVelocity
+        assertEquals(60f, v.x, 1e-3f)
+        assertEquals(0f, v.y, 1e-3f)
+        assertEquals(0f, laser.transformCmp.prevRotationDeg, 1e-3f)
+        assertEquals(1f, laser.photonCmp.dir.x, 1e-4f)
+    }
+
+    @Test
+    fun laserFromFastShipAberratesForward() {
+        val laser = fireFrom(provider, Math.PI.toFloat() / 2f, Vector2(0.9f * 60f, 0f))
+
+        val body = laser.bodyCmp.body
+        val deg = MathUtils.atan2(body.linearVelocity.y, body.linearVelocity.x) * MathUtils.radiansToDegrees
+        assertEquals(25.84f, deg, 0.1f)
+        assertEquals(60f, body.linearVelocity.len(), 1e-3f)
+        assertEquals(25.84f, laser.transformCmp.prevRotationDeg, 0.1f)
+        assertEquals(25.84f, body.angle * MathUtils.radiansToDegrees, 0.1f)
+        assertEquals(1f, laser.photonCmp.dir.len(), 1e-4f)
+    }
+
+    @Test
+    fun laserIgnoresShipVelocityWhenRelativityDisabled() {
+        val plain = WeaponProjectileProvider(textureAtlas, engine, world, RelativitySettings(relativityEnabled = false))
+        val laser = fireFrom(plain, Math.PI.toFloat() / 2f, Vector2(0.9f * 60f, 0f))
+
+        val v = laser.bodyCmp.body.linearVelocity
+        assertEquals(0f, v.x, 1e-3f)
+        assertEquals(60f, v.y, 1e-3f)
+        assertEquals(90f, laser.transformCmp.prevRotationDeg, 1e-2f)
     }
 
     companion object {

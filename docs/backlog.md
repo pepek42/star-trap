@@ -884,7 +884,7 @@ Parked:
 - result: Braking boost factor applied to relativistic engine thrust (3× straight against motion), tunable via debug slider; 161 tests pass.
 
 ### ST-067 Shots leave the arena; a ripple marks where they cross the field
-- status: done (2026-11-02, f323bd7)
+- status: done (2026-11-02, 2207091)
 - size: S
 - agent: junior-dev
 - depends: ST-025, ST-027, ST-036
@@ -960,7 +960,7 @@ Parked:
 - playtest: Bouncing off the edge at high speed feels like a strong rubber wall. Very fast hits snap back with a backstop ripple.
 
 ### ST-039 Photon lasers: velocity aberration at the muzzle
-- status: ready
+- status: done (2026-11-02, 684a83d)
 - size: S
 - agent: kotlin-dev
 - depends: ST-024, ST-035, ST-056, ST-067
@@ -970,11 +970,12 @@ Parked:
   - `PhotonComponent { val dir = Vector2() }` (unit vector, Poolable, reset to zero, mapper + `photonCmp` / `photonCmpOptional`, per the component convention).
   - `WeaponProjectileProvider`: the shooter-frame direction is `n̂' = (cos aim, sin aim)` with `aim = weaponCmp.aimAngleRad ?: body.angle` (`aimAngleRad` and the hull angle are treated as shooter-frame angles; ST-076 later converts the hull fallback properly). `v_ship = relativisticCmpOptional?.vSet ?: body.linearVelocity`, `β = v_ship / settings.c`. `n̂ = aberratePhoton(β, n̂')`. If `!settings.relativityEnabled`, `n̂ = n̂'`. Body velocity = `settings.c·n̂`. The body angle **and** `TransformComponent.prevRotationDeg` = `atan2(n̂)`, the latter in **degrees** (today it is set to radians, a bug). Add `PhotonComponent(dir = n̂)`. The muzzle offset keeps using `aim`. The lifetime from ST-024 stays.
 - acceptance:
-  - [ ] Test: a ship at rest facing +x fires a laser with velocity (60, 0) ± 1e-3 and `prevRotationDeg == 0`
-  - [ ] Test: a ship moving at β = 0.9 along +x, facing +y, fires a laser at a W angle of 25.84° ± 0.1° with |v| = 60 ± 1e-3, and `prevRotationDeg ≈ 25.84`
-  - [ ] Test: same ship with `relativityEnabled = false` fires straight along +y
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: a ship at rest facing +x fires a laser with velocity (60, 0) ± 1e-3 and `prevRotationDeg == 0`
+  - [x] Test: a ship moving at β = 0.9 along +x, facing +y, fires a laser at a W angle of 25.84° ± 0.1° with |v| = 60 ± 1e-3, and `prevRotationDeg ≈ 25.84`
+  - [x] Test: same ship with `relativityEnabled = false` fires straight along +y
+  - [x] `./gradlew core:test` passes
 - playtest: Lasers fired sideways at speed visibly sweep forward.
+- result: Lasers spawn at c along aberratePhoton(β_ship, aim) with a PhotonComponent dir and sprite rotation in degrees; muzzle-offset follow-up noted on ST-076.
 
 ### ST-068 Pilot clock: time-warp functions, GameClock and settings
 - status: ready
@@ -1248,6 +1249,7 @@ Parked:
   - `PlayerInputState`: add `val betaShip = Vector2()` and `var pilotView = false`. `PlayerInputSystem` fills them every frame from `ObserverState.betaVisual` and `settings.pilotView && settings.relativityEnabled`.
   - `MouseHullStrategy`: `θ = atan2(aim − shipPos)`. If `input.pilotView`, then `targetAngleRad = pilotHullToWorld(θ, betaShip)`, so the hull, drawn at `worldHullToPilot(body.angle)` in pilot view, points at the cursor. Otherwise `θ` as today.
   - `WeaponProjectileProvider` hull fallback (no `aimAngleRad`): `aim = worldHullToPilot(body.angle, β_ship)` when relativity is on (the hull's angle in the ship's rest frame), else `body.angle`. The muzzle offset uses the same `aim`.
+  - Follow-up from ST-039: the muzzle offset still uses the unaberrated `aim`, so at high β the shot starts slightly off its flight line. Decide here whether the muzzle should follow `n̂` or the P-frame aim.
 - acceptance:
   - [ ] Test: `MouseHullStrategy` with `pilotView = true`, `betaShip = (0.9, 0)` and the cursor at 45° from the ship → `targetAngleRad = 66.45° ± 0.05°`; with `pilotView = false` → 45°
   - [ ] Test: a ship at β = 0.9 along +x with body angle 66.45° and no `aimAngleRad` fires along the shooter-frame 45°, i.e. a W direction of `aberratePhoton(β, 45°)` ± 0.1°

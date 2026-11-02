@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Star Trap: a proof-of-concept physics-based 2D space shooter (Asteroids-like, aiming toward an action roguelike) built with libGDX + Kotlin + KTX, using Ashley ECS and Box2D. Controls: LMB fire, RMB thrusters, mouse wheel zoom. The Kotlin package is `com.github.pepek42.asteroids` (not `startrap`).
 
-Docs index: `docs/README.md`. Owner's raw roadmap: `docs/design/todo.md`. Game design: `docs/design/game-design.md`. Physics research: `docs/research/`. Task cards: `docs/backlog.md`. Detailed architecture and known issues: `docs/tech/architecture.md`. Library gotchas: `docs/tech/ktx-cheatsheet.md`.
+Docs index: `docs/README.md`. Owner's raw roadmap: `docs/design/todo.md`. Game design: `docs/design/game-design.md`. Physics research: `docs/research/`. Task cards: `docs/backlog.md` (open) and `docs/backlog-done.md` (archive); query them with `scripts/backlog.py next|show|list` instead of reading them. Detailed architecture and known issues: `docs/tech/architecture.md`. Library gotchas: `docs/tech/ktx-cheatsheet.md`.
 
 Development is agent-driven (see `docs/tech/dev-workflow.md`). Subagents live in `.claude/agents/` (planner, kotlin-dev, junior-dev, verifier, reviewer, physics-researcher). `/auto-dev` runs the backlog loop and `/plan-backlog` adds cards. `scratch_pad/` is gitignored reference material (the gdx template used for the stack migration) and is not part of the build.
 

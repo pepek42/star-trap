@@ -15,8 +15,8 @@ Argument: a number N (cards to finish this run, default 3), or a card id to do j
 - All agent work happens on the **`AI-slop`** branch. If you're on another branch, `git switch AI-slop` (or `git switch -c AI-slop` if it doesn't exist). Never commit to `master` or `stack-update`. Never push.
 
 ## 1. Pick a card
-Read `docs/backlog.md`. If it has a `## Implementation order` list, take the first card in that list with `status: ready` whose `depends` are all `done`. Otherwise take the first such card in milestone order. Cards added as follow-ups go into the order list right after the card that produced them.
-- None ready, but there are roadmap items with no cards (`docs/design/todo.md`, game-design milestones) or new research in `docs/research/`: spawn **planner** with "Plan the next milestone", then re-read.
+Run `scripts/backlog.py next` (or `scripts/backlog.py show ST-xxx` for a given card). It prints the full card: the first `ready` card in `## Implementation order` whose `depends` are all done. **Don't read `docs/backlog.md` in full**, and never read `docs/backlog-done.md`; to edit a card, Grep for its `### ST-NNN` line and Read only that range. Cards added as follow-ups go into the order list right after the card that produced them.
+- `NONE`, but there are roadmap items with no cards (`docs/design/todo.md`, game-design milestones) or new research in `docs/research/`: spawn **planner** with "Plan the next milestone", then run `next` again.
 - A card has `size: L`: spawn **planner** to split it first.
 - Nothing left: stop and report.
 
@@ -37,18 +37,20 @@ If the agent reports `blocked` with a question:
 - It's an owner decision: set the card to `needs-user`, add a `question:` line, `git checkout -- .` the partial work (look at the diff first), and go back to step 1.
 
 ## 3. Verify
-Spawn **verifier** (skip this for docs-only cards).
-- `FAIL`: SendMessage the failures to the same implementer. Allow 2 fix rounds.
+Run the build yourself (skip this for docs-only cards):
+`./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin --console=plain -q 2>&1 | tail -60` (timeout 10 min). No output plus exit code 0 means PASS. Also check `git status --short` for stray files (build output, `*.log`, scratch files).
+- Spawn **verifier** only when the failure output doesn't show the cause clearly.
+- `FAIL`: SendMessage the failure lines to the same implementer. Allow 2 fix rounds.
 - Still failing: escalate once to `kotlin-dev` with `effort: "higher"` (for a junior-dev card, kotlin-dev at normal effort). Then mark the card `blocked`, add a `blocker:` line, revert the work, and continue with the next card.
 
 ## 4. Review (size M only)
-Spawn **reviewer**. If you get `CHANGES_REQUESTED` with a blocker or major issue, send the issues to the implementer, then verify again. Allow one review round. Log minor issues as a follow-up card instead of fixing them now.
+Spawn **reviewer**. If you get `CHANGES_REQUESTED` with a blocker or major issue, send the issues to the implementer, then verify again. Allow one review round. Send `minor` issues marked trivial along in that same round (or, if there is no round, fix them yourself when they are a line or two). Only non-trivial minor issues become a follow-up card, and all of a card's follow-ups go into **one** card.
 
 ## 5. Commit and record
-- `git add` only the files the task touched, plus `docs/backlog.md`. Don't use `git add -A`, and never stage build output.
+- `git add` only the files the task touched, plus `docs/backlog.md` and `docs/backlog-done.md`. Don't use `git add -A`, and never stage build output.
 - Commit message: `ST-NNN: <card title>`, then a blank line, a one-line summary, and the attribution trailer from the system reminder.
-- On the card: set `status: done (<YYYY-MM-DD>, <short sha>)`, tick the acceptance boxes, and add a `result:` line (one sentence). Then amend the commit to include this backlog edit: `git commit --amend --no-edit`.
-- If the agent reported FOLLOW-UPS, append them as `status: ready` (or `needs-user`) cards at the end of the milestone. Mark them `size: S` or `M` and pick the agent using the routing rules in `.claude/agents/planner.md`.
+- On the card: set `status: done (<YYYY-MM-DD>, <short sha>)`, tick the acceptance boxes, and add a `result:` line (one sentence). Then run `scripts/backlog.py archive ST-NNN` (moves the card to `docs/backlog-done.md` and drops it from the order list), `git add docs/backlog.md docs/backlog-done.md`, and amend the commit: `git commit --amend --no-edit`.
+- If the agent reported FOLLOW-UPS, add them as **one** `status: ready` (or `needs-user`) card at the end of the milestone, and put it into `## Implementation order` right after the card that produced it. Mark it `size: S` or `M`, pick the agent using the routing rules in `.claude/agents/planner.md`, add a `refs:` line, and bump the next free ID in the backlog header.
 - If the card introduces or changes a FAKE/APPROX (non-physical behaviour), add or update its row in `docs/design/physics-lies.md` in the same commit.
 - Keep `docs/tech/architecture.md` current. If the card changed the system order, components or invariants, have junior-dev update it in the same commit.
 
@@ -63,5 +65,7 @@ Repeat from step 1 until N cards are done, or nothing is ready.
 
 ## Cost discipline
 - Prefer junior-dev. Use kotlin-dev only when the card needs design inside the code.
-- Don't re-read big files yourself just to check work. Trust the verifier and reviewer reports.
+- Don't re-read big files yourself just to check work. Trust the build output and the reviewer report.
+- Never load the whole backlog or a whole research doc into your context; use `scripts/backlog.py` and Grep + ranged Read.
+- Pass the implementer the card text only. It reads its own `refs:`; don't paste docs into the prompt.
 - Run implementers one at a time, because they share one working tree.

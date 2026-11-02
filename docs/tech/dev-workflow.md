@@ -9,7 +9,7 @@ Star Trap is developed mostly by Claude Code subagents, and the owner gives as l
 | `planner` | Opus / medium | Roadmap + research → small, ordered task cards, routed to the cheapest capable agent | `docs/backlog.md` |
 | `kotlin-dev` | Sonnet / medium (orchestrator may raise it) | Implements size-M cards: systems, components, algorithms, shaders, with tests | code + tests |
 | `junior-dev` | Haiku / low | Size-S mechanical cards with an exact spec | code, config, docs |
-| `verifier` | Haiku / low | Runs Gradle build and tests, reports failures with file:line. Read-only | — |
+| `verifier` | Haiku / low | Finds the root cause of unclear build/test failures, with file:line. Read-only. `/auto-dev` runs Gradle itself and spawns it only when needed | — |
 | `reviewer` | Sonnet / medium | Reviews the diff against the card, project invariants and physics. Read-only | — |
 | `physics-researcher` | Opus / high | Relativity, gravity and force-field physics → game-ready specs with formulas, cost and verdicts | `docs/research/*.md` |
 
@@ -17,7 +17,7 @@ Most of the volume goes to Haiku and Sonnet. Opus is used only for planning and 
 
 ## Skills (`.claude/skills/`)
 
-- **`/auto-dev [N | ST-xxx]`**: the orchestrator loop. It picks a ready card → the implementer → verifier → (reviewer for M) → commits `ST-NNN: title` on the `AI-slop` branch → updates the card. At the end it reports a playtest checklist and open questions. To run it unattended: `/loop /auto-dev 3`.
+- **`/auto-dev [N | ST-xxx]`**: the orchestrator loop. It picks a ready card (`scripts/backlog.py next`) → the implementer → Gradle build → (reviewer for M) → commits `ST-NNN: title` on the `AI-slop` branch → marks the card done and archives it to `docs/backlog-done.md`. At the end it reports a playtest checklist and open questions. To run it unattended: `/loop /auto-dev 3`.
 - **`/plan-backlog <idea | research doc>`**: has the planner turn something into cards.
 
 ## Lifecycle of a card
@@ -28,11 +28,11 @@ flowchart LR
   research["docs/research/*.md"] --> planner
   planner --> backlog["docs/backlog.md<br/>status: ready"]
   backlog --> impl["junior-dev / kotlin-dev"]
-  impl --> verifier
-  verifier -- FAIL (≤2 rounds) --> impl
-  verifier -- PASS --> reviewer
+  impl --> build["gradle test<br/>(verifier if unclear)"]
+  build -- FAIL (≤2 rounds) --> impl
+  build -- PASS --> reviewer
   reviewer -- changes --> impl
-  reviewer -- approve --> commit["commit ST-NNN<br/>status: done"]
+  reviewer -- approve --> commit["commit ST-NNN<br/>status: done<br/>→ backlog-done.md"]
   impl -- owner decision needed --> needsuser["status: needs-user<br/>question + recommendation"]
 ```
 
@@ -44,7 +44,14 @@ flowchart LR
 
 ## Conventions for agents
 
-- Read `CLAUDE.md`, `docs/tech/architecture.md` and `docs/tech/ktx-cheatsheet.md` first.
+- `CLAUDE.md` is loaded automatically. Read only the doc sections a card names on its `refs:` line, plus the parts of `docs/tech/architecture.md` that cover the code you touch.
+
+## Saving tokens
+
+- `docs/backlog.md` holds only open cards; finished ones are in `docs/backlog-done.md`. Nobody reads either file in full: `scripts/backlog.py next | show ST-NNN | list | archive [ST-NNN]`.
+- Cards carry a `refs:` line naming the doc sections the implementer needs, so nobody reads all of `docs/research/relativity-effects.md`.
+- The orchestrator runs Gradle itself; the verifier agent is only for unclear failures.
+- Trivial review findings are fixed in the same round; the rest of a card's follow-ups go into one card.
 - One card per commit, on the `AI-slop` branch only. Never commit to `master` or `stack-update`, and never push.
 - Pure logic is pulled out and unit tested. GL code stays thin.
 - If a card changes the architecture, `docs/tech/architecture.md` is updated in the same commit.

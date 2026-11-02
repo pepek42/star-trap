@@ -1,6 +1,6 @@
 ---
 name: verifier
-description: Read-only build and test checker for Star Trap. It runs the Gradle build and tests and reports failures concisely with file:line. Use after every implementation step, and whenever you need to know whether the tree compiles and the tests pass.
+description: Read-only build and test checker for Star Trap. It runs the Gradle build and tests, and finds the root cause of failures with file:line. /auto-dev runs Gradle itself and spawns this agent only when the failure output is unclear or a clean build is needed.
 tools: Bash, Read, Glob, Grep
 model: haiku
 effort: low

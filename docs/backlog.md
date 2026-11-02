@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-106**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-107**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -20,6 +20,7 @@ M3 Relativity MVP:
 5a. ST-102 Physics catch-up cap: 10 steps only under warp
 6. ST-040 Ship clocks under the pilot clock
 6a. ST-105 ST-040 follow-ups: spin restore test, null-target spin
+6b. ST-106 Derive physics from base constants; 60 Hz tick; c = 20 (owner 2026-11-02)
 7. ST-070 LightHistory ring buffer and retarded-time solver
 8. ST-071 LightHistorySystem
 9. ST-072 PilotFrame transforms
@@ -1489,6 +1490,30 @@ Parked:
 - acceptance:
   - [x] Test: relativity-off restores ω·gUsed and resets gUsed to 1
   - [x] `./gradlew core:test` passes
+
+### ST-106 Derive physics from base constants; 60 Hz tick; c = 20
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: —
+- files: `physics/PhysicsConstants.kt`, `system/PhysicsSystem.kt`, `system/TimeWarpSystem.kt`, `physics/RelativitySettings.kt`, `ui/DebugPanel.kt`, `environment/asteroid.kt`, `provider/AsteroidProvider.kt`, `docs/design/physics-lies.md` (row 3), tests that hardcode 45 Hz or c = 60
+- goal: Owner (2026-11-02): "Can we increase physics tick rate? … ship really speeds up. Maybe c should be smaller? 1/3?" Also apply the new CLAUDE.md rule "Constants are the single source of truth": changing the tick rate or c must not need edits anywhere else.
+- spec:
+  - `PhysicsSystem` companion: `const val PHYSICS_TICK_RATE = 60f`, `PHYSICS_UPDATE_INTERVAL = 1f / PHYSICS_TICK_RATE`. `MAX_STEPS_PER_FRAME = ceil(TIME_WARP_MAX * PHYSICS_TICK_RATE / 60f)` (the full default warp fits at 60 fps; 10 at 60 Hz). `MAX_LAG_STEPS = ceil(MAX_LAG_SECONDS * PHYSICS_TICK_RATE)` with `MAX_LAG_SECONDS = 5f / 45f` (same lag budget as ST-102). These are `val`s if Kotlin `const` can't compute them.
+  - `PhysicsConstants.kt`: `BOX2D_MAX_TRANSLATION = 2f`; `C_MAX_BOX2D_SAFE = 0.75f * BOX2D_MAX_TRANSLATION * PHYSICS_TICK_RATE` (90 at 60 Hz); `SPEED_OF_LIGHT = 20f`; `C_MIN = 10f`. KDoc states the derivations, no literal `45`.
+  - `ENGINE_PROPER_ACCEL = SPEED_OF_LIGHT / ENGINE_TIME_TO_09C_FACTOR` where the factor keeps the current feel: 0.9c reached in ≈ 5 s (`a = c·γβ/5 s`, γβ(0.9) = 2.065, so ≈ 8.26 at c = 20). Update the KDoc numbers. `RelativitySettings` engine clamp range: derive from c defaults or widen so 8.26 is not clamped.
+  - `ASTEROID_SPAWN_SPEED_MAX` becomes a fraction of c (`ASTEROID_SPAWN_BETA_MAX = 8f / 60f`), and `AsteroidProvider` multiplies by `settings.c`.
+  - `DebugPanel` c slider uses `C_MIN`..`C_MAX_BOX2D_SAFE`, not literals.
+  - Grep `core/src/main` for remaining literals derived from 45 Hz or c = 60 (`45`, `1f/45`, `60f` used as c, `67`), and replace them per the CLAUDE.md rule. List any you deliberately keep in the report.
+  - Tests: replace hardcoded `1f/45`, `45f`, c = `60f` with `PHYSICS_UPDATE_INTERVAL` / `SPEED_OF_LIGHT` / `settings.c`. Fix tests that pinned tuned numbers by deriving them from the constants, not by re-pinning new literals.
+  - Physics-lies row 3: update to "c = 20 u/s, well under the ~90 u/s Box2D cap at 60 Hz".
+  - Perf: add a tagged/ignored-by-default benchmark test or a `main` in tests that builds a world with the level-5 asteroid count (25 large asteroids + player), runs 600 steps, and prints mean ms per `world.step`. Run it once and put the number in the report.
+- acceptance:
+  - [ ] Test: changing `PHYSICS_TICK_RATE` is a one-line change. A unit test asserts `C_MAX_BOX2D_SAFE == 0.75f * 2f * PHYSICS_TICK_RATE` and `MAX_STEPS_PER_FRAME * PHYSICS_UPDATE_INTERVAL * 60f >= TIME_WARP_MAX`
+  - [ ] Test: default engine reaches 0.9c in 5 s ± 0.3 s of proper time
+  - [ ] `grep -rnE "1f ?/ ?45|\b45f\b" core/src` finds nothing
+  - [ ] `./gradlew core:test` passes; benchmark number reported
+- playtest: The ship tops out at a third of the old speed (c = 20) but takes as long to get relativistic. Time warp and Doppler effects show up at much lower on-screen speeds. Motion looks a bit smoother at 60 Hz.
 
 ## M4 Relativistic view
 

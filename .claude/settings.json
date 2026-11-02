@@ -1,9 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./gradlew core:test --console=plain -q)",
-      "Bash(./gradlew core:test lwjgl3:compileKotlin --console=plain -q)",
-      "Bash(./gradlew test)"
+      "Bash(./gradlew *)",
+      "Bash(scripts/backlog.py *)"
     ]
   }
 }

@@ -24,6 +24,8 @@ M3 Relativity MVP:
 12. ST-074 Pilot view: retarded, boosted sprites
 13. ST-076 Pilot-frame aiming
 14. ST-078 Lead markers
+14a. ST-062 Auto-aim + auto-shoot scheme (owner 2026-11-02: the default, un-parked)
+14b. ST-063 Make auto-aim the default control scheme
 15. ST-075 Pilot view: Terrell rotation
 16. ST-043 Doppler colour and searchlight on the starfield
 17. ST-077 Pilot view: starfield, field band and shimmer
@@ -64,9 +66,7 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 49. ST-090 Bring docs in line after M4/M5
 
 Parked:
-50. ST-062 Auto-aim + auto-shoot scheme
 51. ST-091 Targeting-trance scheme
-52. ST-063 Owner decision: default control scheme (**needs-user**)
 
 ---
 
@@ -1859,12 +1859,14 @@ Owner 2026-11-02: control modes for later (game-design §12). Keep them ready bu
 - playtest: With `--controls=trance`, hold LMB: time crawls, the markers appear and the nose snaps to the cursor; release to fire one shot, then wait a second. Does the 1 s cooldown feel right?
 
 ### ST-063 Owner decision: default control scheme
-- status: needs-user
+- status: ready
 - size: S
 - agent: junior-dev
-- depends: ST-058, ST-061, ST-062, ST-091
-- files: `docs/design/game-design.md` §4 and §11; `input/ControlSettings.kt` (default)
+- depends: ST-058, ST-062
+- files: `docs/design/game-design.md` §4 and §11; `Game.kt` (`ControlSettings(options.controls ?: …)` fallback) and `input/ControlSettings.kt` (default)
 - goal: Record which scheme is the default once the owner has tried them all through `--controls=` or the debug panel selector. The others stay selectable. Parked with the modes (2026-11-02); ask once ST-061, ST-062 and ST-091 are done.
-- question: Which control scheme should be the default? (a) Mouse aims and rotates the hull, RMB thrusts forward (today). (b) **Twin-stick (recommended)**: WASD (later the left stick) sets the thrust direction in the arena frame, the hull turns toward it, and the mouse (later the right stick) aims an independent turret. Separating aim from thrust lets the player manage momentum near c, which is the core skill, while still shooting. (c) Auto-aim + auto-shoot (ST-062): you only steer and manage momentum. Better as an accessibility option. (d) Targeting trance (ST-091): hold LMB for slow-mo aim with an instant turn, release for one shot, then a 1 s cooldown. It's a FAKE time stop, so it's better as an option than as the default.
+- answer (owner 2026-11-02): **(c) Auto-aim + auto-shoot is the default.** Mouse-hull, twin-stick and trance stay selectable via `--controls=` and the debug panel.
 - acceptance:
-  - [ ] The answer is in game-design.md §11 (decisions) and §4. `ControlSettings` defaults to the chosen scheme. For (b), ask the planner for a gamepad card (gdx-controllers, sticks → `moveAxis`/aim)
+  - [ ] The answer is in game-design.md §11 (decisions) and §4. `ControlSettings` and the `Game.kt` fallback default to `ControlScheme.AUTO_AIM`
+  - [ ] Test: `ControlSettings().scheme == ControlScheme.AUTO_AIM`
+  - [ ] `./gradlew core:test` passes

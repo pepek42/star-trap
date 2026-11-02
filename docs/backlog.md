@@ -1000,7 +1000,7 @@ Parked:
 - result: `physics/TimeWarp.kt` (warp factor, cap check, world delta, `GameClock`) plus the time-warp constants and `RelativitySettings` fields, all unit-tested and not wired yet.
 
 ### ST-069 Pilot clock wiring: the arena advances γ·dt per frame, up to 10 steps
-- status: done (2026-11-02, SHA069)
+- status: done (2026-11-02, 09d23e9)
 - size: M
 - agent: kotlin-dev
 - depends: ST-041, ST-059, ST-068

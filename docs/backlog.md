@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-108**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-109**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -23,6 +23,7 @@ M3 Relativity MVP:
 6b. ST-106 Derive physics from base constants; 60 Hz tick; c = 20 (owner 2026-11-02)
 6c. ST-107 ST-106 follow-ups: c-relative engine and thresholds, warp step cap
 7. ST-070 LightHistory ring buffer and retarded-time solver
+7a. ST-108 ST-070 follow-ups: zero-dt guard, level-relative time
 8. ST-071 LightHistorySystem
 9. ST-072 PilotFrame transforms
 10. ST-073 PhotonAim
@@ -1126,7 +1127,7 @@ Parked:
 - playtest: Fly at an asteroid fast: it turns blue-white and glows. Fly away: asteroids behind turn red and dim.
 
 ### ST-070 LightHistory ring buffer and retarded-time solver (pure)
-- status: ready
+- status: done (2026-11-02, 0dae081)
 - size: M
 - agent: kotlin-dev
 - depends: ST-035
@@ -1144,13 +1145,14 @@ Parked:
     5. If the root is older than the oldest sample: when `wrapped || eternal`, extrapolate backward from the oldest sample with its velocity (the step-3 formula with sample `oldest` as `i+1`), return true. Otherwise the object is younger than its light travel time and isn't visible yet, so return false.
   - No allocation in `retarded` or `record`.
 - acceptance:
-  - [ ] Test: a static object at distance 30, sampled every 1/45 s for 2 s, with c = 60 → `retarded` gives `t = now − 0.5 ± 1e-4` and the recorded position
-  - [ ] Test: constant velocity (20, 0) from (30, 0), observer at origin → `t` matches the E8 closed form within 1e-4, and `|x(t) − o| = c·(now − t)` within 1e-3
-  - [ ] Test: circular motion (radius 20 around (40, 0), ω = 1) → the light-cone equation holds within 1e-2 u
-  - [ ] Test: a photon moving at exactly c (radially away) still returns a solution that satisfies the light-cone equation within 1e-2
-  - [ ] Test: an entity with 0.1 s of history at distance 30 (not eternal, not wrapped) → false; the same with `eternal = true` → true, position extrapolated backward
-  - [ ] Test: after more than `capacity` records the buffer has `wrapped`, and lookups still work
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: a static object at distance 30, sampled every 1/45 s for 2 s, with c = 60 → `retarded` gives `t = now − 0.5 ± 1e-4` and the recorded position
+  - [x] Test: constant velocity (20, 0) from (30, 0), observer at origin → `t` matches the E8 closed form within 1e-4, and `|x(t) − o| = c·(now − t)` within 1e-3
+  - [x] Test: circular motion (radius 20 around (40, 0), ω = 1) → the light-cone equation holds within 1e-2 u
+  - [x] Test: a photon moving at exactly c (radially away) still returns a solution that satisfies the light-cone equation within 1e-2
+  - [x] Test: an entity with 0.1 s of history at distance 30 (not eternal, not wrapped) → false; the same with `eternal = true` → true, position extrapolated backward
+  - [x] Test: after more than `capacity` records the buffer has `wrapped`, and lookups still work
+  - [x] `./gradlew core:test` passes
+- result: `LightHistory` stores 6-float samples in a ring buffer whose capacity (~1730) is derived from the arena diagonal, C_MIN and tick rate. `retarded()` solves the light cone in closed form per segment, with photon bisection and extrapolation backward/forward. 12 tests.
 
 ### ST-071 LightHistorySystem: record every body each physics step
 - status: ready
@@ -1536,6 +1538,21 @@ Parked:
   - [x] `./gradlew core:test` passes
 - result: Engine accel is stored as a fraction of c and collision eps as β, the step cap covers warp 12, and debug sliders read constants.
 - playtest: Moving the c slider in the debug panel keeps the ship's acceleration feel; warp 12 is reachable.
+
+### ST-108 ST-070 follow-ups: LightHistory zero-dt guard, level-relative sample time
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-070
+- files: `physics/LightHistory.kt`; `LightHistoryTest.kt`
+- goal: Minor issues from the ST-070 review.
+- spec:
+  - In `retarded` (the segment solve and the extrapolation paths, around LightHistory.kt:171 and :193): if a segment has `dt <= 0`, use `s = 0` (or take the later sample) instead of dividing by zero. `record` keeps documenting strictly increasing `t`, but the solver must never return NaN.
+  - KDoc on `record`: callers pass time relative to level start (Float resolution). ST-071 must follow this. No storage change.
+- acceptance:
+  - [ ] Test: two samples with equal `t` → `retarded` returns finite values (no NaN)
+  - [ ] `./gradlew core:test` passes
+- playtest: none (no visible change).
 
 ## M4 Relativistic view
 

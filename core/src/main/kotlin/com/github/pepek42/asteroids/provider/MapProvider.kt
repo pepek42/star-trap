@@ -3,8 +3,11 @@ package com.github.pepek42.asteroids.provider
 import com.github.pepek42.asteroids.event.GameEventManager
 import ktx.math.vec2
 
-private const val MAP_WIDTH = 200f
-private const val MAP_HEIGHT = 200f
+/** Default arena width (u). Public so derived quantities (e.g. the light-history capacity) follow the map size. */
+const val MAP_WIDTH = 200f
+
+/** Default arena height (u). */
+const val MAP_HEIGHT = 200f
 
 class MapProvider(
     private val gameEventManager: GameEventManager,

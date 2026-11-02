@@ -9,6 +9,7 @@ import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
+import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.VISUAL_BETA_SMOOTHING
@@ -24,12 +25,13 @@ import ktx.ashley.get
 class ObserverSystem(
     private val state: ObserverState,
     private val settings: RelativitySettings,
+    private val clock: GameClock? = null,
 ) : IteratingSystem(allOf(PlayerComponent::class, BodyComponent::class, TransformComponent::class).get()) {
     private val v = Vector2()
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val c = settings.c
-        state.worldTime += deltaTime
+        state.worldTime = clock?.worldTime ?: (state.worldTime + deltaTime)
         state.position.set(entity.transformCmp.interpolatedPosition)
         val rel = entity.relativisticCmpOptional
         if (rel != null) {

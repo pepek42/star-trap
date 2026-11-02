@@ -34,6 +34,25 @@ class DebugPanelTest {
     }
 
     @Test
+    fun formatReadoutsShowsWarpLine() {
+        val clock = com.github.pepek42.asteroids.physics.GameClock().apply { warp = 4f; stepsCapped = true }
+        val out = StringBuilder()
+        formatReadouts(ObserverState(), null, 60f, 25f, out, clock)
+        assertTrue("warp = ×4.0 (capped)" in out.toString(), out.toString())
+        clock.stepsCapped = false
+        formatReadouts(ObserverState(), null, 60f, 25f, out, clock)
+        assertTrue(out.toString().endsWith("warp = ×4.0"), out.toString())
+    }
+
+    @Test
+    fun resetRestoresTimeWarp() {
+        val rel = RelativitySettings(timeWarpEnabled = false, timeWarpMax = 3f)
+        resetDebugDefaults(rel, DebugSettings(panelAllowed = true, panelVisible = true, timeScale = 1f, showVectors = false))
+        assertTrue(rel.timeWarpEnabled)
+        assertEquals(com.github.pepek42.asteroids.physics.TIME_WARP_MAX, rel.timeWarpMax)
+    }
+
+    @Test
     fun appendFixedIsLocaleIndependentAndPadsDecimals() {
         assertEquals("0.050", appendFixed(StringBuilder(), 0.05f, 3).toString())
         assertEquals("-1.5", appendFixed(StringBuilder(), -1.5f, 1).toString())

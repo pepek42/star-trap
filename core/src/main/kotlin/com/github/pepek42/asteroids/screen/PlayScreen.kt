@@ -34,6 +34,8 @@ import com.github.pepek42.asteroids.system.CameraSystem
 import com.github.pepek42.asteroids.system.ContactSystem
 import com.github.pepek42.asteroids.system.DeathSystem
 import com.github.pepek42.asteroids.system.DebugPanelSystem
+import com.github.pepek42.asteroids.system.TimeWarpSystem
+import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.system.DebugSystem
 import com.github.pepek42.asteroids.system.EndLevelSystem
 import com.github.pepek42.asteroids.system.HudSystem
@@ -64,6 +66,7 @@ class PlayScreen(
     private val hud = Hud(game)
     private val settings = game.get<RelativitySettings>()
     private val observerState = ObserverState()
+    private val clock = GameClock()
     private val mapProvider = game.get<MapProvider>()
     private val camera = game.get<OrthographicCamera>()
     private val viewport: Viewport = game.get<Viewport>()
@@ -96,6 +99,7 @@ class PlayScreen(
         // Must be the last step listener: it integrates the accelerations the others added.
         val relativisticDynamics = RelativisticDynamics(settings)
         engine.add {
+            addSystem(TimeWarpSystem(clock, settings))
             addSystem(EndLevelSystem(game))
             addSystem(PlayerInputSystem(gameEventManager, camera, game.get<ControlSettings>()))
             addSystem(moveSystem)
@@ -108,9 +112,10 @@ class PlayScreen(
                 PhysicsSystem(
                     world, engine,
                     listOf(moveSystem, boundaryFieldSystem, projectileSweepSystem, relativisticDynamics),
+                    clock,
                 )
             )
-            addSystem(ObserverSystem(observerState, settings))
+            addSystem(ObserverSystem(observerState, settings, clock))
             addSystem(CameraSystem(camera, gameEventManager, mapProvider))
             addSystem(
                 RenderSystem(
@@ -122,10 +127,10 @@ class PlayScreen(
             if (IS_DEBUG) {
                 engine.addSystem(DebugSystem(world, engine, camera))
             }
-            addSystem(DebugPanelSystem(debugPanel, observerState))
+            addSystem(DebugPanelSystem(debugPanel, observerState, clock))
             addSystem(HudSystem(hud, camera, viewport, mapProvider, debugSettings, gridRenderer))
             addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider))
-            addSystem(LifetimeSystem())
+            addSystem(LifetimeSystem(clock))
             addSystem(DeathSystem(engine, asteroidProvider, game.get<RandomXS128>()))
             addSystem(RemoveSystem(world, mapProvider))
         }
@@ -134,6 +139,7 @@ class PlayScreen(
     override fun show() {
         super.show()
         observerState.reset()
+        clock.reset()
         gameState.nextLevel()
         mapProvider.loadMap()
         playerEntityProvider.spawnPlayerEntity()

@@ -7,6 +7,7 @@ import com.badlogic.ashley.core.Entity
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
+import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.ui.DebugPanel
 import ktx.ashley.allOf
@@ -18,6 +19,7 @@ const val DEBUG_PANEL_REFRESH_SECONDS = 0.1f
 class DebugPanelSystem(
     private val panel: DebugPanel,
     private val observerState: ObserverState,
+    private val clock: GameClock? = null,
 ) : EntitySystem() {
     private val family = allOf(PlayerComponent::class, RelativisticComponent::class).get()
     private lateinit var entities: ImmutableArray<Entity>
@@ -34,6 +36,6 @@ class DebugPanelSystem(
         timer += deltaTime
         if (timer < DEBUG_PANEL_REFRESH_SECONDS) return
         timer = 0f
-        panel.update(observerState, entities.firstOrNull()?.relativisticCmpOptional)
+        panel.update(observerState, entities.firstOrNull()?.relativisticCmpOptional, clock)
     }
 }

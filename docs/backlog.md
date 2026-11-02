@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-102**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-103**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -15,6 +15,7 @@ M3 Relativity MVP:
 3a. ST-100 Readable backdrop: calmer nebula, grid, centre pointer
 4. ST-068 Pilot clock: time-warp functions, GameClock, settings
 5. ST-069 Pilot clock wiring
+5a. ST-102 Physics catch-up cap: 10 steps only under warp
 6. ST-040 Ship clocks under the pilot clock
 7. ST-070 LightHistory ring buffer and retarded-time solver
 8. ST-071 LightHistorySystem
@@ -978,7 +979,7 @@ Parked:
 - result: Lasers spawn at c along aberratePhoton(β_ship, aim) with a PhotonComponent dir and sprite rotation in degrees; muzzle-offset follow-up noted on ST-076.
 
 ### ST-068 Pilot clock: time-warp functions, GameClock and settings
-- status: done (2026-11-02, SHA068)
+- status: done (2026-11-02, e5b3861)
 - size: S
 - agent: junior-dev
 - depends: ST-056
@@ -999,7 +1000,7 @@ Parked:
 - result: `physics/TimeWarp.kt` (warp factor, cap check, world delta, `GameClock`) plus the time-warp constants and `RelativitySettings` fields, all unit-tested and not wired yet.
 
 ### ST-069 Pilot clock wiring: the arena advances γ·dt per frame, up to 10 steps
-- status: ready
+- status: done (2026-11-02, SHA069)
 - size: M
 - agent: kotlin-dev
 - depends: ST-041, ST-059, ST-068
@@ -1014,12 +1015,13 @@ Parked:
   - Debug panel: a checkbox "time warp" → `settings.timeWarpEnabled`, a slider "warp cap" 1–12 step 1 → `settings.timeWarpMax`, both restored by `resetDebugDefaults`. `formatReadouts` gets a last param `clock: GameClock? = null`; when non-null it appends a line `warp = ×N.N` (1 dp) followed by ` (capped)` if `warpCapped || stepsCapped`.
   - The debug time scale (ST-057) still multiplies the real delta before all of this, so 0.25× slows the pilot and the warped world together.
 - acceptance:
-  - [ ] Test (`TimeWarpSystemTest`, real `World` with `PhysicsSystem` + `RelativisticDynamics` + `TimeWarpSystem`): a player whose `u` gives γ = 4, with no thrust, after one `engine.update(1/45f)` has run exactly 4 physics steps (`clock.worldTime == 4/45 ± 1e-5`, position advanced by `4·v/45 ± 1e-3`)
-  - [ ] Test: γ = 20 with `timeWarpMax = 10` → `warp == 10`, `warpCapped`; `engine.update(0.1f)` → `worldDt == 10/45`, `stepsCapped`, and at most 10 steps ran
-  - [ ] Test: `timeWarpEnabled = false` or `relativityEnabled = false` → `warp == 1` at any γ
-  - [ ] Test: a WORLD lifetime of 2 s on an entity expires after 0.5 s of real time at warp 4 (±1 frame)
-  - [ ] Test: `formatReadouts(..., clock)` with warp 4 and `stepsCapped = true` contains `warp = ×4.0 (capped)`
-  - [ ] `./gradlew core:test` passes
+  - [x] Test (`TimeWarpSystemTest`, real `World` with `PhysicsSystem` + `RelativisticDynamics` + `TimeWarpSystem`): a player whose `u` gives γ = 4, with no thrust, after one `engine.update(1/45f)` has run exactly 4 physics steps (`clock.worldTime == 4/45 ± 1e-5`, position advanced by `4·v/45 ± 1e-3`)
+  - [x] Test: γ = 20 with `timeWarpMax = 10` → `warp == 10`, `warpCapped`; `engine.update(0.1f)` → `worldDt == 10/45`, `stepsCapped`, and at most 10 steps ran
+  - [x] Test: `timeWarpEnabled = false` or `relativityEnabled = false` → `warp == 1` at any γ
+  - [x] Test: a WORLD lifetime of 2 s on an entity expires after 0.5 s of real time at warp 4 (±1 frame)
+  - [x] Test: `formatReadouts(..., clock)` with warp 4 and `stepsCapped = true` contains `warp = ×4.0 (capped)`
+  - [x] `./gradlew core:test` passes
+- result: `TimeWarpSystem` drives a per-level `GameClock`. Physics (up to 10 steps per frame), WORLD lifetimes and world time now run on warp·real dt, and the debug panel has a warp toggle, a cap slider and a readout.
 - playtest: At speed the asteroids and the world visibly speed up while the ship handles as usual. Past γ = 10 the debug panel shows "(capped)". With "time warp" off the game plays as before.
 
 ### ST-040 Ship clocks under the pilot clock: player on real time, others on proper time
@@ -1413,6 +1415,20 @@ Parked:
   - [ ] `docs/tech/balance.md` has the tables, the chosen constants and the reasoning; the constants are updated in code
   - [ ] `./gradlew core:test` passes (the sweep is not part of the default `test` run)
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
+
+### ST-102 Physics catch-up cap: 10 steps only under time warp
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-069
+- files: `system/PhysicsSystem.kt`, `system/TimeWarpSystem.kt`, `system/TimeWarpSystemTest.kt`
+- goal: ST-069 review follow-up. The catch-up cap went from 5 to 10 steps for every frame, so at warp 1 a lag spike now runs 10 steps, which risks a spiral of death on slow machines. Keep 10 steps for warp, and go back to 5 for plain lag.
+- spec:
+  - `PhysicsSystem` companion: add `const val MAX_LAG_STEPS = 5`. In `TimeWarpSystem.update`: `maxWorld = min(MAX_STEPS_PER_FRAME·INTERVAL, max(1f, clock.warp)·MAX_LAG_STEPS·INTERVAL)`. Warp 1 caps at 5 steps, and warp ≥ 2 caps at 10. Set `stepsCapped` against this `maxWorld`.
+  - In `TimeWarpSystemTest.warpIsOneWhenDisabled`: also assert that `worldTime` advanced by exactly 1/45 ± 1e-5 after `update(1/45f)`.
+- acceptance:
+  - [ ] Test: warp 1, `engine.update(0.5f)` → at most 5 steps (`worldTime ≤ 5/45 + 1e-5`); warp 4, `engine.update(0.5f)` → 10 steps
+  - [ ] `./gradlew core:test` passes
 
 ## M4 Relativistic view
 

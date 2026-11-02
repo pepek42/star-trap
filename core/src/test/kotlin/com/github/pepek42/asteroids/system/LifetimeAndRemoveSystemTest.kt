@@ -41,6 +41,21 @@ class LifetimeAndRemoveSystemTest {
     }
 
     @Test
+    fun worldLifetimeUsesClockWorldDt() {
+        val engine = PooledEngine()
+        val clock = com.github.pepek42.asteroids.physics.GameClock().apply { worldDt = 0.4f }
+        engine.addSystem(LifetimeSystem(clock))
+        val entity = engine.createEntity().apply {
+            add(LifetimeComponent(remaining = 0.5f, total = 0.5f))
+        }
+        engine.addEntity(entity)
+        engine.update(0.01f)
+        assertFalse(entity.has(removeMapper))
+        engine.update(0.01f)
+        assertTrue(entity.has(removeMapper))
+    }
+
+    @Test
     fun playerOutOfBoundsShouldBeClampedNotRemoved() {
         val pair = setup()
         val engine = pair.first

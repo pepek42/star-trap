@@ -24,7 +24,10 @@ import com.github.pepek42.asteroids.physics.BRAKE_BOOST_K
 import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
 import com.github.pepek42.asteroids.physics.FIELD_DAMPING
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
+import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
+import com.github.pepek42.asteroids.physics.TIME_WARP_ENABLED
+import com.github.pepek42.asteroids.physics.TIME_WARP_MAX
 import com.github.pepek42.asteroids.physics.RELATIVITY_ENABLED
 import com.github.pepek42.asteroids.render.CENTRE_POINTER_ENABLED
 import com.github.pepek42.asteroids.render.GRID_ENABLED
@@ -58,7 +61,7 @@ fun appendFixed(out: StringBuilder, value: Float, decimals: Int): StringBuilder 
 }
 
 /** Writes the readout block into [out] (cleared first). Pure so it can be tested without widgets. */
-fun formatReadouts(observer: ObserverState, rel: RelativisticComponent?, c: Float, a0: Float, out: StringBuilder) {
+fun formatReadouts(observer: ObserverState, rel: RelativisticComponent?, c: Float, a0: Float, out: StringBuilder, clock: GameClock? = null) {
     out.setLength(0)
     val speed = observer.betaRaw.len() * c
     val properSpeed = rel?.u?.len() ?: (speed * observer.gammaRaw)
@@ -70,6 +73,10 @@ fun formatReadouts(observer: ObserverState, rel: RelativisticComponent?, c: Floa
     out.append("|u| = γ|v| = "); appendFixed(out, properSpeed, 1).append(" u/s\n")
     out.append("ship-frame speed = "); appendFixed(out, observer.rapidity * c, 1).append(" u/s\n")
     out.append("c = "); appendFixed(out, c, 0).append("   a0 = "); appendFixed(out, a0, 0)
+    if (clock != null) {
+        out.append("\nwarp = ×"); appendFixed(out, clock.warp, 1)
+        if (clock.warpCapped || clock.stepsCapped) out.append(" (capped)")
+    }
 }
 
 /** Restores the const defaults for the tunables shown in the panel. */
@@ -81,6 +88,8 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     relativity.brakeBoost = BRAKE_BOOST_K
     relativity.fieldDamping = FIELD_DAMPING
     relativity.gammaMaxMassive = GAMMA_MAX_MASSIVE
+    relativity.timeWarpEnabled = TIME_WARP_ENABLED
+    relativity.timeWarpMax = TIME_WARP_MAX
     debug.timeScale = 1f
     debug.showVectors = false
     debug.gridEnabled = GRID_ENABLED
@@ -123,6 +132,7 @@ class DebugPanel(
 
         checkBox("relativity", { relativitySettings.relativityEnabled }) { relativitySettings.relativityEnabled = it }
         checkBox("boundary field", { relativitySettings.fieldEnabled }) { relativitySettings.fieldEnabled = it }
+        checkBox("time warp", { relativitySettings.timeWarpEnabled }) { relativitySettings.timeWarpEnabled = it }
         checkBox("grid", { debugSettings.gridEnabled }) { debugSettings.gridEnabled = it }
         checkBox("centre pointer", { debugSettings.centrePointerEnabled }) { debugSettings.centrePointerEnabled = it }
         checkBox("show vectors", { debugSettings.showVectors }) { debugSettings.showVectors = it }
@@ -151,6 +161,7 @@ class DebugPanel(
         slider("a0", 5f, 120f, 1f, 0, { relativitySettings.engineProperAccel }) { relativitySettings.engineProperAccel = it }
         slider("brake boost", 0f, 5f, 0.1f, 1, { relativitySettings.brakeBoost }) { relativitySettings.brakeBoost = it }
         slider("field damping", 0f, 5f, 0.1f, 1, { relativitySettings.fieldDamping }) { relativitySettings.fieldDamping = it }
+        slider("warp cap", 1f, 12f, 1f, 0, { relativitySettings.timeWarpMax }) { relativitySettings.timeWarpMax = it }
         slider("gamma cap", 2f, 50f, 1f, 0, { relativitySettings.gammaMaxMassive }) { relativitySettings.gammaMaxMassive = it }
 
         val select = SelectBox<String>(skin)
@@ -228,8 +239,8 @@ class DebugPanel(
     }
 
     /** Refreshes the readout label. Called at 10 Hz by DebugPanelSystem. */
-    fun update(observer: ObserverState, rel: RelativisticComponent?) {
-        formatReadouts(observer, rel, relativitySettings.c, relativitySettings.engineProperAccel, text)
+    fun update(observer: ObserverState, rel: RelativisticComponent?, clock: GameClock? = null) {
+        formatReadouts(observer, rel, relativitySettings.c, relativitySettings.engineProperAccel, text, clock)
         // The UI bitmap font has no Greek glyphs, so spell the letters out on screen.
         readouts.setText(text.toString().replace("\u03B2", "beta").replace("\u03B3", "gamma").replace("\u03C4", "tau"))
     }

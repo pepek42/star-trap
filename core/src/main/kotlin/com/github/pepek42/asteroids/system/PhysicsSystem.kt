@@ -10,6 +10,7 @@ import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.moveCmp
 import com.github.pepek42.asteroids.component.shipHandlingCmpOptional
 import com.github.pepek42.asteroids.math.shortestAngleDiffRad
+import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.transformCmp
@@ -23,6 +24,7 @@ class PhysicsSystem(
     private val world: World,
     engine: Engine,
     private val stepListeners: List<PhysicsStepListener> = emptyList(),
+    private val clock: GameClock? = null,
 ) : EntitySystem() {
     private val entities = engine.getEntitiesFor(allOf(BodyComponent::class, TransformComponent::class).get())
     private val rotatingEntities = engine.getEntitiesFor(allOf(MoveComponent::class, BodyComponent::class).get())
@@ -32,11 +34,13 @@ class PhysicsSystem(
         logger.info { "Init finished" }
     }
 
-    private val maxTimeToProcess = 5 * PHYSICS_UPDATE_INTERVAL
+    private val maxTimeToProcess = MAX_STEPS_PER_FRAME * PHYSICS_UPDATE_INTERVAL
 
     override fun update(deltaTime: Float) {
-        accumulator += min(maxTimeToProcess, deltaTime)
-        while (accumulator >= PHYSICS_UPDATE_INTERVAL) {
+        val dt = clock?.worldDt ?: deltaTime
+        accumulator += min(maxTimeToProcess, dt)
+        // The epsilon absorbs float rounding so N whole intervals of time always yield N steps.
+        while (accumulator >= PHYSICS_UPDATE_INTERVAL - STEP_EPSILON) {
             preProcess()
             val subDt = PHYSICS_UPDATE_INTERVAL / PHYSICS_SUBSTEPS
             repeat(PHYSICS_SUBSTEPS) {
@@ -47,6 +51,7 @@ class PhysicsSystem(
                 world.clearForces()
             }
             accumulator -= PHYSICS_UPDATE_INTERVAL
+            clock?.let { it.worldTime += PHYSICS_UPDATE_INTERVAL }
         }
 
         interpolateTransforms()
@@ -103,7 +108,8 @@ class PhysicsSystem(
     }
 
     private fun interpolateTransforms() {
-        val alpha = accumulator / PHYSICS_UPDATE_INTERVAL
+        val alpha = (accumulator / PHYSICS_UPDATE_INTERVAL).coerceAtLeast(0f)
+        clock?.interpolationAlpha = alpha
         for (entity in entities) {
             val body = entity.bodyCmp.body
             val transform = entity.transformCmp
@@ -120,6 +126,8 @@ class PhysicsSystem(
         private val logger = logger<PhysicsSystem>()
         const val PHYSICS_UPDATE_INTERVAL = 1f / 45
         const val PHYSICS_SUBSTEPS = 1
+        const val MAX_STEPS_PER_FRAME = 10
+        private const val STEP_EPSILON = 1e-6f
     }
 
 }

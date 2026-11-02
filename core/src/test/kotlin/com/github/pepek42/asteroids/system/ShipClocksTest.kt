@@ -26,6 +26,7 @@ import com.github.pepek42.asteroids.component.removeMapper
 import com.github.pepek42.asteroids.component.rotationTimeFactor
 import com.github.pepek42.asteroids.math.shortestAngleDiffRad
 import com.github.pepek42.asteroids.physics.GameClock
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import ktx.ashley.has
@@ -241,6 +242,27 @@ class ShipClocksTest {
         // A constant γ must not keep slowing the spin.
         physics.update(step + 1e-4f)
         assertEquals(1f, body.angularVelocity, 0.02f)
+    }
+
+    @Test
+    fun asteroidSpinIsRestoredWhenRelativityIsOff() {
+        val engine = Engine()
+        val dynamics = RelativisticDynamics(RelativitySettings(relativityEnabled = false))
+        engine.addSystem(dynamics)
+        val physics = PhysicsSystem(world, engine, listOf(dynamics))
+        val body = world.createBody(BodyDef().apply {
+            type = BodyDef.BodyType.DynamicBody
+            allowSleep = false
+        })
+        val shape = CircleShape().apply { radius = 0.5f }
+        body.createFixture(shape, 1f)
+        shape.dispose()
+        val rel = RelativisticComponent().apply { gUsed = 2f }
+        engine.addEntity(Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent()).add(rel))
+        body.angularVelocity = 1f
+        physics.update(step + 1e-4f)
+        assertEquals(2f, body.angularVelocity, 0.02f)
+        assertEquals(1f, rel.gUsed, 0f)
     }
 
     @Test

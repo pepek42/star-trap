@@ -1476,7 +1476,7 @@ Parked:
 - playtest: F1 shows the ship's mass, its velocity vector and the speed as a percentage of c.
 
 ### ST-105 ST-040 follow-ups: relativity-off spin restore test, null-target spin
-- status: ready
+- status: done (2026-11-02, SHA)
 - size: S
 - agent: junior-dev
 - depends: ST-040
@@ -1485,9 +1485,10 @@ Parked:
 - spec:
   - Add a test to `ShipClocksTest`: an asteroid-like entity (RelativisticComponent, no MoveComponent) with `gUsed = 2`, `angularVelocity = 1`, relativity disabled; after one step `angularVelocity ≈ 2 ± 0.02` and `gUsed == 1`.
   - Check whether the player's `MoveComponent.targetAngleRad` can be null after spawn. If it can, the player's spin is rescaled as free spin by `RelativisticDynamics.isRotationDriven`. In that case treat any entity with a `MoveComponent` as rotation-driven (no rescale) and add a test; otherwise just report that it can't happen.
+- result: Added a relativity-off spin-restore test. The player's targetAngleRad is always set by PlayerInputSystem before physics, so isRotationDriven is unchanged (revisit if a new ControlStrategy can leave it null).
 - acceptance:
-  - [ ] Test: relativity-off restores ω·gUsed and resets gUsed to 1
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: relativity-off restores ω·gUsed and resets gUsed to 1
+  - [x] `./gradlew core:test` passes
 
 ## M4 Relativistic view
 

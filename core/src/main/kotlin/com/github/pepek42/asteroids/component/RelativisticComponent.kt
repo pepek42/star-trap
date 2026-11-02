@@ -5,6 +5,7 @@ import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Pool
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
+import com.github.pepek42.asteroids.physics.GameClock
 import ktx.ashley.mapperFor
 import ktx.ashley.optionalPropertyFor
 import ktx.ashley.propertyFor
@@ -45,3 +46,29 @@ class RelativisticComponent : Component, Pool.Poolable {
 val relativisticMapper = mapperFor<RelativisticComponent>()
 val Entity.relativisticCmp by propertyFor(relativisticMapper)
 val Entity.relativisticCmpOptional by optionalPropertyFor(relativisticMapper)
+
+/**
+ * Time that passed on this entity's own clock during a frame of world time (ST-040, research E2).
+ *
+ * The player keeps the pilot's clock, so it gets the real frame time (exact while the warp is uncapped, FAKE past the
+ * cap: the pilot's clock never slows). Other relativistic bodies run on proper time `worldDt / γ`. Everything else
+ * runs on world time. Without a [clock] all three fall back to [frameDt].
+ */
+fun Entity.properDelta(clock: GameClock?, frameDt: Float): Float {
+    val realDt = clock?.realDt ?: frameDt
+    val worldDt = clock?.worldDt ?: frameDt
+    if (playerCmpOptional != null) return realDt
+    val rel = relativisticCmpOptional ?: return worldDt
+    return worldDt / rel.gUsed
+}
+
+/**
+ * Factor `f` by which the rotation controller's clock is slowed relative to world time: `1 / warp` for the player (a
+ * turn takes the same real time at any warp), `1 / γ` for other relativistic bodies, 1 otherwise or with no [clock].
+ */
+fun Entity.rotationTimeFactor(clock: GameClock?): Float {
+    if (clock == null) return 1f
+    if (playerCmpOptional != null) return 1f / clock.warp
+    val rel = relativisticCmpOptional ?: return 1f
+    return 1f / rel.gUsed
+}

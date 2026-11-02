@@ -9,6 +9,7 @@ import com.badlogic.gdx.utils.Array
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.bodyCmp
+import com.github.pepek42.asteroids.component.moveMapper
 import com.github.pepek42.asteroids.component.relativisticCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.physics.COLLISION_EPS
@@ -53,6 +54,9 @@ class RelativisticDynamics(
             val entity = entities[i]
             val rel = entity.relativisticCmp
             if (!settings.relativityEnabled) {
+                // Undo the spin dilation, afterStep resets gUsed to 1.
+                if (!isRotationDriven(entity)) entity.bodyCmp.body.angularVelocity *= rel.gUsed
+                rel.gUsed = 1f
                 rel.accel.setZero()
                 continue
             }
@@ -67,9 +71,17 @@ class RelativisticDynamics(
             velocityFromU(rel.u.x, rel.u.y, c, velocity)
             entity.bodyCmp.body.setLinearVelocity(velocity)
             rel.vSet.set(velocity)
+            // Free spin (asteroids) runs on proper time: rescale by the change of 1/γ, which survives collisions.
+            if (!isRotationDriven(entity)) {
+                val body = entity.bodyCmp.body
+                body.angularVelocity = body.angularVelocity * rel.gUsed / gamma
+            }
             rel.gUsed = gamma
         }
     }
+
+    /** True when the PD controller owns this body's rotation (non-null `targetAngleRad`). */
+    private fun isRotationDriven(entity: Entity) = moveMapper.get(entity)?.targetAngleRad != null
 
     override fun afterStep(dt: Float) {
         val c = settings.c

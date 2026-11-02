@@ -103,7 +103,7 @@ class PlayScreen(
             addSystem(EndLevelSystem(game))
             addSystem(PlayerInputSystem(gameEventManager, camera, game.get<ControlSettings>()))
             addSystem(moveSystem)
-            addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world, settings)))
+            addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world, settings), clock))
             addSystem(ContactSystem(world))
             addSystem(boundaryFieldSystem)
             addSystem(projectileSweepSystem)

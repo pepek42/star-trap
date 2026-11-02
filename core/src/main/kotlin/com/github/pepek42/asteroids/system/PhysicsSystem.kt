@@ -8,6 +8,7 @@ import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.moveCmp
+import com.github.pepek42.asteroids.component.rotationTimeFactor
 import com.github.pepek42.asteroids.component.shipHandlingCmpOptional
 import com.github.pepek42.asteroids.math.shortestAngleDiffRad
 import com.github.pepek42.asteroids.physics.GameClock
@@ -63,23 +64,21 @@ class PhysicsSystem(
             val body = entity.bodyCmp.body
             val error = shortestAngleDiffRad(body.angle, targetAngle)
             val handling = entity.shipHandlingCmpOptional
-            val impulse = if (handling == null) {
-                ShipRotationController.computeAngularImpulse(
-                    error = error,
-                    angularVelocity = body.angularVelocity,
-                    inertia = body.inertia,
-                )
-            } else {
-                ShipRotationController.computeAngularImpulse(
-                    error = error,
-                    angularVelocity = body.angularVelocity,
-                    inertia = body.inertia,
-                    kp = handling.rotationKp,
-                    kd = handling.rotationKd,
-                    maxAngularAcceleration = handling.maxAngularAcceleration,
-                    maxAngularVelocity = handling.maxAngularVelocity,
-                )
-            }
+            // PD controller on a clock slowed by f: gains scale with f^2 (kp, max accel) and f (kd, max speed).
+            val f = entity.rotationTimeFactor(clock)
+            val kp = handling?.rotationKp ?: ShipRotationController.ROTATION_KP
+            val kd = handling?.rotationKd ?: ShipRotationController.ROTATION_KD
+            val maxAccel = handling?.maxAngularAcceleration ?: ShipRotationController.MAX_ANGULAR_ACCELERATION
+            val maxSpeed = handling?.maxAngularVelocity ?: ShipRotationController.MAX_ANGULAR_VELOCITY
+            val impulse = ShipRotationController.computeAngularImpulse(
+                error = error,
+                angularVelocity = body.angularVelocity,
+                inertia = body.inertia,
+                kp = kp * f * f,
+                kd = kd * f,
+                maxAngularAcceleration = maxAccel * f * f,
+                maxAngularVelocity = maxSpeed * f,
+            )
             body.applyAngularImpulse(impulse, true)
         }
     }

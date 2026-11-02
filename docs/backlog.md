@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-105**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-106**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -19,6 +19,7 @@ M3 Relativity MVP:
 5. ST-069 Pilot clock wiring
 5a. ST-102 Physics catch-up cap: 10 steps only under warp
 6. ST-040 Ship clocks under the pilot clock
+6a. ST-105 ST-040 follow-ups: spin restore test, null-target spin
 7. ST-070 LightHistory ring buffer and retarded-time solver
 8. ST-071 LightHistorySystem
 9. ST-072 PilotFrame transforms
@@ -1027,7 +1028,7 @@ Parked:
 - playtest: At speed the asteroids and the world visibly speed up while the ship handles as usual. Past γ = 10 the debug panel shows "(capped)". With "time warp" off the game plays as before.
 
 ### ST-040 Ship clocks under the pilot clock: player on real time, others on proper time
-- status: ready
+- status: done (2026-11-02, SHA)
 - size: M
 - agent: kotlin-dev
 - depends: ST-024, ST-037, ST-069
@@ -1042,12 +1043,13 @@ Parked:
   - `PlayScreen` passes the `GameClock` to `WeaponSystem` and `LifetimeSystem`.
   - No `COOLDOWN_DILATION_EXPONENT` / `ROTATION_DILATION_EXPONENT` constants: the old ST-031 options are gone.
 - acceptance:
-  - [ ] Test: the player's weapon fires the same number of shots over 3 s of real time at warp 4 as at warp 1 (±1 shot)
-  - [ ] Test: a non-player weapon entity with `gUsed = 2` fires half as often per second of world time as at `gUsed = 1` (±1 shot)
-  - [ ] Test: a non-player PROPER lifetime of 1.2 at `gUsed = 3.2` lasts 3.84 s ± 1 step of world time
-  - [ ] Test: a player 90° turn with the clock at warp 4 takes 4× ± 15 % as much world time as at warp 1 (so the same real time), with overshoot still < 5°
-  - [ ] Test: an asteroid spinning at 2 rad/s whose `u` is set to γ = 2 spins at 1 ± 0.02 rad/s after one step
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: the player's weapon fires the same number of shots over 3 s of real time at warp 4 as at warp 1 (±1 shot)
+  - [x] Test: a non-player weapon entity with `gUsed = 2` fires half as often per second of world time as at `gUsed = 1` (±1 shot)
+  - [x] Test: a non-player PROPER lifetime of 1.2 at `gUsed = 3.2` lasts 3.84 s ± 1 step of world time
+  - [x] Test: a player 90° turn with the clock at warp 4 takes 4× ± 15 % as much world time as at warp 1 (so the same real time), with overshoot still < 5°
+  - [x] Test: an asteroid spinning at 2 rad/s whose `u` is set to γ = 2 spins at 1 ± 0.02 rad/s after one step
+  - [x] `./gradlew core:test` passes
+- result: Player cooldown and turning run on real time (turn PD slowed by 1/warp), other ships on worldDt/γ, and free spin scales as ω₀/γ.
 - playtest: Near c the world rushes past (warp) but the fire rate and turning feel the same as at rest. Asteroids spin slower when they move fast.
 
 ### ST-042 HUD shows β, γ, ship and world time and the time warp; speed zoom
@@ -1472,6 +1474,20 @@ Parked:
   - [x] `./gradlew core:test` passes
 - result: The debug panel shows `|v|` with a percentage of c, the velocity vector, and the rest and relativistic mass (from the player body).
 - playtest: F1 shows the ship's mass, its velocity vector and the speed as a percentage of c.
+
+### ST-105 ST-040 follow-ups: relativity-off spin restore test, null-target spin
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-040
+- files: `system/ShipClocksTest.kt`, `system/RelativisticDynamics.kt` (only if the check below fails)
+- goal: Minor issues from the ST-040 review.
+- spec:
+  - Add a test to `ShipClocksTest`: an asteroid-like entity (RelativisticComponent, no MoveComponent) with `gUsed = 2`, `angularVelocity = 1`, relativity disabled; after one step `angularVelocity ≈ 2 ± 0.02` and `gUsed == 1`.
+  - Check whether the player's `MoveComponent.targetAngleRad` can be null after spawn. If it can, the player's spin is rescaled as free spin by `RelativisticDynamics.isRotationDriven`. In that case treat any entity with a `MoveComponent` as rotation-driven (no rescale) and add a test; otherwise just report that it can't happen.
+- acceptance:
+  - [ ] Test: relativity-off restores ω·gUsed and resets gUsed to 1
+  - [ ] `./gradlew core:test` passes
 
 ## M4 Relativistic view
 

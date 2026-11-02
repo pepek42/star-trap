@@ -25,6 +25,10 @@ Tags: **FAKE** is a deliberate departure. **APPROX** is a simplification that is
 | 8 | γ·m used for collisions is capped at 8 | FAKE | Keeps Box2D stable and collisions readable | ST-047 | — |
 | 9 | Projectiles have a lifetime and are removed off-arena | FAKE | Performance | ST-024, ST-067 | — |
 | 10 | Targeting trance: holding LMB slows time, and the ship turns instantly | FAKE | Optional control mode (parked) | ST-091 | Physically, speed makes the world age *faster* for the pilot |
+| 27 | The player's gun cooldown runs on real time, so it never dilates, even past the warp cap when the arena can't keep pace with γ | FAKE | The pilot's clock never slows; fire rate feels constant | ST-040 (`properDelta`) | Run it on `worldDt/γ` (differs only past the cap) |
+| 28 | The player's turn controller is slowed by 1/warp, not 1/γ, so past the warp cap turning is slower in real time | FAKE | Physics stays in the arena frame; the warp is what the arena actually runs at | ST-040 (`rotationTimeFactor`) | Raise the warp cap |
+| 29 | Free spin is ω₀/γ, applied as a per-step rescale of the angular velocity; Box2D angular damping still acts in world time | APPROX | Exact for constant γ and survives collisions | ST-040 (`RelativisticDynamics`) | — |
+| 30 | A slowed-clock PD controller is stepped at the world step (kd·f applied once per world step) | APPROX | Turn timing is within 15 % and overshoot under 5° in tests | ST-040 (`PhysicsSystem.applyRotation`) | Substep the controller in proper time |
 
 ## Arena boundary field
 

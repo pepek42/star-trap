@@ -12,11 +12,21 @@ import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingU
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
 import com.github.pepek42.asteroids.physics.FIELD_SKIN
+import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.provider.MapProvider
 import ktx.ashley.allOf
 import ktx.log.logger
 
 private const val ZOOM_SPEED = 10
+private const val ZOOM_MIN = 0.5f
+private const val ZOOM_MAX = 2f
+
+/** Extra zoom-out at beta = 1: zoom is multiplied by (1 + k * beta^2). */
+const val CAMERA_ZOOM_PER_BETA2 = 0.6f
+
+/** Camera zoom from the wheel zoom and the visual speed [beta] (fraction of c). */
+fun speedZoom(wheelZoom: Float, beta: Float, k: Float = CAMERA_ZOOM_PER_BETA2): Float =
+    (wheelZoom * (1f + k * beta * beta)).coerceIn(ZOOM_MIN, ZOOM_MAX)
 private const val CAMERA_ARENA_MARGIN = FIELD_SKIN / 2
 
 /**
@@ -33,10 +43,12 @@ class CameraSystem(
     private val camera: OrthographicCamera,
     private val gameEventManager: GameEventManager,
     private val mapProvider: MapProvider,
+    private val observer: ObserverState,
 ) : IteratingSystem(allOf(PlayerComponent::class, TransformComponent::class).get()),
     PlayerInputListener {
 
     private var zoomDelta = 0f
+    private var wheelZoom = camera.zoom
 
     init {
         logger.info { "Init finished" }
@@ -70,7 +82,8 @@ class CameraSystem(
     }
 
     private fun handleCameraZoom(deltaTime: Float) {
-        camera.zoom = MathUtils.clamp(camera.zoom + zoomDelta * deltaTime * ZOOM_SPEED, 0.5f, 2f)
+        wheelZoom = MathUtils.clamp(wheelZoom + zoomDelta * deltaTime * ZOOM_SPEED, ZOOM_MIN, ZOOM_MAX)
+        camera.zoom = speedZoom(wheelZoom, observer.betaVisual.len())
         zoomDelta = 0f
     }
 

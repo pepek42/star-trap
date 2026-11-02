@@ -116,7 +116,7 @@ class PlayScreen(
                 )
             )
             addSystem(ObserverSystem(observerState, settings, clock))
-            addSystem(CameraSystem(camera, gameEventManager, mapProvider))
+            addSystem(CameraSystem(camera, gameEventManager, mapProvider, observerState))
             addSystem(
                 RenderSystem(
                     game, spriteBatch, viewport,
@@ -128,7 +128,7 @@ class PlayScreen(
                 engine.addSystem(DebugSystem(world, engine, camera))
             }
             addSystem(DebugPanelSystem(debugPanel, observerState, clock))
-            addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer))
+            addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock))
             addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider))
             addSystem(LifetimeSystem(clock))
             addSystem(DeathSystem(engine, asteroidProvider, game.get<RandomXS128>()))

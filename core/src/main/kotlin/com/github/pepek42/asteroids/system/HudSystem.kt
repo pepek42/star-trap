@@ -23,6 +23,8 @@ import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.transformCmp
+import com.github.pepek42.asteroids.physics.GameClock
+import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.ui.Hud
 import ktx.ashley.allOf
 
@@ -32,6 +34,8 @@ class HudSystem(
     private val viewport: Viewport,
     private val debugSettings: DebugSettings,
     private val pointerRenderer: ReferenceGridRenderer,
+    private val observer: ObserverState,
+    private val clock: GameClock,
 ) : IteratingSystem(allOf(PlayerComponent::class, TransformComponent::class, BodyComponent::class).get()) {
 
     private val targetFamily = allOf(BaseInfoComponent::class, TransformComponent::class).get()
@@ -57,6 +61,10 @@ class HudSystem(
         playerPos.set(transformCmp.interpolatedPosition)
         hud.updatePosition(transformCmp.interpolatedPosition)
         hud.updateVelocity(body.linearVelocity)
+        hud.updateRelativity(
+            observer.betaRaw.len(), observer.gammaRaw, observer.rapidity, observer.tau, observer.worldTime,
+            clock.warp, clock.warpCapped || clock.stepsCapped,
+        )
     }
 
     private fun updateTargetPointers() {

@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-109**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-110**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -11,6 +11,10 @@ Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` car
 M3 Relativity MVP:
 0a. ST-103 Edge pointers to off-screen asteroids/enemies (owner 2026-11-02, replaces centre pointer)
 0b. ST-104 Debug panel: ship mass, velocity vector, % of c (owner 2026-11-02)
+0c. ST-042 HUD: β, γ, ship/world time, warp; speed zoom (owner 2026-11-02: c debug info first)
+0d. ST-060 Debug vector overlay
+0e. ST-065 Debug panel polish
+0f. ST-109 UI font: Greek and Polish glyphs
 1. ST-066 Braking boost
 2. ST-067 Shots leave the arena; ripple where they cross
 3. ST-039 Photon lasers: muzzle aberration
@@ -43,11 +47,8 @@ M3 Relativity MVP:
 21. ST-048 Impact damage from relativistic kinetic energy
 21a. ST-084 Player death ends the run (moved up from M5, needed by ST-101)
 21b. ST-101 Balance pass: headless sim games, pick c, tune physics
-22. ST-042 HUD: β, γ, ship/world time, warp; speed zoom
-23. ST-060 Debug vector overlay
 24. ST-061 Twin-stick control scheme
 25. ST-064 RelativitySettings follow-ups
-26. ST-065 Debug panel polish
 29. ST-049 Bring docs in line after M3
 
 M4 Relativistic view:
@@ -913,7 +914,7 @@ Parked:
 - result: BoundaryFieldSystem skips projectiles (no kick/backstop) and emits one exit ripple; bouncesLeft/PHOTON_MAX_BOUNCES removed; 164 tests pass.
 
 ### ST-060 Debug vector overlay: v, u and acceleration arrows
-- status: ready
+- status: in-progress
 - size: S
 - agent: kotlin-dev
 - depends: ST-056, ST-057
@@ -1056,7 +1057,7 @@ Parked:
 - playtest: Near c the world rushes past (warp) but the fire rate and turning feel the same as at rest. Asteroids spin slower when they move fast.
 
 ### ST-042 HUD shows β, γ, ship and world time and the time warp; speed zoom
-- status: ready
+- status: done (2026-11-02, 3501b8a)
 - size: S
 - agent: kotlin-dev
 - depends: ST-041, ST-069
@@ -1067,9 +1068,10 @@ Parked:
   - `CameraSystem`: keep a `wheelZoom` field (the old `camera.zoom` logic, clamped 0.5–2). Add top-level `fun speedZoom(wheelZoom: Float, beta: Float, k: Float = CAMERA_ZOOM_PER_BETA2): Float = (wheelZoom·(1 + k·beta²)).coerceIn(0.5f, 2f)` with `CAMERA_ZOOM_PER_BETA2 = 0.6f`. Set `camera.zoom = speedZoom(wheelZoom, observer.betaVisual.len())`. `CameraSystem` takes the `ObserverState`.
   - Put the label choice in a pure top-level `fun warpLabelKey(warp: Float, capped: Boolean): String?` (null = hidden).
 - acceptance:
-  - [ ] Tests: `speedZoom(1f, 0f) == 1f`; `speedZoom(1f, 0.9f) ≈ 1.486`; `speedZoom(2f, 0.9f) == 2f`. `warpLabelKey(1f, false) == null`, `(4f, false) == "hud_warp"`, `(10f, true) == "hud_warp_capped"`, `(1f, true) == "hud_warp_capped"`
-  - [ ] The i18n keys exist in both properties files
-  - [ ] `./gradlew core:test` passes
+  - [x] Tests: `speedZoom(1f, 0f) == 1f`; `speedZoom(1f, 0.9f) ≈ 1.486`; `speedZoom(2f, 0.9f) == 2f`. `warpLabelKey(1f, false) == null`, `(4f, false) == "hud_warp"`, `(10f, true) == "hud_warp_capped"`, `(1f, true) == "hud_warp_capped"`
+  - [x] The i18n keys exist in both properties files
+  - [x] `./gradlew core:test` passes
+- result: HUD shows a rapidity bar, beta, gamma, ship/world time and the warp factor (ASCII names, the font has no Greek); the camera zooms out with beta.
 - playtest: The β bar fills fast at first, then slowly near c. World time races ahead of ship time at speed, and the warp label shows the factor, marked capped above 10×. The view widens smoothly as you speed up.
 
 ### ST-043 Doppler colour and mild searchlight on the starfield
@@ -1368,6 +1370,21 @@ Parked:
   - (ST-059 review, approved, minors) Swap the Greek letters for ASCII inside the reused StringBuilder instead of chaining `String.replace` calls. Pace the 10 Hz refresh in `DebugPanelSystem` on real time (`Gdx.graphics.rawDeltaTime`), not the scaled delta. Call `select.hideList()` in `hide()` and `toggleDebugPanel()`. Make the toggle-flip logic testable without GL and add the `panelVisible` test.
 - acceptance:
   - [ ] A screenshot with `--debug-panel` shows every widget unobstructed
+  - [ ] `./gradlew core:test` passes
+
+### ST-109 UI font: Greek and Polish glyphs; fix '?' in messages_pl
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-042
+- files: `assets/ui/font.fnt` (+ page png), `assets/i18n/messages_pl.properties`, `ui/Hud.kt`, `ui/DebugPanel.kt`
+- goal: ST-042 follow-up. `assets/ui/font.fnt` lacks Greek and Polish glyphs, so the HUD and debug panel write "beta"/"gamma", and `messages_pl.properties` already has literal `?` where Polish letters belong.
+- spec:
+  - Regenerate the UI bitmap font with Latin Extended-A (Polish), Greek (β γ τ) and `×·` included, at the same size/style.
+  - Replace the `?` corruption in `messages_pl.properties` with the right Polish letters (as `\uXXXX` escapes if the file is read as ISO-8859-1).
+  - Switch `hud_beta`/`hud_gamma` back to β/γ and drop the ASCII swap in `DebugPanel.update` (see ST-065).
+- acceptance:
+  - [ ] Screenshot with `--debug-panel` in Polish shows β, γ and Polish diacritics correctly
   - [ ] `./gradlew core:test` passes
 
 ### ST-049 Bring docs in line after M3

@@ -1454,7 +1454,7 @@ Parked:
 - playtest: Arrows at the screen edge point at the nearest asteroids out of view. The nearest arrow shows its distance, and far ones are fainter. There is no arrow to the map centre any more.
 
 ### ST-104 Debug panel: ship mass, velocity vector, % of c
-- status: done (2026-11-02, SHA104)
+- status: done (2026-11-02, 011e884)
 - size: S
 - agent: junior-dev
 - depends: —

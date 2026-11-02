@@ -96,9 +96,9 @@ class Hud(
         )
     }
 
-    /** Distance label next to the arena-centre arrow. [screenX], [screenY] are window pixels with y pointing down. */
-    fun showCentrePointer(screenX: Float, screenY: Float, distance: Float) {
-        pointerLabel.setText(i18NBundle.format("hud_centre_distance", distance.roundToInt()))
+    /** Distance label next to the nearest target arrow. [screenX], [screenY] are window pixels with y pointing down. */
+    fun showPointerDistance(screenX: Float, screenY: Float, distance: Float) {
+        pointerLabel.setText(i18NBundle.format("hud_target_distance", distance.roundToInt()))
         pointerLabel.pack()
         val p = stage.screenToStageCoordinates(pointerPos.set(screenX, screenY))
         val w = stage.viewport.worldWidth
@@ -111,7 +111,7 @@ class Hud(
         pointerLabel.isVisible = true
     }
 
-    fun hideCentrePointer() {
+    fun hidePointerDistance() {
         pointerLabel.isVisible = false
     }
 

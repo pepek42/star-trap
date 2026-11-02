@@ -1,6 +1,6 @@
 package com.github.pepek42.asteroids.debug
 
-import com.github.pepek42.asteroids.render.CENTRE_POINTER_ENABLED
+import com.github.pepek42.asteroids.render.TARGET_POINTERS_ENABLED
 import com.github.pepek42.asteroids.render.GRID_ENABLED
 
 /** Time-scale steps cycled by the debug panel. */
@@ -13,5 +13,5 @@ class DebugSettings(
     var timeScale: Float = 1f,
     var showVectors: Boolean = false,
     var gridEnabled: Boolean = GRID_ENABLED,
-    var centrePointerEnabled: Boolean = CENTRE_POINTER_ENABLED,
+    var targetPointersEnabled: Boolean = TARGET_POINTERS_ENABLED,
 )

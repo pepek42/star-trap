@@ -11,7 +11,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 const val GRID_ENABLED = true
-const val CENTRE_POINTER_ENABLED = true
+const val TARGET_POINTERS_ENABLED = true
 
 /** Distance between grid lines in world units. */
 const val GRID_STEP = 20f
@@ -76,13 +76,13 @@ class ReferenceGridRenderer : Disposable {
         shapes.end()
     }
 
-    /** Small arrow at [at] pointing along [angleRad]; size in world units. */
-    fun renderArrow(camera: Camera, at: Vector2, angleRad: Float, size: Float) {
+    /** Small arrow at [at] pointing along [angleRad]; size in world units, colour r,g,b,a. */
+    fun renderArrow(camera: Camera, at: Vector2, angleRad: Float, size: Float, r: Float, g: Float, b: Float, a: Float) {
         Gdx.gl.glEnable(GL20.GL_BLEND)
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         shapes.projectionMatrix = camera.combined
         shapes.begin(ShapeRenderer.ShapeType.Filled)
-        shapes.setColor(1f, 1f, 1f, POINTER_ALPHA)
+        shapes.setColor(r, g, b, a)
         val c = kotlin.math.cos(angleRad)
         val s = kotlin.math.sin(angleRad)
         // Tip forward, two back corners.
@@ -95,8 +95,4 @@ class ReferenceGridRenderer : Disposable {
     }
 
     override fun dispose() = shapes.dispose()
-
-    companion object {
-        private const val POINTER_ALPHA = 0.7f
-    }
 }

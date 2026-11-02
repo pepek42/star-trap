@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-103**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-105**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -9,6 +9,8 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 M3 Relativity MVP:
+0a. ST-103 Edge pointers to off-screen asteroids/enemies (owner 2026-11-02, replaces centre pointer)
+0b. ST-104 Debug panel: ship mass, velocity vector, % of c (owner 2026-11-02)
 1. ST-066 Braking boost
 2. ST-067 Shots leave the arena; ripple where they cross
 3. ST-039 Photon lasers: muzzle aberration
@@ -1429,6 +1431,45 @@ Parked:
 - acceptance:
   - [ ] Test: warp 1, `engine.update(0.5f)` → at most 5 steps (`worldTime ≤ 5/45 + 1e-5`); warp 4, `engine.update(0.5f)` → 10 steps
   - [ ] `./gradlew core:test` passes
+
+### ST-103 Edge pointers to off-screen asteroids and enemies (replaces the centre pointer)
+- status: done (2026-11-02, SHA103)
+- size: M
+- agent: kotlin-dev
+- depends: ST-100
+- files: `system/HudSystem.kt`, `ui/Hud.kt`, `render/EdgePointer.kt` (reuse), `render/ReferenceGridRenderer.kt` (toggle const), `debug/DebugSettings.kt`, `ui/DebugPanel.kt`, create a pure selection helper (e.g. `render/TargetPointers.kt`) and its test, `ui/DebugPanelTest.kt`
+- goal: Owner (2026-11-02): "Pointer to map middle makes little sense. Make pointer to enemies/neutrals." The grid axes already mark the centre, so the arrows should lead the player to things to shoot.
+- spec:
+  - Remove the arena-centre arrow and its distance label. Rename the toggle to `TARGET_POINTERS_ENABLED` / `DebugSettings.targetPointersEnabled` (default true, restored by `resetDebugDefaults`, with a checkbox labelled "target pointers").
+  - Targets: entities with `BaseInfoComponent.faction` NEUTRAL or ENEMY and `type != PROJECTILE`, not tagged with `RemoveComponent`. Use their interpolated transform position.
+  - Pure helper `selectPointerTargets(camX, camY, halfW, halfH, candidates, maxCount, out)`: keep only the off-screen candidates, sort them by distance from the camera centre, and keep the nearest `MAX_TARGET_POINTERS = 6`. Don't allocate per frame (reuse arrays and pools).
+  - For each selected target, `edgePointer(...)` gives the arrow's position and angle. Draw a small filled arrow in the same ShapeRenderer pass as today. Colour: neutral = light grey, enemy = red. Alpha fades with distance, from 0.9 at the screen edge to 0.3 at `POINTER_FADE_DIST = 120f` u and beyond.
+  - Show a distance label (u, measured from the player) on the **nearest** arrow only. Reuse the existing label and its placement code (the letterbox-correct projection from ST-100), and change the i18n key name if needed in both properties files.
+  - Hide everything while the HUD is hidden (keep the ST-100 behaviour).
+- acceptance:
+  - [x] Test: with 10 off-screen and 2 on-screen candidates, the helper returns the 6 nearest off-screen ones, ordered nearest first; on-screen ones are never returned; with no candidates it returns 0
+  - [x] Test: `resetDebugDefaults` restores `targetPointersEnabled`
+  - [x] `./gradlew core:test` passes
+- result: The centre arrow is replaced by up to 6 edge arrows (grey for neutral, red for enemy, fading with distance) to the nearest off-screen targets, with a distance label on the nearest one. The toggle is `targetPointersEnabled`.
+- playtest: Arrows at the screen edge point at the nearest asteroids out of view. The nearest arrow shows its distance, and far ones are fainter. There is no arrow to the map centre any more.
+
+### ST-104 Debug panel: ship mass, velocity vector, % of c
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `ui/DebugPanel.kt` (`formatReadouts`), `system/DebugPanelSystem.kt`, `ui/DebugPanelTest.kt`
+- goal: Owner (2026-11-02): "Add debug about ship mass, total velocity, % of light speed."
+- spec:
+  - `formatReadouts` gets a new last param `mass: Float = Float.NaN` (the player's Box2D `body.mass`, i.e. rest mass). `DebugPanelSystem` passes the player's body mass.
+  - Change the `|v|` line to `|v| = 45.0 u/s (75.0 % c)`, with the percentage being `β·100`, 1 dp.
+  - Add a line `v = (vx, vy) u/s` (1 dp each), with the components taken from `observer.betaRaw·c`.
+  - When `mass` is finite, add a line `m = 12.3   γm = 45.6`, both 1 dp (rest mass and relativistic mass `γ·m`). When it isn't finite, leave the line out.
+  - Keep the existing lines and their order otherwise. Insert the new lines right after the `|v|` line.
+- acceptance:
+  - [ ] Test: β = 0.75 with c = 60 gives a line containing `|v| = 45.0 u/s (75.0 % c)`; `mass = 2f` with γ = 1.5 gives `m = 2.0   γm = 3.0`; the default mass has no `m =` line
+  - [ ] `./gradlew core:test` passes
+- playtest: F1 shows the ship's mass, its velocity vector and the speed as a percentage of c.
 
 ## M4 Relativistic view
 

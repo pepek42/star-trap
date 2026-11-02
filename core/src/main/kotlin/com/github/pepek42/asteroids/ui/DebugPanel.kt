@@ -29,7 +29,7 @@ import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.TIME_WARP_ENABLED
 import com.github.pepek42.asteroids.physics.TIME_WARP_MAX
 import com.github.pepek42.asteroids.physics.RELATIVITY_ENABLED
-import com.github.pepek42.asteroids.render.CENTRE_POINTER_ENABLED
+import com.github.pepek42.asteroids.render.TARGET_POINTERS_ENABLED
 import com.github.pepek42.asteroids.render.GRID_ENABLED
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
@@ -93,7 +93,7 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     debug.timeScale = 1f
     debug.showVectors = false
     debug.gridEnabled = GRID_ENABLED
-    debug.centrePointerEnabled = CENTRE_POINTER_ENABLED
+    debug.targetPointersEnabled = TARGET_POINTERS_ENABLED
 }
 
 /** Right-docked relativity debug panel, toggled with F1 (ST-059). */
@@ -134,7 +134,7 @@ class DebugPanel(
         checkBox("boundary field", { relativitySettings.fieldEnabled }) { relativitySettings.fieldEnabled = it }
         checkBox("time warp", { relativitySettings.timeWarpEnabled }) { relativitySettings.timeWarpEnabled = it }
         checkBox("grid", { debugSettings.gridEnabled }) { debugSettings.gridEnabled = it }
-        checkBox("centre pointer", { debugSettings.centrePointerEnabled }) { debugSettings.centrePointerEnabled = it }
+        checkBox("target pointers", { debugSettings.targetPointersEnabled }) { debugSettings.targetPointersEnabled = it }
         checkBox("show vectors", { debugSettings.showVectors }) { debugSettings.showVectors = it }
 
         val initialScale = debugSettings.timeScale

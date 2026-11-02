@@ -60,7 +60,10 @@ class LightHistory(val capacity: Int = LIGHT_HISTORY_CAPACITY) {
 
     var eternal = false
 
-    /** Appends a sample, overwriting the oldest when full. [t] must exceed the previous sample's time. */
+    /**
+     * Appends a sample, overwriting the oldest when full. [t] must exceed the previous sample's time.
+     * Callers should pass time relative to level start: [t] is stored as Float, which loses resolution over long absolute times.
+     */
     fun record(t: Float, x: Float, y: Float, angle: Float, vx: Float, vy: Float) {
         val h = head
         this.t[h] = t
@@ -169,6 +172,16 @@ private fun LightHistory.extrapolate(slot: Int, ox: Float, oy: Float, now: Float
 /** Solves inside the segment [lo, hi] (h(lo) <= 0 < h(hi)) with constant velocity and lerps the output. */
 private fun LightHistory.interpolate(lo: Int, hi: Int, ox: Float, oy: Float, now: Float, c: Float, out: RetardedState) {
     val dt = (t[hi] - t[lo]).toDouble()
+    if (dt <= 0.0) {
+        // Equal sample times leave no segment to solve (would divide by zero); report the newer sample.
+        out.t = t[hi]
+        out.x = x[hi]
+        out.y = y[hi]
+        out.angle = angle[hi]
+        out.vx = vx[hi]
+        out.vy = vy[hi]
+        return
+    }
     val vxs = (x[hi] - x[lo]) / dt
     val vys = (y[hi] - y[lo]) / dt
     val r1x = (x[hi] - ox).toDouble()

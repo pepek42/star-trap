@@ -1540,7 +1540,7 @@ Parked:
 - playtest: Moving the c slider in the debug panel keeps the ship's acceleration feel; warp 12 is reachable.
 
 ### ST-108 ST-070 follow-ups: LightHistory zero-dt guard, level-relative sample time
-- status: ready
+- status: done (2026-11-02, ad7888d)
 - size: S
 - agent: junior-dev
 - depends: ST-070
@@ -1550,8 +1550,9 @@ Parked:
   - In `retarded` (the segment solve and the extrapolation paths, around LightHistory.kt:171 and :193): if a segment has `dt <= 0`, use `s = 0` (or take the later sample) instead of dividing by zero. `record` keeps documenting strictly increasing `t`, but the solver must never return NaN.
   - KDoc on `record`: callers pass time relative to level start (Float resolution). ST-071 must follow this. No storage change.
 - acceptance:
-  - [ ] Test: two samples with equal `t` → `retarded` returns finite values (no NaN)
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: two samples with equal `t` → `retarded` returns finite values (no NaN)
+  - [x] `./gradlew core:test` passes
+- result: A zero-length segment now returns the later sample instead of NaN, and the record KDoc requires level-relative time.
 - playtest: none (no visible change).
 
 ## M4 Relativistic view

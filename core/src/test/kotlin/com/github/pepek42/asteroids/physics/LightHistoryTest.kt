@@ -174,6 +174,18 @@ class LightHistoryTest {
     }
 
     @Test
+    fun equalSampleTimesGiveFiniteResultInsteadOfNaN() {
+        // record() does not reject equal t, so two samples at t = 0 form a zero-dt segment that straddles the light cone.
+        val h = LightHistory()
+        h.record(0f, 0.5f * c, 0f, 0f, 0f, 0f) // inside the light cone of `now`
+        h.record(0f, 1.5f * c, 0f, 0.2f, 0f, 0f) // outside it
+        assertTrue(h.retarded(0f, 0f, 1f, c, out))
+        assertTrue(out.t.isFinite() && out.x.isFinite() && out.y.isFinite() && out.angle.isFinite())
+        assertEquals(1.5f * c, out.x, 1e-4f) // falls back to the newer sample
+        assertEquals(0.2f, out.angle, 1e-4f)
+    }
+
+    @Test
     fun clearResetsTheBuffer() {
         val h = LightHistory(4)
         fill(h, 10) { floatArrayOf(1f, 0f, 0f, 0f, 0f) }

@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.ui
 
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.debug.DebugSettings
+import com.github.pepek42.asteroids.physics.BRAKE_BOOST_K
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
@@ -47,5 +48,12 @@ class DebugPanelTest {
         assertEquals(SPEED_OF_LIGHT, rel.c)
         assertEquals(1f, debug.timeScale)
         assertTrue(rel.fieldEnabled)
+    }
+
+    @Test
+    fun resetRestoresBrakeBoost() {
+        val rel = RelativitySettings(brakeBoost = 0f)
+        resetDebugDefaults(rel, DebugSettings(panelAllowed = true, panelVisible = true, timeScale = 1f, showVectors = false))
+        assertEquals(BRAKE_BOOST_K, rel.brakeBoost)
     }
 }

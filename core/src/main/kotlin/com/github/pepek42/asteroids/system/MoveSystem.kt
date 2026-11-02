@@ -14,6 +14,7 @@ import com.github.pepek42.asteroids.component.moveCmp
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.physics.REVERSE_THRUST_FRACTION
+import com.github.pepek42.asteroids.physics.brakeBoostFactor
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaFromU
 import com.github.pepek42.asteroids.physics.thrustAccelWorld
@@ -22,6 +23,7 @@ import ktx.ashley.allOf
 import ktx.math.times
 import ktx.math.vec2
 import kotlin.math.cos
+import kotlin.math.sign
 import kotlin.math.sin
 
 class MoveSystem(
@@ -63,8 +65,10 @@ class MoveSystem(
         val angle = body.angle
         velocityFromU(rel.u.x, rel.u.y, settings.c, velocity)
         val gamma = gammaFromU(rel.u.x, rel.u.y, settings.c)
+        val s = sign(thr)
+        val boost = brakeBoostFactor(s * cos(angle), s * sin(angle), velocity.x, velocity.y, settings.brakeBoost)
         thrustAccelWorld(
-            settings.engineProperAccel * thr, cos(angle), sin(angle), velocity.x, velocity.y, gamma, thrustAccel,
+            settings.engineProperAccel * thr * boost, cos(angle), sin(angle), velocity.x, velocity.y, gamma, thrustAccel,
         )
         rel.accel.add(thrustAccel)
     }

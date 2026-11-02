@@ -862,7 +862,7 @@ Parked:
 - playtest: F1 shows and hides the panel. Dragging a slider doesn't fire or thrust. Dropping c to 30 makes the ship hit "near c" much sooner. 0.25× time makes bounces and aberration easy to watch. Relativity off lets the ship go past c, up to the Box2D clamp.
 
 ### ST-066 Braking boost: engines push harder against the motion
-- status: ready
+- status: done (2026-11-02, 328e688)
 - size: S
 - agent: junior-dev
 - depends: ST-056, ST-059
@@ -875,12 +875,13 @@ Parked:
   - `MoveSystem.addProperAcceleration`: after computing `thr`, `velocity` and `gamma`, let `s = sign(thr)` (reverse thrust pushes backwards, so the thrust direction is `s·(cos angle, sin angle)`). `boost = brakeBoostFactor(s·cos(angle), s·sin(angle), velocity.x, velocity.y, settings.brakeBoost)`. Pass `settings.engineProperAccel * thr * boost` as the first argument of `thrustAccelWorld` (it was `settings.engineProperAccel * thr`). The Newtonian path (`applyMainThrusters`, relativity off) is unchanged.
   - `DebugPanel.build`: add `slider("brake boost", 0f, 5f, 0.1f, 1, { relativitySettings.brakeBoost }) { relativitySettings.brakeBoost = it }` right after the `a0` slider. `resetDebugDefaults` sets `relativity.brakeBoost = BRAKE_BOOST_K`.
 - acceptance:
-  - [ ] Tests for `brakeBoostFactor` with k = 2: thrust along v gives 1; against v gives 3; perpendicular gives 1; at 120° from v gives 2 ± 1e-5; v = 0 gives 1; k = 0 always gives 1
-  - [ ] Test: `RelativitySettings(brakeBoost = 9f).brakeBoost == 5f`, `brakeBoost = -1f` clamps to 0
-  - [ ] Test (`MoveSystemTest`, call `beforeStep` directly and read `rel.accel` before `RelativisticDynamics` clears it): a ship with `u` for β = 0.5 along +x, facing −x, thrusters = 1, gets `accel.x = −3·a0 ± 1e-3` and `accel.y ≈ 0`. With `settings.brakeBoost = 0f` it gets `−a0`. Facing +x with thrusters = −1 (reverse), it gets `−3·a0·REVERSE_THRUST_FRACTION`
-  - [ ] Test: `resetDebugDefaults` restores `brakeBoost` to `BRAKE_BOOST_K`
-  - [ ] `./gradlew core:test` passes
+  - [x] Tests for `brakeBoostFactor` with k = 2: thrust along v gives 1; against v gives 3; perpendicular gives 1; at 120° from v gives 2 ± 1e-5; v = 0 gives 1; k = 0 always gives 1
+  - [x] Test: `RelativitySettings(brakeBoost = 9f).brakeBoost == 5f`, `brakeBoost = -1f` clamps to 0
+  - [x] Test (`MoveSystemTest`, call `beforeStep` directly and read `rel.accel` before `RelativisticDynamics` clears it): a ship with `u` for β = 0.5 along +x, facing −x, thrusters = 1, gets `accel.x = −3·a0 ± 1e-3` and `accel.y ≈ 0`. With `settings.brakeBoost = 0f` it gets `−a0`. Facing +x with thrusters = −1 (reverse), it gets `−3·a0·REVERSE_THRUST_FRACTION`
+  - [x] Test: `resetDebugDefaults` restores `brakeBoost` to `BRAKE_BOOST_K`
+  - [x] `./gradlew core:test` passes
 - playtest: Near c, flip around and burn: speed drops about three times faster than it built up. Sideways burns still feel heavy (γ² turning cost). Try k = 0/2/4 on the debug slider.
+- result: Braking boost factor applied to relativistic engine thrust (3× straight against motion), tunable via debug slider; 161 tests pass.
 
 ### ST-067 Shots leave the arena; a ripple marks where they cross the field
 - status: ready

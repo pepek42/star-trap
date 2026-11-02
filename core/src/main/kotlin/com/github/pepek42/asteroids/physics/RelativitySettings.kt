@@ -6,6 +6,7 @@ private const val ENGINE_ACCEL_MIN = 5f
 private const val ENGINE_ACCEL_MAX = 120f
 private const val GAMMA_MAX_MIN = 2f
 private const val FIELD_DAMPING_MAX = 5f
+private const val BRAKE_BOOST_MAX = 5f
 
 /**
  * Runtime-tunable relativity and arena field settings (ST-056). Lives in DI; the constants in `PhysicsConstants.kt`
@@ -21,6 +22,7 @@ class RelativitySettings(
     var fieldEnabled: Boolean = true,
     var fieldParams: BoundaryFieldParams = BoundaryFieldParams(),
     gammaMaxMassive: Float = GAMMA_MAX_MASSIVE,
+    brakeBoost: Float = BRAKE_BOOST_K,
 ) {
     var relativityEnabled: Boolean = relativityEnabled
 
@@ -37,6 +39,12 @@ class RelativitySettings(
     var gammaMaxMassive: Float = gammaMaxMassive.coerceIn(GAMMA_MAX_MIN, GAMMA_MAX_MASSIVE)
         set(value) {
             field = value.coerceIn(GAMMA_MAX_MIN, GAMMA_MAX_MASSIVE)
+        }
+
+    /** Braking boost k (ST-066). Engines burning against the motion get a0·(1 + k·max(0, −cos θ)). */
+    var brakeBoost: Float = brakeBoost.coerceIn(0f, BRAKE_BOOST_MAX)
+        set(value) {
+            field = value.coerceIn(0f, BRAKE_BOOST_MAX)
         }
 
     /** Speed cap as a fraction of c implied by [gammaMaxMassive]. */

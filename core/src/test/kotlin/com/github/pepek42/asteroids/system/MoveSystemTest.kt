@@ -23,7 +23,13 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.ShipHandlingComponent
+import com.github.pepek42.asteroids.component.RelativisticComponent
+import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
+import com.github.pepek42.asteroids.physics.REVERSE_THRUST_FRACTION
+import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import kotlin.math.abs
+import kotlin.math.sqrt
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.collections.gdxArrayOf
@@ -132,6 +138,46 @@ class MoveSystemTest {
         val expected = MoveSystem.MAIN_ENGINE_THRUST / body.mass
         assertEquals(expected, body.linearVelocity.len(), expected * 0.01f)
         world.dispose()
+    }
+
+    /** Proper acceleration written by [MoveSystem.beforeStep] for a ship moving at β = 0.5 along +x. */
+    private fun relativisticAccel(angle: Float, thrusters: Float, settings: RelativitySettings): Vector2 {
+        val beta = 0.5f
+        val gamma = 1f / sqrt(1f - beta * beta)
+        val rel = RelativisticComponent().apply { u.set(gamma * beta * SPEED_OF_LIGHT, 0f) }
+        val body = mock<Body>()
+        `when`(body.angle).doReturn(angle)
+        val entity = Entity()
+            .add(BodyComponent().apply { this.body = body })
+            .add(MoveComponent(thrusters = thrusters))
+            .add(rel)
+        val engine = mock<Engine> {
+            on { getEntitiesFor(allOf(MoveComponent::class, BodyComponent::class).get()) } doReturn ImmutableArray(
+                gdxArrayOf(entity)
+            )
+        }
+        MoveSystem(settings).apply { addedToEngine(engine) }.beforeStep(DELTA_TIME)
+        return Vector2(rel.accel)
+    }
+
+    @Test
+    fun brakingBurnGetsBoostedAcceleration() {
+        val a0 = ENGINE_PROPER_ACCEL
+        val accel = relativisticAccel(MathUtils.PI, 1f, RelativitySettings())
+        assertEquals(-3f * a0, accel.x, 1e-3f)
+        assertEquals(0f, accel.y, 1e-3f)
+    }
+
+    @Test
+    fun brakeBoostZeroGivesBaseAcceleration() {
+        val accel = relativisticAccel(MathUtils.PI, 1f, RelativitySettings(brakeBoost = 0f))
+        assertEquals(-ENGINE_PROPER_ACCEL, accel.x, 1e-3f)
+    }
+
+    @Test
+    fun reverseThrustAgainstMotionIsBoosted() {
+        val accel = relativisticAccel(0f, -1f, RelativitySettings())
+        assertEquals(-3f * ENGINE_PROPER_ACCEL * REVERSE_THRUST_FRACTION, accel.x, 1e-3f)
     }
 
     private class Sim(val angles: List<Float>, val velocities: List<Float>)

@@ -20,6 +20,7 @@ import com.github.pepek42.asteroids.debug.TIME_SCALES
 import com.github.pepek42.asteroids.event.DebugInputListener
 import com.github.pepek42.asteroids.input.ControlScheme
 import com.github.pepek42.asteroids.input.ControlSettings
+import com.github.pepek42.asteroids.physics.BRAKE_BOOST_K
 import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
 import com.github.pepek42.asteroids.physics.FIELD_DAMPING
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
@@ -75,6 +76,7 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     relativity.fieldEnabled = true
     relativity.c = SPEED_OF_LIGHT
     relativity.engineProperAccel = ENGINE_PROPER_ACCEL
+    relativity.brakeBoost = BRAKE_BOOST_K
     relativity.fieldDamping = FIELD_DAMPING
     relativity.gammaMaxMassive = GAMMA_MAX_MASSIVE
     debug.timeScale = 1f
@@ -141,6 +143,7 @@ class DebugPanel(
 
         slider("c", 20f, 67f, 1f, 0, { relativitySettings.c }) { relativitySettings.c = it }
         slider("a0", 5f, 120f, 1f, 0, { relativitySettings.engineProperAccel }) { relativitySettings.engineProperAccel = it }
+        slider("brake boost", 0f, 5f, 0.1f, 1, { relativitySettings.brakeBoost }) { relativitySettings.brakeBoost = it }
         slider("field damping", 0f, 5f, 0.1f, 1, { relativitySettings.fieldDamping }) { relativitySettings.fieldDamping = it }
         slider("gamma cap", 2f, 50f, 1f, 0, { relativitySettings.gammaMaxMassive }) { relativitySettings.gammaMaxMassive = it }
 

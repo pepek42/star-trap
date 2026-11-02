@@ -35,5 +35,11 @@ const val ENGINE_PROPER_ACCEL = 25f
 /** Reverse thrusters are this fraction as strong as the main engine. */
 const val REVERSE_THRUST_FRACTION = 0.5f
 
+/**
+ * Braking boost k (owner decision 2026-11-02): engine proper acceleration is a0·(1 + k·max(0, −cos θ)), θ the angle
+ * between thrust and velocity. Burning straight against the motion gives 1 + k, i.e. 3× at k = 2.
+ */
+const val BRAKE_BOOST_K = 2f
+
 /** A post-step body velocity further than this (u/s) from the one we set means a contact changed it. */
 const val COLLISION_EPS = 0.05f

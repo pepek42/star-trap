@@ -24,6 +24,12 @@ class RelativitySettingsTest {
     }
 
     @Test
+    fun brakeBoostIsClamped() {
+        assertEquals(5f, RelativitySettings(brakeBoost = 9f).brakeBoost)
+        assertEquals(0f, RelativitySettings().apply { brakeBoost = -1f }.brakeBoost)
+    }
+
+    @Test
     fun defaultsMatchConstants() {
         val s = RelativitySettings()
         assertEquals(SPEED_OF_LIGHT, s.c)

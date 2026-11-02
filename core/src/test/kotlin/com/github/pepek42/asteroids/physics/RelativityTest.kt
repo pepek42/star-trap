@@ -327,4 +327,17 @@ class RelativityTest {
         out.set(1f, 1f)
         assertEquals(Vector2.Zero, thrustAccelWorld(1f, Float.NaN, 0f, 1f, 0f, 1f, out))
     }
+
+    @Test
+    fun brakeBoostFactorFollowsAngle() {
+        val k = 2f
+        assertEquals(1f, brakeBoostFactor(1f, 0f, 1f, 0f, k), 1e-6f)
+        assertEquals(3f, brakeBoostFactor(-1f, 0f, 1f, 0f, k), 1e-6f)
+        assertEquals(1f, brakeBoostFactor(0f, 1f, 1f, 0f, k), 1e-6f)
+        val cos120 = -0.5f
+        val sin120 = sqrt(3f) / 2f
+        assertEquals(2f, brakeBoostFactor(cos120, sin120, 1f, 0f, k), 1e-5f)
+        assertEquals(1f, brakeBoostFactor(-1f, 0f, 0f, 0f, k), 1e-6f)
+        assertEquals(1f, brakeBoostFactor(-1f, 0f, 1f, 0f, 0f), 1e-6f)
+    }
 }

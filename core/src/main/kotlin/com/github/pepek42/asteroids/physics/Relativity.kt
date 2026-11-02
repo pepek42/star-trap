@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.physics
 
 import com.badlogic.gdx.math.Vector2
 import kotlin.math.asinh
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
 
@@ -223,6 +224,17 @@ fun thrustAccelWorld(a0: Float, nx: Float, ny: Float, vx: Float, vy: Float, gamm
     val ax = a * (par * hx + (px - par * hx) / g)
     val ay = a * (par * hy + (py - par * hy) / g)
     return out.set(ax.toFloat(), ay.toFloat())
+}
+
+/**
+ * Braking boost multiplier for an engine firing along unit direction (dirX, dirY): 1 + k·max(0, −cos θ), θ the angle
+ * between the thrust direction and v. Returns 1 when v is (near) zero.
+ */
+fun brakeBoostFactor(dirX: Float, dirY: Float, vx: Float, vy: Float, k: Float): Float {
+    val speed = sqrt(vx * vx + vy * vy)
+    if (speed < 1e-6f) return 1f
+    val cos = (dirX * vx + dirY * vy) / speed
+    return 1f + k * max(0f, -cos)
 }
 
 /** Relative Lorentz factor of two bodies: γa·γb·(1 - va·vb/c²). Used for impact energy K = (γrel - 1)·m·c². */

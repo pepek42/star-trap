@@ -91,12 +91,31 @@ class TimeWarpSystemTest {
     fun warpIsOneWhenDisabled() {
         setup(4f)
         settings.timeWarpEnabled = false
+        val before = clock.worldTime
         engine.update(1f / 45f)
         assertEquals(1f, clock.warp)
+        assertEquals(1f / 45f, clock.worldTime - before, 1e-5f)
         settings.timeWarpEnabled = true
         settings.relativityEnabled = false
         engine.update(1f / 45f)
         assertEquals(1f, clock.warp)
+    }
+
+    @Test
+    fun lagSpikeAtWarpOneIsCappedAtFiveSteps() {
+        setup(1f)
+        engine.update(0.5f)
+        assertEquals(1f, clock.warp)
+        assertTrue(clock.stepsCapped)
+        assertTrue(clock.worldTime <= 5f / 45f + 1e-5f)
+    }
+
+    @Test
+    fun lagSpikeAtWarpFourIsCappedAtTenSteps() {
+        setup(4f)
+        engine.update(0.5f)
+        assertEquals(4f, clock.warp, 1e-4f)
+        assertEquals(10f / 45f, clock.worldTime, 1e-5f)
     }
 
     @Test

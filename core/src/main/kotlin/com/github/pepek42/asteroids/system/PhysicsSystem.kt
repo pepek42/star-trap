@@ -127,6 +127,7 @@ class PhysicsSystem(
         const val PHYSICS_UPDATE_INTERVAL = 1f / 45
         const val PHYSICS_SUBSTEPS = 1
         const val MAX_STEPS_PER_FRAME = 10
+        const val MAX_LAG_STEPS = 5
         private const val STEP_EPSILON = 1e-6f
     }
 

@@ -13,6 +13,8 @@ import com.github.pepek42.asteroids.physics.isWarpCapped
 import com.github.pepek42.asteroids.physics.timeWarpFactor
 import com.github.pepek42.asteroids.physics.worldDelta
 import ktx.ashley.allOf
+import kotlin.math.max
+import kotlin.math.min
 
 /** Slack for the "steps capped" comparison. */
 private const val STEPS_CAPPED_EPSILON = 1e-6f
@@ -36,7 +38,10 @@ class TimeWarpSystem(
         val enabled = settings.timeWarpEnabled && settings.relativityEnabled
         clock.warp = timeWarpFactor(gamma, enabled, settings.timeWarpMax)
         clock.warpCapped = isWarpCapped(gamma, enabled, settings.timeWarpMax)
-        val maxWorld = PhysicsSystem.MAX_STEPS_PER_FRAME * PhysicsSystem.PHYSICS_UPDATE_INTERVAL
+        val maxWorld = min(
+            PhysicsSystem.MAX_STEPS_PER_FRAME * PhysicsSystem.PHYSICS_UPDATE_INTERVAL,
+            max(1f, clock.warp) * PhysicsSystem.MAX_LAG_STEPS * PhysicsSystem.PHYSICS_UPDATE_INTERVAL,
+        )
         clock.worldDt = worldDelta(deltaTime, clock.warp, maxWorld)
         clock.stepsCapped = deltaTime * clock.warp > maxWorld + STEPS_CAPPED_EPSILON
     }

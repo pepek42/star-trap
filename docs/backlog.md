@@ -1419,7 +1419,7 @@ Parked:
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
 
 ### ST-102 Physics catch-up cap: 10 steps only under time warp
-- status: ready
+- status: done (2026-11-02, 44f6e3f)
 - size: S
 - agent: junior-dev
 - depends: ST-069
@@ -1428,9 +1428,10 @@ Parked:
 - spec:
   - `PhysicsSystem` companion: add `const val MAX_LAG_STEPS = 5`. In `TimeWarpSystem.update`: `maxWorld = min(MAX_STEPS_PER_FRAME·INTERVAL, max(1f, clock.warp)·MAX_LAG_STEPS·INTERVAL)`. Warp 1 caps at 5 steps, and warp ≥ 2 caps at 10. Set `stepsCapped` against this `maxWorld`.
   - In `TimeWarpSystemTest.warpIsOneWhenDisabled`: also assert that `worldTime` advanced by exactly 1/45 ± 1e-5 after `update(1/45f)`.
+- result: TimeWarpSystem caps catch-up at max(1,warp)·5 steps (≤10), so plain lag runs at most 5 steps.
 - acceptance:
-  - [ ] Test: warp 1, `engine.update(0.5f)` → at most 5 steps (`worldTime ≤ 5/45 + 1e-5`); warp 4, `engine.update(0.5f)` → 10 steps
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: warp 1, `engine.update(0.5f)` → at most 5 steps (`worldTime ≤ 5/45 + 1e-5`); warp 4, `engine.update(0.5f)` → 10 steps
+  - [x] `./gradlew core:test` passes
 
 ### ST-103 Edge pointers to off-screen asteroids and enemies (replaces the centre pointer)
 - status: done (2026-11-02, 267a7a4)

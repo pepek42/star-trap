@@ -97,6 +97,7 @@ class RelativisticDynamics(
                 uFromV(bodyVelocity.x, bodyVelocity.y, c, betaMaxOff, rel.u)
                 rel.gUsed = 1f
                 rel.tau += dt
+                rel.lastAccel.set(rel.accel)
                 rel.accel.setZero()
                 continue
             }
@@ -110,6 +111,7 @@ class RelativisticDynamics(
                 uFromV(bodyVelocity.x, bodyVelocity.y, c, betaMax, rel.u)
             }
             rel.tau += dt / rel.gUsed
+            rel.lastAccel.set(rel.accel)
             rel.accel.setZero()
         }
     }

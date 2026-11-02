@@ -21,6 +21,9 @@ class RelativisticComponent : Component, Pool.Poolable {
     /** Proper acceleration (u/s²) added by step listeners during `beforeStep`. Cleared after every step. */
     val accel = Vector2()
 
+    /** [accel] of the last finished step, kept for the debug vector overlay. Zero when relativity is off. */
+    val lastAccel = Vector2()
+
     /** Proper time elapsed along this body's worldline (s). */
     var tau = 0f
 
@@ -36,6 +39,7 @@ class RelativisticComponent : Component, Pool.Poolable {
     override fun reset() {
         u.setZero()
         accel.setZero()
+        lastAccel.setZero()
         tau = 0f
         gUsed = 1f
         vSet.setZero()

@@ -914,7 +914,7 @@ Parked:
 - result: BoundaryFieldSystem skips projectiles (no kick/backstop) and emits one exit ripple; bouncesLeft/PHOTON_MAX_BOUNCES removed; 164 tests pass.
 
 ### ST-060 Debug vector overlay: v, u and acceleration arrows
-- status: in-progress
+- status: done (2026-11-02, 9237374)
 - size: S
 - agent: kotlin-dev
 - depends: ST-056, ST-057
@@ -925,9 +925,10 @@ Parked:
   - `DebugVectorSystem(camera, relativitySettings, debugSettings) : IteratingSystem(allOf(RelativisticComponent, BodyComponent, TransformComponent))`, registered right after `RenderSystem`. It owns a `ShapeRenderer` and is `Disposable`. In `update`, it returns early unless `debugSettings.showVectors`. Otherwise it calls `begin(ShapeType.Line)` with `camera.combined` once and `end()` once. For each entity, from the origin `transform.interpolatedPosition`, it draws: `v` (green) with length `v·VEC_SCALE_VELOCITY`; `u` (cyan) with `u·VEC_SCALE_VELOCITY`; `lastAccel` (orange) with `a·VEC_SCALE_ACCEL`; and a thin grey circle of radius `c·VEC_SCALE_VELOCITY` around the player only (the "c" ring, which `v` can never leave but `u` can). Constants: `VEC_SCALE_VELOCITY = 0.25f` (s), `VEC_SCALE_ACCEL = 0.1f` (s²). Arrowheads are two 0.4 u lines at ±25°.
   - Put the geometry in a pure function: `fun arrowSegments(ox, oy, dx, dy, scale, headLen, headAngleRad, out: FloatArray)` fills 12 floats (shaft + 2 head lines). Draw from that.
 - acceptance:
-  - [ ] Test: `arrowSegments` for (0, 0) + (4, 0)·0.25 gives a shaft (0, 0)→(1, 0) and heads ending at `1 − 0.4·cos25°, ±0.4·sin25°`
-  - [ ] Test: after one step with thrust, `lastAccel` is non-zero, and after a step without thrust it's zero
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: `arrowSegments` for (0, 0) + (4, 0)·0.25 gives a shaft (0, 0)→(1, 0) and heads ending at `1 − 0.4·cos25°, ±0.4·sin25°`
+  - [x] Test: after one step with thrust, `lastAccel` is non-zero, and after a step without thrust it's zero
+  - [x] `./gradlew core:test` passes
+- result: F1 "show vectors" draws green v, cyan u and orange applied-accel arrows plus a c ring around the player; scales are c-relative (ring radius 5 u, full engine accel = 3 u).
 - playtest: At speed the green `v` arrow stops at the c ring while the cyan `u` keeps growing. Thrusting sideways at speed shows a short orange arrow (the 1/γ² turning cost). In the field skin the orange arrow points inward.
 
 ### ST-061 Twin-stick control scheme (WASD thrust direction + mouse turret)
@@ -1357,7 +1358,7 @@ Parked:
   - [ ] The tests above exist, and `./gradlew core:test` passes
 
 ### ST-065 Debug panel polish (ST-059 follow-ups)
-- status: ready
+- status: in-progress
 - size: S
 - agent: junior-dev
 - depends: ST-059

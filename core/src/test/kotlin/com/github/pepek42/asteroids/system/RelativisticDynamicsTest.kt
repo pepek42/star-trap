@@ -101,6 +101,17 @@ class RelativisticDynamicsTest {
     }
 
     @Test
+    fun lastAccelIsSetByThrustAndClearedWithout() {
+        setup()
+        val ship = addShip(thrusters = 1f)
+        step()
+        assertTrue(ship.rel.lastAccel.len() > 0f)
+        ship.move.thrusters = 0f
+        step()
+        assertEquals(0f, ship.rel.lastAccel.len(), 1e-6f)
+    }
+
+    @Test
     fun constantThrustMatchesHyperbolicMotion() {
         setup()
         val ship = addShip(thrusters = 1f)

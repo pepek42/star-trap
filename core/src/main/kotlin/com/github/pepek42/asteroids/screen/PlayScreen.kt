@@ -37,6 +37,7 @@ import com.github.pepek42.asteroids.system.DebugPanelSystem
 import com.github.pepek42.asteroids.system.TimeWarpSystem
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.system.DebugSystem
+import com.github.pepek42.asteroids.system.DebugVectorSystem
 import com.github.pepek42.asteroids.system.EndLevelSystem
 import com.github.pepek42.asteroids.system.HudSystem
 import com.github.pepek42.asteroids.system.LifetimeSystem
@@ -124,6 +125,7 @@ class PlayScreen(
                     gridRenderer, mapProvider, debugSettings,
                 )
             )
+            addSystem(DebugVectorSystem(camera, settings, debugSettings))
             if (IS_DEBUG) {
                 engine.addSystem(DebugSystem(world, engine, camera))
             }

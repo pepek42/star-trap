@@ -43,3 +43,15 @@ const val BRAKE_BOOST_K = 2f
 
 /** A post-step body velocity further than this (u/s) from the one we set means a contact changed it. */
 const val COLLISION_EPS = 0.05f
+
+/**
+ * Game clock = pilot proper time (owner decision 2026-11-02, research E21). Past TIME_WARP_MAX the world advances
+ * slower than the pilot's γ demands: declared FAKE.
+ */
+const val TIME_WARP_ENABLED = true
+
+/** Default fast-forward cap for the pilot clock (about 10×). */
+const val TIME_WARP_MAX = 10f
+
+/** Upper clamp for the runtime time-warp setting; at 60 fps a 12× warp needs 9 physics steps per frame. */
+const val TIME_WARP_MAX_LIMIT = 12f

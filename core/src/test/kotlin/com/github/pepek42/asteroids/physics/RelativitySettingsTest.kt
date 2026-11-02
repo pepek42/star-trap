@@ -30,6 +30,12 @@ class RelativitySettingsTest {
     }
 
     @Test
+    fun timeWarpMaxIsClamped() {
+        assertEquals(12f, RelativitySettings(timeWarpMax = 50f).timeWarpMax)
+        assertEquals(1f, RelativitySettings().apply { timeWarpMax = 0f }.timeWarpMax)
+    }
+
+    @Test
     fun defaultsMatchConstants() {
         val s = RelativitySettings()
         assertEquals(SPEED_OF_LIGHT, s.c)

@@ -978,7 +978,7 @@ Parked:
 - result: Lasers spawn at c along aberratePhoton(β_ship, aim) with a PhotonComponent dir and sprite rotation in degrees; muzzle-offset follow-up noted on ST-076.
 
 ### ST-068 Pilot clock: time-warp functions, GameClock and settings
-- status: ready
+- status: done (2026-11-02, SHA068)
 - size: S
 - agent: junior-dev
 - depends: ST-056
@@ -993,9 +993,10 @@ Parked:
     - `class GameClock { var realDt = 0f; var warp = 1f; var worldDt = 0f; var warpCapped = false; var stepsCapped = false; var worldTime = 0f; var interpolationAlpha = 0f; fun reset() }` (reset sets every field back to these defaults). KDoc per field: `realDt` is the pilot's frame time (after the debug time scale); `worldDt` the arena time to simulate this frame; `stepsCapped` true when the physics step cap cut `worldDt`; `worldTime` sums the simulated physics steps; `interpolationAlpha` is `PhysicsSystem`'s render lerp factor.
   - `RelativitySettings`: append two last constructor params, `timeWarpEnabled: Boolean = TIME_WARP_ENABLED` (plain `var`) and `timeWarpMax: Float = TIME_WARP_MAX` (`var`, setter clamps to `[1f, TIME_WARP_MAX_LIMIT]`).
 - acceptance:
-  - [ ] Tests: `timeWarpFactor(3f, true, 10f) == 3f`; `(25f, true, 10f) == 10f`; `(0.5f, true, 10f) == 1f`; `(3f, false, 10f) == 1f`; `(NaN, true, 10f) == 1f`. `isWarpCapped(25f, true, 10f)` is true, `(10f, true, 10f)` and `(25f, false, 10f)` are false. `worldDelta(1/60f, 10f, 10/45f) ≈ 1/6`, `worldDelta(0.1f, 10f, 10/45f) == 10/45f`
-  - [ ] Test: `GameClock.reset()` restores all defaults; `RelativitySettings(timeWarpMax = 50f).timeWarpMax == 12f`, `0f` clamps to 1
-  - [ ] `./gradlew core:test` passes
+  - [x] Tests: `timeWarpFactor(3f, true, 10f) == 3f`; `(25f, true, 10f) == 10f`; `(0.5f, true, 10f) == 1f`; `(3f, false, 10f) == 1f`; `(NaN, true, 10f) == 1f`. `isWarpCapped(25f, true, 10f)` is true, `(10f, true, 10f)` and `(25f, false, 10f)` are false. `worldDelta(1/60f, 10f, 10/45f) ≈ 1/6`, `worldDelta(0.1f, 10f, 10/45f) == 10/45f`
+  - [x] Test: `GameClock.reset()` restores all defaults; `RelativitySettings(timeWarpMax = 50f).timeWarpMax == 12f`, `0f` clamps to 1
+  - [x] `./gradlew core:test` passes
+- result: `physics/TimeWarp.kt` (warp factor, cap check, world delta, `GameClock`) plus the time-warp constants and `RelativitySettings` fields, all unit-tested and not wired yet.
 
 ### ST-069 Pilot clock wiring: the arena advances γ·dt per frame, up to 10 steps
 - status: ready
@@ -1372,7 +1373,7 @@ Parked:
 ---
 
 ### ST-100 Readable backdrop: calmer nebula, reference grid, arena-centre pointer
-- status: done (2026-11-02, 87a1b7e)
+- status: done (2026-11-02, 9dc4f26)
 - size: M
 - agent: kotlin-dev
 - depends: —

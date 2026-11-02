@@ -23,6 +23,8 @@ class RelativitySettings(
     var fieldParams: BoundaryFieldParams = BoundaryFieldParams(),
     gammaMaxMassive: Float = GAMMA_MAX_MASSIVE,
     brakeBoost: Float = BRAKE_BOOST_K,
+    timeWarpEnabled: Boolean = TIME_WARP_ENABLED,
+    timeWarpMax: Float = TIME_WARP_MAX,
 ) {
     var relativityEnabled: Boolean = relativityEnabled
 
@@ -45,6 +47,14 @@ class RelativitySettings(
     var brakeBoost: Float = brakeBoost.coerceIn(0f, BRAKE_BOOST_MAX)
         set(value) {
             field = value.coerceIn(0f, BRAKE_BOOST_MAX)
+        }
+
+    var timeWarpEnabled: Boolean = timeWarpEnabled
+
+    /** Upper bound of the pilot clock's time warp (ST-068). */
+    var timeWarpMax: Float = timeWarpMax.coerceIn(1f, TIME_WARP_MAX_LIMIT)
+        set(value) {
+            field = value.coerceIn(1f, TIME_WARP_MAX_LIMIT)
         }
 
     /** Speed cap as a fraction of c implied by [gammaMaxMassive]. */

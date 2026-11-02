@@ -1493,7 +1493,7 @@ Parked:
   - [x] `./gradlew core:test` passes
 
 ### ST-106 Derive physics from base constants; 60 Hz tick; c = 20
-- status: done (2026-11-02, SHA)
+- status: done (2026-11-02, 61d2be0)
 - size: M
 - agent: kotlin-dev
 - depends: —

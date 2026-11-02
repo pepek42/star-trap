@@ -131,7 +131,7 @@ class PlayScreen(
             }
             addSystem(DebugPanelSystem(debugPanel, observerState, clock))
             addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock))
-            addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider))
+            addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, panelWidthPx = { debugPanel.widthInScreenPx() }))
             addSystem(LifetimeSystem(clock))
             addSystem(DeathSystem(engine, asteroidProvider, game.get<RandomXS128>()))
             addSystem(RemoveSystem(world, mapProvider))
@@ -169,7 +169,8 @@ class PlayScreen(
         logger.info { "Resize event $width x $height" }
         viewport.update(width, height)
         hud.resize(width, height)
-        minimapViewport.resize(width, height, mapProvider.mapWidth, mapProvider.mapHeight)
+        minimapViewport.resize(width, height, mapProvider.mapWidth, mapProvider.mapHeight,
+            if (debugSettings.panelVisible) debugPanel.widthInScreenPx() else 0f)
     }
 
     override fun hide() {

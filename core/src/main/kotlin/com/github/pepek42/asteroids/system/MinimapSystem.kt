@@ -14,6 +14,7 @@ import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.asteroidMapper
 import com.github.pepek42.asteroids.component.baseInfoCmp
+import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.physics.FIELD_SKIN
@@ -43,6 +44,8 @@ class MinimapSystem(
     private val minimapViewport: MinimapViewport,
     private val mainCamera: OrthographicCamera,
     private val mapProvider: MapProvider,
+    private val debugSettings: DebugSettings,
+    private val panelWidthPx: () -> Float,
     private val shape: ShapeRenderer = ShapeRenderer(),
 ) : IteratingSystem(allOf(BaseInfoComponent::class, TransformComponent::class).get()),
     Disposable {
@@ -56,7 +59,9 @@ class MinimapSystem(
     override fun update(deltaTime: Float) {
         val mapW = mapProvider.mapWidth
         val mapH = mapProvider.mapHeight
-        minimapViewport.resize(Gdx.graphics.width, Gdx.graphics.height, mapW, mapH)
+        // Slide left of the debug panel while it is open so the panel's controls stay visible.
+        val inset = if (debugSettings.panelVisible) panelWidthPx() else 0f
+        minimapViewport.resize(Gdx.graphics.width, Gdx.graphics.height, mapW, mapH, inset)
         minimapViewport.apply()
 
         Gdx.gl.glEnable(GL20.GL_BLEND)

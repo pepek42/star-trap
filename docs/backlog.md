@@ -1358,7 +1358,7 @@ Parked:
   - [ ] The tests above exist, and `./gradlew core:test` passes
 
 ### ST-065 Debug panel polish (ST-059 follow-ups)
-- status: in-progress
+- status: done (2026-11-02, a60b608)
 - size: S
 - agent: junior-dev
 - depends: ST-059
@@ -1370,8 +1370,10 @@ Parked:
   - The UI font has no Greek glyphs, so `DebugPanel.update` swaps in ASCII names. Drop that swap if a Greek-capable font is added.
   - (ST-059 review, approved, minors) Swap the Greek letters for ASCII inside the reused StringBuilder instead of chaining `String.replace` calls. Pace the 10 Hz refresh in `DebugPanelSystem` on real time (`Gdx.graphics.rawDeltaTime`), not the scaled delta. Call `select.hideList()` in `hide()` and `toggleDebugPanel()`. Make the toggle-flip logic testable without GL and add the `panelVisible` test.
 - acceptance:
-  - [ ] A screenshot with `--debug-panel` shows every widget unobstructed
-  - [ ] `./gradlew core:test` passes
+  - [x] A screenshot with `--debug-panel` shows every widget unobstructed
+  - [x] `./gradlew core:test` passes
+- result: Panel scrolls (wheel only while hovered), minimap moves left of it, checkboxes tinted green/grey, refresh paced on real time, `flipPanelVisible` tested.
+- playtest: With F1 open, wheel over the panel scrolls it and elsewhere zooms; ticked checkboxes look green; the minimap sits left of the panel.
 
 ### ST-109 UI font: Greek and Polish glyphs; fix '?' in messages_pl
 - status: ready

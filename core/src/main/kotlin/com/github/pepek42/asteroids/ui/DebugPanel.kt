@@ -2,11 +2,14 @@ package com.github.pepek42.asteroids.ui
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup
 import com.badlogic.gdx.scenes.scene2d.ui.CheckBox
 import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Slider
@@ -51,6 +54,14 @@ private const val PANEL_BACKGROUND_ALPHA = 0.6f
 private const val PANEL_PAD = 6f
 private const val SLIDER_WIDTH = 150f
 private const val TIME_BUTTON_WIDTH = 70f
+private val CHECKED_COLOR = Color(0.45f, 1f, 0.45f, 1f)
+private val UNCHECKED_COLOR = Color(0.55f, 0.55f, 0.55f, 1f)
+
+/** Flips [settings].panelVisible and returns the new value. Pure so the toggle can be tested without GL. */
+fun flipPanelVisible(settings: DebugSettings): Boolean {
+    settings.panelVisible = !settings.panelVisible
+    return settings.panelVisible
+}
 
 /** Appends [value] with exactly [decimals] decimals, always with a dot (locale independent). */
 fun appendFixed(out: StringBuilder, value: Float, decimals: Int): StringBuilder {
@@ -73,19 +84,19 @@ fun formatReadouts(observer: ObserverState, rel: RelativisticComponent?, c: Floa
     out.setLength(0)
     val speed = observer.betaRaw.len() * c
     val properSpeed = rel?.u?.len() ?: (speed * observer.gammaRaw)
-    out.append("β = "); appendFixed(out, observer.betaRaw.len(), 3).append('\n')
-    out.append("γ = "); appendFixed(out, observer.gammaRaw, 2).append('\n')
-    out.append("τ = "); appendFixed(out, observer.tau, 1).append(" s\n")
+    out.append("beta = "); appendFixed(out, observer.betaRaw.len(), 3).append('\n')
+    out.append("gamma = "); appendFixed(out, observer.gammaRaw, 2).append('\n')
+    out.append("tau = "); appendFixed(out, observer.tau, 1).append(" s\n")
     out.append("world t = "); appendFixed(out, observer.worldTime, 1).append(" s\n")
     out.append("|v| = "); appendFixed(out, speed, 1).append(" u/s (")
     appendFixed(out, observer.betaRaw.len() * 100f, 1).append(" % c)\n")
     out.append("v = ("); appendFixed(out, observer.betaRaw.x * c, 1).append(", ")
     appendFixed(out, observer.betaRaw.y * c, 1).append(") u/s\n")
     if (mass.isFinite()) {
-        out.append("m = "); appendFixed(out, mass, 1).append("   γm = ")
+        out.append("m = "); appendFixed(out, mass, 1).append("   gamma*m = ")
         appendFixed(out, mass * observer.gammaRaw, 1).append('\n')
     }
-    out.append("|u| = γ|v| = "); appendFixed(out, properSpeed, 1).append(" u/s\n")
+    out.append("|u| = gamma|v| = "); appendFixed(out, properSpeed, 1).append(" u/s\n")
     out.append("ship-frame speed = "); appendFixed(out, observer.rapidity * c, 1).append(" u/s\n")
     out.append("c = "); appendFixed(out, c, 0).append("   a0 = "); appendFixed(out, a0, 0)
     if (clock != null) {
@@ -120,14 +131,22 @@ class DebugPanel(
     private val onVisibilityChanged: (Boolean) -> Unit = {},
 ) : DebugInputListener {
     private val root = Table()
+    // Scrolls vertically when the widgets are taller than the window; the stage height bounds it.
+    private val scroll = ScrollPane(root, skin).apply {
+        setFadeScrollBars(false)
+        setScrollingDisabled(true, false)
+        setScrollbarsVisible(true)
+    }
     private val container = Table().apply {
         setFillParent(true)
         touchable = Touchable.childrenOnly
         right().top()
     }
+    private var stage: Stage? = null
     private val readouts = Label("", skin)
     private val text = StringBuilder()
     private val syncs = ArrayList<() -> Unit>()
+    private lateinit var controlsSelect: SelectBox<String>
 
     val isVisible: Boolean get() = debugSettings.panelVisible
 
@@ -136,8 +155,24 @@ class DebugPanel(
         root.pad(PANEL_PAD)
         root.defaults().left().pad(2f)
         build()
-        root.isVisible = debugSettings.panelVisible
-        container.add(root).width(DEBUG_PANEL_WIDTH).top().right()
+        scroll.isVisible = debugSettings.panelVisible
+        scroll.addListener(object : InputListener() {
+            // Wheel scrolls the panel only while the pointer is over it, so zoom keeps working elsewhere.
+            override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
+                if (pointer == -1) stage?.scrollFocus = scroll
+            }
+
+            override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+                if (pointer == -1 && stage?.scrollFocus == scroll) stage?.scrollFocus = null
+            }
+        })
+        container.add(scroll).width(DEBUG_PANEL_WIDTH).growY().top().right()
+    }
+
+    /** Panel width in window pixels, from the stage viewport (stage units may not be 1:1 with pixels). */
+    fun widthInScreenPx(): Float {
+        val vp = stage?.viewport ?: return DEBUG_PANEL_WIDTH
+        return DEBUG_PANEL_WIDTH * vp.screenWidth / vp.worldWidth
     }
 
     private fun build() {
@@ -180,6 +215,7 @@ class DebugPanel(
         slider("gamma cap", GAMMA_MAX_MIN, GAMMA_MAX_MASSIVE, 1f, 0, { relativitySettings.gammaMaxMassive }) { relativitySettings.gammaMaxMassive = it }
 
         val select = SelectBox<String>(skin)
+        controlsSelect = select
         select.setItems(*ControlScheme.entries.map { it.flag }.toTypedArray())
         select.selected = controlSettings.scheme.flag
         select.addListener(object : ChangeListener() {
@@ -208,11 +244,20 @@ class DebugPanel(
     private fun checkBox(title: String, get: () -> Boolean, set: (Boolean) -> Unit) {
         val box = CheckBox(" $title", skin)
         box.isChecked = get()
+        tintCheckBox(box)
         box.addListener(object : ChangeListener() {
-            override fun changed(event: ChangeEvent, actor: Actor) = set(box.isChecked)
+            override fun changed(event: ChangeEvent, actor: Actor) {
+                set(box.isChecked)
+                tintCheckBox(box)
+            }
         })
-        syncs.add { box.isChecked = get() }
+        syncs.add { box.isChecked = get(); tintCheckBox(box) }
         root.add(box).colspan(2).left().row()
+    }
+
+    /** The skin's checkbox looks the same checked and unchecked, so tint it: green on, grey off. */
+    private fun tintCheckBox(box: CheckBox) {
+        box.color = if (box.isChecked) CHECKED_COLOR else UNCHECKED_COLOR
     }
 
     private fun slider(
@@ -240,23 +285,26 @@ class DebugPanel(
     }
 
     fun show(stage: Stage) {
+        this.stage = stage
         stage.addActor(container)
     }
 
     fun hide() {
+        controlsSelect.hideList()
         container.remove()
+        stage = null
     }
 
     override fun toggleDebugPanel() {
-        debugSettings.panelVisible = !debugSettings.panelVisible
-        root.isVisible = debugSettings.panelVisible
-        onVisibilityChanged(debugSettings.panelVisible)
+        val visible = flipPanelVisible(debugSettings)
+        if (!visible) controlsSelect.hideList()
+        scroll.isVisible = visible
+        onVisibilityChanged(visible)
     }
 
     /** Refreshes the readout label. Called at 10 Hz by DebugPanelSystem. */
     fun update(observer: ObserverState, rel: RelativisticComponent?, clock: GameClock? = null, mass: Float = Float.NaN) {
         formatReadouts(observer, rel, relativitySettings.c, relativitySettings.engineProperAccel, text, clock, mass)
-        // The UI bitmap font has no Greek glyphs, so spell the letters out on screen.
-        readouts.setText(text.toString().replace("\u03B2", "beta").replace("\u03B3", "gamma").replace("\u03C4", "tau"))
+        readouts.setText(text)
     }
 }

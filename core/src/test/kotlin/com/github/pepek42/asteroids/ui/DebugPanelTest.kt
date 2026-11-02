@@ -2,6 +2,8 @@ package com.github.pepek42.asteroids.ui
 
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.debug.DebugSettings
+import com.github.pepek42.asteroids.system.DEBUG_PANEL_REFRESH_SECONDS
+import com.github.pepek42.asteroids.system.RefreshPacer
 import com.github.pepek42.asteroids.physics.BRAKE_BOOST_K
 import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
 import com.github.pepek42.asteroids.physics.ObserverState
@@ -31,9 +33,10 @@ class DebugPanelTest {
         val out = StringBuilder()
         formatReadouts(observer, rel, c, ENGINE_PROPER_ACCEL, out)
         val s = out.toString()
-        assertTrue("β = 0.900" in s, s)
-        assertTrue("γ = 2.29" in s, s)
-        assertTrue("|u| = γ|v| = ${fixed1(gamma * beta * c)}" in s, s)
+        assertTrue("beta = 0.900" in s, s)
+        assertTrue("gamma = 2.29" in s, s)
+        assertTrue("|u| = gamma|v| = ${fixed1(gamma * beta * c)}" in s, s)
+        assertTrue(s.all { it.code < 128 }, "readout must stay ASCII for the UI font")
         assertTrue("ship-frame speed = ${fixed1(observer.rapidity * c)}" in s, s)
     }
 
@@ -60,7 +63,7 @@ class DebugPanelTest {
         val s = out.toString()
         assertTrue("|v| = ${fixed1(0.75f * c)} u/s (75.0 % c)" in s, s)
         assertTrue("v = (${fixed1(0.75f * c)}, 0.0) u/s" in s, s)
-        assertTrue("m = 2.0   γm = 3.0" in s, s)
+        assertTrue("m = 2.0   gamma*m = 3.0" in s, s)
         formatReadouts(observer, null, c, ENGINE_PROPER_ACCEL, out)
         assertTrue("m =" !in out.toString(), out.toString())
     }
@@ -91,6 +94,33 @@ class DebugPanelTest {
         assertEquals(SPEED_OF_LIGHT, rel.c)
         assertEquals(1f, debug.timeScale)
         assertTrue(rel.fieldEnabled)
+    }
+
+    @Test
+    fun togglingPanelTwiceRestoresVisibility() {
+        val debug = DebugSettings(panelAllowed = true, panelVisible = false)
+        assertTrue(flipPanelVisible(debug))
+        assertTrue(debug.panelVisible)
+        assertEquals(false, flipPanelVisible(debug))
+        assertEquals(false, debug.panelVisible)
+    }
+
+    @Test
+    fun refreshPacerFiresOnRealTimeInterval() {
+        val pacer = RefreshPacer(DEBUG_PANEL_REFRESH_SECONDS)
+        // First call refreshes immediately (timer starts full), then sub-interval slices accumulate.
+        assertTrue(pacer.due(0f))
+        assertEquals(false, pacer.due(DEBUG_PANEL_REFRESH_SECONDS / 2))
+        assertTrue(pacer.due(DEBUG_PANEL_REFRESH_SECONDS / 2))
+        assertEquals(false, pacer.due(DEBUG_PANEL_REFRESH_SECONDS / 2))
+    }
+
+    @Test
+    fun minimapShiftsLeftByPanelWidth() {
+        val plain = minimapBounds(1000, 600)
+        val shifted = minimapBounds(1000, 600, DEBUG_PANEL_WIDTH)
+        assertEquals(plain.x - DEBUG_PANEL_WIDTH, shifted.x, 0.001f)
+        assertEquals(plain.width, shifted.width, 0.001f)
     }
 
     @Test

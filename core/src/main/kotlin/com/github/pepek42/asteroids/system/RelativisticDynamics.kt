@@ -12,7 +12,7 @@ import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.moveMapper
 import com.github.pepek42.asteroids.component.relativisticCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
-import com.github.pepek42.asteroids.physics.COLLISION_EPS
+import com.github.pepek42.asteroids.physics.COLLISION_EPS_BETA
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.clampSpeed
@@ -100,10 +100,10 @@ class RelativisticDynamics(
                 rel.accel.setZero()
                 continue
             }
-            // Velocity changes under COLLISION_EPS are dropped on purpose: they are float noise from Box2D's own
+            // Velocity changes under COLLISION_EPS_BETA * c are dropped on purpose: they are float noise from Box2D's own
             // solver, and feeding them back would make u drift every step. Larger changes are contact or backstop
             // impulses and are converted back into u.
-            if (bodyVelocity.dst(rel.vSet) > COLLISION_EPS) {
+            if (bodyVelocity.dst(rel.vSet) > COLLISION_EPS_BETA * c) {
                 val gammaMax = min(rel.gammaMax, settings.gammaMaxMassive)
                 val betaMax = sqrt(1f - 1f / (gammaMax * gammaMax))
                 clampSpeed(bodyVelocity, betaMax * c)

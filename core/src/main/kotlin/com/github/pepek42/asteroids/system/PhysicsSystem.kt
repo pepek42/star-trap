@@ -13,7 +13,7 @@ import com.github.pepek42.asteroids.component.shipHandlingCmpOptional
 import com.github.pepek42.asteroids.math.shortestAngleDiffRad
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
-import com.github.pepek42.asteroids.physics.TIME_WARP_MAX
+import com.github.pepek42.asteroids.physics.TIME_WARP_MAX_LIMIT
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
@@ -134,13 +134,13 @@ class PhysicsSystem(
         const val PHYSICS_SUBSTEPS = 1
 
         /** Frame rate the catch-up caps are sized for. */
-        private const val REFERENCE_FPS = 60f
+        const val REFERENCE_FPS = 60f
 
         /** Lag budget (s) the world may catch up at warp 1, the budget ST-102 had (5 steps at the old 45 Hz tick). */
         const val MAX_LAG_SECONDS = 1f / 9f
 
-        /** Steps one frame may run so the default [TIME_WARP_MAX] fits at [REFERENCE_FPS] (10 at 60 Hz). */
-        val MAX_STEPS_PER_FRAME: Int = ceil(TIME_WARP_MAX * PHYSICS_TICK_RATE / REFERENCE_FPS).toInt()
+        /** Steps one frame may run so the highest runtime warp [TIME_WARP_MAX_LIMIT] fits at [REFERENCE_FPS] (12 at 60 Hz). */
+        val MAX_STEPS_PER_FRAME: Int = ceil(TIME_WARP_MAX_LIMIT * PHYSICS_TICK_RATE / REFERENCE_FPS).toInt()
 
         /** Steps of lag tolerated at warp 1: [MAX_LAG_SECONDS] worth of ticks. */
         val MAX_LAG_STEPS: Int = ceil(MAX_LAG_SECONDS * PHYSICS_TICK_RATE).toInt()

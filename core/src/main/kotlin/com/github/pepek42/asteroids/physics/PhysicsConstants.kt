@@ -14,6 +14,9 @@ const val C_MAX_BOX2D_SAFE = 0.75f * BOX2D_MAX_TRANSLATION * PHYSICS_TICK_RATE
 /** World units per second. Owner decision 2026-11-02: c = 20, a third of the old 60, well under [C_MAX_BOX2D_SAFE]. */
 const val SPEED_OF_LIGHT = 20.0f
 
+/** Lowest runtime γ cap (numerical floor for the slider). */
+const val GAMMA_MAX_MIN = 2f
+
 /** Lowest c the runtime settings allow (ST-056). */
 const val C_MIN = 10f
 
@@ -38,16 +41,23 @@ const val ENGINE_TIME_TO_09C = 5f
 /** γβ at β = 0.9: 0.9 / sqrt(1 − 0.81) = 2.0647. The rapidity-like quantity u/c reached at 0.9c. */
 const val GAMMA_BETA_09C = 2.0647f
 
+/** Default engine proper acceleration as a fraction of c (about 0.41): a/c = γβ(0.9) / [ENGINE_TIME_TO_09C]. */
+const val ENGINE_ACCEL_PER_C = GAMMA_BETA_09C / ENGINE_TIME_TO_09C
+
 /**
  * Engine proper acceleration (u/s²) at full thrust, felt by the pilot: a = c·γβ(0.9) / [ENGINE_TIME_TO_09C],
  * about 0.413·c (8.26 at c = 20). A straight run reaches 0.9c after arena time t = (c/a)·γβ = 5 s (pilot proper
  * time τ = (c/a)·asinh(γβ) ≈ 3.6 s), covering d = (c²/a)(γ − 1) ≈ 62 u at c = 20 before the field.
  */
-const val ENGINE_PROPER_ACCEL = SPEED_OF_LIGHT * GAMMA_BETA_09C / ENGINE_TIME_TO_09C
+const val ENGINE_PROPER_ACCEL = SPEED_OF_LIGHT * ENGINE_ACCEL_PER_C
 
 /** Runtime engine-acceleration clamp as fractions of c: the default is 0.41c, so it is never clamped. */
-const val ENGINE_ACCEL_MIN = 0.1f * SPEED_OF_LIGHT
-const val ENGINE_ACCEL_MAX = 2f * SPEED_OF_LIGHT
+const val ENGINE_ACCEL_PER_C_MIN = 0.1f
+const val ENGINE_ACCEL_PER_C_MAX = 2f
+
+/** The same clamp in u/s² at the default c. */
+const val ENGINE_ACCEL_MIN = ENGINE_ACCEL_PER_C_MIN * SPEED_OF_LIGHT
+const val ENGINE_ACCEL_MAX = ENGINE_ACCEL_PER_C_MAX * SPEED_OF_LIGHT
 
 /** Reverse thrusters are this fraction as strong as the main engine. */
 const val REVERSE_THRUST_FRACTION = 0.5f
@@ -58,8 +68,11 @@ const val REVERSE_THRUST_FRACTION = 0.5f
  */
 const val BRAKE_BOOST_K = 2f
 
-/** A post-step body velocity further than this (u/s) from the one we set means a contact changed it. */
-const val COLLISION_EPS = 0.05f
+/**
+ * A post-step body velocity further than this fraction of c from the one we set means a contact changed it.
+ * Use as `COLLISION_EPS_BETA * settings.c` (u/s). 0.05 u/s at the old c = 60.
+ */
+const val COLLISION_EPS_BETA = 0.05f / 60f
 
 /**
  * Game clock = pilot proper time (owner decision 2026-11-02, research E21). Past TIME_WARP_MAX the world advances
@@ -70,5 +83,5 @@ const val TIME_WARP_ENABLED = true
 /** Default fast-forward cap for the pilot clock (about 10×). */
 const val TIME_WARP_MAX = 10f
 
-/** Upper clamp for the runtime time-warp setting; at 60 fps a 12× warp needs 9 physics steps per frame. */
+/** Upper clamp for the runtime time-warp setting; the step cap is sized from this. */
 const val TIME_WARP_MAX_LIMIT = 12f

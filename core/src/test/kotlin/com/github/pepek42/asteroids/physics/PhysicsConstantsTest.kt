@@ -3,6 +3,7 @@ package com.github.pepek42.asteroids.physics
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.MAX_LAG_SECONDS
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.MAX_LAG_STEPS
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.MAX_STEPS_PER_FRAME
+import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.REFERENCE_FPS
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_TICK_RATE
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -24,13 +25,13 @@ class PhysicsConstantsTest {
 
     @Test
     fun maxRuntimeCDerivesFromTickRate() {
-        assertEquals(0.75f * 2f * PHYSICS_TICK_RATE, C_MAX_BOX2D_SAFE)
+        assertEquals(0.75f * BOX2D_MAX_TRANSLATION * PHYSICS_TICK_RATE, C_MAX_BOX2D_SAFE)
         assertEquals(1f / PHYSICS_TICK_RATE, PHYSICS_UPDATE_INTERVAL)
     }
 
     @Test
-    fun defaultTimeWarpFitsInOneFrameAtSixtyFps() {
-        assertTrue(MAX_STEPS_PER_FRAME * PHYSICS_UPDATE_INTERVAL * 60f >= TIME_WARP_MAX)
+    fun maxTimeWarpFitsInOneFrameAtReferenceFps() {
+        assertTrue(MAX_STEPS_PER_FRAME * PHYSICS_UPDATE_INTERVAL * REFERENCE_FPS >= TIME_WARP_MAX_LIMIT)
     }
 
     @Test

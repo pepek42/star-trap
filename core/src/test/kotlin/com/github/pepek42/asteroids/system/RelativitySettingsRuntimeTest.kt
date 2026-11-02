@@ -16,7 +16,9 @@ import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.physics.BoundaryFieldParams
+import com.github.pepek42.asteroids.physics.ENGINE_TIME_TO_09C
 import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.physics.gammaFromU
 import com.github.pepek42.asteroids.physics.uFromV
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -76,13 +78,30 @@ class RelativitySettingsRuntimeTest {
 
     @Test
     fun lowerCKeepsShipBelowC() {
-        val settings = RelativitySettings().apply { c = 30f }
+        val lowC = 1.5f * SPEED_OF_LIGHT
+        val settings = RelativitySettings().apply { c = lowC }
         val physics = physics(settings)
         val ship = addShip(settings, thrusters = 1f)
         repeat((10 * PhysicsSystem.PHYSICS_TICK_RATE).toInt()) { physics.step() }
         val speed = ship.body.linearVelocity.len()
-        assertTrue(speed < 30f, "speed $speed")
-        assertTrue(speed / 30f > 0.9f, "beta ${speed / 30f}")
+        assertTrue(speed < lowC, "speed $speed")
+        assertTrue(speed / lowC > 0.9f, "beta ${speed / lowC}")
+    }
+
+    @Test
+    fun doublingCDoublesEngineAccelAndStillReaches09cInFiveSeconds() {
+        val settings = RelativitySettings()
+        val a0 = settings.engineProperAccel
+        settings.c = 2f * SPEED_OF_LIGHT
+        assertEquals(2f * a0, settings.engineProperAccel, 1e-4f)
+        val physics = physics(settings)
+        val ship = addShip(settings, thrusters = 1f)
+        var steps = 0
+        while (ship.body.linearVelocity.len() < 0.9f * settings.c && steps < 20 * PhysicsSystem.PHYSICS_TICK_RATE) {
+            physics.step()
+            steps++
+        }
+        assertEquals(ENGINE_TIME_TO_09C, steps * PhysicsSystem.PHYSICS_UPDATE_INTERVAL, 0.3f)
     }
 
     @Test

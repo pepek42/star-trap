@@ -19,8 +19,8 @@ class RelativitySettingsTest {
 
     @Test
     fun engineAccelIsClamped() {
-        assertEquals(ENGINE_ACCEL_MIN, RelativitySettings(engineProperAccel = 0f).engineProperAccel)
-        assertEquals(ENGINE_ACCEL_MAX, RelativitySettings().apply { engineProperAccel = 999f * SPEED_OF_LIGHT }.engineProperAccel)
+        assertEquals(ENGINE_ACCEL_MIN, RelativitySettings(engineAccelPerC = 0f).engineProperAccel)
+        assertEquals(ENGINE_ACCEL_MAX, RelativitySettings().apply { engineAccelPerC = 999f }.engineProperAccel)
     }
 
     @Test

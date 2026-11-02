@@ -82,7 +82,7 @@ class DebugPanelTest {
 
     @Test
     fun resetRestoresDefaults() {
-        val rel = RelativitySettings(c = 30f, engineProperAccel = 80f, fieldEnabled = false)
+        val rel = RelativitySettings(c = 30f, engineAccelPerC = 1.5f, fieldEnabled = false)
         val debug = DebugSettings(panelAllowed = true, panelVisible = true, timeScale = 0.25f, showVectors = true,
             gridEnabled = false, targetPointersEnabled = false)
         resetDebugDefaults(rel, debug)

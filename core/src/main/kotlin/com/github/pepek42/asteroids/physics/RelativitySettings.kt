@@ -2,7 +2,6 @@ package com.github.pepek42.asteroids.physics
 
 import kotlin.math.sqrt
 
-private const val GAMMA_MAX_MIN = 2f
 private const val FIELD_DAMPING_MAX = 5f
 private const val BRAKE_BOOST_MAX = 5f
 
@@ -16,7 +15,7 @@ private const val BRAKE_BOOST_MAX = 5f
 class RelativitySettings(
     relativityEnabled: Boolean = RELATIVITY_ENABLED,
     c: Float = SPEED_OF_LIGHT,
-    engineProperAccel: Float = ENGINE_PROPER_ACCEL,
+    engineAccelPerC: Float = ENGINE_ACCEL_PER_C,
     var fieldEnabled: Boolean = true,
     var fieldParams: BoundaryFieldParams = BoundaryFieldParams(),
     gammaMaxMassive: Float = GAMMA_MAX_MASSIVE,
@@ -31,10 +30,14 @@ class RelativitySettings(
             field = value.coerceIn(C_MIN, C_MAX_BOX2D_SAFE)
         }
 
-    var engineProperAccel: Float = engineProperAccel.coerceIn(ENGINE_ACCEL_MIN, ENGINE_ACCEL_MAX)
+    /** Engine proper acceleration as a fraction of [c], so changing c keeps the feel. */
+    var engineAccelPerC: Float = engineAccelPerC.coerceIn(ENGINE_ACCEL_PER_C_MIN, ENGINE_ACCEL_PER_C_MAX)
         set(value) {
-            field = value.coerceIn(ENGINE_ACCEL_MIN, ENGINE_ACCEL_MAX)
+            field = value.coerceIn(ENGINE_ACCEL_PER_C_MIN, ENGINE_ACCEL_PER_C_MAX)
         }
+
+    /** Engine proper acceleration (u/s²) at the current c. */
+    val engineProperAccel: Float get() = engineAccelPerC * c
 
     var gammaMaxMassive: Float = gammaMaxMassive.coerceIn(GAMMA_MAX_MIN, GAMMA_MAX_MASSIVE)
         set(value) {

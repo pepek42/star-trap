@@ -25,13 +25,17 @@ import com.github.pepek42.asteroids.physics.C_MAX_BOX2D_SAFE
 import com.github.pepek42.asteroids.physics.C_MIN
 import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_MAX
 import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_MIN
-import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
+import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_PER_C
 import com.github.pepek42.asteroids.physics.FIELD_DAMPING
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.TIME_WARP_ENABLED
 import com.github.pepek42.asteroids.physics.TIME_WARP_MAX
+import com.github.pepek42.asteroids.physics.TIME_WARP_MAX_LIMIT
+import com.github.pepek42.asteroids.physics.GAMMA_MAX_MIN
+import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_PER_C_MIN
+import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_PER_C_MAX
 import com.github.pepek42.asteroids.physics.RELATIVITY_ENABLED
 import com.github.pepek42.asteroids.render.TARGET_POINTERS_ENABLED
 import com.github.pepek42.asteroids.render.GRID_ENABLED
@@ -95,7 +99,7 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     relativity.relativityEnabled = RELATIVITY_ENABLED
     relativity.fieldEnabled = true
     relativity.c = SPEED_OF_LIGHT
-    relativity.engineProperAccel = ENGINE_PROPER_ACCEL
+    relativity.engineAccelPerC = ENGINE_ACCEL_PER_C
     relativity.brakeBoost = BRAKE_BOOST_K
     relativity.fieldDamping = FIELD_DAMPING
     relativity.gammaMaxMassive = GAMMA_MAX_MASSIVE
@@ -169,11 +173,11 @@ class DebugPanel(
         root.add(buttons).colspan(2).left().row()
 
         slider("c", C_MIN, C_MAX_BOX2D_SAFE, 1f, 0, { relativitySettings.c }) { relativitySettings.c = it }
-        slider("a0", ENGINE_ACCEL_MIN, ENGINE_ACCEL_MAX, 0.1f, 1, { relativitySettings.engineProperAccel }) { relativitySettings.engineProperAccel = it }
+        slider("a0 / c", ENGINE_ACCEL_PER_C_MIN, ENGINE_ACCEL_PER_C_MAX, 0.01f, 2, { relativitySettings.engineAccelPerC }) { relativitySettings.engineAccelPerC = it }
         slider("brake boost", 0f, 5f, 0.1f, 1, { relativitySettings.brakeBoost }) { relativitySettings.brakeBoost = it }
         slider("field damping", 0f, 5f, 0.1f, 1, { relativitySettings.fieldDamping }) { relativitySettings.fieldDamping = it }
-        slider("warp cap", 1f, 12f, 1f, 0, { relativitySettings.timeWarpMax }) { relativitySettings.timeWarpMax = it }
-        slider("gamma cap", 2f, 50f, 1f, 0, { relativitySettings.gammaMaxMassive }) { relativitySettings.gammaMaxMassive = it }
+        slider("warp cap", 1f, TIME_WARP_MAX_LIMIT, 1f, 0, { relativitySettings.timeWarpMax }) { relativitySettings.timeWarpMax = it }
+        slider("gamma cap", GAMMA_MAX_MIN, GAMMA_MAX_MASSIVE, 1f, 0, { relativitySettings.gammaMaxMassive }) { relativitySettings.gammaMaxMassive = it }
 
         val select = SelectBox<String>(skin)
         select.setItems(*ControlScheme.entries.map { it.flag }.toTypedArray())

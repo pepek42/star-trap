@@ -1518,7 +1518,7 @@ Parked:
 - playtest: The ship tops out at a third of the old speed (c = 20) but takes as long to get relativistic. Time warp and Doppler effects show up at much lower on-screen speeds. Motion looks a bit smoother at 60 Hz.
 
 ### ST-107 ST-106 follow-ups: c-relative engine and thresholds, warp step cap, slider literals
-- status: ready
+- status: done (2026-11-02, bab77ae)
 - size: S
 - agent: kotlin-dev
 - depends: ST-106
@@ -1531,9 +1531,10 @@ Parked:
   - DebugPanel γ-cap and warp-cap sliders use `GAMMA_MAX_MIN`/`GAMMA_MAX_MASSIVE` and `TIME_WARP_MAX_LIMIT` (make `GAMMA_MAX_MIN` public in PhysicsConstants).
   - Tests: `RelativitySettingsRuntimeTest:85` divides by the c it sets, not a literal `30f`; `PhysicsConstantsTest` uses `BOX2D_MAX_TRANSLATION` instead of `2f`.
 - acceptance:
-  - [ ] Test: setting `settings.c = 2 × default` doubles `engineProperAccel`, and a run still reaches 0.9c in 5 s ± 0.3 s of arena time
-  - [ ] Test: `MAX_STEPS_PER_FRAME * PHYSICS_UPDATE_INTERVAL * 60f >= TIME_WARP_MAX_LIMIT`
-  - [ ] `./gradlew core:test` passes
+  - [x] Test: setting `settings.c = 2 × default` doubles `engineProperAccel`, and a run still reaches 0.9c in 5 s ± 0.3 s of arena time
+  - [x] Test: `MAX_STEPS_PER_FRAME * PHYSICS_UPDATE_INTERVAL * 60f >= TIME_WARP_MAX_LIMIT`
+  - [x] `./gradlew core:test` passes
+- result: Engine accel is stored as a fraction of c and collision eps as β, the step cap covers warp 12, and debug sliders read constants.
 - playtest: Moving the c slider in the debug panel keeps the ship's acceleration feel; warp 12 is reachable.
 
 ## M4 Relativistic view

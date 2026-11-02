@@ -1,6 +1,6 @@
 # Backlog
 
-Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-100**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
+Task cards for agent-driven development. `/auto-dev` picks the first `ready` card in milestone order whose dependencies are `done`. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-102**. /auto-dev follows `## Implementation order` when present; otherwise milestone order.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -12,6 +12,7 @@ M3 Relativity MVP:
 1. ST-066 Braking boost
 2. ST-067 Shots leave the arena; ripple where they cross
 3. ST-039 Photon lasers: muzzle aberration
+3a. ST-100 Readable backdrop: calmer nebula, grid, centre pointer
 4. ST-068 Pilot clock: time-warp functions, GameClock, settings
 5. ST-069 Pilot clock wiring
 6. ST-040 Ship clocks under the pilot clock
@@ -28,15 +29,16 @@ M3 Relativity MVP:
 17. ST-077 Pilot view: starfield, field band and shimmer
 18. ST-045 Doppler tint on sprites
 19. ST-038 Boundary field acts on proper velocity
+19a. ST-023 Boundary field: ~5 % loss per bounce, restitution 0.95
 20. ST-047 Relativistic mass in Box2D collisions
 21. ST-048 Impact damage from relativistic kinetic energy
+21a. ST-084 Player death ends the run (moved up from M5, needed by ST-101)
+21b. ST-101 Balance pass: headless sim games, pick c, tune physics
 22. ST-042 HUD: β, γ, ship/world time, warp; speed zoom
 23. ST-060 Debug vector overlay
 24. ST-061 Twin-stick control scheme
 25. ST-064 RelativitySettings follow-ups
 26. ST-065 Debug panel polish
-27. ST-020 Owner decision: value of c (**needs-user**)
-28. ST-023 Owner decision: boundary field damping (**needs-user**)
 29. ST-049 Bring docs in line after M3
 
 M4 Relativistic view:
@@ -45,10 +47,8 @@ M4 Relativistic view:
 32. ST-081 Doppler-scaled photon damage
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-33. ST-092 Owner decision: how strongly gravity sources pull each other (**needs-user**, ask early; ST-083 uses the recommended 0.1)
 34. ST-082 Gravity math (pure)
 35. ST-083 GravitySystem: n-body sources, bodies and photons
-36. ST-084 Player death ends the run
 37. ST-085 Black holes: spawn, horizon, merge, shadow, rings
 38. ST-093 Planets: solid gravity sources
 39. ST-094 Level decoration: drifting debris
@@ -309,16 +309,8 @@ Parked:
 - playtest: Lasers look a bit slower than before (60 vs the clamped 90 u/s) and are still easy to aim.
 
 ### ST-020 Owner decision: value of c
-- status: needs-user
-- size: S
-- agent: junior-dev
-- depends: —
-- files: `docs/design/game-design.md` §11, `physics/PhysicsConstants.kt` (only if the answer is not (b))
-- goal: Record the owner's choice for the speed of light (research §8 Q1). ST-019 already implements the recommendation.
-- question: What should c be? (a) 40 u/s: very slow light, sluggish lasers. (b) **60 u/s at 45 Hz (recommended)**: light delay is visible at screen scale, bullets are fast, and Box2D needs no change. (c) 80 u/s with `PHYSICS_SUBSTEPS = 2`: faster, but Box2D costs twice as much CPU.
-- acceptance:
-  - [ ] The answer is added to game-design.md §11. If (a): set `SPEED_OF_LIGHT = 40f`. If (c): `SPEED_OF_LIGHT = 80f` and `PHYSICS_SUBSTEPS = 2` (ST-021), and the ST-019 test uses `PHYSICS_UPDATE_INTERVAL / PHYSICS_SUBSTEPS`
-  - [ ] `./gradlew core:test` passes
+- status: done (2026-11-02)
+- result: Owner: "Pick some c value for now. Run some sim games and try to balance whole physics so that player still will have some chance to play." c = 60 u/s stays the default. The balance pass is ST-101.
 
 ### ST-021 Per-step physics listener hook; thrust applied per step
 - status: done (2026-11-01, a9015c0)
@@ -386,17 +378,21 @@ Parked:
   - [x] Test: with damping 1, the exit speed is strictly lower than the entry speed and above 50 % of it for v = 30
   - [x] `./gradlew core:test` passes
 
-### ST-023 Owner decision: boundary field damping
-- status: needs-user
+### ST-023 Boundary field: ~5 % loss per bounce, backstop restitution 0.95
+- status: ready
 - size: S
 - agent: junior-dev
-- depends: —
-- files: `docs/design/game-design.md` §11, `physics/BoundaryField.kt` (only if the answer is (a))
-- goal: Record the owner's choice (research §8 Q7). ST-022 implements the recommendation.
-- question: Should the boundary field lose energy? (a) Lossless (`FIELD_DAMPING = 0`): pinball-like, everything bounces forever. (b) **Mild damping, `k_d = 1` (recommended)**: about 10–20 % of normal speed is lost per bounce for ships and asteroids. Photon lasers always reflect losslessly but use up a bounce.
+- depends: ST-038
+- files: `physics/BoundaryField.kt`, `core/src/test/.../BoundaryFieldSystemTest.kt` (or the existing field test); `docs/design/game-design.md` §11; `docs/design/physics-lies.md` row 12
+- goal: Owner (2026-11-02): "field should reflect 100% of speed. We can try 95% also, to slow down game a little bit." The field already gets stronger the closer you get (acceleration ∝ q², up to `FIELD_ACCEL_MAX = 3000` at the wall), so no new mechanism is needed, only tuning. Target: about 5 % of the normal speed is lost per bounce.
+- spec:
+  - `FIELD_BACKSTOP_RESTITUTION = 0.95f`.
+  - Lower `FIELD_DAMPING` from 1 to a value giving 5 % ± 2 % normal-speed loss per bounce. Start at `0.3f` and adjust in steps of 0.05 until the test below passes. Put the measured loss in the KDoc.
+  - Add a decisions line to game-design.md §11, and update the value in physics-lies.md row 12.
 - acceptance:
-  - [ ] The answer is added to game-design.md §11. If (a): set `FIELD_DAMPING = 0f` and drop the damping test's "strictly lower" assertion in favour of "within 2 %"
+  - [ ] Test (real `World`, a ship body, default params): entering the field at 30 u/s (0.5 c) straight at a wall, it leaves the field with a normal speed 93–97 % of the entry speed
   - [ ] `./gradlew core:test` passes
+- playtest: Bounces feel nearly elastic. Ping-ponging slowly loses energy.
 
 ### ST-024 Projectile lifetime; out-of-bounds removal becomes a safety net
 - status: done (2026-11-01, c96e32f)
@@ -1371,6 +1367,47 @@ Parked:
 
 ---
 
+### ST-100 Readable backdrop: calmer nebula, reference grid, arena-centre pointer
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: —
+- files: `system/RenderSystem.kt` (nebula/starfield), create `render/ReferenceGridRenderer.kt`, `system/HudSystem.kt` (or the HUD stage), tests for the pure parts
+- goal: Owner (2026-11-02): "Current background is too much. Player needs to have some way to orient themselves." Make motion and position readable at any speed.
+- spec:
+  - Tone the nebula down: alpha/brightness constant `NEBULA_ALPHA = 0.35f` (from today's effective 1). Keep at most one sparse starfield layer at full brightness, and dim the rest.
+  - `ReferenceGridRenderer`: faint lines in arena space every `GRID_STEP = 20f` u (alpha 0.07), with the two axes through the arena centre at alpha 0.18. Use `ShapeRenderer` lines in a single batch, culled to the camera. Draw it after the backdrop and before the sprites. Moving past the grid shows your speed and direction even when nothing else is nearby.
+  - HUD pointer: when the arena centre is off-screen, draw a small arrow at the screen edge pointing to it, with the distance in u. Put a pure helper `edgePointer(camX, camY, halfW, halfH, tx, ty, margin, out: Vector2): Float` (returns the angle, places `out` on the inset screen rectangle) in `render/EdgePointer.kt`.
+  - Toggles `GRID_ENABLED`, `CENTRE_POINTER_ENABLED` in settings and the debug panel.
+  - Pilot view note for ST-077: the grid is a set of static arena points, so it goes through the same static-point transform and bends visibly at high β. This is a nice readout, not a bug.
+- acceptance:
+  - [ ] Test: `edgePointer` with a target to the right, off-screen, gives angle 0 and `out.x` = right inset edge; a diagonal target lands on a corner region; an on-screen target is flagged (e.g. returns NaN)
+  - [ ] `./gradlew core:test` passes
+- playtest: The background is calmer. Gliding over the grid shows your speed. The arrow always leads you back to the centre.
+
+### ST-101 Balance pass: headless sim games, pick c and tune the physics
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-048, ST-084
+- files: create `tool/src/main/kotlin/.../BalanceSim.kt` (or `core/src/test/.../BalanceSim.kt` behind a JUnit tag), Gradle task `tool:balanceSim`; `physics/PhysicsConstants.kt`, `physics/RelativitySettings.kt`; create `docs/tech/balance.md`; `docs/design/game-design.md` §11
+- goal: Owner (2026-11-02, ST-020): "Pick some c value for now. Run some sim games and try to balance whole physics so that player still will have some chance to play." Make the numbers evidence-based.
+- spec:
+  - Headless runner: build the gameplay systems the way `PlayScreen.setupEcs()` does, but without render, HUD and minimap. Use a real Box2D `World`, the seeded `RandomXS128` and fixed `dt = 1/60`. Factor out a shared `buildGameplaySystems(...)` if needed so it doesn't drift from `PlayScreen`.
+  - Bot pilots drive `PlayerInputListener`/`ControlScheme` inputs:
+    - `cautious`: keeps β ≤ 0.5 using the braking boost, steers away from the nearest threat inside 15 u, and fires at the nearest asteroid in a 30° cone.
+    - `aggressive`: full thrust toward the nearest target, firing constantly.
+    - `idle`: does nothing (baseline).
+  - Sweep: c ∈ {40, 60, 80}, `engineProperAccel` ∈ {15, 25, 40}, levels 1–5. Run 20 seeds each, max 120 s per level.
+  - Metrics: survival rate, time to death, damage taken per minute, kills per minute, mean and p95 γ, fraction of time the time warp is capped, mean physics steps per frame.
+  - Targets: `cautious` clears levels 1–3 in ≥ 90 % of runs and level 5 in ≥ 50 %. `aggressive` dies in 20–60 % of level 1–3 runs (speed should be risky but not suicide). The time warp is capped < 5 % of the time.
+  - Pick c and a0 (and tune asteroid count/speed and impact damage scale if the targets are missed). Write the tables and choices to `docs/tech/balance.md`, and add a §11 decisions line. If a target needs a non-physical tweak, add a row to `docs/design/physics-lies.md`.
+- acceptance:
+  - [ ] `./gradlew tool:balanceSim` (or the tagged test) runs the sweep headless in under ~10 min and writes a CSV plus a markdown summary
+  - [ ] `docs/tech/balance.md` has the tables, the chosen constants and the reasoning; the constants are updated in code
+  - [ ] `./gradlew core:test` passes (the sweep is not part of the default `test` run)
+- playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
+
 ## M4 Relativistic view
 
 The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead markers) was pulled forward into M3 by the 2026-11-02 interview: ST-070 to ST-078. M4 holds the follow-ups.
@@ -1444,7 +1481,8 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 - note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
 
 ### ST-092 Owner decision: how strongly gravity sources pull each other
-- status: needs-user
+- status: done (2026-11-02)
+- result: Owner: (b) 0.1, "lets go with simpler solution now and note all physics lies in doc". The preferred future fix is to give the whole system initial velocities so it's gravitationally balanced (physics-lies.md row 14, game-design §12). `SOURCE_COUPLING_DEFAULT = 0.1f` is already in ST-082.
 - size: S
 - agent: junior-dev
 - depends: —

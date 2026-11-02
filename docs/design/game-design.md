@@ -113,8 +113,14 @@ The planner and auto-dev put new questions here or on `needs-user` backlog cards
 - 2026-11-02: **Shots leave the arena.** The boundary field ignores projectiles (no mirrors or bounces). A ripple shows where they cross.
 - 2026-11-02: The next big areas are relativistic visuals and gravity/black holes. Black holes are **fixed, 1–2 per level**: gravity bends ships and shots, the horizon kills, and a bright accretion disk makes them readable.
 - 2026-11-02 (follow-up, Q1): Black holes, planets and decoration **start static but are dynamic**: they feel gravity from each other (n-body) and from the player, and the boundary field keeps them in the arena; counts stay low for performance. **Lighting:** the accretion disk (not the hole) and a distant star light nearby sprites with falloff and direction, and planets and large asteroids cast shadows; in pilot view, emitter light delay is skipped as a declared approximation.
+- 2026-11-02 (ST-092): Source–source gravity is scaled to **0.1** (FAKE). Every deliberate physics departure is listed in [physics-lies.md](physics-lies.md).
+- 2026-11-02 (ST-020): c = 60 u/s for now. A headless balance pass (ST-101) picks the final c and a0 so that a careful pilot can survive.
+- 2026-11-02 (ST-023): The boundary field is nearly elastic: about 5 % normal-speed loss per bounce, backstop restitution 0.95. The field already stiffens with depth.
+- 2026-11-02: The backdrop should be calmer, with orientation aids (reference grid, pointer to the arena centre), ST-100. Code-generated planet sprites are fine as placeholders.
 
 ## 12. Ideas parking lot
+
+- Gravitationally balanced level setup: start black holes and planets with initial velocities (bound orbits, enough spacing) so the system is stable at physical coupling 1, replacing the 0.1 FAKE (physics-lies.md row 14).
 
 - Control modes in settings (later): (a) auto-aim + auto-shoot (Brotato / vampire-survivors style, where the player mostly manages momentum) and (b) slow-mo aim: holding LMB strongly slows time (a declared FAKE "targeting trance"), with a lead indicator and an instant turn toward the aim.
 

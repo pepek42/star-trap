@@ -49,6 +49,7 @@ Spawn **reviewer**. If you get `CHANGES_REQUESTED` with a blocker or major issue
 - Commit message: `ST-NNN: <card title>`, then a blank line, a one-line summary, and the attribution trailer from the system reminder.
 - On the card: set `status: done (<YYYY-MM-DD>, <short sha>)`, tick the acceptance boxes, and add a `result:` line (one sentence). Then amend the commit to include this backlog edit: `git commit --amend --no-edit`.
 - If the agent reported FOLLOW-UPS, append them as `status: ready` (or `needs-user`) cards at the end of the milestone. Mark them `size: S` or `M` and pick the agent using the routing rules in `.claude/agents/planner.md`.
+- If the card introduces or changes a FAKE/APPROX (non-physical behaviour), add or update its row in `docs/design/physics-lies.md` in the same commit.
 - Keep `docs/tech/architecture.md` current. If the card changed the system order, components or invariants, have junior-dev update it in the same commit.
 
 ## 6. Loop

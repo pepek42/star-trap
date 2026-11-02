@@ -4,6 +4,7 @@
 |---|---|
 | [design/todo.md](design/todo.md) | The owner's raw roadmap and wishes (input) |
 | [design/game-design.md](design/game-design.md) | Game design document: pitch, pillars, modes, entities, milestones, open questions |
+| [design/physics-lies.md](design/physics-lies.md) | Register of every deliberate physics departure (FAKE / APPROX / ENGINE) |
 | [research/relativity-effects.md](research/relativity-effects.md) | Physics research: SR/GR effects, formulas, 2D adaptation, cost, verdicts (by `physics-researcher`) |
 | [backlog.md](backlog.md) | Task cards that agents implement (`/auto-dev`) |
 | [tech/architecture.md](tech/architecture.md) | How the code works now: ECS order, physics loop, invariants, known issues |

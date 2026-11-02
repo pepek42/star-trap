@@ -36,6 +36,7 @@ Inputs: `docs/design/todo.md` (the owner's wishes), `docs/design/game-design.md`
 - Each card is a vertical slice that leaves the game runnable, with tests green.
 - Pull pure logic (math, formulas) out into functions that can be tested, and make that the first card of a feature.
 - Prefer feature flags or constants over big-bang rewrites, e.g. a `RELATIVITY_ENABLED` constant.
+- Any non-physical behaviour (FAKE/APPROX) is named on the card and gets a row in `docs/design/physics-lies.md`.
 - Use the next free ST number. Never renumber existing cards, and never delete `done` cards.
 - Keep the milestone order from `docs/backlog.md`. Fixes come before expansion.
 

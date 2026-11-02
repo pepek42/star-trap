@@ -13,9 +13,13 @@ class ProjectileComponent : Component, Pool.Poolable {
     /** True once the projectile has dealt its damage; it must not hit anything else. */
     var spent = false
 
+    /** True once the shimmer ripple for leaving the arena has been emitted. */
+    var exitRippleEmitted = false
+
     override fun reset() {
         projectile = LaserProjectile()
         spent = false
+        exitRippleEmitted = false
     }
 }
 

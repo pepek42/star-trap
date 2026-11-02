@@ -862,7 +862,7 @@ Parked:
 - playtest: F1 shows and hides the panel. Dragging a slider doesn't fire or thrust. Dropping c to 30 makes the ship hit "near c" much sooner. 0.25× time makes bounces and aberration easy to watch. Relativity off lets the ship go past c, up to the Box2D clamp.
 
 ### ST-066 Braking boost: engines push harder against the motion
-- status: done (2026-11-02, 328e688)
+- status: done (2026-11-02, 786a41f)
 - size: S
 - agent: junior-dev
 - depends: ST-056, ST-059
@@ -884,7 +884,7 @@ Parked:
 - result: Braking boost factor applied to relativistic engine thrust (3× straight against motion), tunable via debug slider; 161 tests pass.
 
 ### ST-067 Shots leave the arena; a ripple marks where they cross the field
-- status: ready
+- status: done (2026-11-02, f323bd7)
 - size: S
 - agent: junior-dev
 - depends: ST-025, ST-027, ST-036
@@ -898,11 +898,12 @@ Parked:
   - `RemoveSystem`: shots leaving the arena is now normal, so for entities whose `baseInfoCmp.entityType == EntityType.PROJECTILE` log the out-of-bounds removal at `debug` instead of the `"WARN: …"` info line. Behaviour is unchanged (they still get `RemoveComponent`).
   - Docs: in `CLAUDE.md` and `docs/tech/architecture.md`, replace "velocity change on kinematic projectiles" with "projectiles are ignored: they leave the arena, leaving one ripple where they cross the wall". Don't touch game-design.md (ST-049 reconciles it).
 - acceptance:
-  - [ ] Test (`MapProvider(mock(), 100f, 100f)`, real `World`, kinematic sensor body with `ProjectileComponent`, `BaseInfoComponent` and `TransformComponent`): starting at (95, 50) with velocity (60, 0), after 10 steps of `beforeStep` + `world.step` + `afterStep`, x > 100 and the velocity is still (60, 0) exactly. `impacts.count == 1`, with the impact at x = 100 and y = 50 ± 1e-3. Ten more steps add no impact
-  - [ ] Test: a kinematic body **without** `ProjectileComponent` in the skin still gets the inward velocity kick (existing behaviour)
-  - [ ] Test: with `fieldEnabled = false` a projectile also passes the wall untouched and still emits its one ripple
-  - [ ] `./gradlew core:test` passes
+  - [x] Test (`MapProvider(mock(), 100f, 100f)`, real `World`, kinematic sensor body with `ProjectileComponent`, `BaseInfoComponent` and `TransformComponent`): starting at (95, 50) with velocity (60, 0), after 10 steps of `beforeStep` + `world.step` + `afterStep`, x > 100 and the velocity is still (60, 0) exactly. `impacts.count == 1`, with the impact at x = 100 and y = 50 ± 1e-3. Ten more steps add no impact
+  - [x] Test: a kinematic body **without** `ProjectileComponent` in the skin still gets the inward velocity kick (existing behaviour)
+  - [x] Test: with `fieldEnabled = false` a projectile also passes the wall untouched and still emits its one ripple
+  - [x] `./gradlew core:test` passes
 - playtest: Shoot at the edge: the bolt passes through with one ripple and disappears off-screen. Asteroids and the ship still bounce softly.
+- result: BoundaryFieldSystem skips projectiles (no kick/backstop) and emits one exit ripple; bouncesLeft/PHOTON_MAX_BOUNCES removed; 164 tests pass.
 
 ### ST-060 Debug vector overlay: v, u and acceleration arrows
 - status: ready

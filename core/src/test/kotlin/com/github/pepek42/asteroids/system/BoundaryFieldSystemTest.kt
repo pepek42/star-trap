@@ -12,12 +12,16 @@ import com.badlogic.gdx.physics.box2d.CircleShape
 import com.badlogic.gdx.physics.box2d.PolygonShape
 import com.badlogic.gdx.physics.box2d.World
 import com.badlogic.gdx.utils.GdxNativesLoader
+import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
+import com.github.pepek42.asteroids.component.ProjectileComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.computeBoundingRadius
+import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.BoundaryFieldParams
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.render.ShimmerImpacts
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -66,6 +70,29 @@ class BoundaryFieldSystemTest {
     }
 
     private fun step() = physics.update(PhysicsSystem.PHYSICS_UPDATE_INTERVAL + 1e-4f)
+
+    private fun addProjectile(
+        engine: Engine,
+        world: World,
+        x: Float,
+        y: Float,
+        vx: Float,
+    ): Body {
+        val body = world.createBody(BodyDef().apply {
+            type = BodyDef.BodyType.KinematicBody
+            position.set(x, y)
+            linearVelocity.set(vx, 0f)
+        })
+        val shape = CircleShape().apply { radius = 0.1f }
+        body.createFixture(shape, 0f).isSensor = true
+        shape.dispose()
+        engine.addEntity(Entity()
+            .add(BodyComponent().apply { this.body = body })
+            .add(TransformComponent())
+            .add(BaseInfoComponent(faction = FactionEnum.PLAYER))
+            .add(ProjectileComponent()))
+        return body
+    }
 
     @Test
     fun dynamicCircleIsTurnedBackBeforeWall() {
@@ -123,6 +150,61 @@ class BoundaryFieldSystemTest {
             assertTrue(body.position.x < 100f, "x=${body.position.x}")
         }
         assertTrue(body.linearVelocity.x < 0f)
+    }
+
+    @Test
+    fun kinematicNonProjectileStillGetsVelocityKick() {
+        val body = addBody(BodyDef.BodyType.KinematicBody, 95f, 50f, 60f, radius = 0.1f, sensor = true)
+        step()
+        assertTrue(body.linearVelocity.x < 60f, "vx=${body.linearVelocity.x}")
+    }
+
+    @Test
+    fun projectilePassesWallUntouchedWithOneRipple() {
+        val body = addProjectile(engine, world, 95f, 50f, 60f)
+        repeat(10) {
+            field.beforeStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
+            world.step(PhysicsSystem.PHYSICS_UPDATE_INTERVAL, 6, 2)
+            field.afterStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
+        }
+        assertTrue(body.position.x > 100f, "x=${body.position.x}")
+        assertEquals(60f, body.linearVelocity.x, 0f)
+        assertEquals(0f, body.linearVelocity.y, 0f)
+        assertEquals(1, impacts.count)
+        assertEquals(100f, impacts.data[0], 1e-3f)
+        assertEquals(50f, impacts.data[1], 1e-3f)
+        repeat(10) {
+            field.beforeStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
+            world.step(PhysicsSystem.PHYSICS_UPDATE_INTERVAL, 6, 2)
+            field.afterStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
+        }
+        assertEquals(1, impacts.count)
+    }
+
+    @Test
+    fun projectileStillRipplesWhenFieldDisabled() {
+        val localEngine = Engine()
+        val localWorld = World(Vector2.Zero, true).apply { setAutoClearForces(false) }
+        val localImpacts = ShimmerImpacts()
+        val localField = BoundaryFieldSystem(
+            mapProvider,
+            localImpacts,
+            RelativitySettings(fieldEnabled = false, fieldParams = BoundaryFieldParams(skin = 8f)),
+        )
+        localEngine.addSystem(localField)
+        try {
+            val body = addProjectile(localEngine, localWorld, 95f, 50f, 60f)
+            repeat(10) {
+                localField.beforeStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
+                localWorld.step(PhysicsSystem.PHYSICS_UPDATE_INTERVAL, 6, 2)
+                localField.afterStep(PhysicsSystem.PHYSICS_UPDATE_INTERVAL)
+            }
+            assertTrue(body.position.x > 100f, "x=${body.position.x}")
+            assertEquals(60f, body.linearVelocity.x, 0f)
+            assertEquals(1, localImpacts.count)
+        } finally {
+            localWorld.dispose()
+        }
     }
 
     @Test

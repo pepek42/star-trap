@@ -19,7 +19,6 @@ import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.physics.RelativitySettings
-import com.github.pepek42.asteroids.weapon.PHOTON_MAX_BOUNCES
 import com.github.pepek42.asteroids.weapon.PHOTON_WORLD_LIFETIME
 import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.ashley.entity
@@ -88,7 +87,6 @@ class WeaponProjectileProvider(
                     remaining = PHOTON_WORLD_LIFETIME
                     total = PHOTON_WORLD_LIFETIME
                     clock = LifetimeClock.WORLD
-                    bouncesLeft = PHOTON_MAX_BOUNCES
                 }
             }
             with<ProjectileComponent> {

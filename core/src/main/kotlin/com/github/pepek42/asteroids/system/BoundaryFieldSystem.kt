@@ -9,9 +9,12 @@ import com.badlogic.gdx.physics.box2d.Body
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.utils.Array
 import com.github.pepek42.asteroids.component.BodyComponent
+import com.github.pepek42.asteroids.component.ProjectileComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.bodyCmp
+import com.github.pepek42.asteroids.component.projectileCmpOptional
+import com.github.pepek42.asteroids.component.projectileMapper
 import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.physics.FIELD_BACKSTOP_RESTITUTION
@@ -53,6 +56,8 @@ class BoundaryFieldSystem(
             val bodyCmp = entities[i].bodyCmp
             val body = bodyCmp.body
             if (body.type == BodyDef.BodyType.StaticBody) continue
+            // Projectiles are ignored by the field: they leave the arena and leave one ripple.
+            if (projectileMapper.has(entities[i])) continue
             if (bodyCmp.boundingRadius < 0f) bodyCmp.boundingRadius = computeBoundingRadius(body)
             val pos = body.position
             val vel = body.linearVelocity
@@ -79,6 +84,11 @@ class BoundaryFieldSystem(
             if (body.type == BodyDef.BodyType.StaticBody) continue
             if (bodyCmp.boundingRadius < 0f) bodyCmp.boundingRadius = computeBoundingRadius(body)
             val id = entityId(entities[i])
+            val projectile = entities[i].projectileCmpOptional
+            if (projectile != null) {
+                emitProjectileExit(id, projectile, body)
+                continue
+            }
             emitFieldImpact(id, body, bodyCmp.boundingRadius)
             enforceBackstop(id, body, bodyCmp.boundingRadius)
         }
@@ -87,6 +97,18 @@ class BoundaryFieldSystem(
 
     /** BaseInfoComponent id, or the entity identity hash for entities without one (e.g. in tests). */
     private fun entityId(entity: Entity): Int = baseInfoMapper.get(entity)?.id ?: System.identityHashCode(entity)
+
+    /** One ripple, where a projectile first crosses the arena wall. */
+    private fun emitProjectileExit(id: Int, projectile: ProjectileComponent, body: Body) {
+        if (projectile.exitRippleEmitted) return
+        val w = mapProvider.mapWidth
+        val h = mapProvider.mapHeight
+        val x = body.position.x
+        val y = body.position.y
+        if (x >= 0f && x <= w && y >= 0f && y <= h) return
+        impacts.emit(id, x.coerceIn(0f, w), y.coerceIn(0f, h), PROJECTILE_EXIT_RIPPLE_STRENGTH, force = true)
+        projectile.exitRippleEmitted = true
+    }
 
     private fun emitFieldImpact(id: Int, body: Body, rBody: Float) {
         val w = mapProvider.mapWidth
@@ -170,5 +192,6 @@ class BoundaryFieldSystem(
         fun shouldEmitFieldImpact(q: Float, inwardSpeed: Float): Boolean =
             q > SHIMMER_MIN_Q || (q > SHIMMER_WEAK_MIN_Q && inwardSpeed > 0f)
         private const val BACKSTOP_STRENGTH = 1.5f
+        private const val PROJECTILE_EXIT_RIPPLE_STRENGTH = 1f
     }
 }

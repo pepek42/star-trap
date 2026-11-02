@@ -13,14 +13,11 @@ class LifetimeComponent(
     var remaining: Float = 0f,
     var total: Float = 0f,
     var clock: LifetimeClock = LifetimeClock.WORLD,
-    /** -1 means unlimited. */
-    var bouncesLeft: Int = -1,
 ) : Component, Pool.Poolable {
     override fun reset() {
         remaining = 0f
         total = 0f
         clock = LifetimeClock.WORLD
-        bouncesLeft = -1
     }
 }
 

@@ -19,7 +19,6 @@ import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.lifetimeCmp
 import com.github.pepek42.asteroids.faction.FactionEnum
-import com.github.pepek42.asteroids.weapon.PHOTON_MAX_BOUNCES
 import com.github.pepek42.asteroids.weapon.PHOTON_WORLD_LIFETIME
 import com.github.pepek42.asteroids.weapon.WeaponType
 import org.junit.jupiter.api.AfterEach
@@ -48,7 +47,7 @@ class WeaponProjectileProviderTest {
     fun tearDown() = world.dispose()
 
     @Test
-    fun laserHasWorldLifetimeAndBounces() {
+    fun laserHasWorldLifetime() {
         // given
         val shipBody = world.createBody(BodyDef().apply { type = BodyDef.BodyType.DynamicBody })
         val ship = Entity()
@@ -69,7 +68,6 @@ class WeaponProjectileProviderTest {
         assertEquals(PHOTON_WORLD_LIFETIME, lifetime.remaining)
         assertEquals(PHOTON_WORLD_LIFETIME, lifetime.total)
         assertEquals(LifetimeClock.WORLD, lifetime.clock)
-        assertEquals(PHOTON_MAX_BOUNCES, lifetime.bouncesLeft)
     }
 
     @Test

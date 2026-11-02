@@ -4,11 +4,13 @@ import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.World
+import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.RemoveComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.bodyCmpOptional
+import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.bodyMapper
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.removeMapper
@@ -34,7 +36,11 @@ class RemoveSystem(
                     defaultLoggingUtils.tryLogging { logger.info { "WARN: Player out of bounds, clamped to ($x, $y)" } }
                 } else {
                     entity.add(RemoveComponent())
-                    defaultLoggingUtils.tryLogging { logger.info { "WARN: Out of bounds, removing ${entity.baseInfoCmp}" } }
+                    if (baseInfoMapper.get(entity)?.entityType == EntityType.PROJECTILE) {
+                        defaultLoggingUtils.tryLogging { logger.debug { "Projectile left the arena, removing ${entity.baseInfoCmp}" } }
+                    } else {
+                        defaultLoggingUtils.tryLogging { logger.info { "WARN: Out of bounds, removing ${entity.baseInfoCmp}" } }
+                    }
                 }
             }
         }

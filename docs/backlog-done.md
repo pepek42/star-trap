@@ -1359,3 +1359,44 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
   - [x] `./gradlew core:test` passes
 - result: I18nKeysTest checks key parity and non-blank values; exposes i18nKeys() helper for later cards.
 
+### ST-114 Input bindings table: one source for GameEventManager and the menu
+- status: done (2026-11-03, 233fda6)
+- size: S
+- agent: kotlin-dev
+- depends: ST-113
+- files: create `input/InputBindings.kt`; edit `event/GameEventManager.kt`, `input/ControlScheme.kt`, `assets/i18n/messages.properties`, `assets/i18n/messages_pl.properties`; `GameEventManagerTest.kt`, new `InputBindingsTest.kt`
+- refs: `main-menu.md` "Single sources of truth", "Bindings (today)", "Aim modes"
+- goal: Today the keys live in `when` branches inside `GameEventManager`, so a controls screen would have to copy them and could drift. Move every binding into one table that the input dispatcher reads and the menu (ST-116) lists. Behaviour is unchanged.
+- spec:
+  - In `InputBindings.kt`:
+    ```kotlin
+    enum class InputAction { AIM, FIRE, THRUST, ZOOM, TOGGLE_PILOT_VIEW, BLOCK, DEBUG_PANEL }
+    sealed interface InputTrigger {
+        data class Key(val code: Int) : InputTrigger
+        data class MouseButton(val button: Int) : InputTrigger
+        data object MouseMove : InputTrigger
+        data object Wheel : InputTrigger
+    }
+    data class Binding(
+        val action: InputAction, val trigger: InputTrigger, val labelKey: String,
+        val debugOnly: Boolean = false,
+        val schemes: Set<ControlScheme> = ControlScheme.entries.toSet(),  // menu filter only
+    )
+    object InputBindings { val DEFAULT: List<Binding> }
+    ```
+    `DEFAULT`, in this order: AIM/MouseMove/`action_aim`, FIRE/MouseButton(LEFT)/`action_fire`, THRUST/MouseButton(RIGHT)/`action_thrust`, ZOOM/Wheel/`action_zoom`, TOGGLE_PILOT_VIEW/Key(V)/`action_pilot_view`, BLOCK/Key(CONTROL_RIGHT)/`action_block`, DEBUG_PANEL/Key(F1)/`action_debug_panel`/debugOnly.
+  - Pure lookups on a `List<Binding>`: `fun List<Binding>.keyAction(code: Int): InputAction?`, `fun List<Binding>.buttonAction(button: Int): InputAction?`, `fun List<Binding>.forMenu(scheme: ControlScheme, includeDebug: Boolean): List<Binding>` (keeps table order, filters by `scheme in schemes` and `debugOnly`).
+  - Pure `fun triggerLabel(t: InputTrigger, i18n: (String) -> String): String`: `Key` → `Input.Keys.toString(code)` (e.g. "R-Ctrl", "V", "F1"); `MouseButton` LEFT/RIGHT/MIDDLE → `i18n("input_lmb" / "input_rmb" / "input_mmb")`; `MouseMove` → `i18n("input_mouse")`; `Wheel` → `i18n("input_wheel")`.
+  - `GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAULT)`. `keyDown`: look up the action; `DEBUG_PANEL` dispatches to the debug listeners **before** the `ignoreInput` check (as F1 does today); then `ignoreInput` returns false; `TOGGLE_PILOT_VIEW` → `togglePilotView`, `BLOCK` → `block`; no action → false. `touchDown/Up`: `FIRE` → `fire(true/false)`, `THRUST` → `thrusters(1f/0f)`. No `Keys.`/`Buttons.` literals stay in `GameEventManager`. Mouse move and wheel keep their callbacks (they're listed in the table for the menu).
+  - `ControlScheme` gets a constructor property `val implemented: Boolean`: `MOUSE_HULL` true, `TWIN_STICK` and `AUTO_AIM` false (they fall back to mouse-hull). Add `companion fun selectable(): List<ControlScheme> = entries.filter { it.implemented }`. ST-061 and ST-062 flip their flag.
+  - i18n (both files): `action_aim=Aim` / `Celowanie`, `action_fire=Fire` / `Strzał`, `action_thrust=Thrust` / `Ciąg silnika`, `action_zoom=Zoom` / `Przybliżenie`, `action_pilot_view=Toggle pilot view` / `Przełącz widok pilota`, `action_block=Shield (not yet)` / `Tarcza (wkrótce)`, `action_debug_panel=Debug panel` / `Panel debugowania`, `input_lmb=LMB` / `LPM`, `input_rmb=RMB` / `PPM`, `input_mmb=MMB` / `ŚPM`, `input_mouse=Mouse` / `Mysz`, `input_wheel=Mouse wheel` / `Kółko myszy`.
+- acceptance:
+  - [x] Existing `GameEventManagerTest` cases pass unchanged (F1 works while input is ignored, V toggles pilot view, unbound key returns false)
+  - [x] Test: a `GameEventManager` built with a custom table that binds TOGGLE_PILOT_VIEW to `Keys.P` toggles on P and not on V (proves dispatch reads the table)
+  - [x] Test: `forMenu(MOUSE_HULL, includeDebug = false)` has 6 entries in table order without F1; `includeDebug = true` adds F1 last; a binding with `schemes = setOf(TWIN_STICK)` is excluded for MOUSE_HULL
+  - [x] Test: `triggerLabel(Key(CONTROL_RIGHT)) == "R-Ctrl"`, `triggerLabel(MouseButton(LEFT), i18n)` returns `i18n("input_lmb")`
+  - [x] Test (using `i18nKeys` from ST-113): every `labelKey` in `DEFAULT` and every `input_*` key exists in both files
+  - [x] Test: `ControlScheme.selectable() == listOf(MOUSE_HULL)`
+  - [x] `./gradlew core:test` passes
+- result: Bindings live in InputBindings.DEFAULT; GameEventManager reads the table, menu helpers forMenu/triggerLabel added.
+

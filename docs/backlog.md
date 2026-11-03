@@ -9,7 +9,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
-0b. ST-114 Input bindings table
 0c. ST-115 Settings table and persistence
 0d. ST-116 Main menu rework: settings panel and controls list
 0e. ST-117 Menu: language and fullscreen
@@ -65,46 +64,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 ## M2a Main menu: controls and settings
 
 - note (owner 2026-11-03, top priority): "Main screen should show all control shortcuts. Before starting the game, I want to have options to choose whatever can be changed. For example, choosing aim mode [...]. Start screen can have play and quit as now, but add all controls and settings that could be changed." Design: `docs/design/main-menu.md`. Two single sources of truth: the bindings table (`input/InputBindings.kt`, ST-114) feeds both `GameEventManager` and the controls list; the settings table (`settings/MenuSettings.kt`, ST-115) feeds the menu widgets, persistence and "Reset defaults". Settings are the existing DI singletons (`RelativitySettings`, `ControlSettings`, `DebugSettings`), so nothing new is plumbed into `PlayScreen`. Non-ASCII characters in `.properties` files are written as `\uXXXX` escapes, like the existing entries.
-
-### ST-114 Input bindings table: one source for GameEventManager and the menu
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-113
-- files: create `input/InputBindings.kt`; edit `event/GameEventManager.kt`, `input/ControlScheme.kt`, `assets/i18n/messages.properties`, `assets/i18n/messages_pl.properties`; `GameEventManagerTest.kt`, new `InputBindingsTest.kt`
-- refs: `main-menu.md` "Single sources of truth", "Bindings (today)", "Aim modes"
-- goal: Today the keys live in `when` branches inside `GameEventManager`, so a controls screen would have to copy them and could drift. Move every binding into one table that the input dispatcher reads and the menu (ST-116) lists. Behaviour is unchanged.
-- spec:
-  - In `InputBindings.kt`:
-    ```kotlin
-    enum class InputAction { AIM, FIRE, THRUST, ZOOM, TOGGLE_PILOT_VIEW, BLOCK, DEBUG_PANEL }
-    sealed interface InputTrigger {
-        data class Key(val code: Int) : InputTrigger
-        data class MouseButton(val button: Int) : InputTrigger
-        data object MouseMove : InputTrigger
-        data object Wheel : InputTrigger
-    }
-    data class Binding(
-        val action: InputAction, val trigger: InputTrigger, val labelKey: String,
-        val debugOnly: Boolean = false,
-        val schemes: Set<ControlScheme> = ControlScheme.entries.toSet(),  // menu filter only
-    )
-    object InputBindings { val DEFAULT: List<Binding> }
-    ```
-    `DEFAULT`, in this order: AIM/MouseMove/`action_aim`, FIRE/MouseButton(LEFT)/`action_fire`, THRUST/MouseButton(RIGHT)/`action_thrust`, ZOOM/Wheel/`action_zoom`, TOGGLE_PILOT_VIEW/Key(V)/`action_pilot_view`, BLOCK/Key(CONTROL_RIGHT)/`action_block`, DEBUG_PANEL/Key(F1)/`action_debug_panel`/debugOnly.
-  - Pure lookups on a `List<Binding>`: `fun List<Binding>.keyAction(code: Int): InputAction?`, `fun List<Binding>.buttonAction(button: Int): InputAction?`, `fun List<Binding>.forMenu(scheme: ControlScheme, includeDebug: Boolean): List<Binding>` (keeps table order, filters by `scheme in schemes` and `debugOnly`).
-  - Pure `fun triggerLabel(t: InputTrigger, i18n: (String) -> String): String`: `Key` → `Input.Keys.toString(code)` (e.g. "R-Ctrl", "V", "F1"); `MouseButton` LEFT/RIGHT/MIDDLE → `i18n("input_lmb" / "input_rmb" / "input_mmb")`; `MouseMove` → `i18n("input_mouse")`; `Wheel` → `i18n("input_wheel")`.
-  - `GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAULT)`. `keyDown`: look up the action; `DEBUG_PANEL` dispatches to the debug listeners **before** the `ignoreInput` check (as F1 does today); then `ignoreInput` returns false; `TOGGLE_PILOT_VIEW` → `togglePilotView`, `BLOCK` → `block`; no action → false. `touchDown/Up`: `FIRE` → `fire(true/false)`, `THRUST` → `thrusters(1f/0f)`. No `Keys.`/`Buttons.` literals stay in `GameEventManager`. Mouse move and wheel keep their callbacks (they're listed in the table for the menu).
-  - `ControlScheme` gets a constructor property `val implemented: Boolean`: `MOUSE_HULL` true, `TWIN_STICK` and `AUTO_AIM` false (they fall back to mouse-hull). Add `companion fun selectable(): List<ControlScheme> = entries.filter { it.implemented }`. ST-061 and ST-062 flip their flag.
-  - i18n (both files): `action_aim=Aim` / `Celowanie`, `action_fire=Fire` / `Strzał`, `action_thrust=Thrust` / `Ciąg silnika`, `action_zoom=Zoom` / `Przybliżenie`, `action_pilot_view=Toggle pilot view` / `Przełącz widok pilota`, `action_block=Shield (not yet)` / `Tarcza (wkrótce)`, `action_debug_panel=Debug panel` / `Panel debugowania`, `input_lmb=LMB` / `LPM`, `input_rmb=RMB` / `PPM`, `input_mmb=MMB` / `ŚPM`, `input_mouse=Mouse` / `Mysz`, `input_wheel=Mouse wheel` / `Kółko myszy`.
-- acceptance:
-  - [ ] Existing `GameEventManagerTest` cases pass unchanged (F1 works while input is ignored, V toggles pilot view, unbound key returns false)
-  - [ ] Test: a `GameEventManager` built with a custom table that binds TOGGLE_PILOT_VIEW to `Keys.P` toggles on P and not on V (proves dispatch reads the table)
-  - [ ] Test: `forMenu(MOUSE_HULL, includeDebug = false)` has 6 entries in table order without F1; `includeDebug = true` adds F1 last; a binding with `schemes = setOf(TWIN_STICK)` is excluded for MOUSE_HULL
-  - [ ] Test: `triggerLabel(Key(CONTROL_RIGHT)) == "R-Ctrl"`, `triggerLabel(MouseButton(LEFT), i18n)` returns `i18n("input_lmb")`
-  - [ ] Test (using `i18nKeys` from ST-113): every `labelKey` in `DEFAULT` and every `input_*` key exists in both files
-  - [ ] Test: `ControlScheme.selectable() == listOf(MOUSE_HULL)`
-  - [ ] `./gradlew core:test` passes
 
 ### ST-115 Settings table and persistence (libGDX Preferences)
 - status: ready

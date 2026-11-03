@@ -1,13 +1,16 @@
 package com.github.pepek42.asteroids.event
 
-import com.badlogic.gdx.Input
-import com.badlogic.gdx.Input.Keys
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
+import com.github.pepek42.asteroids.input.Binding
+import com.github.pepek42.asteroids.input.InputAction
+import com.github.pepek42.asteroids.input.InputBindings
+import com.github.pepek42.asteroids.input.buttonAction
+import com.github.pepek42.asteroids.input.keyAction
 import ktx.app.KtxInputAdapter
 import ktx.collections.GdxArray
 import ktx.log.logger
 
-class GameEventManager : KtxInputAdapter {
+class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAULT) : KtxInputAdapter {
     private val playerInputListeners = GdxArray<PlayerInputListener>()
     private val mapEventListener = GdxArray<MapEventListener>()
     private val debugListeners = GdxArray<DebugInputListener>()
@@ -38,17 +41,18 @@ class GameEventManager : KtxInputAdapter {
     }
 
     override fun keyDown(keycode: Int): Boolean {
-        if (keycode == Keys.F1) {
+        val action = bindings.keyAction(keycode)
+        if (action == InputAction.DEBUG_PANEL) {
             debugListeners.forEach { it.toggleDebugPanel() }
             return true
         }
         if (ignoreInput) return false
-        return when (keycode) {
-            Keys.CONTROL_RIGHT -> {
+        return when (action) {
+            InputAction.BLOCK -> {
                 block()
                 true
             }
-            Keys.V -> {
+            InputAction.TOGGLE_PILOT_VIEW -> {
                 playerInputListeners.forEach { it.togglePilotView() }
                 true
             }
@@ -64,9 +68,10 @@ class GameEventManager : KtxInputAdapter {
 
     override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         if (ignoreInput) return false
-        when (button) {
-            Input.Buttons.LEFT -> fire(true)
-            Input.Buttons.RIGHT -> thrusters(1f)
+        when (bindings.buttonAction(button)) {
+            InputAction.FIRE -> fire(true)
+            InputAction.THRUST -> thrusters(1f)
+            else -> {}
         }
         aimPoint(screenX, screenY)
         return true
@@ -80,9 +85,10 @@ class GameEventManager : KtxInputAdapter {
 
     override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
         if (ignoreInput) return false
-        when (button) {
-            Input.Buttons.LEFT -> fire(false)
-            Input.Buttons.RIGHT -> thrusters(0f)
+        when (bindings.buttonAction(button)) {
+            InputAction.FIRE -> fire(false)
+            InputAction.THRUST -> thrusters(0f)
+            else -> {}
         }
         aimPoint(screenX, screenY)
         return true

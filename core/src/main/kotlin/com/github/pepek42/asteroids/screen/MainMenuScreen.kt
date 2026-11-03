@@ -2,7 +2,7 @@ package com.github.pepek42.asteroids.screen
 
 import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
@@ -30,6 +30,8 @@ import com.github.pepek42.asteroids.settings.SettingSpec
 import com.github.pepek42.asteroids.settings.resetSettings
 import com.github.pepek42.asteroids.settings.saveSettings
 import com.github.pepek42.asteroids.ui.controlsRows
+import com.github.pepek42.asteroids.ui.CHECKED_COLOR
+import com.github.pepek42.asteroids.ui.UNCHECKED_COLOR
 import com.github.pepek42.asteroids.ui.formatSettingValue
 import ktx.app.KtxScreen
 import ktx.app.clearScreen
@@ -39,8 +41,6 @@ private const val MENU_PAD = 24f
 private const val COLUMN_SPACE = 40f
 private const val ROW_SPACE = 8f
 private const val BUTTON_SPACE = 16f
-private val CHECKED_COLOR = Color(0.45f, 1f, 0.45f, 1f)
-private val UNCHECKED_COLOR = Color(0.55f, 0.55f, 0.55f, 1f)
 private const val SLIDER_WIDTH = 160f
 
 class MainMenuScreen(private val game: Game) : KtxScreen {
@@ -139,6 +139,9 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
     private fun sliderWidget(spec: SettingSpec.Slider): Actor {
         val s = Slider(spec.min, spec.max, spec.step, false, skin, "default-horizontal")
         val valueLabel = Label("", skin)
+        // Widest of the two range ends, measured in the label font, so the readout never reflows while dragging.
+        val font = valueLabel.style.font
+        val valueWidth = listOf(spec.min, spec.max).maxOf { GlyphLayout(font, formatSettingValue(it, spec.decimals)).width }
         val refresh = { valueLabel.setText(formatSettingValue(s.value, spec.decimals)) }
         s.onChange {
             if (!syncing) refresh()
@@ -147,7 +150,7 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         syncs.add { s.value = spec.get(); refresh() }
         return Table().also {
             it.add(s).width(SLIDER_WIDTH)
-            it.add(valueLabel).padLeft(ROW_SPACE).width(valueLabel.style.font.spaceXadvance * VALUE_LABEL_CHARS)
+            it.add(valueLabel).padLeft(ROW_SPACE).width(valueWidth)
             it.userObject = s
         }
     }
@@ -241,6 +244,5 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
 
     companion object {
         private val logger = logger<MainMenuScreen>()
-        private const val VALUE_LABEL_CHARS = 4
     }
 }

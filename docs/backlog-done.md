@@ -1458,3 +1458,20 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - playtest: Start the game: every shortcut is listed; hover a setting for its hint; untick relativity and the c slider and time warp grey out; toggle pilot view, press Play, it's on; press V in game, finish the level, back at the menu the box matches.
 - result: Menu has settings panel (saves on change, syncs on show) and controls list; --scene=menu screenshot rendered cleanly.
 
+### ST-120 Menu widget polish (ST-116 review minors)
+- status: done (2026-11-03, d9de323)
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `screen/MainMenuScreen.kt`, `ui/DebugPanel.kt`, create `ui/UiColors.kt`
+- refs: ST-116 review
+- goal: Tidy the two non-trivial review minors from ST-116.
+- spec:
+  - Move `CHECKED_COLOR` / `UNCHECKED_COLOR` (duplicated in `DebugPanel` and `MainMenuScreen`) into one `internal` pair in `ui/UiColors.kt`; both files use it.
+  - Slider value label width: instead of `VALUE_LABEL_CHARS = 4` × space advance, size it from the wider of `formatSettingValue(spec.min, decimals)` and `formatSettingValue(spec.max, decimals)` measured with `GlyphLayout` on the label font.
+  - Drop the duplicate alpha set in the row enabled-sync (label alpha set both directly and via `setDisabled`); keep one path.
+- acceptance:
+  - [x] No colour constant is defined twice
+  - [x] Value label width derives from the slider range, no char-count constant
+  - [x] `./gradlew core:test lwjgl3:compileKotlin` passes
+

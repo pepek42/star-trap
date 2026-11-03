@@ -55,8 +55,6 @@ private const val PANEL_BACKGROUND_ALPHA = 0.6f
 private const val PANEL_PAD = 6f
 private const val SLIDER_WIDTH = 150f
 private const val TIME_BUTTON_WIDTH = 70f
-private val CHECKED_COLOR = Color(0.45f, 1f, 0.45f, 1f)
-private val UNCHECKED_COLOR = Color(0.55f, 0.55f, 0.55f, 1f)
 
 /** Flips [settings].panelVisible and returns the new value. Pure so the toggle can be tested without GL. */
 fun flipPanelVisible(settings: DebugSettings): Boolean {

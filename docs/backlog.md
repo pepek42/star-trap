@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-121**.
+Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-122**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -11,7 +11,7 @@ Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` car
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
 
 M3 Relativity MVP:
-18. ST-045 Doppler tint on sprites
+18a. ST-121 Doppler tint follow-ups: glow strength and projectiles
 19. ST-038 Boundary field acts on proper velocity
 19a. ST-023 Boundary field: ~5 % loss per bounce, restitution 0.95
 20. ST-047 Relativistic mass in Box2D collisions
@@ -123,23 +123,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] Test: a body at γ = 5 toward the wall triggers the backstop, ends inside the map with |u| ≤ 0.9·|u_before| and moving inward
   - [ ] `./gradlew core:test` passes
 - playtest: Bouncing off the edge at high speed feels like a strong rubber wall. Very fast hits snap back with a backstop ripple.
-
-### ST-045 Doppler tint on sprites
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-043, ST-044
-- files: `system/RenderSystem.kt`, `render/RelativityVisuals.kt`; tests
-- goal: Approaching objects look blue and bright, and receding ones look red and dim, which gives a free threat readout (research E4 sprites [FAKE white-point shift] plus E10 k = 1).
-- spec:
-  - `fun spriteTint(d: Float, lut: BlackbodyLut, out: FloatArray)`: `out = lut(6500·d) / lut(6500)` per channel, with each channel clamped to [0, 1]. `T_REF = 6500f`.
-  - `RenderSystem`, for every non-player entity: `n̂ = normalize(observer.position − entity pos)` (source → observer). `β_s = entity velocity / c` (from `u` if relativistic). `D = effectiveDoppler(dopplerFactor(observer.betaVisual, β_s, n̂))`. `B = D` clamped to `[B_MIN, B_MAX]`. Write `Color.toFloatBits(tint.r, tint.g, tint.b, min(B, 1)·spriteAlpha)` into the vertex colour slots (indices 2, 7, 12, 17) of the ST-044 scratch vertices. Always use the vertex path for tinted sprites. If `D > 1`, push the vertex copy into a reusable additive queue with alpha `clamp(D − 1, 0, 1)`. After all sprites, switch once to `GL_SRC_ALPHA, GL_ONE`, draw the queue, and restore the blend. The player sprite isn't tinted.
-- note (2026-11-02): in pilot view (ST-074), compute `n̂` from the entity's **retarded** position to the observer and `β_s` from the retarded velocity (`RetardedState`), not the current ones. Write the tint into the same vertex array ST-074 builds.
-- acceptance:
-  - [ ] Tests: `spriteTint(1f)` ≈ (1, 1, 1) ± 0.01; `spriteTint(2f)` has blue ≥ red; `spriteTint(0.5f)` has red > blue
-  - [ ] No per-frame allocation (preallocated queue, max 256 sprites; beyond that, skip the additive pass)
-  - [ ] `./gradlew core:test` passes
-- playtest: Fly at an asteroid fast: it turns blue-white and glows. Fly away: asteroids behind turn red and dim.
 
 ### ST-075 Pilot view: per-corner retarded time (Terrell rotation)
 - status: parked
@@ -282,6 +265,22 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] `docs/tech/balance.md` has the tables, the chosen constants and the reasoning; the constants are updated in code
   - [ ] `./gradlew core:test` passes (the sweep is not part of the default `test` run)
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
+
+### ST-121 Doppler tint follow-ups: glow strength and projectiles
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-045
+- refs: ST-045 (`render/RelativityVisuals.kt` `additiveGlowAlpha`, `system/RenderSystem.kt` `tintAndQueue`)
+- goal: Keep the sprite Doppler glow readable rather than blinding.
+- spec:
+  - Add `DOPPLER_GLOW_STRENGTH = 0.5f` in `RelativityVisuals.kt`; glow alpha becomes `clamp((D − 1)·DOPPLER_GLOW_STRENGTH, 0, 1)`. Update the KDoc and the `SpriteTintTest` glow test.
+  - Projectiles (`EntityType` of the projectile in `BaseInfoComponent`) keep the colour tint but skip the additive glow queue (they fly near c and would always glow). Add a constant/flag, not a literal check scattered in code.
+- acceptance:
+  - [ ] Glow alpha test updated for the strength factor
+  - [ ] Projectiles never enter the additive queue (unit test on the decision helper, or a documented check in `tintAndQueue`)
+  - [ ] `./gradlew core:test` passes
+- playtest: A fast asteroid ahead glows but its sprite is still readable; your own shots don't flare.
 
 ## M4 Relativistic view
 

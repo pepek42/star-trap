@@ -5,7 +5,9 @@ import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.ashley.utils.ImmutableArray
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
@@ -15,6 +17,7 @@ import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.bodyCmpOptional
+import com.github.pepek42.asteroids.component.playerMapper
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformCmp
@@ -22,9 +25,13 @@ import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.dopplerFactor
 import com.github.pepek42.asteroids.physics.gammaFromV
 import com.github.pepek42.asteroids.provider.BackgroundProvider
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.render.AdditiveSpriteQueue
+import com.github.pepek42.asteroids.render.BlackbodyLut
+import com.github.pepek42.asteroids.render.DOPPLER_MIN_BETA
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
 import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.ReferenceGridRenderer
@@ -33,6 +40,8 @@ import com.github.pepek42.asteroids.render.SPRITE_VERTEX_FLOATS
 import com.github.pepek42.asteroids.render.SPRITE_VERTEX_STRIDE
 import com.github.pepek42.asteroids.render.contractOffset
 import com.github.pepek42.asteroids.render.contractionK
+import com.github.pepek42.asteroids.render.effectiveDoppler
+import com.github.pepek42.asteroids.render.tintSpriteVertices
 import kotlin.math.sqrt
 import ktx.ashley.allOf
 import ktx.graphics.use
@@ -81,7 +90,9 @@ class RenderSystem(
             pilotView.begin(p.x, p.y)
         }
         batch.use(camera) {
+            additive.clear()
             super.update(deltaTime)
+            drawAdditive()
             fieldShimmerRenderer.render(batch)
         }
     }
@@ -97,8 +108,13 @@ class RenderSystem(
             logger.error { "Trying to render sprite with no texture $entity" }
             return
         }
+        val isPlayer = playerMapper.has(entity)
         if (pilotViewActive) {
-            if (pilotView.project(entity, scratch)) batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
+            if (!pilotView.project(entity, scratch)) return
+            if (!isPlayer) {
+                tintAndQueue(sprite, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy)
+            }
+            batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
             return
         }
         val transformComp = entity.transformCmp
@@ -124,32 +140,83 @@ class RenderSystem(
             }
         }
         val v = entity.bodyCmpOptional?.body?.linearVelocity
-        val speed = if (v == null) 0f else sqrt(v.x * v.x + v.y * v.y)
-        if (v == null || speed <= MIN_CONTRACTION_SPEED) {
+        val vx = v?.x ?: 0f
+        val vy = v?.y ?: 0f
+        val speed = sqrt(vx * vx + vy * vy)
+        val contract = v != null && speed > MIN_CONTRACTION_SPEED
+        val cx = transformComp.interpolatedPosition.x
+        val cy = transformComp.interpolatedPosition.y
+        val tinted = !isPlayer && observerBlueShiftActive(vx, vy)
+        if (!contract && !tinted) {
             sprite.draw(batch)
             return
         }
-        val gamma = entity.relativisticCmpOptional?.gUsed ?: gammaFromV(v.x, v.y, settings.c)
-        val k = contractionK(gamma)
-        val vhx = v.x / speed
-        val vhy = v.y / speed
-        val cx = transformComp.interpolatedPosition.x
-        val cy = transformComp.interpolatedPosition.y
         System.arraycopy(sprite.vertices, 0, scratch, 0, VERTEX_FLOATS)
-        for (i in 0 until VERTEX_FLOATS step VERTEX_STRIDE) {
-            contractOffset(scratch[i] - cx, scratch[i + 1] - cy, vhx, vhy, k, tmp)
-            scratch[i] = cx + tmp.x
-            scratch[i + 1] = cy + tmp.y
+        if (contract) {
+            val gamma = entity.relativisticCmpOptional?.gUsed ?: gammaFromV(vx, vy, settings.c)
+            val k = contractionK(gamma)
+            val vhx = vx / speed
+            val vhy = vy / speed
+            for (i in 0 until VERTEX_FLOATS step VERTEX_STRIDE) {
+                contractOffset(scratch[i] - cx, scratch[i + 1] - cy, vhx, vhy, k, tmp)
+                scratch[i] = cx + tmp.x
+                scratch[i + 1] = cy + tmp.y
+            }
         }
+        if (tinted) tintAndQueue(sprite, cx, cy, vx, vy)
         batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
+    }
+
+    /**
+     * True when the Doppler tint can differ from white: the observer or the source moves. At rest on both sides D = 1 and the
+     * plain sprite path is used.
+     */
+    private fun observerBlueShiftActive(vx: Float, vy: Float): Boolean =
+        observer.betaVisual.len2() >= DOPPLER_MIN_BETA * DOPPLER_MIN_BETA ||
+            vx * vx + vy * vy >= (DOPPLER_MIN_BETA * settings.c).let { it * it }
+
+    /**
+     * Tints the quad in [scratch] by the Doppler factor of a source at ([sx], [sy]) moving at ([vx], [vy]) as seen by the
+     * observer (ST-045): `n̂` runs from the source to the observer, β_s = v / c. Blueshifted sprites also queue an additive glow copy.
+     */
+    private fun tintAndQueue(sprite: Sprite, sx: Float, sy: Float, vx: Float, vy: Float) {
+        val nx = observer.position.x - sx
+        val ny = observer.position.y - sy
+        val dist = sqrt(nx * nx + ny * ny)
+        val c = settings.c
+        val d = if (dist < MIN_TINT_DISTANCE || c <= 0f) {
+            1f
+        } else {
+            betaSrc.set(vx / c, vy / c)
+            effectiveDoppler(dopplerFactor(observer.betaVisual, betaSrc, nx / dist, ny / dist))
+        }
+        val col = sprite.color
+        val glow = tintSpriteVertices(scratch, d, col.r, col.g, col.b, col.a, BlackbodyLut, rgb)
+        if (glow > 0f) additive.add(sprite.texture, scratch, glow * col.a)
+    }
+
+    /** Draws the queued glow copies once with additive blending, then restores the blend function. */
+    private fun drawAdditive() {
+        if (additive.size == 0) return
+        val src = batch.blendSrcFunc
+        val dst = batch.blendDstFunc
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE)
+        additive.draw(batch)
+        batch.setBlendFunction(src, dst)
     }
 
     private val scratch = FloatArray(VERTEX_FLOATS)
     private val tmp = Vector2()
+    private val betaSrc = Vector2()
+    private val rgb = FloatArray(3)
+    private val additive = AdditiveSpriteQueue()
 
     companion object {
         private const val VERTEX_FLOATS = SPRITE_VERTEX_FLOATS
         private const val VERTEX_STRIDE = SPRITE_VERTEX_STRIDE
+
+        /** Closer than this (u) the source-to-observer direction is undefined and the tint stays white. */
+        private const val MIN_TINT_DISTANCE = 1e-3f
         private val logger = logger<RenderSystem>()
     }
 }

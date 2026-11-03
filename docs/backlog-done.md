@@ -1336,6 +1336,24 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - result: Starfield colour and brightness follow the per-star Doppler factor via BlackbodyLut, with a zero-allocation fast path at rest.
 - playtest: At speed you can tell which way you're flying from the sky colour alone. Stars behind dim but don't vanish.
 
+### ST-045 Doppler tint on sprites
+- status: done (2026-11-03, e42446c)
+- size: M
+- agent: kotlin-dev
+- depends: ST-043, ST-044
+- files: `system/RenderSystem.kt`, `render/RelativityVisuals.kt`; tests
+- goal: Approaching objects look blue and bright, and receding ones look red and dim, which gives a free threat readout (research E4 sprites [FAKE white-point shift] plus E10 k = 1).
+- spec:
+  - `fun spriteTint(d: Float, lut: BlackbodyLut, out: FloatArray)`: `out = lut(6500·d) / lut(6500)` per channel, with each channel clamped to [0, 1]. `T_REF = 6500f`.
+  - `RenderSystem`, for every non-player entity: `n̂ = normalize(observer.position − entity pos)` (source → observer). `β_s = entity velocity / c` (from `u` if relativistic). `D = effectiveDoppler(dopplerFactor(observer.betaVisual, β_s, n̂))`. `B = D` clamped to `[B_MIN, B_MAX]`. Write `Color.toFloatBits(tint.r, tint.g, tint.b, min(B, 1)·spriteAlpha)` into the vertex colour slots (indices 2, 7, 12, 17) of the ST-044 scratch vertices. Always use the vertex path for tinted sprites. If `D > 1`, push the vertex copy into a reusable additive queue with alpha `clamp(D − 1, 0, 1)`. After all sprites, switch once to `GL_SRC_ALPHA, GL_ONE`, draw the queue, and restore the blend. The player sprite isn't tinted.
+- note (2026-11-02): in pilot view (ST-074), compute `n̂` from the entity's **retarded** position to the observer and `β_s` from the retarded velocity (`RetardedState`), not the current ones. Write the tint into the same vertex array ST-074 builds.
+- acceptance:
+  - [x] Tests: `spriteTint(1f)` ≈ (1, 1, 1) ± 0.01; `spriteTint(2f)` has blue ≥ red; `spriteTint(0.5f)` has red > blue
+  - [x] No per-frame allocation (preallocated queue, max 256 sprites; beyond that, skip the additive pass)
+  - [x] `./gradlew core:test` passes
+- result: Sprites are Doppler-tinted on the vertex path (world and retarded pilot view) with a bounded additive glow queue for approaching objects.
+- playtest: Fly at an asteroid fast: it turns blue-white and glows. Fly away: asteroids behind turn red and dim.
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

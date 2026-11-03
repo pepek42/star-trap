@@ -60,6 +60,16 @@ class PilotViewProjector(
     private var betaY = 0f
     private var now = 0f
 
+    /** Arena position and velocity (u, u/s) of the source drawn by the last successful [project] call: retarded when the history is used. */
+    var sourceX = 0f
+        private set
+    var sourceY = 0f
+        private set
+    var sourceVx = 0f
+        private set
+    var sourceVy = 0f
+        private set
+
     /** Latches the observer for this frame: [playerX]/[playerY] is the player's interpolated position. */
     fun begin(playerX: Float, playerY: Float) {
         ox = playerX
@@ -133,6 +143,10 @@ class PilotViewProjector(
                 }
             }
         }
+        sourceX = x
+        sourceY = y
+        sourceVx = vx
+        sourceVy = vy
         sprite.rotation = angleDeg
         sprite.setPosition(x - sprite.width / 2, y - sprite.height / 2)
         System.arraycopy(sprite.vertices, 0, out, 0, SPRITE_VERTEX_FLOATS)

@@ -1,9 +1,13 @@
 package com.github.pepek42.asteroids.render
 
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.math.Vector2
 import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.min
+import kotlin.math.pow
 
 /** Visual length contraction strength: 1 is exact L0/γ (research E5). */
 const val CONTRACTION_STRENGTH = 1f
@@ -53,3 +57,104 @@ fun effectiveDoppler(d: Float): Float =
  */
 fun starDoppler(betaX: Float, betaY: Float, gamma: Float, sx: Float, sy: Float): Float =
     gamma * (1f + betaX * sx + betaY * sy)
+
+/** Reference temperature (K) of an untinted sprite: a Doppler factor of 1 maps to white (research E4 sprites, FAKE white point). */
+const val T_REF = 6500f
+
+/** Most sprites the additive glow pass can queue per frame; beyond it the extra sprites skip the glow. */
+const val ADDITIVE_QUEUE_MAX_SPRITES = 256
+
+/**
+ * Sprite tint for Doppler factor [d]: `lut(T_REF·d) / lut(T_REF)` per channel, each clamped to [0, 1]. Written to `out[0..2]`.
+ * Allocation-free.
+ */
+fun spriteTint(d: Float, lut: BlackbodyLut, out: FloatArray) {
+    lut.rgbInto(T_REF, out)
+    val r0 = out[0]
+    val g0 = out[1]
+    val b0 = out[2]
+    lut.rgbInto(T_REF * d, out)
+    out[0] = if (r0 > 0f) (out[0] / r0).coerceIn(0f, 1f) else 1f
+    out[1] = if (g0 > 0f) (out[1] / g0).coerceIn(0f, 1f) else 1f
+    out[2] = if (b0 > 0f) (out[2] / b0).coerceIn(0f, 1f) else 1f
+}
+
+/** Searchlight brightness of an object at (effective) Doppler factor [d]: `D^BRIGHTNESS_EXPONENT_MVP` in [[B_MIN], [B_MAX]]. */
+fun spriteBrightness(d: Float): Float = d.pow(BRIGHTNESS_EXPONENT_MVP).coerceIn(B_MIN, B_MAX)
+
+/** Alpha of the additive glow copy of a blueshifted sprite: `clamp(D − 1, 0, 1)`, 0 when it is not blueshifted. */
+fun additiveGlowAlpha(d: Float): Float = (d - 1f).coerceIn(0f, 1f)
+
+/** Writes the packed colour `(r, g, b, a)` into the four corner colour slots of the sprite quad [v] (20 floats). */
+fun setSpriteVertexColor(v: FloatArray, r: Float, g: Float, b: Float, a: Float) {
+    val packed = Color.toFloatBits(r, g, b, a)
+    var i = SPRITE_COLOR_OFFSET
+    while (i < SPRITE_VERTEX_FLOATS) {
+        v[i] = packed
+        i += SPRITE_VERTEX_STRIDE
+    }
+}
+
+/** Index of the packed colour inside a sprite corner `(x, y, color, u, v)`. */
+const val SPRITE_COLOR_OFFSET = 2
+
+/**
+ * Tints the sprite quad [v] for the effective Doppler factor [d] (base colour [r], [g], [b], [a] is the sprite's own, usually white).
+ * Dims redshifted sprites through alpha (`min(B, 1)`). Returns the alpha of the additive glow copy, 0 if none is needed.
+ */
+fun tintSpriteVertices(
+    v: FloatArray, d: Float, r: Float, g: Float, b: Float, a: Float, lut: BlackbodyLut, rgb: FloatArray,
+): Float {
+    spriteTint(d, lut, rgb)
+    setSpriteVertexColor(v, rgb[0] * r, rgb[1] * g, rgb[2] * b, min(spriteBrightness(d), 1f) * a)
+    return additiveGlowAlpha(d)
+}
+
+/**
+ * Preallocated list of sprite quads drawn additively after all normal sprites (the glow of blueshifted ones). Holds at most
+ * [capacity] quads; [add] returns false when full, so the caller skips the glow instead of allocating.
+ */
+class AdditiveSpriteQueue(val capacity: Int = ADDITIVE_QUEUE_MAX_SPRITES) {
+    private val vertices = FloatArray(capacity * SPRITE_VERTEX_FLOATS)
+    private val textures = arrayOfNulls<Texture>(capacity)
+
+    private val tmpColor = Color()
+
+    var size = 0
+        private set
+
+    fun clear() {
+        size = 0
+        java.util.Arrays.fill(textures, null)
+    }
+
+    /** Copies the quad [v] with its colour alpha replaced by [alpha] (rgb kept). Returns false when the queue is full. */
+    fun add(texture: Texture, v: FloatArray, alpha: Float): Boolean {
+        if (size >= capacity) return false
+        val base = size * SPRITE_VERTEX_FLOATS
+        System.arraycopy(v, 0, vertices, base, SPRITE_VERTEX_FLOATS)
+        Color.abgr8888ToColor(tmpColor, v[SPRITE_COLOR_OFFSET])
+        val packed = Color.toFloatBits(tmpColor.r, tmpColor.g, tmpColor.b, alpha)
+        var i = base + SPRITE_COLOR_OFFSET
+        while (i < base + SPRITE_VERTEX_FLOATS) {
+            vertices[i] = packed
+            i += SPRITE_VERTEX_STRIDE
+        }
+        textures[size] = texture
+        size++
+        return true
+    }
+
+    /** Draws every queued quad into [batch], in insertion order. */
+    fun draw(batch: Batch) {
+        for (i in 0 until size) batch.draw(textures[i]!!, vertices, i * SPRITE_VERTEX_FLOATS, SPRITE_VERTEX_FLOATS)
+    }
+
+    fun textureAt(i: Int): Texture? = textures[i]
+
+    /** Colour alpha of corner 0 of queued quad [i]. */
+    fun alphaAt(i: Int): Float {
+        Color.abgr8888ToColor(tmpColor, vertices[i * SPRITE_VERTEX_FLOATS + SPRITE_COLOR_OFFSET])
+        return tmpColor.a
+    }
+}

@@ -13,8 +13,8 @@ One screen (`screen/MainMenuScreen.kt`), scene2d `Table` filling the stage:
 |                         STAR TRAP                           |
 |                                                             |
 |  [ Single Player ]     SETTINGS               CONTROLS      |
-|  [ Exit ]              Aim mode   [mouse v]   Mouse   Aim   |
-|                        Pilot view [ ]         LMB     Fire  |
+|  [ Exit ]              Perspective [Outside v] Mouse  Aim   |
+|                        Relativity [x]         LMB     Fire  |
 |                        ...                    RMB     Thrust|
 |                        [Reset defaults]       ...           |
 +-------------------------------------------------------------+
@@ -22,7 +22,7 @@ One screen (`screen/MainMenuScreen.kt`), scene2d `Table` filling the stage:
 
 - Left: the existing Play and Quit buttons, unchanged (Quit stays hidden on WebGL).
 - Middle: settings panel, one row per player-facing setting (label, widget, tooltip from a `*_hint` key), then "Reset defaults".
-- Right: controls list, two columns (input, action). It shows the bindings of the **selected** aim mode and rebuilds when the mode changes. Debug bindings (F1) are listed under a "Debug" subheading only when `DebugSettings.panelAllowed`.
+- Right: controls list, two columns (input, action). It shows the bindings of the current `ControlSettings.scheme` (the aim-mode selector arrives with ST-061). Debug bindings (F1) are listed under a "Debug" subheading only when `DebugSettings.panelAllowed`.
 
 ## Single sources of truth
 
@@ -45,6 +45,13 @@ One screen (`screen/MainMenuScreen.kt`), scene2d `Table` filling the stage:
 
 Coming: W/A/S/D + arrows (twin-stick move, ST-061; scheme `TWIN_STICK` only).
 
+### Perspective (owner 2026-11-03)
+
+The owner wants two ways to play: "one from player perspective and one from outside".
+
+- **Outside** (default): sprites are drawn at their true arena positions, on top of their Box2D bodies. This is the classic view.
+- **Pilot** (realistic): what the pilot actually sees, with light delay and aberration (ST-074). Sprites drift away from their bodies by roughly β times their distance, and only meet them at the moment of contact. The owner finds it interesting but possibly hard for humans to read, so the polish cards for it (ST-075, ST-077, ST-078, ST-079, ST-080, ST-089) are parked until this mode is worked on.
+
 ### Aim modes
 
 `input/ControlScheme.kt` has three entries, but only one has its own strategy:
@@ -56,14 +63,14 @@ Coming: W/A/S/D + arrows (twin-stick move, ST-061; scheme `TWIN_STICK` only).
 | `AUTO_AIM` | `auto` | falls back to mouse-hull until ST-062 (guns auto-target in a forward cone); ST-063 makes it the default |
 | (trance) | — | parked, ST-091 |
 
-ST-114 adds `ControlScheme.implemented`. The menu offers only implemented schemes, so the selector has one entry today and grows as ST-061/ST-062 land. The debug panel keeps listing all of them.
+ST-114 adds `ControlScheme.implemented`. **Owner 2026-11-03: the menu has no aim-mode selector until there is a second mode to pick.** ST-061 (twin-stick) adds the `aim_mode` Choice over `ControlScheme.selectable()`, and the controls list then rebuilds when the mode changes. The debug panel keeps listing all schemes.
 
 ### Settings
 
 | Setting | Backing field | Type / range | Default | Where |
 |---|---|---|---|---|
-| Aim mode | `ControlSettings.scheme` | choice of implemented `ControlScheme`s | `ControlSettings()` default (mouse; auto after ST-063) | **menu** |
-| Pilot view (experimental) | `RelativitySettings.pilotView` | toggle (V in game) | `PILOT_VIEW_DEFAULT` (false) | **menu** |
+| Perspective | `RelativitySettings.pilotView` | choice: Outside (false) / Pilot, realistic (true); V switches in game | `PILOT_VIEW_DEFAULT` (outside) | **menu** |
+| Aim mode | `ControlSettings.scheme` | choice of implemented `ControlScheme`s | mouse | added by ST-061 |
 | Relativity (off = Newtonian) | `RelativitySettings.relativityEnabled` | toggle | `RELATIVITY_ENABLED` (true) | **menu** |
 | Speed of light c | `RelativitySettings.c` | slider `C_MIN`…`C_MAX_BOX2D_SAFE`, step 1 | `SPEED_OF_LIGHT` (20) | **menu**, disabled when relativity is off |
 | Time warp (arena runs on ship time) | `RelativitySettings.timeWarpEnabled` | toggle | `TIME_WARP_ENABLED` (true) | **menu**, disabled when relativity is off |
@@ -87,7 +94,7 @@ No new plumbing: `RelativitySettings`, `ControlSettings` and `DebugSettings` are
 libGDX `Preferences` (name `PREFERENCES_NAME = "star-trap-settings"` in `Config.kt`; a file in `~/.prefs/` on desktop, localStorage on TeaVM). Behind a small `KeyValueStore` interface so tests use an in-memory map.
 
 - Load once in `Game.create()` after the singletons are bound; values go through the existing clamping setters, and an unknown or unimplemented scheme flag falls back to the default.
-- Command-line flags win over prefs (`--controls=` overrides the saved aim mode).
+- Command-line flags win over prefs (`--controls=` overrides the saved aim mode once ST-061 adds it).
 - Screenshot runs (`--screenshot`) skip loading, so harness output stays reproducible.
 - Save (and `flush`) whenever a menu widget changes a value, and on Play.
 - Only menu settings are persisted; debug-panel-only knobs reset every launch.
@@ -99,6 +106,6 @@ Every label, hint and input name is a key in both `assets/i18n/messages.properti
 
 ## Out of scope (for now)
 
-- Key rebinding (ST-119 asks the owner; the bindings table makes it possible later).
+- Key rebinding. Owner 2026-11-03 (ST-119): the controls list is read-only; the bindings table makes rebinding possible later.
 - A pause / back-to-menu key in game.
 - Gamepad.

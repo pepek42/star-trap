@@ -1325,3 +1325,20 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
   - [ ] The answer is in game-design.md §11 Decisions. If (a) or (c): set `SOURCE_COUPLING_DEFAULT` to 1f or 0f
   - [ ] `./gradlew core:test` passes
 
+## M2a Main menu: controls and settings
+
+### ST-119 Owner decision: key rebinding on the menu
+- status: done (2026-11-03, decision)
+- size: S
+- agent: kotlin-dev
+- depends: ST-116
+- files: `input/InputBindings.kt`, `settings/MenuSettings.kt`, `screen/MainMenuScreen.kt`
+- refs: `main-menu.md` "Out of scope"
+- goal: The menu lists the controls (ST-116). Should the player also be able to change them?
+- question: (a) no, the controls list is read-only for now (recommended: the scheme set is still changing with ST-061/ST-062, and rebinding is easy to add later because everything reads one table); (b) rebind keyboard keys only (V, R-Ctrl, later WASD): click a row, press a key, stored in prefs as `bind_<action>`, with conflict detection; (c) full rebinding including mouse buttons.
+- acceptance (if b):
+  - [ ] `GameEventManager` reads a mutable bindings table loaded from prefs; a test rebinds TOGGLE_PILOT_VIEW to P and P toggles while V doesn't; binding a key already in use swaps the two
+  - [ ] `./gradlew core:test` passes
+
+- result: Owner chose (a): read-only controls list; rebinding can be added later through the bindings table.
+

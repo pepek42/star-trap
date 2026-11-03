@@ -15,16 +15,12 @@ Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/m
 0d. ST-116 Main menu rework: settings panel and controls list
 0e. ST-117 Menu: language and fullscreen
 0f. ST-118 Docs: main menu, bindings, persistence
-0g. ST-119 Owner decision: key rebinding (needs-user)
 
 M3 Relativity MVP:
 13b. ST-112 Pilot view: one gate for hull transform and aim
-14. ST-078 Lead markers
 14a. ST-062 Auto-aim + auto-shoot scheme (owner 2026-11-02: the default, un-parked)
 14b. ST-063 Make auto-aim the default control scheme
-15. ST-075 Pilot view: Terrell rotation
 16. ST-043 Doppler colour and searchlight on the starfield
-17. ST-077 Pilot view: starfield, field band and shimmer
 18. ST-045 Doppler tint on sprites
 19. ST-038 Boundary field acts on proper velocity
 19a. ST-023 Boundary field: ~5 % loss per bounce, restitution 0.95
@@ -37,8 +33,6 @@ M3 Relativity MVP:
 29. ST-049 Bring docs in line after M3
 
 M4 Relativistic view:
-30. ST-079 Ghosts of removed entities
-31. ST-080 Searchlight k = 2 in pilot view
 32. ST-081 Doppler-scaled photon damage
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
@@ -49,7 +43,6 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 39. ST-094 Level decoration: drifting debris
 40. ST-086 Gravitational time dilation
 41. ST-087 Accretion disk
-42. ST-089 Accretion disk in pilot view
 43. ST-095 Lighting math (pure)
 44. ST-096 Normal maps from alpha in the texture packer
 45. ST-097 Lit sprites: accretion disks light ships, asteroids and planets
@@ -60,6 +53,13 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 
 Parked:
 51. ST-091 Targeting-trance scheme
+Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the default; revive when the pilot perspective mode is worked on):
+52. ST-078 Lead markers
+53. ST-075 Pilot view: Terrell rotation
+54. ST-077 Pilot view: starfield, field band and shimmer
+55. ST-079 Ghosts of removed entities
+56. ST-080 Searchlight k = 2 in pilot view
+57. ST-089 Accretion disk in pilot view
 
 ---
 
@@ -138,25 +138,24 @@ Parked:
     - `Slider(key, min: Float, max: Float, step: Float, decimals: Int, default: Float, get, set, enabled)`
     - `Choice(key, options: List<String>, optionLabelKeys: List<String>, default: String, get: () -> String, set: (String) -> Unit, enabled)`
   - `class MenuSettings(val specs: List<SettingSpec>)` (a wrapper so DI can bind it) and `fun menuSettings(relativity: RelativitySettings, controls: ControlSettings, debug: DebugSettings): MenuSettings` with, in this order:
-    1. `aim_mode` Choice: options `ControlScheme.selectable().map { it.flag }`, labels `scheme_<flag>`, default `ControlSettings().scheme.flag`, set = `ControlScheme.fromFlag(v)?.takeIf { it.implemented }?.let { controls.scheme = it }` (unknown or unimplemented values are ignored)
-    2. `pilot_view` Toggle ↔ `relativity.pilotView`, default `PILOT_VIEW_DEFAULT`
-    3. `relativity` Toggle ↔ `relativityEnabled`, default `RELATIVITY_ENABLED`
-    4. `speed_of_light` Slider ↔ `c`, `C_MIN`..`C_MAX_BOX2D_SAFE`, step 1, 0 decimals, default `SPEED_OF_LIGHT`, enabled = `{ relativity.relativityEnabled }`
-    5. `time_warp` Toggle ↔ `timeWarpEnabled`, default `TIME_WARP_ENABLED`, enabled = `{ relativity.relativityEnabled }`
-    6. `target_pointers` Toggle ↔ `debug.targetPointersEnabled`, default `TARGET_POINTERS_ENABLED`
-    7. `grid` Toggle ↔ `debug.gridEnabled`, default `GRID_ENABLED`
+    1. `perspective` Choice ↔ `relativity.pilotView`: options `outside` (false) / `pilot` (true), labels `perspective_outside` / `perspective_pilot`, default from `PILOT_VIEW_DEFAULT` (outside). Owner 2026-11-03: "2 game options - one from player perspective and one from outside".
+    2. `relativity` Toggle ↔ `relativityEnabled`, default `RELATIVITY_ENABLED`
+    3. `speed_of_light` Slider ↔ `c`, `C_MIN`..`C_MAX_BOX2D_SAFE`, step 1, 0 decimals, default `SPEED_OF_LIGHT`, enabled = `{ relativity.relativityEnabled }`
+    4. `time_warp` Toggle ↔ `timeWarpEnabled`, default `TIME_WARP_ENABLED`, enabled = `{ relativity.relativityEnabled }`
+    5. `target_pointers` Toggle ↔ `debug.targetPointersEnabled`, default `TARGET_POINTERS_ENABLED`
+    6. `grid` Toggle ↔ `debug.gridEnabled`, default `GRID_ENABLED`
   - Pure functions: `loadSettings(store, specs)`: for each spec whose key the store contains, `set(store.getX(key, default))` (setters clamp, e.g. c). `saveSettings(store, specs)`: put every `get()`, put `SETTINGS_VERSION_KEY = "settings_version"` = 1, `flush()`. `resetSettings(specs)`: `set(default)` for each.
   - `Config.kt`: `const val PREFERENCES_NAME = "star-trap-settings"`.
   - `Game.create()`: bind `KeyValueStore` as `GdxPreferencesStore(Gdx.app.getPreferences(PREFERENCES_NAME))`, or `MemoryKeyValueStore()` when `options.screenshotPath != null` (harness output must not depend on a developer's saved prefs). Bind `menuSettings(...)`. After the context is built: `loadSettings(...)`, then `options.controls?.let { controls.scheme = it }` so the command line wins over prefs.
-  - i18n (both files, labels and hints): `setting_aim_mode=Aim mode` / `Tryb celowania`, hint `How you steer and aim the ship.` / `Jak sterujesz statkiem i celujesz.`; `scheme_mouse=Mouse: hull follows the cursor` / `Mysz: kadłub za kursorem`; `scheme_twin=Twin-stick: WASD + mouse turret` / `Twin-stick: WASD + wieżyczka`; `scheme_auto=Auto-aim: guns pick targets` / `Auto-celowanie: działa same wybierają cel`; `setting_pilot_view=Pilot view (experimental)` / `Widok pilota (eksperymentalny)`, hint `Draw what the pilot sees: delayed light and aberration. V toggles it in game.` / `Pokazuje to, co widzi pilot: opóźnione światło i aberrację. V przełącza w grze.`; `setting_relativity=Relativity` / `Relatywistyka`, hint `Off: classic Newtonian physics.` / `Wyłączona: klasyczna fizyka Newtona.`; `setting_speed_of_light=Speed of light` / `Prędkość światła`, hint `Lower c makes relativistic effects show up sooner.` / `Mniejsze c: efekty relatywistyczne pojawiają się wcześniej.`; `setting_time_warp=Time warp` / `Przyspieszenie czasu`, hint `The arena runs on the pilot's clock and speeds up at high speed.` / `Arena biegnie według zegara pilota i przyspiesza przy dużej prędkości.`; `setting_target_pointers=Target pointers` / `Wskaźniki celów`, hint `Arrows at the screen edge point at off-screen targets.` / `Strzałki na krawędzi ekranu wskazują cele poza ekranem.`; `setting_grid=Reference grid` / `Siatka odniesienia`, hint `A background grid that makes your motion visible.` / `Siatka w tle, dzięki której widać ruch.`
+  - i18n (both files, labels and hints): `setting_perspective=Perspective` / `Perspektywa`, hint `Outside: objects are drawn where they really are. Pilot: what the pilot actually sees, with delayed light and aberration (realistic, harder). V switches in game.` / `Z zewnątrz: obiekty tam, gdzie naprawdę są. Pilot: to, co naprawdę widzi pilot, z opóźnionym światłem i aberracją (realistycznie, trudniej). V przełącza w grze.`; `perspective_outside=Outside` / `Z zewnątrz`; `perspective_pilot=Pilot (realistic)` / `Pilot (realistyczna)`; `setting_relativity=Relativity` / `Relatywistyka`, hint `Off: classic Newtonian physics.` / `Wyłączona: klasyczna fizyka Newtona.`; `setting_speed_of_light=Speed of light` / `Prędkość światła`, hint `Lower c makes relativistic effects show up sooner.` / `Mniejsze c: efekty relatywistyczne pojawiają się wcześniej.`; `setting_time_warp=Time warp` / `Przyspieszenie czasu`, hint `The arena runs on the pilot's clock and speeds up at high speed.` / `Arena biegnie według zegara pilota i przyspiesza przy dużej prędkości.`; `setting_target_pointers=Target pointers` / `Wskaźniki celów`, hint `Arrows at the screen edge point at off-screen targets.` / `Strzałki na krawędzi ekranu wskazują cele poza ekranem.`; `setting_grid=Reference grid` / `Siatka odniesienia`, hint `A background grid that makes your motion visible.` / `Siatka w tle, dzięki której widać ruch.`
 - acceptance:
   - [ ] Test: change every setting, `saveSettings` into a `MemoryKeyValueStore`, reset the objects, `loadSettings`: all values come back; `settings_version` is 1
-  - [ ] Test: a stored `speed_of_light` of 1000 loads as `C_MAX_BOX2D_SAFE`; stored `aim_mode` "foo" or "twin" (not implemented) leaves the scheme unchanged; an empty store changes nothing
-  - [ ] Test: `resetSettings` restores every default (pilot view false, c = `SPEED_OF_LIGHT`, ...)
+  - [ ] Test: a stored `speed_of_light` of 1000 loads as `C_MAX_BOX2D_SAFE`; an empty store changes nothing
+  - [ ] Test: `resetSettings` restores every default (perspective outside, c = `SPEED_OF_LIGHT`, ...)
   - [ ] Test: `speed_of_light` and `time_warp` report `enabled() == false` when relativity is off
   - [ ] Test (ST-113 helper): every `labelKey`, `hintKey` and option label key exists in both files
   - [ ] `./gradlew core:test` passes
-- playtest: Change c in the F1 panel, quit from the menu, restart: c is still changed (it is a menu setting). `--controls=mouse` on the command line overrides a saved aim mode.
+- playtest: Change c in the F1 panel, quit from the menu, restart: c is still changed (it is a menu setting).
 
 ### ST-116 Main menu rework: settings panel and controls list
 - status: ready
@@ -169,8 +168,7 @@ Parked:
 - spec:
   - Pure, in `MainMenuLayout.kt`: `fun controlsRows(bindings: List<Binding>, scheme: ControlScheme, includeDebug: Boolean, i18n: (String) -> String): List<Pair<String, String>>` = `bindings.forMenu(scheme, includeDebug).map { triggerLabel(it.trigger, i18n) to i18n(it.labelKey) }`. `fun formatSettingValue(v: Float, decimals: Int): String`.
   - Screen layout: a root `Table` with `setFillParent(true)`; a title label (`TITLE`); then three columns: (1) the existing Play (`menu_single_player`) and Exit (`menu_exit`, still hidden on WebGL) buttons with their current behaviour; (2) `menu_settings` heading, one row per spec (label with a `TextTooltip` of `i18n[hintKey]`, widget: `Toggle` → `CheckBox`, `Slider` → `Slider` + value label, `Choice` → `SelectBox<String>` showing `i18n[optionLabelKeys[i]]` and mapping the index back to `options[i]`), then a `menu_reset_defaults` button; (3) `menu_controls` heading and a two-column table from `controlsRows(InputBindings.DEFAULT, controls.scheme, includeDebug = false, ...)`, plus a `menu_controls_debug` subheading and the debug rows when `DebugSettings.panelAllowed`. Wrap columns 2 and 3 in a `ScrollPane` so a short window still works.
-  - Behaviour: on any widget change, `spec.set(...)`, `saveSettings(store, specs)`, refresh every row's disabled state from `spec.enabled()`, and rebuild the controls table when `aim_mode` changed. Reset: `resetSettings`, save, re-sync widgets. Play: `saveSettings` first, then the existing `gameState.resetGame(); game.setScreen<PlayScreen>()`. `show()` re-syncs every widget from `spec.get()` (V and the F1 panel change the same objects in game). Guard against the sync firing change listeners that save half-synced state (set a `syncing` flag).
-  - A `Choice` with a single option (today's aim mode) is shown but disabled.
+  - Behaviour: on any widget change, `spec.set(...)`, `saveSettings(store, specs)`, refresh every row's disabled state from `spec.enabled()`. Reset: `resetSettings`, save, re-sync widgets. Play: `saveSettings` first, then the existing `gameState.resetGame(); game.setScreen<PlayScreen>()`. `show()` re-syncs every widget from `spec.get()` (V and the F1 panel change the same objects in game). Guard against the sync firing change listeners that save half-synced state (set a `syncing` flag).
   - i18n (both files): `menu_settings=Settings` / `Ustawienia`, `menu_controls=Controls` / `Sterowanie`, `menu_controls_debug=Debug` / `Debugowanie`, `menu_reset_defaults=Reset defaults` / `Przywróć domyślne`.
   - ST-084 later adds a "run ended" label above the buttons; leave room in column 1.
 - acceptance:
@@ -216,19 +214,6 @@ Parked:
   - [ ] The four files say the above, and no doc still claims the keys live in `GameEventManager`'s `when`
   - [ ] `./gradlew core:test` passes
 
-### ST-119 Owner decision: key rebinding on the menu
-- status: needs-user
-- size: S
-- agent: kotlin-dev
-- depends: ST-116
-- files: `input/InputBindings.kt`, `settings/MenuSettings.kt`, `screen/MainMenuScreen.kt`
-- refs: `main-menu.md` "Out of scope"
-- goal: The menu lists the controls (ST-116). Should the player also be able to change them?
-- question: (a) no, the controls list is read-only for now (recommended: the scheme set is still changing with ST-061/ST-062, and rebinding is easy to add later because everything reads one table); (b) rebind keyboard keys only (V, R-Ctrl, later WASD): click a row, press a key, stored in prefs as `bind_<action>`, with conflict detection; (c) full rebinding including mouse buttons.
-- acceptance (if b):
-  - [ ] `GameEventManager` reads a mutable bindings table loaded from prefs; a test rebinds TOGGLE_PILOT_VIEW to P and P toggles while V doesn't; binding a key already in use swaps the two
-  - [ ] `./gradlew core:test` passes
-
 ---
 
 ## M2 Arena boundary field
@@ -264,7 +249,7 @@ Parked:
 - status: ready
 - size: M
 - agent: kotlin-dev
-- depends: ST-058, ST-114
+- depends: ST-058, ST-114, ST-115, ST-116
 - files: create `input/TwinStickStrategy.kt`, edit `input/InputBindings.kt`, `input/ControlScheme.kt`; edit `event/PlayerInputListener.kt`, `event/GameEventManager.kt`, `system/PlayerInputSystem.kt`; tests
 - goal: Scheme (b) for the owner to try. WASD gives the desired thrust direction in the world frame. The hull turns toward it through the existing PD rotation controller (`MoveComponent.targetAngleRad`), and the engine fires as the hull lines up. The mouse aims an independent turret (`WeaponComponent.aimAngleRad`), and LMB fires. Gamepad support (left/right stick through gdx-controllers) is **out of scope**. Ask the planner for a card if the owner picks (b) in ST-063.
 - spec:
@@ -274,7 +259,9 @@ Parked:
   - Register it in `PlayerInputSystem.strategies[TWIN_STICK]`, replacing the fallback.
   - (Added 2026-11-03, ST-114) Keys come from the bindings table, not literals: add `MOVE_UP/MOVE_DOWN/MOVE_LEFT/MOVE_RIGHT` to `InputAction` with W/S/A/D and the arrow keys as `Binding`s (`schemes = setOf(TWIN_STICK)`, label keys `action_move_up` … in both i18n files), and resolve them in `GameEventManager` through `keyAction`. Set `ControlScheme.TWIN_STICK.implemented = true` so the main menu offers it.
   - Note for relativity: the turret aim is the shooter-frame direction n̂'. Once ST-039 lands, a laser aimed at the cursor at high speed visibly sweeps forward (aberration). That's intended and part of what the owner should feel.
+  - (Added 2026-11-03, owner) Add the aim-mode selector to the main menu here: an `aim_mode` Choice in `settings/MenuSettings.kt` over `ControlScheme.selectable()` (labels `scheme_<flag>`; unknown or unimplemented saved values are ignored), saved with the other menu settings, with i18n `setting_aim_mode` + hint and `scheme_mouse` / `scheme_twin` / `scheme_auto` in both files; the menu controls list rebuilds when the mode changes. `--controls=` still overrides the saved value.
 - acceptance:
+  - [ ] Test: the menu settings include `aim_mode` with options `[mouse, twin]`; a saved `aim_mode` "foo" leaves the scheme unchanged; `--controls=mouse` overrides a saved "twin"
   - [ ] Test: hull at 0, axis (0, 1): `targetAngleRad = π/2`, thrusters = 0 (cos 90° = 0). Hull at π/2, same axis: thrusters = 1. Hull at π/4: thrusters = 0.5 ± 1e-4
   - [ ] Test: no axis after having had one: thrusters = 0 and `targetAngleRad` equals the last target. The turret angle follows the mouse whatever the hull angle
   - [ ] Test: `GameEventManager`: W down + D down dispatches (0.7071, 0.7071) ± 1e-4. W up leaves (1, 0). `ignorePlayerInputs()` dispatches (0, 0)
@@ -336,7 +323,8 @@ Parked:
 - playtest: Fly at an asteroid fast: it turns blue-white and glows. Fly away: asteroids behind turn red and dim.
 
 ### ST-075 Pilot view: per-corner retarded time (Terrell rotation)
-- status: ready
+- status: parked
+- note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
 - size: S
 - agent: kotlin-dev
 - depends: ST-074
@@ -352,7 +340,8 @@ Parked:
 - playtest: Fast asteroids crossing close by look slightly skewed. No flicker or corner jitter.
 
 ### ST-077 Pilot view: starfield, field band and shimmer through the boost
-- status: ready
+- status: parked
+- note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
 - size: M
 - agent: kotlin-dev
 - depends: ST-043, ST-074
@@ -370,7 +359,8 @@ Parked:
 - playtest: Near c the sky shrinks into a bright forward cone and the arena wall bulges. Shimmer ripples still appear where shots cross the band.
 
 ### ST-078 Lead markers: where to aim so a photon hits
-- status: ready
+- status: parked
+- note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
 - size: M
 - agent: kotlin-dev
 - depends: ST-039, ST-071, ST-073, ST-074, ST-076
@@ -442,7 +432,7 @@ Parked:
 - status: ready
 - size: S
 - agent: junior-dev
-- depends: ST-036, ST-037, ST-038, ST-039, ST-040, ST-041, ST-042, ST-043, ST-044, ST-045, ST-046, ST-047, ST-048, ST-055, ST-056, ST-057, ST-058, ST-059, ST-060, ST-061, ST-066, ST-067, ST-068, ST-069, ST-070, ST-071, ST-072, ST-073, ST-074, ST-075, ST-076, ST-077, ST-078
+- depends: ST-036, ST-037, ST-038, ST-039, ST-040, ST-041, ST-042, ST-043, ST-044, ST-045, ST-046, ST-047, ST-048, ST-055, ST-056, ST-057, ST-058, ST-059, ST-060, ST-061, ST-066, ST-067, ST-068, ST-069, ST-070, ST-071, ST-072, ST-073, ST-074, ST-076
 - files: `docs/tech/architecture.md`, `CLAUDE.md`, `docs/design/game-design.md` (§4 controls, §5 arena size, §6 tier table and §11, only to reflect the answered `needs-user` cards)
 - goal: Document the relativistic dynamics layer (step-listener order, `RelativisticComponent`, `RELATIVITY_ENABLED`), `ObserverState`, the projectile sweep and photons, the new constants, the M3 promotions listed in this milestone's note, the runtime `RelativitySettings`/`DebugSettings`/`ControlSettings` singletons, the debug panel (F1, `--debug-panel`), the `ControlScheme` strategies and `--controls=`, the UI-first input multiplexer order, and (2026-11-02) the pilot clock (`GameClock`, `TimeWarpSystem`, the 10-step cap), the braking boost, shots leaving the arena, and the pilot view with `LightHistorySystem`, aiming and lead markers.
 - acceptance:
@@ -494,7 +484,8 @@ Parked:
 The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead markers) was pulled forward into M3 by the 2026-11-02 interview: ST-070 to ST-078. M4 holds the follow-ups.
 
 ### ST-079 Pilot view: ghosts of removed entities until their light runs out
-- status: ready
+- status: parked
+- note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
 - size: S
 - agent: kotlin-dev
 - depends: ST-074
@@ -512,7 +503,8 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - playtest: Shoot a distant asteroid in pilot view: the shot reaches it, and it breaks a moment later, as seen. No asteroid pops out of existence early.
 
 ### ST-080 Searchlight k = 2 in pilot view, with a brightness floor and outlines
-- status: ready
+- status: parked
+- note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
 - size: S
 - agent: kotlin-dev
 - depends: ST-043, ST-045, ST-074
@@ -741,7 +733,8 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 - playtest: Fly past a hole: stars smear into arcs and a ring around it. You can spot holes from the backdrop.
 
 ### ST-089 Accretion disk in pilot view, with Doppler beaming
-- status: ready
+- status: parked
+- note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
 - size: S
 - agent: kotlin-dev
 - depends: ST-074, ST-080, ST-087
@@ -863,7 +856,7 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 - status: ready
 - size: S
 - agent: junior-dev
-- depends: ST-079, ST-080, ST-081, ST-082, ST-083, ST-084, ST-085, ST-086, ST-087, ST-088, ST-089, ST-093, ST-094, ST-095, ST-096, ST-097, ST-098, ST-099
+- depends: ST-081, ST-082, ST-083, ST-084, ST-085, ST-086, ST-087, ST-088, ST-093, ST-094, ST-095, ST-096, ST-097, ST-098, ST-099
 - files: `docs/tech/architecture.md`, `CLAUDE.md`, `docs/design/game-design.md` (§6, §7 entities, §9 visuals, §11 decisions only)
 - goal: Document the pilot view render path and its flags (V key), `LightHistorySystem` and ghosts, the step-listener order including `GravitySystem` and `LightHistorySystem`, `GravitySourceComponent` and the n-body source path (Newtonian, sensor bodies for holes, `sourceCoupling`, `playerGm`), black holes (`EntityType.BLACK_HOLE`, horizon kill, merging), planets and debris, the player death flow, the accretion disk, lighting (lit-sprite shader, normal maps from the packer, shadows, star light, the pilot-view exact/FAKE list) and lensing passes, and the new constants and settings.
 - acceptance:
@@ -879,10 +872,11 @@ Owner 2026-11-02: control modes for later (game-design §12). Keep them ready bu
 - status: ready
 - size: M
 - agent: kotlin-dev
-- depends: ST-058, ST-073, ST-078, ST-114
+- depends: ST-058, ST-073, ST-114
 - files: create `input/AutoAim.kt`, `input/AutoAimStrategy.kt`; edit `system/PlayerInputSystem.kt`, `input/ControlScheme.kt`, `input/InputBindings.kt`, `screen/PlayScreen.kt`; tests
 - goal: **Reworked 2026-11-02** (owner: parked mode (a), Brotato / vampire-survivors style). Movement is mouse-hull as in scheme (a): the mouse steers the hull and RMB thrusts. The guns pick a target in a forward cone and fire on their own. It uses the honest fire control of the lead markers (ST-078: retarded state, extrapolated), so auto-aim never peeks at true positions. The photon math moved to `physics/PhotonAim.kt` (ST-073).
 - spec:
+  - (Added 2026-11-03, owner parked ST-078) Implement the pure fire-control function `leadDirection(...)` here, in `physics/PhotonAim.kt`, exactly as ST-078's spec defines it (retarded state, extrapolated at constant velocity, never true positions), with ST-078's math tests. The on-screen lead markers stay parked in ST-078.
   - Pure `fun pickTargetIndex(sx, sy, facingRad, coneHalfRad, range, xs: FloatArray, ys: FloatArray, n: Int): Int` in `AutoAim.kt`: the index of the nearest candidate with `dist ≤ range` and `|shortestAngleDiffRad(facing, atan2(dy, dx))| ≤ coneHalfRad`, or −1. No allocation.
   - `AutoAimStrategy(targets, lightHistory, observer, clock, settings)`: the targets are the family `allOf(HealthComponent, BodyComponent, BaseInfoComponent)` minus the player faction. Candidate positions are their retarded positions (`LightHistory.retarded`), filled into reused scratch arrays. Movement as in `MouseHullStrategy`. Fire: `i = pickTargetIndex(…, AUTO_AIM_CONE_HALF_DEG = 30°, AUTO_AIM_RANGE = 40f)`. If `i ≥ 0`, then `leadDirection(…)` (ST-078) gives `n̂'`, `weapon.aimAngleRad = atan2(n̂')` and `doAttack = true`. Otherwise `doAttack = fireHeld` and `aimAngleRad = null`.
   - Register it in `PlayerInputSystem.strategies[AUTO_AIM]`.
@@ -894,7 +888,7 @@ Owner 2026-11-02: control modes for later (game-design §12). Keep them ready bu
 - playtest: With `--controls=auto`, fly around: the guns hit asteroids ahead even at high speed. Does it feel like the game plays itself?
 
 ### ST-091 Targeting-trance control scheme (hold LMB: slow-mo aim, release: one shot)
-- status: ready
+- status: parked
 - size: M
 - agent: kotlin-dev
 - depends: ST-058, ST-069, ST-078

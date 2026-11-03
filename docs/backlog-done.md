@@ -1299,6 +1299,22 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - playtest: In pilot view at speed, the ship's nose and the shots go where the cursor is.
 - result: MouseHullStrategy uses `pilotHullToWorld` in pilot view, the hull fallback fires at `worldHullToPilot(body.angle, β)`, and the muzzle offset now follows the W-frame flight direction n̂ (decision: keeps the shot on its own flight line).
 
+### ST-112 Pilot view: one gate for hull transform and aim (ST-076 follow-ups)
+- status: done (2026-11-03, 76ff775)
+- size: S
+- agent: kotlin-dev
+- depends: ST-076
+- files: `render/PilotView.kt`, `system/RenderSystem.kt`, `system/PlayerInputSystem.kt`, `physics/RelativitySettings.kt`; tests
+- refs: ST-076 result (`docs/backlog-done.md`)
+- goal: The drawn hull and the cursor mapping must use the same switch, otherwise the nose and the cursor disagree. Today `RenderSystem`/`PilotView` apply `worldHullToPilot` whenever `pilotView` is on, but the input side gates on `pilotView && relativityEnabled`, and neither looks at `pilotAberration`.
+- spec:
+  - Add one helper on `RelativitySettings`, e.g. `val pilotHullTransform get() = pilotView && relativityEnabled && pilotAberration`. Use it in the renderer (player hull rotation) and in `PlayerInputSystem` (`input.pilotView`). Sprite projection (delay/aberration of other entities) stays gated as in ST-074.
+- acceptance:
+  - [x] Test: with relativity off, or with `pilotAberration` off, the player hull is drawn at `body.angle` and `MouseHullStrategy` returns the raw cursor angle
+  - [x] Test: with all three on, both use the transform (β = (0.9, 0), 45° → 66.45°)
+  - [x] `./gradlew core:test` passes
+- playtest: Toggle relativity / aberration in the debug panel at speed: the nose stays on the cursor in every combination.
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

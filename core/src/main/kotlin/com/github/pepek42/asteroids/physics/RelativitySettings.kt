@@ -64,6 +64,12 @@ class RelativitySettings(
     /** Debug switch for the aberration half of [pilotView]: boost the retarded positions into the pilot frame. */
     var pilotAberration: Boolean = true
 
+    /**
+     * The single gate for the player's hull angle: drawn at `worldHullToPilot(body.angle)` and the cursor mapped back with
+     * `pilotHullToWorld`. Sprite projection of other entities is gated separately by [pilotView], [pilotAberration], [pilotDelay].
+     */
+    val pilotHullTransform: Boolean get() = pilotView && relativityEnabled && pilotAberration
+
     /** Debug switch for the light delay half of [pilotView]: draw others where their light left them. */
     var pilotDelay: Boolean = true
 

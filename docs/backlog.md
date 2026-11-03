@@ -11,7 +11,6 @@ Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` car
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
 
 M3 Relativity MVP:
-13b. ST-112 Pilot view: one gate for hull transform and aim
 14a. ST-062 Auto-aim + auto-shoot scheme (owner 2026-11-02: the default, un-parked)
 14b. ST-063 Make auto-aim the default control scheme
 16. ST-043 Doppler colour and searchlight on the starfield
@@ -306,25 +305,10 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] `./gradlew core:test` passes (the sweep is not part of the default `test` run)
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
 
-### ST-112 Pilot view: one gate for hull transform and aim (ST-076 follow-ups)
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-076
-- files: `render/PilotView.kt`, `system/RenderSystem.kt`, `system/PlayerInputSystem.kt`, `physics/RelativitySettings.kt`; tests
-- refs: ST-076 result (`docs/backlog-done.md`)
-- goal: The drawn hull and the cursor mapping must use the same switch, otherwise the nose and the cursor disagree. Today `RenderSystem`/`PilotView` apply `worldHullToPilot` whenever `pilotView` is on, but the input side gates on `pilotView && relativityEnabled`, and neither looks at `pilotAberration`.
-- spec:
-  - Add one helper on `RelativitySettings`, e.g. `val pilotHullTransform get() = pilotView && relativityEnabled && pilotAberration`. Use it in the renderer (player hull rotation) and in `PlayerInputSystem` (`input.pilotView`). Sprite projection (delay/aberration of other entities) stays gated as in ST-074.
-- acceptance:
-  - [ ] Test: with relativity off, or with `pilotAberration` off, the player hull is drawn at `body.angle` and `MouseHullStrategy` returns the raw cursor angle
-  - [ ] Test: with all three on, both use the transform (β = (0.9, 0), 45° → 66.45°)
-  - [ ] `./gradlew core:test` passes
-- playtest: Toggle relativity / aberration in the debug panel at speed: the nose stays on the cursor in every combination.
-
 ## M4 Relativistic view
 
 The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead markers) was pulled forward into M3 by the 2026-11-02 interview: ST-070 to ST-078. M4 holds the follow-ups.
+- result: `RelativitySettings.pilotHullTransform` (pilotView && relativityEnabled && pilotAberration) now gates both the drawn player hull in `PilotView.project()` and the `PlayerInputSystem` cursor mapping.
 
 ### ST-079 Pilot view: ghosts of removed entities until their light runs out
 - status: parked

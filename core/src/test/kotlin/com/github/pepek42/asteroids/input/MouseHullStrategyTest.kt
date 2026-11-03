@@ -3,8 +3,10 @@ package com.github.pepek42.asteroids.input
 import com.badlogic.gdx.math.Vector2
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.debug.parseLaunchOptions
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -41,6 +43,20 @@ class MouseHullStrategyTest {
         input.pilotView = false
         MouseHullStrategy().apply(input, Vector2(), 0f, move, null, 0.016f)
         assertEquals(45f, Math.toDegrees(move.targetAngleRad!!.toDouble()).toFloat(), 0.05f)
+    }
+
+    @Test
+    fun inputGateMatchesHullGate() {
+        val s = RelativitySettings().apply { pilotView = true; relativityEnabled = true; pilotAberration = true }
+        assertTrue(s.pilotHullTransform)
+        s.relativityEnabled = false
+        assertFalse(s.pilotHullTransform)
+        s.relativityEnabled = true
+        s.pilotAberration = false
+        assertFalse(s.pilotHullTransform)
+        s.pilotAberration = true
+        s.pilotView = false
+        assertFalse(s.pilotHullTransform)
     }
 
     @Test

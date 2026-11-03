@@ -63,7 +63,7 @@ class PlayerInputSystem(
         camera.unproject(unprojected)
         input.aimWorld.set(unprojected.x, unprojected.y)
         input.betaShip.set(observer.betaVisual)
-        input.pilotView = settings.pilotView && settings.relativityEnabled
+        input.pilotView = settings.pilotHullTransform
         super.update(deltaTime)
     }
 

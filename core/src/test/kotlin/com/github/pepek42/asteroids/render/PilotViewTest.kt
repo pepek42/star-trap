@@ -157,6 +157,40 @@ class PilotViewTest {
         assertTrue(c.x > 80f + 1f)
     }
 
+    /** Hull angle (deg) of the projected player quad, from its bottom edge. */
+    private fun hullAngleDeg(rotationDeg: Float): Float {
+        val player = addEntity(50f, 50f, player = true)
+        player.getComponent(TransformComponent::class.java).interpolatedRotationDeg = rotationDeg
+        observer.betaVisual.set(0.9f, 0f)
+        begin(player)
+        assertTrue(projector.project(player, verts))
+        val d = SPRITE_VERTEX_STRIDE * 3
+        return Math.toDegrees(Math.atan2((verts[d + 1] - verts[1]).toDouble(), (verts[d] - verts[0]).toDouble())).toFloat()
+    }
+
+    @Test
+    fun hullIsTransformedOnlyWithPilotViewRelativityAndAberration() {
+        settings.pilotView = true
+        settings.relativityEnabled = true
+        settings.pilotAberration = true
+        assertEquals(45f, hullAngleDeg(66.45f), 0.05f)
+    }
+
+    @Test
+    fun hullIsRawWithoutRelativity() {
+        settings.pilotView = true
+        settings.relativityEnabled = false
+        assertEquals(66.45f, hullAngleDeg(66.45f), 0.05f)
+    }
+
+    @Test
+    fun hullIsRawWithoutAberration() {
+        settings.pilotView = true
+        settings.relativityEnabled = true
+        settings.pilotAberration = false
+        assertEquals(66.45f, hullAngleDeg(66.45f), 0.05f)
+    }
+
     @Test
     fun playerIsDrawnAtItsOwnPositionUnboosted() {
         val player = addEntity(50f, 50f, player = true)

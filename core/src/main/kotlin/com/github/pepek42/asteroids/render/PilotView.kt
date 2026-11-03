@@ -108,8 +108,12 @@ class PilotViewProjector(
         if (playerMapper.has(entity)) {
             x = ox
             y = oy
-            angleDeg = worldHullToPilot(transform.interpolatedRotationDeg * MathUtils.degreesToRadians, betaX, betaY) *
-                MathUtils.radiansToDegrees
+            angleDeg = if (settings.pilotHullTransform) {
+                worldHullToPilot(transform.interpolatedRotationDeg * MathUtils.degreesToRadians, betaX, betaY) *
+                    MathUtils.radiansToDegrees
+            } else {
+                transform.interpolatedRotationDeg
+            }
         } else {
             val h = if (settings.pilotDelay) baseInfoMapper.get(entity)?.let { history.historyOf(it.id) } else null
             if (h != null) {

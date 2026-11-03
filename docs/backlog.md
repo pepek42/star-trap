@@ -9,7 +9,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
-0d. ST-116 Main menu rework: settings panel and controls list
 0e. ST-117 Menu: language and fullscreen
 0f. ST-118 Docs: main menu, bindings, persistence
 
@@ -63,28 +62,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 ## M2a Main menu: controls and settings
 
 - note (owner 2026-11-03, top priority): "Main screen should show all control shortcuts. Before starting the game, I want to have options to choose whatever can be changed. For example, choosing aim mode [...]. Start screen can have play and quit as now, but add all controls and settings that could be changed." Design: `docs/design/main-menu.md`. Two single sources of truth: the bindings table (`input/InputBindings.kt`, ST-114) feeds both `GameEventManager` and the controls list; the settings table (`settings/MenuSettings.kt`, ST-115) feeds the menu widgets, persistence and "Reset defaults". Settings are the existing DI singletons (`RelativitySettings`, `ControlSettings`, `DebugSettings`), so nothing new is plumbed into `PlayScreen`. Non-ASCII characters in `.properties` files are written as `\uXXXX` escapes, like the existing entries.
-
-### ST-116 Main menu rework: settings panel and controls list
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-115
-- files: `screen/MainMenuScreen.kt`; create `ui/MainMenuLayout.kt` (pure helpers); both `assets/i18n/messages*.properties`; new `ui/MainMenuLayoutTest.kt`
-- refs: `main-menu.md` "Layout", "Persistence"; `ui/DebugPanel.kt` `checkBox`/`slider`/`SelectBox` code as the widget pattern
-- goal: The main screen keeps Play and Quit, and adds a settings panel built from `MenuSettings` and a controls list built from `InputBindings`, so the player can see every shortcut and choose options before a run.
-- spec:
-  - Pure, in `MainMenuLayout.kt`: `fun controlsRows(bindings: List<Binding>, scheme: ControlScheme, includeDebug: Boolean, i18n: (String) -> String): List<Pair<String, String>>` = `bindings.forMenu(scheme, includeDebug).map { triggerLabel(it.trigger, i18n) to i18n(it.labelKey) }`. `fun formatSettingValue(v: Float, decimals: Int): String`.
-  - Screen layout: a root `Table` with `setFillParent(true)`; a title label (`TITLE`); then three columns: (1) the existing Play (`menu_single_player`) and Exit (`menu_exit`, still hidden on WebGL) buttons with their current behaviour; (2) `menu_settings` heading, one row per spec (label with a `TextTooltip` of `i18n[hintKey]`, widget: `Toggle` → `CheckBox`, `Slider` → `Slider` + value label, `Choice` → `SelectBox<String>` showing `i18n[optionLabelKeys[i]]` and mapping the index back to `options[i]`), then a `menu_reset_defaults` button; (3) `menu_controls` heading and a two-column table from `controlsRows(InputBindings.DEFAULT, controls.scheme, includeDebug = false, ...)`, plus a `menu_controls_debug` subheading and the debug rows when `DebugSettings.panelAllowed`. Wrap columns 2 and 3 in a `ScrollPane` so a short window still works.
-  - Behaviour: on any widget change, `spec.set(...)`, `saveSettings(store, specs)`, refresh every row's disabled state from `spec.enabled()`. Reset: `resetSettings`, save, re-sync widgets. Play: `saveSettings` first, then the existing `gameState.resetGame(); game.setScreen<PlayScreen>()`. `show()` re-syncs every widget from `spec.get()` (V and the F1 panel change the same objects in game). Guard against the sync firing change listeners that save half-synced state (set a `syncing` flag).
-  - i18n (both files): `menu_settings=Settings` / `Ustawienia`, `menu_controls=Controls` / `Sterowanie`, `menu_controls_debug=Debug` / `Debugowanie`, `menu_reset_defaults=Reset defaults` / `Przywróć domyślne`.
-  - ST-084 later adds a "run ended" label above the buttons; leave room in column 1.
-- acceptance:
-  - [ ] Test: `controlsRows(DEFAULT, MOUSE_HULL, false, i18n)` has 6 rows in table order, with ("R-Ctrl", i18n("action_block")) and (i18n("input_lmb"), i18n("action_fire")); with `includeDebug = true` the last row is ("F1", i18n("action_debug_panel"))
-  - [ ] Test: `formatSettingValue(20f, 0) == "20"`, `formatSettingValue(0.25f, 2) == "0.25"`
-  - [ ] Test (ST-113 helper): the four `menu_*` keys exist in both files
-  - [ ] If a display is available, `./gradlew lwjgl3:run --args="--screenshot=menu.png --scene=menu"` renders the menu without exceptions (state the outcome in the result)
-  - [ ] `./gradlew core:test` passes
-- playtest: Start the game: every shortcut is listed; hover a setting for its hint; untick relativity and the c slider and time warp grey out; toggle pilot view, press Play, it's on; press V in game, finish the level, back at the menu the box matches.
 
 ### ST-117 Menu: language and fullscreen settings
 - status: ready

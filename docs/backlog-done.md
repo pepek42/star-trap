@@ -1435,3 +1435,26 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - playtest: Change c in the F1 panel, quit from the menu, restart: c is still changed (it is a menu setting).
 - result: MenuSettings (6 specs) with load/save/reset via KeyValueStore; loaded at startup, saving is wired by ST-116.
 
+### ST-116 Main menu rework: settings panel and controls list
+- status: done (2026-11-03, 23e46cb)
+- size: M
+- agent: kotlin-dev
+- depends: ST-115
+- files: `screen/MainMenuScreen.kt`; create `ui/MainMenuLayout.kt` (pure helpers); both `assets/i18n/messages*.properties`; new `ui/MainMenuLayoutTest.kt`
+- refs: `main-menu.md` "Layout", "Persistence"; `ui/DebugPanel.kt` `checkBox`/`slider`/`SelectBox` code as the widget pattern
+- goal: The main screen keeps Play and Quit, and adds a settings panel built from `MenuSettings` and a controls list built from `InputBindings`, so the player can see every shortcut and choose options before a run.
+- spec:
+  - Pure, in `MainMenuLayout.kt`: `fun controlsRows(bindings: List<Binding>, scheme: ControlScheme, includeDebug: Boolean, i18n: (String) -> String): List<Pair<String, String>>` = `bindings.forMenu(scheme, includeDebug).map { triggerLabel(it.trigger, i18n) to i18n(it.labelKey) }`. `fun formatSettingValue(v: Float, decimals: Int): String`.
+  - Screen layout: a root `Table` with `setFillParent(true)`; a title label (`TITLE`); then three columns: (1) the existing Play (`menu_single_player`) and Exit (`menu_exit`, still hidden on WebGL) buttons with their current behaviour; (2) `menu_settings` heading, one row per spec (label with a `TextTooltip` of `i18n[hintKey]`, widget: `Toggle` → `CheckBox`, `Slider` → `Slider` + value label, `Choice` → `SelectBox<String>` showing `i18n[optionLabelKeys[i]]` and mapping the index back to `options[i]`), then a `menu_reset_defaults` button; (3) `menu_controls` heading and a two-column table from `controlsRows(InputBindings.DEFAULT, controls.scheme, includeDebug = false, ...)`, plus a `menu_controls_debug` subheading and the debug rows when `DebugSettings.panelAllowed`. Wrap columns 2 and 3 in a `ScrollPane` so a short window still works.
+  - Behaviour: on any widget change, `spec.set(...)`, `saveSettings(store, specs)`, refresh every row's disabled state from `spec.enabled()`. Reset: `resetSettings`, save, re-sync widgets. Play: `saveSettings` first, then the existing `gameState.resetGame(); game.setScreen<PlayScreen>()`. `show()` re-syncs every widget from `spec.get()` (V and the F1 panel change the same objects in game). Guard against the sync firing change listeners that save half-synced state (set a `syncing` flag).
+  - i18n (both files): `menu_settings=Settings` / `Ustawienia`, `menu_controls=Controls` / `Sterowanie`, `menu_controls_debug=Debug` / `Debugowanie`, `menu_reset_defaults=Reset defaults` / `Przywróć domyślne`.
+  - ST-084 later adds a "run ended" label above the buttons; leave room in column 1.
+- acceptance:
+  - [x] Test: `controlsRows(DEFAULT, MOUSE_HULL, false, i18n)` has 6 rows in table order, with ("R-Ctrl", i18n("action_block")) and (i18n("input_lmb"), i18n("action_fire")); with `includeDebug = true` the last row is ("F1", i18n("action_debug_panel"))
+  - [x] Test: `formatSettingValue(20f, 0) == "20"`, `formatSettingValue(0.25f, 2) == "0.25"`
+  - [x] Test (ST-113 helper): the four `menu_*` keys exist in both files
+  - [x] If a display is available, `./gradlew lwjgl3:run --args="--screenshot=menu.png --scene=menu"` renders the menu without exceptions (state the outcome in the result)
+  - [x] `./gradlew core:test` passes
+- playtest: Start the game: every shortcut is listed; hover a setting for its hint; untick relativity and the c slider and time warp grey out; toggle pilot view, press Play, it's on; press V in game, finish the level, back at the menu the box matches.
+- result: Menu has settings panel (saves on change, syncs on show) and controls list; --scene=menu screenshot rendered cleanly.
+

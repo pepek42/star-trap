@@ -87,7 +87,9 @@ const val TIME_WARP_MAX = 10f
 const val TIME_WARP_MAX_LIMIT = 12f
 
 /**
- * Default for `RelativitySettings.pilotView` (owner decision 2026-11-02, research E8 + E9): the main view shows what the
- * pilot sees (light delay and aberration). When false the camera shows the true arena positions.
+ * Default for `RelativitySettings.pilotView` (research E8 + E9). When true the main view shows what the pilot sees (light
+ * delay and aberration), so sprites drift away from their Box2D bodies by roughly β·distance. When false the camera shows
+ * the true arena positions and sprites match the bodies. Off by default since 2026-11-03: the owner found the pilot view
+ * unplayable because sprites and hitboxes disagree. V toggles it at runtime.
  */
-const val PILOT_VIEW_DEFAULT = true
+const val PILOT_VIEW_DEFAULT = false

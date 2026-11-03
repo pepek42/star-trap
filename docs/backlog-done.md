@@ -1235,6 +1235,32 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - playtest: The player ship visibly flattens along its direction of travel near c. Slow asteroids look unchanged.
 - result: RenderSystem contracts sprite quads along v̂ via pure contractOffset/contractionK (min scale 25 %), with physics-lies rows 31-32.
 
+### ST-074 Pilot view: sprites drawn at retarded, boosted positions (default on)
+- status: done (2026-11-03, 7a0badd)
+- size: M
+- agent: kotlin-dev
+- depends: ST-044, ST-059, ST-071, ST-072
+- files: `physics/RelativitySettings.kt`, `physics/PhysicsConstants.kt`, `system/RenderSystem.kt`, `system/CameraSystem.kt`, `event/PlayerInputListener.kt`, `event/GameEventManager.kt`, `ui/DebugPanel.kt`, `screen/PlayScreen.kt`; tests
+- goal: Make what the pilot actually sees the main rendering (owner decision 2026-11-02, research E8 + E9). Every other object is drawn where its light left it (light delay) and then boosted into the pilot's frame (aberration), so the world slides forward and stretches ahead at speed. Physics, collisions and the minimap stay in true arena positions. A flag keeps the old world view.
+- spec:
+  - Settings (append last, with defaults): `pilotView: Boolean = PILOT_VIEW_DEFAULT` (`const val PILOT_VIEW_DEFAULT = true`), `pilotAberration = true` and `pilotDelay = true` (debug switches for the two halves). All are plain `var`s, restored by `resetDebugDefaults`. Debug panel: three checkboxes "pilot view", "aberration" and "light delay".
+  - The V key toggles `pilotView`: `PlayerInputListener.togglePilotView()` (default no-op). `GameEventManager.keyDown(Keys.V)` calls it on the listeners. `CameraSystem` implements it and flips `settings.pilotView`.
+  - `CameraSystem` in pilot view: centre the camera exactly on the player's interpolated position with **no** arena clamp (the clamp is an arena-frame idea, and the boosted view has no fixed edges).
+  - `RenderSystem` gets `LightHistorySystem`, `ObserverState`, `GameClock` and `RelativitySettings`. In pilot view, with `o` = the player's interpolated position, `β = observer.betaVisual` (the same smoothed β that ST-076 aiming uses) and `now = clock.worldTime − (1 − clock.interpolationAlpha)·PHYSICS_UPDATE_INTERVAL` (the interpolated arena time):
+    - The player is drawn at `o`, unboosted, with rotation `worldHullToPilot(body.angle, β)` (in its own frame the ship is at rest and uncontracted).
+    - Every other sprite entity: `historyOf(id).retarded(o, now, c, state)` (if `!pilotDelay`, use the current interpolated transform). If it returns false, skip the entity (its light hasn't arrived). Build the 4 sprite corners at the retarded position and angle, with the ST-044 contraction for the retarded velocity, in a reusable `FloatArray(20)`. Map each corner `p` to `o + apparentOffset(p − o, β)` (skip the boost if `!pilotAberration`), then `batch.draw(texture, verts, 0, 20)`.
+    - Keep the world-view path unchanged when `pilotView` is false.
+  - The minimap and the HUD keep using true positions.
+  - No per-frame allocation (a reusable `RetardedState`, `Vector2` and vertex array).
+- acceptance:
+  - [x] Pure test: extract `fun pilotCorner(px, py, ox, oy, betaX, betaY, aberration: Boolean, out: Vector2)`. A corner at o + (0, 10) with β = (0.9, 0) → o + (20.65, 10); with `aberration = false` → o + (0, 10)
+  - [x] Test (real engine, headless: drive `RenderSystem`'s position logic through a helper that doesn't need a GL batch): a static asteroid 30 u away appears at its true position when the player is at rest. With the player at β = 0.8 it appears shifted toward +x by the E9 formula within 0.05 u
+  - [x] Test: an asteroid spawned 1 step ago at distance 30 (not eternal) is not drawn
+  - [~] Screenshot via the harness with `--seed=42 --thrust --frames=150`, viewed by the agent: asteroids bunch up toward the direction of motion (partial: level-1 asteroids off screen; logged apparent positions confirmed the forward shift)
+  - [x] `./gradlew core:test` passes
+- playtest: Accelerate: the asteroid field visibly crowds forward and stretches ahead; things beside you appear ahead. V switches between pilot view and the true (world) view. Hitting things should still feel fair; note anything that feels like a desync.
+- result: `render/PilotView.kt` projects every non-player sprite through light delay + aberration (`PilotViewProjector`), RenderSystem/CameraSystem use it when `pilotView` is on, V toggles.
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

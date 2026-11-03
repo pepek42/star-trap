@@ -1,6 +1,7 @@
 package com.github.pepek42.asteroids.event
 
 import com.badlogic.gdx.Input.Keys
+import com.github.pepek42.asteroids.event.PlayerInputListener
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -32,5 +33,19 @@ class GameEventManagerTest {
     fun unhandledKeyReturnsFalse() {
         val manager = GameEventManager()
         assertFalse(manager.keyDown(Keys.A))
+    }
+
+    @Test
+    fun vTogglesPilotViewOnListeners() {
+        val manager = GameEventManager()
+        var calls = 0
+        manager.addInputListener(object : PlayerInputListener {
+            override fun togglePilotView() {
+                calls++
+            }
+        })
+
+        assertTrue(manager.keyDown(Keys.V))
+        assertEquals(1, calls)
     }
 }

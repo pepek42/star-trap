@@ -58,6 +58,15 @@ class RelativitySettings(
             field = value.coerceIn(1f, TIME_WARP_MAX_LIMIT)
         }
 
+    /** Main view shows the pilot's apparent world (ST-074); false draws true arena positions. Toggled with V. */
+    var pilotView: Boolean = PILOT_VIEW_DEFAULT
+
+    /** Debug switch for the aberration half of [pilotView]: boost the retarded positions into the pilot frame. */
+    var pilotAberration: Boolean = true
+
+    /** Debug switch for the light delay half of [pilotView]: draw others where their light left them. */
+    var pilotDelay: Boolean = true
+
     /** Speed cap as a fraction of c implied by [gammaMaxMassive]. */
     val betaMaxMassive: Float get() = sqrt(1f - 1f / (gammaMaxMassive * gammaMaxMassive))
 

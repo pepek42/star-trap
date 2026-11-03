@@ -10,4 +10,6 @@ interface PlayerInputListener {
     fun block() = Unit
 
     fun zoom(zoomDelta: Float) = Unit
+
+    fun togglePilotView() = Unit
 }

@@ -48,6 +48,10 @@ class GameEventManager : KtxInputAdapter {
                 block()
                 true
             }
+            Keys.V -> {
+                playerInputListeners.forEach { it.togglePilotView() }
+                true
+            }
             else -> false
         }
     }

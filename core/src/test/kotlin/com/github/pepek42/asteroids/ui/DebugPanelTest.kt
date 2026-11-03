@@ -128,4 +128,13 @@ class DebugPanelTest {
         resetDebugDefaults(rel, DebugSettings(panelAllowed = true, panelVisible = true, timeScale = 1f, showVectors = false))
         assertEquals(BRAKE_BOOST_K, rel.brakeBoost)
     }
+
+    @Test
+    fun resetRestoresPilotViewSwitches() {
+        val rel = RelativitySettings().apply { pilotView = false; pilotAberration = false; pilotDelay = false }
+        resetDebugDefaults(rel, DebugSettings(panelAllowed = true, panelVisible = true, timeScale = 1f, showVectors = false))
+        assertEquals(com.github.pepek42.asteroids.physics.PILOT_VIEW_DEFAULT, rel.pilotView)
+        assertTrue(rel.pilotAberration)
+        assertTrue(rel.pilotDelay)
+    }
 }

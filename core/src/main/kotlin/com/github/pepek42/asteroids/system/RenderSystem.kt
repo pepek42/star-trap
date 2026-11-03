@@ -1,31 +1,38 @@
 package com.github.pepek42.asteroids.system
 
+import com.badlogic.ashley.core.Engine
 import com.badlogic.ashley.core.Entity
-import com.badlogic.gdx.Gdx
 import com.badlogic.ashley.systems.IteratingSystem
+import com.badlogic.ashley.utils.ImmutableArray
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.Game
+import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
-import com.github.pepek42.asteroids.component.spriteCmp
-import com.github.pepek42.asteroids.component.transformCmp
-import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
+import com.github.pepek42.asteroids.component.spriteCmp
+import com.github.pepek42.asteroids.component.transformCmp
+import com.github.pepek42.asteroids.debug.DebugSettings
+import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaFromV
-import com.github.pepek42.asteroids.render.contractOffset
-import com.github.pepek42.asteroids.render.contractionK
-import com.badlogic.gdx.math.Vector2
-import kotlin.math.sqrt
 import com.github.pepek42.asteroids.provider.BackgroundProvider
-import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
+import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.ReferenceGridRenderer
+import com.github.pepek42.asteroids.render.MIN_CONTRACTION_SPEED
+import com.github.pepek42.asteroids.render.SPRITE_VERTEX_FLOATS
+import com.github.pepek42.asteroids.render.SPRITE_VERTEX_STRIDE
+import com.github.pepek42.asteroids.render.contractOffset
+import com.github.pepek42.asteroids.render.contractionK
+import kotlin.math.sqrt
 import ktx.ashley.allOf
 import ktx.graphics.use
 import ktx.log.logger
@@ -39,11 +46,19 @@ class RenderSystem(
     private val mapProvider: MapProvider,
     private val debugSettings: DebugSettings,
     private val settings: RelativitySettings,
+    private val pilotView: PilotViewProjector,
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()), Disposable {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
+    private var players: ImmutableArray<Entity>? = null
+    private var pilotViewActive = false
 
     init {
         logger.info { "Init finished" }
+    }
+
+    override fun addedToEngine(engine: Engine) {
+        super.addedToEngine(engine)
+        players = engine.getEntitiesFor(allOf(PlayerComponent::class, TransformComponent::class).get())
     }
 
     override fun update(deltaTime: Float) {
@@ -55,6 +70,13 @@ class RenderSystem(
         }
         if (debugSettings.gridEnabled) {
             gridRenderer.render(camera, camera.zoom, mapProvider.mapWidth, mapProvider.mapHeight)
+        }
+        // Pilot view needs the player as the observer; without one (dead, between levels) fall back to the world view.
+        val player = players?.let { if (it.size() > 0) it[0] else null }
+        pilotViewActive = settings.pilotView && player != null
+        if (pilotViewActive) {
+            val p = player!!.transformCmp.interpolatedPosition
+            pilotView.begin(p.x, p.y)
         }
         batch.use(camera) {
             super.update(deltaTime)
@@ -71,6 +93,10 @@ class RenderSystem(
         val sprite = entity.spriteCmp.sprite
         if (sprite.texture == null) {
             logger.error { "Trying to render sprite with no texture $entity" }
+            return
+        }
+        if (pilotViewActive) {
+            if (pilotView.project(entity, scratch)) batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
             return
         }
         val transformComp = entity.transformCmp
@@ -120,9 +146,8 @@ class RenderSystem(
     private val tmp = Vector2()
 
     companion object {
-        private const val VERTEX_FLOATS = 20
-        private const val VERTEX_STRIDE = 5
-        private const val MIN_CONTRACTION_SPEED = 1e-3f
+        private const val VERTEX_FLOATS = SPRITE_VERTEX_FLOATS
+        private const val VERTEX_STRIDE = SPRITE_VERTEX_STRIDE
         private val logger = logger<RenderSystem>()
     }
 }

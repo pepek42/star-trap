@@ -85,3 +85,9 @@ const val TIME_WARP_MAX = 10f
 
 /** Upper clamp for the runtime time-warp setting; the step cap is sized from this. */
 const val TIME_WARP_MAX_LIMIT = 12f
+
+/**
+ * Default for `RelativitySettings.pilotView` (owner decision 2026-11-02, research E8 + E9): the main view shows what the
+ * pilot sees (light delay and aberration). When false the camera shows the true arena positions.
+ */
+const val PILOT_VIEW_DEFAULT = true

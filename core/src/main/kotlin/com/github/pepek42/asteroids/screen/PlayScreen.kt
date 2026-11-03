@@ -27,6 +27,7 @@ import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
+import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.ReferenceGridRenderer
 import com.github.pepek42.asteroids.render.ShimmerImpacts
 import com.github.pepek42.asteroids.system.BoundaryFieldSystem
@@ -123,12 +124,13 @@ class PlayScreen(
                 )
             )
             addSystem(ObserverSystem(observerState, settings, clock))
-            addSystem(CameraSystem(camera, gameEventManager, mapProvider, observerState))
+            addSystem(CameraSystem(camera, gameEventManager, mapProvider, observerState, settings))
             addSystem(
                 RenderSystem(
                     game, spriteBatch, viewport,
                     FieldShimmerRenderer(shimmerImpacts, mapProvider, settings),
                     gridRenderer, mapProvider, debugSettings, settings,
+                    PilotViewProjector(lightHistory, observerState, clock, settings),
                 )
             )
             addSystem(DebugVectorSystem(camera, settings, debugSettings))

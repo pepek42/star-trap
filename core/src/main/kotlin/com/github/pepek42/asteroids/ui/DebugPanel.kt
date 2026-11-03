@@ -33,6 +33,7 @@ import com.github.pepek42.asteroids.physics.FIELD_DAMPING
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
+import com.github.pepek42.asteroids.physics.PILOT_VIEW_DEFAULT
 import com.github.pepek42.asteroids.physics.TIME_WARP_ENABLED
 import com.github.pepek42.asteroids.physics.TIME_WARP_MAX
 import com.github.pepek42.asteroids.physics.TIME_WARP_MAX_LIMIT
@@ -116,6 +117,9 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     relativity.gammaMaxMassive = GAMMA_MAX_MASSIVE
     relativity.timeWarpEnabled = TIME_WARP_ENABLED
     relativity.timeWarpMax = TIME_WARP_MAX
+    relativity.pilotView = PILOT_VIEW_DEFAULT
+    relativity.pilotAberration = true
+    relativity.pilotDelay = true
     debug.timeScale = 1f
     debug.showVectors = false
     debug.gridEnabled = GRID_ENABLED
@@ -183,6 +187,9 @@ class DebugPanel(
         checkBox("relativity", { relativitySettings.relativityEnabled }) { relativitySettings.relativityEnabled = it }
         checkBox("boundary field", { relativitySettings.fieldEnabled }) { relativitySettings.fieldEnabled = it }
         checkBox("time warp", { relativitySettings.timeWarpEnabled }) { relativitySettings.timeWarpEnabled = it }
+        checkBox("pilot view", { relativitySettings.pilotView }) { relativitySettings.pilotView = it }
+        checkBox("aberration", { relativitySettings.pilotAberration }) { relativitySettings.pilotAberration = it }
+        checkBox("light delay", { relativitySettings.pilotDelay }) { relativitySettings.pilotDelay = it }
         checkBox("grid", { debugSettings.gridEnabled }) { debugSettings.gridEnabled = it }
         checkBox("target pointers", { debugSettings.targetPointersEnabled }) { debugSettings.targetPointersEnabled = it }
         checkBox("show vectors", { debugSettings.showVectors }) { debugSettings.showVectors = it }

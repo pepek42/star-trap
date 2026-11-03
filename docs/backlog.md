@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-111**.
+Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-112**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -9,7 +9,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 M3 Relativity MVP:
-12. ST-074 Pilot view: retarded, boosted sprites
+12. ST-111 Pilot view: apparent edge pointers + harness near-asteroid
 13. ST-076 Pilot-frame aiming
 14. ST-078 Lead markers
 14a. ST-062 Auto-aim + auto-shoot scheme (owner 2026-11-02: the default, un-parked)
@@ -157,31 +157,6 @@ Parked:
   - [ ] No per-frame allocation (preallocated queue, max 256 sprites; beyond that, skip the additive pass)
   - [ ] `./gradlew core:test` passes
 - playtest: Fly at an asteroid fast: it turns blue-white and glows. Fly away: asteroids behind turn red and dim.
-
-### ST-074 Pilot view: sprites drawn at retarded, boosted positions (default on)
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-044, ST-059, ST-071, ST-072
-- files: `physics/RelativitySettings.kt`, `physics/PhysicsConstants.kt`, `system/RenderSystem.kt`, `system/CameraSystem.kt`, `event/PlayerInputListener.kt`, `event/GameEventManager.kt`, `ui/DebugPanel.kt`, `screen/PlayScreen.kt`; tests
-- goal: Make what the pilot actually sees the main rendering (owner decision 2026-11-02, research E8 + E9). Every other object is drawn where its light left it (light delay) and then boosted into the pilot's frame (aberration), so the world slides forward and stretches ahead at speed. Physics, collisions and the minimap stay in true arena positions. A flag keeps the old world view.
-- spec:
-  - Settings (append last, with defaults): `pilotView: Boolean = PILOT_VIEW_DEFAULT` (`const val PILOT_VIEW_DEFAULT = true`), `pilotAberration = true` and `pilotDelay = true` (debug switches for the two halves). All are plain `var`s, restored by `resetDebugDefaults`. Debug panel: three checkboxes "pilot view", "aberration" and "light delay".
-  - The V key toggles `pilotView`: `PlayerInputListener.togglePilotView()` (default no-op). `GameEventManager.keyDown(Keys.V)` calls it on the listeners. `CameraSystem` implements it and flips `settings.pilotView`.
-  - `CameraSystem` in pilot view: centre the camera exactly on the player's interpolated position with **no** arena clamp (the clamp is an arena-frame idea, and the boosted view has no fixed edges).
-  - `RenderSystem` gets `LightHistorySystem`, `ObserverState`, `GameClock` and `RelativitySettings`. In pilot view, with `o` = the player's interpolated position, `β = observer.betaVisual` (the same smoothed β that ST-076 aiming uses) and `now = clock.worldTime − (1 − clock.interpolationAlpha)·PHYSICS_UPDATE_INTERVAL` (the interpolated arena time):
-    - The player is drawn at `o`, unboosted, with rotation `worldHullToPilot(body.angle, β)` (in its own frame the ship is at rest and uncontracted).
-    - Every other sprite entity: `historyOf(id).retarded(o, now, c, state)` (if `!pilotDelay`, use the current interpolated transform). If it returns false, skip the entity (its light hasn't arrived). Build the 4 sprite corners at the retarded position and angle, with the ST-044 contraction for the retarded velocity, in a reusable `FloatArray(20)`. Map each corner `p` to `o + apparentOffset(p − o, β)` (skip the boost if `!pilotAberration`), then `batch.draw(texture, verts, 0, 20)`.
-    - Keep the world-view path unchanged when `pilotView` is false.
-  - The minimap and the HUD keep using true positions.
-  - No per-frame allocation (a reusable `RetardedState`, `Vector2` and vertex array).
-- acceptance:
-  - [ ] Pure test: extract `fun pilotCorner(px, py, ox, oy, betaX, betaY, aberration: Boolean, out: Vector2)`. A corner at o + (0, 10) with β = (0.9, 0) → o + (20.65, 10); with `aberration = false` → o + (0, 10)
-  - [ ] Test (real engine, headless: drive `RenderSystem`'s position logic through a helper that doesn't need a GL batch): a static asteroid 30 u away appears at its true position when the player is at rest. With the player at β = 0.8 it appears shifted toward +x by the E9 formula within 0.05 u
-  - [ ] Test: an asteroid spawned 1 step ago at distance 30 (not eternal) is not drawn
-  - [ ] Screenshot via the harness with `--seed=42 --thrust --frames=150`, viewed by the agent: asteroids bunch up toward the direction of motion
-  - [ ] `./gradlew core:test` passes
-- playtest: Accelerate: the asteroid field visibly crowds forward and stretches ahead; things beside you appear ahead. V switches between pilot view and the true (world) view. Hitting things should still feel fair; note anything that feels like a desync.
 
 ### ST-075 Pilot view: per-corner retarded time (Terrell rotation)
 - status: ready
@@ -338,6 +313,24 @@ Parked:
   - [ ] `docs/tech/balance.md` has the tables, the chosen constants and the reasoning; the constants are updated in code
   - [ ] `./gradlew core:test` passes (the sweep is not part of the default `test` run)
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
+
+### ST-111 Pilot view: apparent edge pointers + harness near-asteroid (ST-074 follow-ups)
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-074
+- files: `system/HudSystem.kt` (edge/target pointers), `render/PilotView.kt`, screenshot harness launch options (`LaunchOptions`, see `docs/tech/dev-workflow.md`); tests
+- refs: ST-074 result (`docs/backlog-done.md`), `docs/tech/dev-workflow.md`
+- goal: Two loose ends from ST-074. (1) Edge pointers still point at true arena positions while the sprites are drawn at apparent ones, so a pointer can disagree with what the pilot sees. In pilot view, aim them at the apparent position (`PilotViewProjector` centre: retarded + boosted; hide while its light hasn't arrived). This follows the pilot-frame-first rule (owner, 2026-11-02). The minimap keeps true positions. (2) Level 1 spawns all asteroids far away, so the pilot-view effect can't be verified by screenshot. Add a harness option `--near-asteroids=<n>` that places n asteroids in a ring 8–15 u around the player (seeded RNG).
+- spec:
+  - Add a projector method that gives the apparent centre of an entity (no quad), allocation-free, false if not arrived. HudSystem uses it when `settings.pilotView` is on, else the old true position.
+  - `--near-asteroids` parsed in `LaunchOptions`, applied at level spawn, documented in `docs/tech/dev-workflow.md`.
+- acceptance:
+  - [ ] Test: in pilot view with β = 0.8 the pointer direction to an off-screen asteroid matches its apparent centre, not its true position; in world view it is unchanged
+  - [ ] Test: `--near-asteroids=4` parses and spawns 4 asteroids within 15 u of the player
+  - [ ] Screenshot `--seed=42 --thrust --frames=150 --near-asteroids=6`, viewed by the agent: asteroids bunch toward the direction of motion
+  - [ ] `./gradlew core:test` passes
+- playtest: At speed, the edge arrows point where the asteroids appear, not where they "really" are.
 
 ## M4 Relativistic view
 

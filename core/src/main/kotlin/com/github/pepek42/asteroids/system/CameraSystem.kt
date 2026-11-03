@@ -13,6 +13,7 @@ import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
 import com.github.pepek42.asteroids.physics.FIELD_SKIN
 import com.github.pepek42.asteroids.physics.ObserverState
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.MapProvider
 import ktx.ashley.allOf
 import ktx.log.logger
@@ -44,6 +45,7 @@ class CameraSystem(
     private val gameEventManager: GameEventManager,
     private val mapProvider: MapProvider,
     private val observer: ObserverState,
+    private val settings: RelativitySettings,
 ) : IteratingSystem(allOf(PlayerComponent::class, TransformComponent::class).get()),
     PlayerInputListener {
 
@@ -89,6 +91,11 @@ class CameraSystem(
 
     private fun handleCameraPosition(entity: Entity) {
         val interpolatedPosition = entity.transformCmp.interpolatedPosition
+        if (settings.pilotView) {
+            // The boosted view has no fixed edges, so the arena clamp does not apply.
+            camera.position.set(interpolatedPosition.x, interpolatedPosition.y, camera.position.z)
+            return
+        }
         val realCamWidthHalved = camera.viewportWidth / 2 * camera.zoom
         val realCamHeightHalved = camera.viewportHeight / 2 * camera.zoom
         val camX = clampCameraAxis(interpolatedPosition.x, realCamWidthHalved, mapProvider.mapWidth, CAMERA_ARENA_MARGIN)
@@ -98,6 +105,10 @@ class CameraSystem(
 
     override fun zoom(zoomDelta: Float) {
         this.zoomDelta = zoomDelta
+    }
+
+    override fun togglePilotView() {
+        settings.pilotView = !settings.pilotView
     }
 
     companion object {

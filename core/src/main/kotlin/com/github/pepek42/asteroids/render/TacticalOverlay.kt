@@ -103,3 +103,6 @@ fun tacticalOverlayVisible(mode: TacticalOverlayMode, pilotView: Boolean, tier: 
     val byMode = mode == TacticalOverlayMode.ALWAYS || (mode == TacticalOverlayMode.PILOT && pilotView)
     return byMode xor inverted
 }
+
+/** Arrow head length in screen pixels. */
+const val TACTICAL_ARROW_HEAD_PX = 8f

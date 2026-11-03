@@ -40,6 +40,8 @@ import com.github.pepek42.asteroids.system.TimeWarpSystem
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.system.DebugSystem
 import com.github.pepek42.asteroids.system.DebugVectorSystem
+import com.github.pepek42.asteroids.system.TacticalOverlaySystem
+import com.github.pepek42.asteroids.settings.TacticalSettings
 import com.github.pepek42.asteroids.system.EndLevelSystem
 import com.github.pepek42.asteroids.system.HudSystem
 import com.github.pepek42.asteroids.system.LifetimeSystem
@@ -135,6 +137,7 @@ class PlayScreen(
                 )
             )
             addSystem(DebugVectorSystem(camera, settings, debugSettings))
+            addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>()))
             if (IS_DEBUG) {
                 engine.addSystem(DebugSystem(world, engine, camera))
             }

@@ -30,6 +30,7 @@ import com.github.pepek42.asteroids.screen.LevelClearedScreen
 import com.github.pepek42.asteroids.screen.MainMenuScreen
 import com.github.pepek42.asteroids.screen.PlayScreen
 import com.github.pepek42.asteroids.settings.DisplaySettings
+import com.github.pepek42.asteroids.settings.TacticalSettings
 import com.github.pepek42.asteroids.settings.GdxPreferencesStore
 import com.github.pepek42.asteroids.settings.KeyValueStore
 import com.github.pepek42.asteroids.settings.MemoryKeyValueStore
@@ -78,6 +79,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             bindSingleton(DebugSettings(panelAllowed = IS_DEBUG || options.debugPanel, panelVisible = options.debugPanel))
             bindSingleton(store)
             bindSingleton(display)
+            bindSingleton(TacticalSettings())
             bindSingleton(
                 menuSettings(
                     inject<RelativitySettings>(), inject<ControlSettings>(), inject<DebugSettings>(),

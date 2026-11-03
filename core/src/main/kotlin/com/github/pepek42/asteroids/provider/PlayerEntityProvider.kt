@@ -14,6 +14,8 @@ import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.ShipHandlingComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
+import com.github.pepek42.asteroids.component.TACTICAL_COMPUTER_DEFAULT_TIER
+import com.github.pepek42.asteroids.component.TacticalComputerComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.faction.FactionEnum
@@ -72,6 +74,7 @@ class PlayerEntityProvider(
                 with<RelativisticComponent>() // starts at rest: u = 0
                 with<ShipHandlingComponent>()
                 with<PlayerComponent>()
+                with<TacticalComputerComponent> { tier = TACTICAL_COMPUTER_DEFAULT_TIER }
                 with<WeaponComponent> {
                     ready = true
                     weaponType = WeaponType.LASER

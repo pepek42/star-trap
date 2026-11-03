@@ -21,6 +21,7 @@ import com.github.pepek42.asteroids.physics.FIELD_SKIN
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.ui.ARENA_BOUNDARY_COLOR
 import com.github.pepek42.asteroids.ui.MinimapViewport
+import com.github.pepek42.asteroids.ui.PLAYER_MARKER_COLOR
 import ktx.ashley.allOf
 
 private const val SHIP_DOT_RADIUS = 2.0f
@@ -32,7 +33,6 @@ private const val BORDER_INSET_PX = 0.5f
 
 private val BACKGROUND_COLOR = Color(0.02f, 0.02f, 0.06f, BACKGROUND_ALPHA)
 private val VIEW_RECT_COLOR = Color(1f, 1f, 1f, 0.8f)
-private val PLAYER_COLOR = Color(0.4f, 0.8f, 1f, 1f)
 private val FIELD_SKIN_COLOR = ARENA_BOUNDARY_COLOR.cpy().apply { a = 0.35f }
 
 /**
@@ -74,7 +74,7 @@ class MinimapSystem(
 
         playerEntity = null
         super.update(deltaTime)
-        playerEntity?.let { drawDot(it, PLAYER_COLOR, SHIP_DOT_RADIUS) }
+        playerEntity?.let { drawDot(it, PLAYER_MARKER_COLOR, SHIP_DOT_RADIUS) }
 
         shape.set(ShapeRenderer.ShapeType.Line)
         shape.color = VIEW_RECT_COLOR

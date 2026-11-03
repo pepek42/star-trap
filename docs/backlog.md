@@ -9,7 +9,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
-0a. ST-113 i18n key parity test
 0b. ST-114 Input bindings table
 0c. ST-115 Settings table and persistence
 0d. ST-116 Main menu rework: settings panel and controls list
@@ -66,22 +65,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 ## M2a Main menu: controls and settings
 
 - note (owner 2026-11-03, top priority): "Main screen should show all control shortcuts. Before starting the game, I want to have options to choose whatever can be changed. For example, choosing aim mode [...]. Start screen can have play and quit as now, but add all controls and settings that could be changed." Design: `docs/design/main-menu.md`. Two single sources of truth: the bindings table (`input/InputBindings.kt`, ST-114) feeds both `GameEventManager` and the controls list; the settings table (`settings/MenuSettings.kt`, ST-115) feeds the menu widgets, persistence and "Reset defaults". Settings are the existing DI singletons (`RelativitySettings`, `ControlSettings`, `DebugSettings`), so nothing new is plumbed into `PlayScreen`. Non-ASCII characters in `.properties` files are written as `\uXXXX` escapes, like the existing entries.
-
-### ST-113 i18n key parity test
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: —
-- files: create `core/src/test/kotlin/com/github/pepek42/asteroids/I18nKeysTest.kt`
-- refs: `main-menu.md` "i18n"
-- goal: The menu work adds many UI strings. A test that both message files have the same keys keeps them in sync, and gives later cards a helper to check their own keys.
-- spec:
-  - Top-level test helper in the same file: `fun i18nKeys(file: String): Set<String>` loads `i18n/$file` from the test classpath (`assets/` is on it) with `java.util.Properties` and returns `stringPropertyNames()`.
-  - Test 1: `i18nKeys("messages.properties") == i18nKeys("messages_pl.properties")`. On failure the message lists the keys missing from each file.
-  - Test 2: no value in either file is blank.
-- acceptance:
-  - [ ] Both tests exist and pass on the current files
-  - [ ] `./gradlew core:test` passes
 
 ### ST-114 Input bindings table: one source for GameEventManager and the menu
 - status: ready

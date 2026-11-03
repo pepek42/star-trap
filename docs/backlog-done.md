@@ -1342,3 +1342,20 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 
 - result: Owner chose (a): read-only controls list; rebinding can be added later through the bindings table.
 
+### ST-113 i18n key parity test
+- status: done (2026-11-03, 2b847d7)
+- size: S
+- agent: junior-dev
+- depends: —
+- files: create `core/src/test/kotlin/com/github/pepek42/asteroids/I18nKeysTest.kt`
+- refs: `main-menu.md` "i18n"
+- goal: The menu work adds many UI strings. A test that both message files have the same keys keeps them in sync, and gives later cards a helper to check their own keys.
+- spec:
+  - Top-level test helper in the same file: `fun i18nKeys(file: String): Set<String>` loads `i18n/$file` from the test classpath (`assets/` is on it) with `java.util.Properties` and returns `stringPropertyNames()`.
+  - Test 1: `i18nKeys("messages.properties") == i18nKeys("messages_pl.properties")`. On failure the message lists the keys missing from each file.
+  - Test 2: no value in either file is blank.
+- acceptance:
+  - [x] Both tests exist and pass on the current files
+  - [x] `./gradlew core:test` passes
+- result: I18nKeysTest checks key parity and non-blank values; exposes i18nKeys() helper for later cards.
+

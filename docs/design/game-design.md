@@ -134,3 +134,4 @@ The planner and auto-dev put new questions here or on `needs-user` backlog cards
 - Time-dilation bullet time: going fast gives you "more" time to aim, as a natural slow-mo.
 - A "light weapon" fired at exactly c: you can't outrun it, but you can dodge it if you see it coming late.
 - A shield that works by Lorentz-boosting incoming projectiles (flavour).
+- Tactical computer overlay (owner 2026-11-03): realistic light-delayed drawing can be "all over the place"; a ship "supercomputer" (later a shop upgrade) draws a Box2D-debug-like wireframe of the true arena-frame state over the main view, so the player can always orient. Later tiers add shot leads, intercept markers and other info. Owner: "the only thing that makes it playable is box2d debug."

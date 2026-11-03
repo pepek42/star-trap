@@ -1371,6 +1371,34 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - result: Glow alpha scaled by DOPPLER_GLOW_STRENGTH = 0.5 and projectiles skip the additive pass via glowsAdditively().
 - playtest: A fast asteroid ahead glows but its sprite is still readable; your own shots don't flare.
 
+### ST-122 Tactical overlay geometry (pure)
+- status: done (2026-11-03, 1914da5)
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: create `render/TacticalOverlay.kt`; create `test/.../render/TacticalOverlayTest.kt`
+- refs: `CLAUDE.md` "Units" and "Constants are the single source of truth"; `system/DebugVectorSystem.kt` (`arrowSegments`, `velocityVectorScale`: same style)
+- goal: First slice of the tactical computer: the allocation-free math that turns a Box2D fixture plus an interpolated transform into an outline polyline, sizes things in screen pixels so the overlay stays readable at every zoom, and decides when the overlay is visible. No rendering yet.
+- spec:
+  - `fun worldPerPixel(viewportWorldWidth: Float, zoom: Float, screenWidthPx: Int): Float = viewportWorldWidth * zoom / screenWidthPx` (world units per screen pixel of the main `FitViewport`; caller passes `camera.viewportWidth`, `camera.zoom`, `viewport.screenWidth`). Returns 0 for `screenWidthPx <= 0`.
+  - `const val TACTICAL_CIRCLE_SEGMENTS = 20`, `const val TACTICAL_MIN_RADIUS_PX = 4f`, `const val TACTICAL_OUTLINE_MAX_VERTS = 20` (≥ Box2D `maxPolygonVertices` = 8 and ≥ the circle segment count).
+  - `fun outlineVertices(shape: Shape, cx: Float, cy: Float, angleRad: Float, minRadius: Float, out: FloatArray): Int` writes x,y pairs of a closed polyline (last vertex is not repeated) and returns the vertex count:
+    - `CircleShape`: centre = `(cx, cy) + rotate(shape.position, angleRad)`, radius `max(shape.radius, minRadius)`, `TACTICAL_CIRCLE_SEGMENTS` vertices at angles `angleRad + 2πi/N` (vertex 0 sits on the body's heading, so a spinning circle shows a rotating vertex; fine).
+    - `PolygonShape`: each local vertex `v_i` (via `getVertex(i, tmp)`) → `(cx, cy) + rotate(v_i, angleRad)`. If the polygon's max vertex distance from the body origin is `< minRadius`, emit the min-radius circle around `(cx, cy)` instead (tiny shapes stay visible when zoomed out).
+    - Any other shape type (edge, chain): return 0.
+    - Uses a private reusable `Vector2`; never allocates.
+  - `fun tacticalArrowScale(c: Float): Float = TACTICAL_ARROW_LENGTH_AT_C / c` with `const val TACTICAL_ARROW_LENGTH_AT_C = 8f` (world units of arrow at |v| = c; KDoc: c-relative like `velocityVectorScale`, reads the runtime `settings.c`). `const val TACTICAL_MIN_ARROW_BETA = 0.02f` (below 0.02 c no arrow is drawn).
+  - Visibility: `enum class TacticalOverlayMode(val flag: String) { OFF("off"), PILOT("pilot"), ALWAYS("always") }` with `fromFlag`. `const val TACTICAL_TIER_NONE = 0`, `TACTICAL_TIER_WIREFRAME = 1`, `TACTICAL_TIER_INTERCEPT = 2`. `fun tacticalOverlayVisible(mode: TacticalOverlayMode, pilotView: Boolean, tier: Int, inverted: Boolean): Boolean`: `false` if `tier < TACTICAL_TIER_WIREFRAME` (computer not installed, whatever else), else `byMode xor inverted`, where `byMode = mode == ALWAYS || (mode == PILOT && pilotView)`. `inverted` is the in-game key flip (ST-124).
+- result: TacticalOverlay.kt provides worldPerPixel, outlineVertices, arrow scale and tacticalOverlayVisible, all unit-tested.
+- acceptance:
+  - [x] Test: `worldPerPixel(48f, 1f, 960) == 0.05f`; doubling zoom doubles it; `screenWidthPx = 0` returns 0
+  - [x] Test (real Box2D shapes, `Box2D.init()`): a `CircleShape` r = 1 at local (1, 0), body at (10, 5) rotated π/2 → 20 vertices, all at distance 1 ± 1e-4 from (10, 6)
+  - [x] Test: a 2×2 box `PolygonShape` at (0, 0) rotated π/4 → 4 vertices at distance √2 ± 1e-4, one of them at (0, √2) ± 1e-4; with `minRadius = 5` → 20 vertices at distance 5
+  - [x] Test: `outlineVertices` on an `EdgeShape` returns 0
+  - [x] Test: `tacticalOverlayVisible` truth table: tier 0 is false for every mode/inverted; OFF+false → false, OFF+inverted → true; PILOT is true only with pilotView (and flips with inverted); ALWAYS → true, ALWAYS+inverted → false
+  - [x] Test: `tacticalArrowScale(settings.c) * settings.c == TACTICAL_ARROW_LENGTH_AT_C` (uses `RelativitySettings().c`, no copied literal)
+  - [x] `./gradlew core:test` passes
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

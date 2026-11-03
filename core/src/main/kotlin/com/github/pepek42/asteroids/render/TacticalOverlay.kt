@@ -1,0 +1,105 @@
+package com.github.pepek42.asteroids.render
+
+import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.physics.box2d.CircleShape
+import com.badlogic.gdx.physics.box2d.PolygonShape
+import com.badlogic.gdx.physics.box2d.Shape
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.max
+import kotlin.math.sin
+import kotlin.math.sqrt
+
+/** Vertices of the polyline that approximates a circle. */
+const val TACTICAL_CIRCLE_SEGMENTS = 20
+
+/** Smallest outline radius in screen pixels, so tiny shapes stay visible when zoomed out. */
+const val TACTICAL_MIN_RADIUS_PX = 4f
+
+/** Capacity needed by [outlineVertices]: at least Box2D `maxPolygonVertices` (8) and [TACTICAL_CIRCLE_SEGMENTS]. */
+const val TACTICAL_OUTLINE_MAX_VERTS = 20
+
+/** World units of velocity arrow at |v| = c. */
+const val TACTICAL_ARROW_LENGTH_AT_C = 8f
+
+/** Below this fraction of c no velocity arrow is drawn. */
+const val TACTICAL_MIN_ARROW_BETA = 0.02f
+
+const val TACTICAL_TIER_NONE = 0
+const val TACTICAL_TIER_WIREFRAME = 1
+const val TACTICAL_TIER_INTERCEPT = 2
+
+enum class TacticalOverlayMode(val flag: String) {
+    OFF("off"),
+    PILOT("pilot"),
+    ALWAYS("always");
+
+    companion object {
+        /** Case-insensitive lookup by flag value; null when unknown. */
+        fun fromFlag(s: String?): TacticalOverlayMode? = entries.firstOrNull { it.flag.equals(s, ignoreCase = true) }
+    }
+}
+
+private val tmp = Vector2()
+
+/**
+ * World units per screen pixel of the main viewport. Callers pass `camera.viewportWidth`, `camera.zoom` and
+ * `viewport.screenWidth`. Returns 0 when the screen width is not positive.
+ */
+fun worldPerPixel(viewportWorldWidth: Float, zoom: Float, screenWidthPx: Int): Float =
+    if (screenWidthPx <= 0) 0f else viewportWorldWidth * zoom / screenWidthPx
+
+/**
+ * Writes x,y pairs of a closed polyline (last vertex not repeated) for [shape] on a body at ([cx], [cy]) rotated
+ * by [angleRad]; returns the vertex count. Edge and chain shapes return 0. Never allocates.
+ */
+fun outlineVertices(shape: Shape, cx: Float, cy: Float, angleRad: Float, minRadius: Float, out: FloatArray): Int {
+    val cosA = cos(angleRad)
+    val sinA = sin(angleRad)
+    when (shape) {
+        is CircleShape -> {
+            val p = shape.position
+            val ccx = cx + p.x * cosA - p.y * sinA
+            val ccy = cy + p.x * sinA + p.y * cosA
+            return writeCircle(ccx, ccy, angleRad, max(shape.radius, minRadius), out)
+        }
+        is PolygonShape -> {
+            val n = shape.vertexCount
+            var maxDist2 = 0f
+            for (i in 0 until n) {
+                shape.getVertex(i, tmp)
+                maxDist2 = max(maxDist2, tmp.x * tmp.x + tmp.y * tmp.y)
+                out[2 * i] = cx + tmp.x * cosA - tmp.y * sinA
+                out[2 * i + 1] = cy + tmp.x * sinA + tmp.y * cosA
+            }
+            if (sqrt(maxDist2) < minRadius) return writeCircle(cx, cy, angleRad, minRadius, out)
+            return n
+        }
+        else -> return 0
+    }
+}
+
+private fun writeCircle(x: Float, y: Float, angleRad: Float, radius: Float, out: FloatArray): Int {
+    for (i in 0 until TACTICAL_CIRCLE_SEGMENTS) {
+        val a = angleRad + 2f * PI.toFloat() * i / TACTICAL_CIRCLE_SEGMENTS
+        out[2 * i] = x + radius * cos(a)
+        out[2 * i + 1] = y + radius * sin(a)
+    }
+    return TACTICAL_CIRCLE_SEGMENTS
+}
+
+/**
+ * World units of arrow per unit of speed. c-relative like `velocityVectorScale`: pass the runtime
+ * `settings.c`, not `SPEED_OF_LIGHT`.
+ */
+fun tacticalArrowScale(c: Float): Float = TACTICAL_ARROW_LENGTH_AT_C / c
+
+/**
+ * Whether the tactical overlay is drawn. Never without the computer ([tier] below wireframe); otherwise the mode's
+ * choice flipped by the in-game key ([inverted]).
+ */
+fun tacticalOverlayVisible(mode: TacticalOverlayMode, pilotView: Boolean, tier: Int, inverted: Boolean): Boolean {
+    if (tier < TACTICAL_TIER_WIREFRAME) return false
+    val byMode = mode == TacticalOverlayMode.ALWAYS || (mode == TacticalOverlayMode.PILOT && pilotView)
+    return byMode xor inverted
+}

@@ -9,7 +9,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
-0c. ST-115 Settings table and persistence
 0d. ST-116 Main menu rework: settings panel and controls list
 0e. ST-117 Menu: language and fullscreen
 0f. ST-118 Docs: main menu, bindings, persistence
@@ -64,40 +63,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 ## M2a Main menu: controls and settings
 
 - note (owner 2026-11-03, top priority): "Main screen should show all control shortcuts. Before starting the game, I want to have options to choose whatever can be changed. For example, choosing aim mode [...]. Start screen can have play and quit as now, but add all controls and settings that could be changed." Design: `docs/design/main-menu.md`. Two single sources of truth: the bindings table (`input/InputBindings.kt`, ST-114) feeds both `GameEventManager` and the controls list; the settings table (`settings/MenuSettings.kt`, ST-115) feeds the menu widgets, persistence and "Reset defaults". Settings are the existing DI singletons (`RelativitySettings`, `ControlSettings`, `DebugSettings`), so nothing new is plumbed into `PlayScreen`. Non-ASCII characters in `.properties` files are written as `\uXXXX` escapes, like the existing entries.
-
-### ST-115 Settings table and persistence (libGDX Preferences)
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-114
-- files: create `settings/KeyValueStore.kt`, `settings/MenuSettings.kt`; edit `Config.kt`, `Game.kt`, both `assets/i18n/messages*.properties`; new `settings/MenuSettingsTest.kt`
-- refs: `main-menu.md` "Settings", "Persistence", "Flow into PlayScreen"
-- goal: One list describes every player-facing setting (key, label, range, default, getter/setter onto the existing DI objects). The menu (ST-116), persistence and "Reset defaults" iterate it. Settings survive restarts via libGDX `Preferences`.
-- spec:
-  - `KeyValueStore` interface: `contains(key)`, `getBoolean/getFloat/getString(key, default)`, `putBoolean/putFloat/putString(key, value)`, `flush()`. `GdxPreferencesStore(prefs: Preferences)` delegates; `MemoryKeyValueStore` (a `HashMap`, `flush` no-op) lives in main code (tests and screenshot runs use it).
-  - `sealed class SettingSpec(val key: String, val enabled: () -> Boolean = { true })` with `labelKey = "setting_$key"`, `hintKey = "setting_${key}_hint"`, subclasses:
-    - `Toggle(key, default: Boolean, get: () -> Boolean, set: (Boolean) -> Unit, enabled)`
-    - `Slider(key, min: Float, max: Float, step: Float, decimals: Int, default: Float, get, set, enabled)`
-    - `Choice(key, options: List<String>, optionLabelKeys: List<String>, default: String, get: () -> String, set: (String) -> Unit, enabled)`
-  - `class MenuSettings(val specs: List<SettingSpec>)` (a wrapper so DI can bind it) and `fun menuSettings(relativity: RelativitySettings, controls: ControlSettings, debug: DebugSettings): MenuSettings` with, in this order:
-    1. `perspective` Choice ↔ `relativity.pilotView`: options `outside` (false) / `pilot` (true), labels `perspective_outside` / `perspective_pilot`, default from `PILOT_VIEW_DEFAULT` (outside). Owner 2026-11-03: "2 game options - one from player perspective and one from outside".
-    2. `relativity` Toggle ↔ `relativityEnabled`, default `RELATIVITY_ENABLED`
-    3. `speed_of_light` Slider ↔ `c`, `C_MIN`..`C_MAX_BOX2D_SAFE`, step 1, 0 decimals, default `SPEED_OF_LIGHT`, enabled = `{ relativity.relativityEnabled }`
-    4. `time_warp` Toggle ↔ `timeWarpEnabled`, default `TIME_WARP_ENABLED`, enabled = `{ relativity.relativityEnabled }`
-    5. `target_pointers` Toggle ↔ `debug.targetPointersEnabled`, default `TARGET_POINTERS_ENABLED`
-    6. `grid` Toggle ↔ `debug.gridEnabled`, default `GRID_ENABLED`
-  - Pure functions: `loadSettings(store, specs)`: for each spec whose key the store contains, `set(store.getX(key, default))` (setters clamp, e.g. c). `saveSettings(store, specs)`: put every `get()`, put `SETTINGS_VERSION_KEY = "settings_version"` = 1, `flush()`. `resetSettings(specs)`: `set(default)` for each.
-  - `Config.kt`: `const val PREFERENCES_NAME = "star-trap-settings"`.
-  - `Game.create()`: bind `KeyValueStore` as `GdxPreferencesStore(Gdx.app.getPreferences(PREFERENCES_NAME))`, or `MemoryKeyValueStore()` when `options.screenshotPath != null` (harness output must not depend on a developer's saved prefs). Bind `menuSettings(...)`. After the context is built: `loadSettings(...)`, then `options.controls?.let { controls.scheme = it }` so the command line wins over prefs.
-  - i18n (both files, labels and hints): `setting_perspective=Perspective` / `Perspektywa`, hint `Outside: objects are drawn where they really are. Pilot: what the pilot actually sees, with delayed light and aberration (realistic, harder). V switches in game.` / `Z zewnątrz: obiekty tam, gdzie naprawdę są. Pilot: to, co naprawdę widzi pilot, z opóźnionym światłem i aberracją (realistycznie, trudniej). V przełącza w grze.`; `perspective_outside=Outside` / `Z zewnątrz`; `perspective_pilot=Pilot (realistic)` / `Pilot (realistyczna)`; `setting_relativity=Relativity` / `Relatywistyka`, hint `Off: classic Newtonian physics.` / `Wyłączona: klasyczna fizyka Newtona.`; `setting_speed_of_light=Speed of light` / `Prędkość światła`, hint `Lower c makes relativistic effects show up sooner.` / `Mniejsze c: efekty relatywistyczne pojawiają się wcześniej.`; `setting_time_warp=Time warp` / `Przyspieszenie czasu`, hint `The arena runs on the pilot's clock and speeds up at high speed.` / `Arena biegnie według zegara pilota i przyspiesza przy dużej prędkości.`; `setting_target_pointers=Target pointers` / `Wskaźniki celów`, hint `Arrows at the screen edge point at off-screen targets.` / `Strzałki na krawędzi ekranu wskazują cele poza ekranem.`; `setting_grid=Reference grid` / `Siatka odniesienia`, hint `A background grid that makes your motion visible.` / `Siatka w tle, dzięki której widać ruch.`
-- acceptance:
-  - [ ] Test: change every setting, `saveSettings` into a `MemoryKeyValueStore`, reset the objects, `loadSettings`: all values come back; `settings_version` is 1
-  - [ ] Test: a stored `speed_of_light` of 1000 loads as `C_MAX_BOX2D_SAFE`; an empty store changes nothing
-  - [ ] Test: `resetSettings` restores every default (perspective outside, c = `SPEED_OF_LIGHT`, ...)
-  - [ ] Test: `speed_of_light` and `time_warp` report `enabled() == false` when relativity is off
-  - [ ] Test (ST-113 helper): every `labelKey`, `hintKey` and option label key exists in both files
-  - [ ] `./gradlew core:test` passes
-- playtest: Change c in the F1 panel, quit from the menu, restart: c is still changed (it is a menu setting).
 
 ### ST-116 Main menu rework: settings panel and controls list
 - status: ready

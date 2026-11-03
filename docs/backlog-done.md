@@ -1400,3 +1400,38 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
   - [x] `./gradlew core:test` passes
 - result: Bindings live in InputBindings.DEFAULT; GameEventManager reads the table, menu helpers forMenu/triggerLabel added.
 
+### ST-115 Settings table and persistence (libGDX Preferences)
+- status: done (2026-11-03, b110314)
+- size: M
+- agent: kotlin-dev
+- depends: ST-114
+- files: create `settings/KeyValueStore.kt`, `settings/MenuSettings.kt`; edit `Config.kt`, `Game.kt`, both `assets/i18n/messages*.properties`; new `settings/MenuSettingsTest.kt`
+- refs: `main-menu.md` "Settings", "Persistence", "Flow into PlayScreen"
+- goal: One list describes every player-facing setting (key, label, range, default, getter/setter onto the existing DI objects). The menu (ST-116), persistence and "Reset defaults" iterate it. Settings survive restarts via libGDX `Preferences`.
+- spec:
+  - `KeyValueStore` interface: `contains(key)`, `getBoolean/getFloat/getString(key, default)`, `putBoolean/putFloat/putString(key, value)`, `flush()`. `GdxPreferencesStore(prefs: Preferences)` delegates; `MemoryKeyValueStore` (a `HashMap`, `flush` no-op) lives in main code (tests and screenshot runs use it).
+  - `sealed class SettingSpec(val key: String, val enabled: () -> Boolean = { true })` with `labelKey = "setting_$key"`, `hintKey = "setting_${key}_hint"`, subclasses:
+    - `Toggle(key, default: Boolean, get: () -> Boolean, set: (Boolean) -> Unit, enabled)`
+    - `Slider(key, min: Float, max: Float, step: Float, decimals: Int, default: Float, get, set, enabled)`
+    - `Choice(key, options: List<String>, optionLabelKeys: List<String>, default: String, get: () -> String, set: (String) -> Unit, enabled)`
+  - `class MenuSettings(val specs: List<SettingSpec>)` (a wrapper so DI can bind it) and `fun menuSettings(relativity: RelativitySettings, controls: ControlSettings, debug: DebugSettings): MenuSettings` with, in this order:
+    1. `perspective` Choice ↔ `relativity.pilotView`: options `outside` (false) / `pilot` (true), labels `perspective_outside` / `perspective_pilot`, default from `PILOT_VIEW_DEFAULT` (outside). Owner 2026-11-03: "2 game options - one from player perspective and one from outside".
+    2. `relativity` Toggle ↔ `relativityEnabled`, default `RELATIVITY_ENABLED`
+    3. `speed_of_light` Slider ↔ `c`, `C_MIN`..`C_MAX_BOX2D_SAFE`, step 1, 0 decimals, default `SPEED_OF_LIGHT`, enabled = `{ relativity.relativityEnabled }`
+    4. `time_warp` Toggle ↔ `timeWarpEnabled`, default `TIME_WARP_ENABLED`, enabled = `{ relativity.relativityEnabled }`
+    5. `target_pointers` Toggle ↔ `debug.targetPointersEnabled`, default `TARGET_POINTERS_ENABLED`
+    6. `grid` Toggle ↔ `debug.gridEnabled`, default `GRID_ENABLED`
+  - Pure functions: `loadSettings(store, specs)`: for each spec whose key the store contains, `set(store.getX(key, default))` (setters clamp, e.g. c). `saveSettings(store, specs)`: put every `get()`, put `SETTINGS_VERSION_KEY = "settings_version"` = 1, `flush()`. `resetSettings(specs)`: `set(default)` for each.
+  - `Config.kt`: `const val PREFERENCES_NAME = "star-trap-settings"`.
+  - `Game.create()`: bind `KeyValueStore` as `GdxPreferencesStore(Gdx.app.getPreferences(PREFERENCES_NAME))`, or `MemoryKeyValueStore()` when `options.screenshotPath != null` (harness output must not depend on a developer's saved prefs). Bind `menuSettings(...)`. After the context is built: `loadSettings(...)`, then `options.controls?.let { controls.scheme = it }` so the command line wins over prefs.
+  - i18n (both files, labels and hints): `setting_perspective=Perspective` / `Perspektywa`, hint `Outside: objects are drawn where they really are. Pilot: what the pilot actually sees, with delayed light and aberration (realistic, harder). V switches in game.` / `Z zewnątrz: obiekty tam, gdzie naprawdę są. Pilot: to, co naprawdę widzi pilot, z opóźnionym światłem i aberracją (realistycznie, trudniej). V przełącza w grze.`; `perspective_outside=Outside` / `Z zewnątrz`; `perspective_pilot=Pilot (realistic)` / `Pilot (realistyczna)`; `setting_relativity=Relativity` / `Relatywistyka`, hint `Off: classic Newtonian physics.` / `Wyłączona: klasyczna fizyka Newtona.`; `setting_speed_of_light=Speed of light` / `Prędkość światła`, hint `Lower c makes relativistic effects show up sooner.` / `Mniejsze c: efekty relatywistyczne pojawiają się wcześniej.`; `setting_time_warp=Time warp` / `Przyspieszenie czasu`, hint `The arena runs on the pilot's clock and speeds up at high speed.` / `Arena biegnie według zegara pilota i przyspiesza przy dużej prędkości.`; `setting_target_pointers=Target pointers` / `Wskaźniki celów`, hint `Arrows at the screen edge point at off-screen targets.` / `Strzałki na krawędzi ekranu wskazują cele poza ekranem.`; `setting_grid=Reference grid` / `Siatka odniesienia`, hint `A background grid that makes your motion visible.` / `Siatka w tle, dzięki której widać ruch.`
+- acceptance:
+  - [x] Test: change every setting, `saveSettings` into a `MemoryKeyValueStore`, reset the objects, `loadSettings`: all values come back; `settings_version` is 1
+  - [x] Test: a stored `speed_of_light` of 1000 loads as `C_MAX_BOX2D_SAFE`; an empty store changes nothing
+  - [x] Test: `resetSettings` restores every default (perspective outside, c = `SPEED_OF_LIGHT`, ...)
+  - [x] Test: `speed_of_light` and `time_warp` report `enabled() == false` when relativity is off
+  - [x] Test (ST-113 helper): every `labelKey`, `hintKey` and option label key exists in both files
+  - [x] `./gradlew core:test` passes
+- playtest: Change c in the F1 panel, quit from the menu, restart: c is still changed (it is a menu setting).
+- result: MenuSettings (6 specs) with load/save/reset via KeyValueStore; loaded at startup, saving is wired by ST-116.
+

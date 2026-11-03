@@ -29,6 +29,12 @@ import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.screen.LevelClearedScreen
 import com.github.pepek42.asteroids.screen.MainMenuScreen
 import com.github.pepek42.asteroids.screen.PlayScreen
+import com.github.pepek42.asteroids.settings.GdxPreferencesStore
+import com.github.pepek42.asteroids.settings.KeyValueStore
+import com.github.pepek42.asteroids.settings.MemoryKeyValueStore
+import com.github.pepek42.asteroids.settings.MenuSettings
+import com.github.pepek42.asteroids.settings.loadSettings
+import com.github.pepek42.asteroids.settings.menuSettings
 import ktx.app.KtxGame
 import ktx.app.KtxScreen
 import ktx.assets.disposeSafely
@@ -64,6 +70,12 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             bindSingleton(RelativitySettings())
             bindSingleton(ControlSettings(options.controls ?: ControlScheme.MOUSE_HULL))
             bindSingleton(DebugSettings(panelAllowed = IS_DEBUG || options.debugPanel, panelVisible = options.debugPanel))
+            // Screenshot runs must not depend on a developer's saved prefs.
+            bindSingleton<KeyValueStore>(
+                if (options.screenshotPath != null) MemoryKeyValueStore()
+                else GdxPreferencesStore(Gdx.app.getPreferences(PREFERENCES_NAME))
+            )
+            bindSingleton(menuSettings(inject<RelativitySettings>(), inject<ControlSettings>(), inject<DebugSettings>()))
             bindSingleton<OrthographicCamera>(OrthographicCamera())
             bindSingleton(GameEventManager())
             bindSingleton(SpriteBatch())
@@ -81,6 +93,10 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             bindSingleton(PlayScreen(inject<Game>()))
             bindSingleton(LevelClearedScreen(inject<Game>()))
         }
+        loadSettings(ctx.inject<KeyValueStore>(), ctx.inject<MenuSettings>().specs)
+        // The command line wins over saved prefs.
+        options.controls?.let { ctx.inject<ControlSettings>().scheme = it }
+
         // Stage goes first so UI widgets get clicks; it returns true only when a widget handled the event.
         // GameEventManager comes second so clicks on empty space still reach the game.
         Gdx.input.inputProcessor = InputMultiplexer(ctx.inject<Stage>(), ctx.inject<GameEventManager>())

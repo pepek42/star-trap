@@ -9,3 +9,6 @@ const val BASE_HEIGHT = 600
 const val UNIT_SCALE = 18
 
 const val TITLE = "Star Trap"
+
+/** libGDX Preferences file name for the player's saved menu settings. */
+const val PREFERENCES_NAME = "star-trap-settings"

@@ -70,7 +70,7 @@ ST-114 adds `ControlScheme.implemented`. **Owner 2026-11-03: the menu has no aim
 | Setting | Backing field | Type / range | Default | Where |
 |---|---|---|---|---|
 | Perspective | `RelativitySettings.pilotView` | choice: Outside (false) / Pilot, realistic (true); V switches in game | `PILOT_VIEW_DEFAULT` (outside) | **menu** |
-| Aim mode | `ControlSettings.scheme` | choice of implemented `ControlScheme`s | mouse | **menu** (Mouse / Auto-aim) |
+| Aim mode | `ControlSettings.scheme` | choice of implemented `ControlScheme`s | auto-aim (ST-063) | **menu** (Mouse / Auto-aim) |
 | Relativity (off = Newtonian) | `RelativitySettings.relativityEnabled` | toggle | `RELATIVITY_ENABLED` (true) | **menu** |
 | Speed of light c | `RelativitySettings.c` | slider `C_MIN`…`C_MAX_BOX2D_SAFE`, step 1 | `SPEED_OF_LIGHT` (20) | **menu**, disabled when relativity is off |
 | Time warp (arena runs on ship time) | `RelativitySettings.timeWarpEnabled` | toggle | `TIME_WARP_ENABLED` (true) | **menu**, disabled when relativity is off |

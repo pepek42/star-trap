@@ -131,20 +131,23 @@ class MenuSettingsTest {
         val a = Fixture()
         val choice = a.spec("aim_mode") as SettingSpec.Choice
         assertEquals(ControlScheme.selectable().map { it.flag }, choice.options)
-        assertEquals(ControlScheme.MOUSE_HULL.flag, choice.get())
-        choice.set(ControlScheme.AUTO_AIM.flag)
-        assertEquals(ControlScheme.AUTO_AIM, a.controls.scheme)
+        // Owner 2026-11-03 (ST-063): auto-aim is the default scheme.
+        assertEquals(ControlScheme.AUTO_AIM, ControlSettings().scheme)
+        assertEquals(ControlScheme.AUTO_AIM.flag, choice.default)
+        assertEquals(ControlScheme.AUTO_AIM.flag, choice.get())
+        choice.set(ControlScheme.MOUSE_HULL.flag)
+        assertEquals(ControlScheme.MOUSE_HULL, a.controls.scheme)
         val store = MemoryKeyValueStore()
         saveSettings(store, a.specs)
 
         val b = Fixture()
         loadSettings(store, b.specs)
-        assertEquals(ControlScheme.AUTO_AIM, b.controls.scheme)
+        assertEquals(ControlScheme.MOUSE_HULL, b.controls.scheme)
 
         // An unimplemented scheme in the store is ignored.
         val c = Fixture()
         store.putString("aim_mode", ControlScheme.TWIN_STICK.flag)
         loadSettings(store, c.specs)
-        assertEquals(ControlScheme.MOUSE_HULL, c.controls.scheme)
+        assertEquals(ControlScheme.AUTO_AIM, c.controls.scheme)
     }
 }

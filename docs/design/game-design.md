@@ -38,6 +38,8 @@ A run ends on death. Meta progression is out of scope for the POC.
 
 The source of truth is `input/InputBindings.kt`; the main menu lists it.
 
+The default control scheme is **auto-aim** (owner 2026-11-03, ST-063): the mouse steers the hull and RMB thrusts as above, and the guns pick the nearest target in a 90° wide forward cone and fire on their own (LMB still fires manually). Mouse-hull aiming is selectable in the main menu (Aim mode) or with `--controls=mouse`.
+
 Known problem: the rotation algorithm is wrong (it takes the long way round and feels sluggish). This is fixed in milestone M1. Target feel: responsive but with inertia. The ship turns at up to about 1 rev/s, with a slight settle and no visible overshoot.
 
 ## 5. The arena
@@ -109,6 +111,7 @@ The planner and auto-dev put new questions here or on `needs-user` backlog cards
 - 2026-11-01 (ST-030): The arena is **200×200** with a 10 u field skin from M3 on (owner: "feels a bit chaotic, maybe the arena should be bigger"). ST-046 also lowers the engine proper acceleration to 25 u/s² and rescales the asteroid spawn.
 - 2026-11-01 (ST-032): There's **no gameplay γ cap**: "it should be capped by relativity effects themselves". Only a numerical safety bound `GAMMA_MAX_MASSIVE = 50` remains, and it's tunable in the debug panel. In practice the arena and the boundary field limit γ.
 - 2026-11-01: The control scheme is **open**. Mouse-hull (today), twin-stick and auto-aim become switchable at runtime (`--controls=`, debug panel) so the owner can try them. The default is decided in ST-063 (recommendation: twin-stick).
+- 2026-11-03 (ST-063): The default control scheme is **auto-aim + auto-shoot**, with a 90° wide target cone (±45°). Mouse-hull stays selectable in the main menu (Aim mode) and via `--controls=`.
 
 - 2026-11-02 (interview): **The game is perceived from the pilot's frame.** Owner: "In relativity there is no world clock... I want the game to be perceived from player time perspective." The game clock is the pilot's proper time τ (research E21): the arena advances γ·dt_real per frame, and guns and turning run normally in τ. Fast-forward is capped at about 10× (declared FAKE past the cap, shown on the HUD). The sim stays in the arena frame. The main screen becomes the pilot view (E8/E9, pulled forward from M4). The minimap stays a "tactical computer" with true arena positions. Aim help is a lead marker. This replaces ST-031.
 - 2026-11-02 (ST-033): Ramming: **yes**. Box2D mass = γ·m₀ (capped at 8), and impact damage comes from relativistic kinetic energy.

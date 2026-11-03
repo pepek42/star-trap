@@ -75,7 +75,7 @@ fun menuSettings(
                     "aim_mode",
                     schemes.map { it.flag },
                     schemes.map { "scheme_${it.flag}" },
-                    ControlScheme.MOUSE_HULL.flag,
+                    ControlScheme.AUTO_AIM.flag,
                     { controls.scheme.flag },
                     { flag -> ControlScheme.fromFlag(flag)?.let { controls.scheme = it } },
                 )

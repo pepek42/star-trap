@@ -1551,3 +1551,17 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - playtest: With `--controls=auto`, fly around: the guns hit asteroids ahead even at high speed. Does it feel like the game plays itself?
 - result: AUTO_AIM scheme is selectable: `AutoAimStrategy` picks the nearest retarded-position target in a 30° cone within 40 u and fires along `leadDirection` (ST-078 math, now in `PhotonAim.kt`); target highlighting left to parked ST-078.
 
+### ST-063 Owner decision: default control scheme
+- status: done (2026-11-03, 6658169)
+- size: S
+- agent: junior-dev
+- depends: ST-058, ST-062
+- files: `docs/design/game-design.md` §4 and §11; `Game.kt` (`ControlSettings(options.controls ?: …)` fallback) and `input/ControlSettings.kt` (default)
+- goal: Record which scheme is the default once the owner has tried them all through `--controls=` or the debug panel selector. The others stay selectable. Parked with the modes (2026-11-02); ask once ST-061, ST-062 and ST-091 are done.
+- answer (owner 2026-11-02): **(c) Auto-aim + auto-shoot is the default.** Mouse-hull, twin-stick and trance stay selectable via `--controls=` and the debug panel.
+- acceptance:
+  - [x] The answer is in game-design.md §11 (decisions) and §4. `ControlSettings` and the `Game.kt` fallback default to `ControlScheme.AUTO_AIM`
+  - [x] Test: `ControlSettings().scheme == ControlScheme.AUTO_AIM`
+  - [x] `./gradlew core:test` passes
+- result: `ControlSettings`, the `Game.kt` fallback and the menu `aim_mode` default are AUTO_AIM, recorded in game-design §4/§11; the owner also widened the auto-aim cone to 90° (`AUTO_AIM_CONE_HALF_DEG = 45`).
+

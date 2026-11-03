@@ -11,7 +11,6 @@ Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` car
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
 
 M3 Relativity MVP:
-14b. ST-063 Make auto-aim the default control scheme
 16. ST-043 Doppler colour and searchlight on the starfield
 18. ST-045 Doppler tint on sprites
 19. ST-038 Boundary field acts on proper velocity
@@ -217,7 +216,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] `./gradlew core:test` passes
 - playtest: At speed, aim at the ring instead of the asteroid and the shots hit. Check whether 8 markers clutter the screen.
 - note: (2026-11-03, from ST-062) when unparked, also highlight the auto-aim target in the AUTO_AIM scheme; `leadDirection` already exists in `physics/PhotonAim.kt`.
-
 
 ### ST-047 Relativistic mass in Box2D collisions
 - status: ready
@@ -717,15 +715,3 @@ Owner 2026-11-02: control modes for later (game-design §12). Keep them ready bu
   - [ ] `./gradlew core:test` passes
 - playtest: With `--controls=trance`, hold LMB: time crawls, the markers appear and the nose snaps to the cursor; release to fire one shot, then wait a second. Does the 1 s cooldown feel right?
 
-### ST-063 Owner decision: default control scheme
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-058, ST-062
-- files: `docs/design/game-design.md` §4 and §11; `Game.kt` (`ControlSettings(options.controls ?: …)` fallback) and `input/ControlSettings.kt` (default)
-- goal: Record which scheme is the default once the owner has tried them all through `--controls=` or the debug panel selector. The others stay selectable. Parked with the modes (2026-11-02); ask once ST-061, ST-062 and ST-091 are done.
-- answer (owner 2026-11-02): **(c) Auto-aim + auto-shoot is the default.** Mouse-hull, twin-stick and trance stay selectable via `--controls=` and the debug panel.
-- acceptance:
-  - [ ] The answer is in game-design.md §11 (decisions) and §4. `ControlSettings` and the `Game.kt` fallback default to `ControlScheme.AUTO_AIM`
-  - [ ] Test: `ControlSettings().scheme == ControlScheme.AUTO_AIM`
-  - [ ] `./gradlew core:test` passes

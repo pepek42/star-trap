@@ -27,7 +27,7 @@ class AutoAimTest {
 
     @Test
     fun skipsNearerTargetOutsideCone() {
-        val off = polar(5f, (PI / 4).toFloat()) // 45 deg > 30 deg half-angle
+        val off = polar(5f, cone + 0.1f) // just outside the half-angle
         val ahead = polar(20f, 0f)
         assertEquals(1, pick(0f, off, ahead))
     }

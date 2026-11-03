@@ -4,8 +4,8 @@ import com.github.pepek42.asteroids.math.shortestAngleDiffRad
 import kotlin.math.abs
 import kotlin.math.atan2
 
-/** Half-angle of the forward cone (degrees) in which the auto-aim guns pick a target. */
-const val AUTO_AIM_CONE_HALF_DEG = 30f
+/** Half-angle of the forward cone (degrees) in which the auto-aim guns pick a target: a 90° wide cone (owner 2026-11-03). */
+const val AUTO_AIM_CONE_HALF_DEG = 45f
 
 /** [AUTO_AIM_CONE_HALF_DEG] in radians. */
 val AUTO_AIM_CONE_HALF_RAD: Float = Math.toRadians(AUTO_AIM_CONE_HALF_DEG.toDouble()).toFloat()

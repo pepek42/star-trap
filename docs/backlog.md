@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-110**.
+Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-111**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -9,7 +9,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 M3 Relativity MVP:
-0f. ST-109 UI font: Greek and Polish glyphs
+0g. ST-110 UI font cleanup (ST-109 follow-ups)
 8. ST-071 LightHistorySystem
 9. ST-072 PilotFrame transforms
 10. ST-073 PhotonAim
@@ -380,20 +380,19 @@ Parked:
 - acceptance:
   - [ ] The tests above exist, and `./gradlew core:test` passes
 
-### ST-109 UI font: Greek and Polish glyphs; fix '?' in messages_pl
+### ST-110 UI font cleanup (ST-109 follow-ups)
 - status: ready
 - size: S
 - agent: junior-dev
-- depends: ST-042
-- files: `assets/ui/font.fnt` (+ page png), `assets/i18n/messages_pl.properties`, `ui/Hud.kt`, `ui/DebugPanel.kt`
-- goal: ST-042 follow-up. `assets/ui/font.fnt` lacks Greek and Polish glyphs, so the HUD and debug panel write "beta"/"gamma", and `messages_pl.properties` already has literal `?` where Polish letters belong.
+- depends: ST-109
+- refs: ST-109 in `docs/backlog-done.md`, `tool/font/gen_font.py`
+- files: `assets/ui/uiskin.atlas` (+ png), `ui/DebugPanel.kt`
+- goal: Tidy up after the font swap.
 - spec:
-  - Regenerate the UI bitmap font with Latin Extended-A (Polish), Greek (β γ τ) and `×·` included, at the same size/style.
-  - Replace the `?` corruption in `messages_pl.properties` with the right Polish letters (as `\uXXXX` escapes if the file is read as ISO-8859-1).
-  - Switch `hud_beta`/`hud_gamma` back to β/γ and drop the ASCII swap in `DebugPanel.update` (see ST-065).
+  - Remove the now-unused `font` region from `assets/ui/uiskin.atlas` (the skin loads `font-glyphs.png` instead); only if it can be done without disturbing the other regions, otherwise leave it and note it.
+  - Rename the debug panel slider label "gamma cap" to "γ cap".
 - acceptance:
-  - [ ] Screenshot with `--debug-panel` in Polish shows β, γ and Polish diacritics correctly
-  - [ ] `./gradlew core:test` passes
+  - [ ] Game UI still renders (screenshot), `./gradlew core:test` passes
 
 ### ST-049 Bring docs in line after M3
 - status: ready

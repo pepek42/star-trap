@@ -84,19 +84,19 @@ fun formatReadouts(observer: ObserverState, rel: RelativisticComponent?, c: Floa
     out.setLength(0)
     val speed = observer.betaRaw.len() * c
     val properSpeed = rel?.u?.len() ?: (speed * observer.gammaRaw)
-    out.append("beta = "); appendFixed(out, observer.betaRaw.len(), 3).append('\n')
-    out.append("gamma = "); appendFixed(out, observer.gammaRaw, 2).append('\n')
-    out.append("tau = "); appendFixed(out, observer.tau, 1).append(" s\n")
+    out.append("\u03B2 = "); appendFixed(out, observer.betaRaw.len(), 3).append('\n')
+    out.append("\u03B3 = "); appendFixed(out, observer.gammaRaw, 2).append('\n')
+    out.append("\u03C4 = "); appendFixed(out, observer.tau, 1).append(" s\n")
     out.append("world t = "); appendFixed(out, observer.worldTime, 1).append(" s\n")
     out.append("|v| = "); appendFixed(out, speed, 1).append(" u/s (")
     appendFixed(out, observer.betaRaw.len() * 100f, 1).append(" % c)\n")
     out.append("v = ("); appendFixed(out, observer.betaRaw.x * c, 1).append(", ")
     appendFixed(out, observer.betaRaw.y * c, 1).append(") u/s\n")
     if (mass.isFinite()) {
-        out.append("m = "); appendFixed(out, mass, 1).append("   gamma*m = ")
+        out.append("m = "); appendFixed(out, mass, 1).append("   \u03B3\u00B7m = ")
         appendFixed(out, mass * observer.gammaRaw, 1).append('\n')
     }
-    out.append("|u| = gamma|v| = "); appendFixed(out, properSpeed, 1).append(" u/s\n")
+    out.append("|u| = \u03B3|v| = "); appendFixed(out, properSpeed, 1).append(" u/s\n")
     out.append("ship-frame speed = "); appendFixed(out, observer.rapidity * c, 1).append(" u/s\n")
     out.append("c = "); appendFixed(out, c, 0).append("   a0 = "); appendFixed(out, a0, 0)
     if (clock != null) {

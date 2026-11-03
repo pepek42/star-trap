@@ -1129,6 +1129,22 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - result: A zero-length segment now returns the later sample instead of NaN, and the record KDoc requires level-relative time.
 - playtest: none (no visible change).
 
+### ST-109 UI font: Greek and Polish glyphs; fix '?' in messages_pl
+- status: done (2026-11-03, 8ccefb3)
+- size: S
+- agent: junior-dev
+- depends: ST-042
+- files: `assets/ui/font.fnt` (+ page png), `assets/i18n/messages_pl.properties`, `ui/Hud.kt`, `ui/DebugPanel.kt`
+- goal: ST-042 follow-up. `assets/ui/font.fnt` lacks Greek and Polish glyphs, so the HUD and debug panel write "beta"/"gamma", and `messages_pl.properties` already has literal `?` where Polish letters belong.
+- spec:
+  - Regenerate the UI bitmap font with Latin Extended-A (Polish), Greek (β γ τ) and `×·` included, at the same size/style.
+  - Replace the `?` corruption in `messages_pl.properties` with the right Polish letters (as `\uXXXX` escapes if the file is read as ISO-8859-1).
+  - Switch `hud_beta`/`hud_gamma` back to β/γ and drop the ASCII swap in `DebugPanel.update` (see ST-065).
+- acceptance:
+  - [x] Screenshot with `--debug-panel` in Polish shows β, γ and Polish diacritics correctly
+  - [x] `./gradlew core:test` passes
+- result: New `font-glyphs.fnt/.png` generated from Liberation Sans by `tool/font/gen_font.py` (Pillow); uiskin.json points to it, Polish strings fixed, HUD/debug panel show β γ τ.
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

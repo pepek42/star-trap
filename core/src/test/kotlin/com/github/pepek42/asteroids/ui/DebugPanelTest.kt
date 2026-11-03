@@ -33,10 +33,9 @@ class DebugPanelTest {
         val out = StringBuilder()
         formatReadouts(observer, rel, c, ENGINE_PROPER_ACCEL, out)
         val s = out.toString()
-        assertTrue("beta = 0.900" in s, s)
-        assertTrue("gamma = 2.29" in s, s)
-        assertTrue("|u| = gamma|v| = ${fixed1(gamma * beta * c)}" in s, s)
-        assertTrue(s.all { it.code < 128 }, "readout must stay ASCII for the UI font")
+        assertTrue("\u03B2 = 0.900" in s, s)
+        assertTrue("\u03B3 = 2.29" in s, s)
+        assertTrue("|u| = \u03B3|v| = ${fixed1(gamma * beta * c)}" in s, s)
         assertTrue("ship-frame speed = ${fixed1(observer.rapidity * c)}" in s, s)
     }
 
@@ -63,7 +62,7 @@ class DebugPanelTest {
         val s = out.toString()
         assertTrue("|v| = ${fixed1(0.75f * c)} u/s (75.0 % c)" in s, s)
         assertTrue("v = (${fixed1(0.75f * c)}, 0.0) u/s" in s, s)
-        assertTrue("m = 2.0   gamma*m = 3.0" in s, s)
+        assertTrue("m = 2.0   \u03B3\u00B7m = 3.0" in s, s)
         formatReadouts(observer, null, c, ENGINE_PROPER_ACCEL, out)
         assertTrue("m =" !in out.toString(), out.toString())
     }

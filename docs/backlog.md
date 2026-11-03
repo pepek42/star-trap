@@ -9,7 +9,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
-0f. ST-118 Docs: main menu, bindings, persistence
 
 M3 Relativity MVP:
 13b. ST-112 Pilot view: one gate for hull transform and aim
@@ -58,32 +57,11 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 
 ---
 
-## M2a Main menu: controls and settings
-
-- note (owner 2026-11-03, top priority): "Main screen should show all control shortcuts. Before starting the game, I want to have options to choose whatever can be changed. For example, choosing aim mode [...]. Start screen can have play and quit as now, but add all controls and settings that could be changed." Design: `docs/design/main-menu.md`. Two single sources of truth: the bindings table (`input/InputBindings.kt`, ST-114) feeds both `GameEventManager` and the controls list; the settings table (`settings/MenuSettings.kt`, ST-115) feeds the menu widgets, persistence and "Reset defaults". Settings are the existing DI singletons (`RelativitySettings`, `ControlSettings`, `DebugSettings`), so nothing new is plumbed into `PlayScreen`. Non-ASCII characters in `.properties` files are written as `\uXXXX` escapes, like the existing entries.
-
-### ST-118 Docs: main menu, bindings table and settings persistence
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-116
-- files: `docs/design/game-design.md` §4, `docs/tech/architecture.md`, `CLAUDE.md` ("Input & events" paragraph), `docs/design/main-menu.md`
-- refs: `main-menu.md`
-- goal: Keep the docs true after ST-114 … ST-116.
-- spec:
-  - game-design.md §4: add the V (pilot view) and F1 (debug panel) rows to the table, and a line: "The source of truth is `input/InputBindings.kt`; the main menu lists it."
-  - architecture.md and CLAUDE.md "Input & events": `GameEventManager` dispatches through the `InputBindings` table (add new keys there, never as literals); player settings are `settings/MenuSettings.kt` specs persisted in libGDX `Preferences` (`PREFERENCES_NAME`), loaded in `Game.create()`, skipped for `--screenshot` runs, command-line flags win.
-  - main-menu.md: mark ST-113 … ST-116 as done in the "Cards" line; fix anything the implementation changed (read the code, don't guess).
-- acceptance:
-  - [ ] The four files say the above, and no doc still claims the keys live in `GameEventManager`'s `when`
-  - [ ] `./gradlew core:test` passes
-
----
-
 ## M2 Arena boundary field
 
 - note: Physics source is `docs/research/relativity-effects.md` §1, §3 and §7 (items 1–6). **Step-input rule, decided in ST-014:** every per-step physics input goes through `PhysicsStepListener.beforeStep(dt)`. That covers thrust force, field force or velocity kick, and (still inline in `PhysicsSystem`) the rotation impulse. `world.clearForces()` runs after **every** `world.step`. This replaces the old "thrust applied once per frame, persists across substeps, cleared after the loop" scheme. Per step the result is the same: each step still integrates the thrust exactly once. The shimmer uses `ARENA_BOUNDARY_COLOR` (orange, `ui/Colors.kt`) rather than the research doc's cyan, so it matches the minimap frame.
 - result: Colours shared, value label sized via GlyphLayout; the duplicate-alpha item was a false premise (label alpha is set once), no change.
+- result: game-design §4, architecture.md, CLAUDE.md and main-menu.md now name InputBindings as the key table and describe MenuSettings persistence in Preferences.
 
 ### ST-023 Boundary field: ~5 % loss per bounce, backstop restitution 0.95
 - status: ready

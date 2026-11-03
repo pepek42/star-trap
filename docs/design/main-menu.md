@@ -2,7 +2,7 @@
 
 Owner request (2026-11-03): "Main screen should show all control shortcuts. Before starting the game, I want to have options to choose whatever can be changed. For example, choosing aim mode [...]. Start screen can have play and quit as now, but add all controls and settings that could be changed."
 
-Cards: ST-113 … ST-119 (`docs/backlog.md`, milestone "Main menu").
+Cards: ST-113 … ST-120 (`docs/backlog.md`, milestone "Main menu"). Done: ST-113, ST-114, ST-115, ST-116, ST-117, ST-118, ST-119, ST-120 (`docs/backlog-done.md`). All done.
 
 ## Layout
 
@@ -20,7 +20,7 @@ One screen (`screen/MainMenuScreen.kt`), scene2d `Table` filling the stage:
 +-------------------------------------------------------------+
 ```
 
-- Left: the existing Play and Quit buttons, unchanged (Quit stays hidden on WebGL).
+- Left: the existing "Single Player" and "Exit" buttons, unchanged (Exit stays hidden on WebGL).
 - Middle: settings panel, one row per player-facing setting (label, widget, tooltip from a `*_hint` key), then "Reset defaults".
 - Right: controls list, two columns (input, action). It shows the bindings of the current `ControlSettings.scheme` (the aim-mode selector arrives with ST-061). Debug bindings (F1) are listed under a "Debug" subheading only when `DebugSettings.panelAllowed`.
 
@@ -92,9 +92,9 @@ No new plumbing: `RelativitySettings`, `ControlSettings` and `DebugSettings` are
 
 libGDX `Preferences` (name `PREFERENCES_NAME = "star-trap-settings"` in `Config.kt`; a file in `~/.prefs/` on desktop, localStorage on TeaVM). Behind a small `KeyValueStore` interface so tests use an in-memory map.
 
-- Load once in `Game.create()` after the singletons are bound; values go through the existing clamping setters, and an unknown or unimplemented scheme flag falls back to the default.
-- Command-line flags win over prefs (`--controls=` overrides the saved aim mode once ST-061 adds it).
-- Screenshot runs (`--screenshot`) skip loading, so harness output stays reproducible.
+- Load once in `Game.create()` after the singletons are bound (`loadSettings`); values go through the existing clamping setters. Saved fullscreen is applied through its setter at load. A key missing from the prefs keeps the code default.
+- Command-line flags win over prefs. `--controls=` is applied after loading. The aim mode itself is not persisted yet (no `aim_mode` spec until ST-061).
+- Screenshot runs (`--screenshot`) use an in-memory store, so nothing is read from or written to the prefs file and harness output stays reproducible.
 - Save (and `flush`) whenever a menu widget changes a value, and on Play.
 - Only menu settings are persisted; debug-panel-only knobs reset every launch.
 - Key `settings_version = 1` for future migrations.

@@ -53,7 +53,9 @@ Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, conventio
 
 **Rendering.** `RenderSystem` draws the nebula and starfield, then sprites from interpolated transforms, then the boundary band via `render/FieldShimmerRenderer` (GLSL in `assets/shaders/field_shimmer.*`, impact data from `ShimmerImpacts`).
 
-**Input & events.** `GameEventManager` is the libGDX `InputProcessor`, multiplexed with the UI `Stage`. It translates raw input into `PlayerInputListener` callbacks (aim, thrusters, fire, zoom, block) and broadcasts `MapEventListener.onNewMap`. Systems subscribe as listeners rather than polling `Gdx.input`. `ignorePlayerInputs()`/`enablePlayerInputs()` gate input between screens.
+**Input & events.** `GameEventManager` is the libGDX `InputProcessor`, multiplexed with the UI `Stage`. It dispatches keys and mouse buttons through the `InputBindings` table (`input/InputBindings.kt`; add new keys there, never as literals) into `PlayerInputListener` callbacks (aim, thrusters, fire, zoom, block, pilot view) and the debug panel listeners, and broadcasts `MapEventListener.onNewMap`. Systems subscribe as listeners rather than polling `Gdx.input`. `ignorePlayerInputs()`/`enablePlayerInputs()` gate input between screens.
+
+**Settings.** Player settings are the `SettingSpec` list in `settings/MenuSettings.kt` (the menu, persistence and "Reset defaults" all iterate it). They persist in libGDX `Preferences` (`PREFERENCES_NAME`, `Config.kt`) via `KeyValueStore`, are loaded in `Game.create()`, use an in-memory store for `--screenshot` runs, and command-line flags win over saved values.
 
 **Debug.** The `IS_DEBUG` constant in `Game.kt` sets the log level and adds `DebugSystem` (the Box2D debug renderer). For per-frame logging, wrap calls in `defaultLoggingUtils.tryLogging { ... }`, which throttles output to once every 30 s. `PlayScreen.render` ticks the throttle. The screenshot harness (`--screenshot=<path>`, `--seed=<long>`, etc.) is described in `docs/tech/dev-workflow.md`.
 

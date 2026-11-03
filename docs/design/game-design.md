@@ -33,6 +33,10 @@ A run ends on death. Meta progression is out of scope for the POC.
 | LMB | Fire |
 | Mouse wheel | Zoom (0.5–2×) |
 | Right Ctrl | Shield/block (placeholder) |
+| V | Toggle pilot view (Outside / Pilot, see [main-menu.md](main-menu.md)) |
+| F1 | Debug panel (only in debug builds or with `--debug-panel`) |
+
+The source of truth is `input/InputBindings.kt`; the main menu lists it.
 
 Known problem: the rotation algorithm is wrong (it takes the long way round and feels sluggish). This is fixed in milestone M1. Target feel: responsive but with inertia. The ship turns at up to about 1 rev/s, with a slight settle and no visible overshoot.
 

@@ -1327,6 +1327,8 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 
 ## M2a Main menu: controls and settings
 
+- note (owner 2026-11-03, top priority): "Main screen should show all control shortcuts. Before starting the game, I want to have options to choose whatever can be changed. For example, choosing aim mode [...]. Start screen can have play and quit as now, but add all controls and settings that could be changed." Design: `docs/design/main-menu.md`. Two single sources of truth: the bindings table (`input/InputBindings.kt`, ST-114) feeds both `GameEventManager` and the controls list; the settings table (`settings/MenuSettings.kt`, ST-115) feeds the menu widgets, persistence and "Reset defaults". Settings are the existing DI singletons (`RelativitySettings`, `ControlSettings`, `DebugSettings`), so nothing new is plumbed into `PlayScreen`. Non-ASCII characters in `.properties` files are written as `\uXXXX` escapes, like the existing entries.
+
 ### ST-119 Owner decision: key rebinding on the menu
 - status: done (2026-11-03, decision)
 - size: S
@@ -1494,4 +1496,20 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
   - [x] `./gradlew core:test` passes
 - playtest: Pick Polski, restart: the menu and HUD are in Polish. Tick fullscreen: the window goes fullscreen at once, and stays so after a restart.
 - result: DisplaySettings with language (bundle locale read from the store before asset load) and desktop-only fullscreen; loadSettings applies saved fullscreen through the setter.
+
+### ST-118 Docs: main menu, bindings table and settings persistence
+- status: done (2026-11-03, 2a3f768)
+- size: S
+- agent: junior-dev
+- depends: ST-116
+- files: `docs/design/game-design.md` §4, `docs/tech/architecture.md`, `CLAUDE.md` ("Input & events" paragraph), `docs/design/main-menu.md`
+- refs: `main-menu.md`
+- goal: Keep the docs true after ST-114 … ST-116.
+- spec:
+  - game-design.md §4: add the V (pilot view) and F1 (debug panel) rows to the table, and a line: "The source of truth is `input/InputBindings.kt`; the main menu lists it."
+  - architecture.md and CLAUDE.md "Input & events": `GameEventManager` dispatches through the `InputBindings` table (add new keys there, never as literals); player settings are `settings/MenuSettings.kt` specs persisted in libGDX `Preferences` (`PREFERENCES_NAME`), loaded in `Game.create()`, skipped for `--screenshot` runs, command-line flags win.
+  - main-menu.md: mark ST-113 … ST-116 as done in the "Cards" line; fix anything the implementation changed (read the code, don't guess).
+- acceptance:
+  - [x] The four files say the above, and no doc still claims the keys live in `GameEventManager`'s `when`
+  - [x] `./gradlew core:test` passes
 

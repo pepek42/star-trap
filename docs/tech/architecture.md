@@ -28,7 +28,9 @@ flowchart LR
 
 Singletons registered in `Game.create()` and fetched with `game.get<T>()`: `RandomXS128` (seeded from `LaunchOptions.seed`, or the clock), `GameState`, `OrthographicCamera`, `GameEventManager`, `SpriteBatch`, `TextureAtlas` (textures), `Skin`, `I18NBundle`, `Viewport` (`FitViewport` 48×27 world units), `Stage`, `AssetManager`, `MapProvider`, `BackgroundProvider`, `KeyValueStore` (libGDX `Preferences` `star-trap-settings`; in-memory for screenshot runs), `DisplaySettings` (fullscreen, desktop only), `MenuSettings` (the player-facing settings table in `settings/MenuSettings.kt`, loaded from the store at startup; `--controls` overrides it), and the screens. `Game` takes a `LaunchOptions`, which `Lwjgl3Launcher` parses from the command line.
 
-Input: `Gdx.input.inputProcessor` is `InputMultiplexer(Stage, GameEventManager)`. Stage goes first; `GameEventManager.keyDown` returns `true` only for keys it handles. Keys and mouse buttons come from the `input/InputBindings.DEFAULT` table (`InputAction` → `InputTrigger`), which the main-menu controls list also reads; `GameEventManager` has no key literals.
+Input: `Gdx.input.inputProcessor` is `InputMultiplexer(Stage, GameEventManager)`. Stage goes first; `GameEventManager.keyDown` returns `true` only for keys it handles. Keys and mouse buttons come from the `input/InputBindings.DEFAULT` table (`InputAction` → `InputTrigger`), which the main-menu controls list also reads; `GameEventManager` has no key literals. New keys go in that table, never as literals (`keyAction`/`buttonAction` resolve them; the debug panel key F1 is `debugOnly`).
+
+Player settings: `settings/MenuSettings.kt` holds one list of `SettingSpec`s (`Toggle`, `Slider`, `Choice`) that the menu, persistence and "Reset defaults" all iterate. They are saved to libGDX `Preferences` named `PREFERENCES_NAME` (`Config.kt`) through `KeyValueStore`. `Game.create()` loads them after the singletons are bound; screenshot runs (`--screenshot`) use an in-memory store, so nothing is read from or written to the prefs file. Command-line flags win over saved values (`--controls` is applied after loading).
 
 ## ECS system order
 

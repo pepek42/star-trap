@@ -9,7 +9,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 M3 Relativity MVP:
-10. ST-073 PhotonAim
 11. ST-044 Length contraction of moving sprites (needed by ST-074)
 12. ST-074 Pilot view: retarded, boosted sprites
 13. ST-076 Pilot-frame aiming
@@ -176,23 +175,6 @@ Parked:
   - [ ] No per-frame allocation (preallocated queue, max 256 sprites; beyond that, skip the additive pass)
   - [ ] `./gradlew core:test` passes
 - playtest: Fly at an asteroid fast: it turns blue-white and glows. Fly away: asteroids behind turn red and dim.
-
-### ST-073 PhotonAim: photon intercept and muzzle-direction inverse (pure, from ST-062)
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-035
-- files: create `physics/PhotonAim.kt`; create `core/src/test/kotlin/com/github/pepek42/asteroids/physics/PhotonAimTest.kt`
-- goal: Factor the fire-control math out of ST-062, so that both the lead marker (ST-078) and auto-aim (ST-062, parked) use one tested implementation.
-- spec (no allocation):
-  - `fun photonInterceptDir(rx: Float, ry: Float, vtx: Float, vty: Float, c: Float, out: Vector2): Float`. `r` is target minus shooter (now) and `v_t` the target's arena-frame velocity. Solve `|r + v_t·t| = c·t`: `a = v_t² − c²` (< 0), `b = 2·r·v_t`, `k = r²`, `t = (−b − √(b² − 4ak)) / (2a)`. Set `out = (r + v_t·t)/(c·t)` (a unit vector) and return `t`. Return `NaN` (and leave `out` alone) if `t` isn't finite or `t ≤ 0`. The shooter's velocity doesn't enter, because the photon moves at c in the arena frame anyway.
-  - `fun muzzleDirForWorldDir(betaX: Float, betaY: Float, nWx: Float, nWy: Float, out: Vector2): Vector2` = `aberratePhoton(−βx, −βy, nWx, nWy, out)`. This is the inverse of the ST-039 muzzle aberration: the shooter-frame direction to fire so that the photon flies along `n̂_W`.
-- acceptance:
-  - [ ] Test: a static target gives `out = r̂` and `t = |r|/c`
-  - [ ] Test: a target at (30, 0) moving (0, 20) with c = 60: a photon from the origin along `out` for time `t` ends within 1e-3 u of `r + v_t·t`
-  - [ ] Test: `aberratePhoton(β, muzzleDirForWorldDir(β, n̂)) ≈ n̂` within 1e-5 for β = (0.9, 0), n̂ = (0, 1), and for 10 random cases with |β| ≤ 0.95
-  - [ ] Test: `r = 0` returns NaN without crashing
-  - [ ] `./gradlew core:test` passes
 
 ### ST-074 Pilot view: sprites drawn at retarded, boosted positions (default on)
 - status: ready

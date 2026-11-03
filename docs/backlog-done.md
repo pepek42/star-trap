@@ -1199,6 +1199,24 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
   - [x] `./gradlew core:test` passes
 - result: Added pure PilotFrame.apparentOffset and world/pilot hull-angle transforms, all covered by tests.
 
+### ST-073 PhotonAim: photon intercept and muzzle-direction inverse (pure, from ST-062)
+- status: done (2026-11-03, 04062e1)
+- size: S
+- agent: junior-dev
+- depends: ST-035
+- files: create `physics/PhotonAim.kt`; create `core/src/test/kotlin/com/github/pepek42/asteroids/physics/PhotonAimTest.kt`
+- goal: Factor the fire-control math out of ST-062, so that both the lead marker (ST-078) and auto-aim (ST-062, parked) use one tested implementation.
+- spec (no allocation):
+  - `fun photonInterceptDir(rx: Float, ry: Float, vtx: Float, vty: Float, c: Float, out: Vector2): Float`. `r` is target minus shooter (now) and `v_t` the target's arena-frame velocity. Solve `|r + v_t·t| = c·t`: `a = v_t² − c²` (< 0), `b = 2·r·v_t`, `k = r²`, `t = (−b − √(b² − 4ak)) / (2a)`. Set `out = (r + v_t·t)/(c·t)` (a unit vector) and return `t`. Return `NaN` (and leave `out` alone) if `t` isn't finite or `t ≤ 0`. The shooter's velocity doesn't enter, because the photon moves at c in the arena frame anyway.
+  - `fun muzzleDirForWorldDir(betaX: Float, betaY: Float, nWx: Float, nWy: Float, out: Vector2): Vector2` = `aberratePhoton(−βx, −βy, nWx, nWy, out)`. This is the inverse of the ST-039 muzzle aberration: the shooter-frame direction to fire so that the photon flies along `n̂_W`.
+- acceptance:
+  - [x] Test: a static target gives `out = r̂` and `t = |r|/c`
+  - [x] Test: a target at (30, 0) moving (0, 20) with c = 60: a photon from the origin along `out` for time `t` ends within 1e-3 u of `r + v_t·t`
+  - [x] Test: `aberratePhoton(β, muzzleDirForWorldDir(β, n̂)) ≈ n̂` within 1e-5 for β = (0.9, 0), n̂ = (0, 1), and for 10 random cases with |β| ≤ 0.95
+  - [x] Test: `r = 0` returns NaN without crashing
+  - [x] `./gradlew core:test` passes
+- result: Added pure PhotonAim.photonInterceptDir and muzzleDirForWorldDir (inverse aberration), covered by tests.
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

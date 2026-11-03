@@ -24,6 +24,8 @@ import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.component.tacticalComputerCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
+import com.github.pepek42.asteroids.event.GameEventManager
+import com.github.pepek42.asteroids.event.PlayerInputListener
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.TACTICAL_ARROW_HEAD_PX
@@ -54,11 +56,13 @@ class TacticalOverlaySystem(
     private val mapProvider: MapProvider,
     private val relativity: RelativitySettings,
     private val tactical: TacticalSettings,
+    private val gameEventManager: GameEventManager,
     private val shape: ShapeRenderer = ShapeRenderer(),
 ) : IteratingSystem(
     allOf(BaseInfoComponent::class, BodyComponent::class, TransformComponent::class)
         .exclude(RemoveComponent::class).get()
 ),
+    PlayerInputListener,
     Disposable {
 
     private var players: ImmutableArray<Entity>? = null
@@ -71,6 +75,16 @@ class TacticalOverlaySystem(
     override fun addedToEngine(engine: Engine) {
         super.addedToEngine(engine)
         players = engine.getEntitiesFor(allOf(PlayerComponent::class, TransformComponent::class).get())
+        gameEventManager.addInputListener(this)
+    }
+
+    override fun removedFromEngine(engine: Engine) {
+        gameEventManager.removeInputListener(this)
+        super.removedFromEngine(engine)
+    }
+
+    override fun toggleTacticalOverlay() {
+        tactical.inverted = !tactical.inverted
     }
 
     override fun update(deltaTime: Float) {

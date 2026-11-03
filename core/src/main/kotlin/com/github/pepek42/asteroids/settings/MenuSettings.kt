@@ -12,6 +12,7 @@ import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.physics.TIME_WARP_ENABLED
 import com.github.pepek42.asteroids.render.GRID_ENABLED
 import com.github.pepek42.asteroids.render.TARGET_POINTERS_ENABLED
+import com.github.pepek42.asteroids.render.TacticalOverlayMode
 
 /** Key under which the settings format version is stored. */
 const val SETTINGS_VERSION_KEY = "settings_version"
@@ -66,6 +67,7 @@ fun menuSettings(
     display: DisplaySettings = DisplaySettings(),
     includeFullscreen: Boolean = true,
     applyFullscreen: (Boolean) -> Unit = {},
+    tactical: TacticalSettings = TacticalSettings(),
 ): MenuSettings {
     val relativityOn = { relativity.relativityEnabled }
     return MenuSettings(
@@ -87,6 +89,19 @@ fun menuSettings(
                 if (PILOT_VIEW_DEFAULT) PERSPECTIVE_PILOT else PERSPECTIVE_OUTSIDE,
                 { if (relativity.pilotView) PERSPECTIVE_PILOT else PERSPECTIVE_OUTSIDE },
                 { relativity.pilotView = it == PERSPECTIVE_PILOT },
+            ),
+            SettingSpec.Choice(
+                "tactical_overlay",
+                TacticalOverlayMode.entries.map { it.flag },
+                TacticalOverlayMode.entries.map { "tactical_overlay_${it.flag}" },
+                TACTICAL_OVERLAY_DEFAULT_MODE.flag,
+                { tactical.mode.flag },
+                { f ->
+                    TacticalOverlayMode.fromFlag(f)?.let {
+                        tactical.mode = it
+                        tactical.inverted = false
+                    }
+                },
             ),
             SettingSpec.Toggle(
                 "relativity", RELATIVITY_ENABLED,

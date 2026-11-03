@@ -64,7 +64,7 @@ class TacticalOverlaySystemTest {
         on { createSprite(AsteroidSize.LARGE.textureRegionName) } doReturn sprite
         on { createSprite("spaceship/disc_green") } doReturn sprite
     }
-    private val system = TacticalOverlaySystem(OrthographicCamera(48f, 27f), viewport, map, settings, tactical, shape)
+    private val system = TacticalOverlaySystem(OrthographicCamera(48f, 27f), viewport, map, settings, tactical, GameEventManager(), shape)
 
     init {
         PlayerEntityProvider(engine, world, map, atlas, settings).spawnPlayerEntity()

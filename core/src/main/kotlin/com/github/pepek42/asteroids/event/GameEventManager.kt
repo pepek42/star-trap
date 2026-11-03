@@ -56,6 +56,10 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
                 playerInputListeners.forEach { it.togglePilotView() }
                 true
             }
+            InputAction.TOGGLE_TACTICAL_OVERLAY -> {
+                playerInputListeners.forEach { it.toggleTacticalOverlay() }
+                true
+            }
             else -> false
         }
     }

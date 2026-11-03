@@ -1426,6 +1426,29 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - result: TacticalOverlaySystem draws the true-state wireframe, velocity arrows and border for tier ≥ 1; every ship has tier 1 for now.
 - playtest: `./gradlew lwjgl3:run`, switch Perspective to Pilot in the menu and fly fast: the sprites smear and lag, but the thin outlines show where asteroids really are and where they're heading. Zoom out fully: small asteroids and photons are still visible dots. Check that the overlay does not hide the sprites in the outside view (is alpha 0.65 too strong?).
 
+### ST-124 Tactical overlay: menu setting and in-game key
+- status: done (2026-11-03, a3a7883)
+- size: S
+- agent: junior-dev
+- depends: ST-123
+- files: `settings/MenuSettings.kt`, `Game.kt`, `input/InputBindings.kt`, `event/PlayerInputListener.kt`, `event/GameEventManager.kt`, `system/TacticalOverlaySystem.kt`, `assets/i18n/messages.properties`; tests in `settings/MenuSettingsTest.kt`, `event/GameEventManagerTest.kt`, `input/InputBindingsTest.kt`
+- refs: `CLAUDE.md` "Input & events", "Settings"; follow the existing `perspective` Choice and `TOGGLE_PILOT_VIEW` (V) exactly
+- goal: Let the player choose when the tactical computer is shown (Off / Pilot view only / Always) in the main menu, persisted like the other settings, and flip it in game with a key.
+- spec:
+  - `menuSettings(...)`: add a parameter `tactical: TacticalSettings = TacticalSettings()` (default keeps existing tests compiling) and pass `inject<TacticalSettings>()` from `Game.create()`. Add, right after the `perspective` Choice: `SettingSpec.Choice("tactical_overlay", TacticalOverlayMode.entries.map { it.flag }, TacticalOverlayMode.entries.map { "tactical_overlay_${it.flag}" }, TACTICAL_OVERLAY_DEFAULT_MODE.flag, { tactical.mode.flag }, { f -> TacticalOverlayMode.fromFlag(f)?.let { tactical.mode = it } })`.
+  - `InputAction.TOGGLE_TACTICAL_OVERLAY`, binding `Binding(InputAction.TOGGLE_TACTICAL_OVERLAY, InputTrigger.Key(Keys.T), "action_tactical_overlay")` after the pilot-view row.
+  - `PlayerInputListener.toggleTacticalOverlay() = Unit`. `GameEventManager.keyDown`: a `TOGGLE_TACTICAL_OVERLAY` branch next to `TOGGLE_PILOT_VIEW` that calls it on all listeners and returns true (gated by `ignoreInput` like V).
+  - `TacticalOverlaySystem` implements `PlayerInputListener` and registers/unregisters with `GameEventManager` in `addedToEngine`/`removedFromEngine`, exactly like `CameraSystem` (add `gameEventManager` as a constructor parameter, passed in `setupEcs()`). `toggleTacticalOverlay()` does `tactical.inverted = !tactical.inverted`. `inverted` is not persisted (session only); picking a value in the menu sets `inverted = false` (do it in the Choice setter).
+  - i18n (`messages.properties`): `setting_tactical_overlay=Tactical computer`, `setting_tactical_overlay_hint=Draws outlines of where things really are, with velocity arrows, over the view. Pilot: only in the realistic pilot perspective. T switches it in game.`, `tactical_overlay_off=Off`, `tactical_overlay_pilot=Pilot view only`, `tactical_overlay_always=Always`, `action_tactical_overlay=Toggle tactical computer`.
+- acceptance:
+  - [x] Test: `menuSettings(...)` contains `tactical_overlay` with options `off, pilot, always`; `loadSettings` with stored "off" sets `TacticalSettings.mode = OFF`; `resetSettings` restores `TACTICAL_OVERLAY_DEFAULT_MODE`; setting a value resets `inverted` to false
+  - [x] Test: `InputBindings.DEFAULT.keyAction(Keys.T) == TOGGLE_TACTICAL_OVERLAY`, and no two key bindings share a code
+  - [x] Test: `GameEventManager.keyDown(Keys.T)` calls `toggleTacticalOverlay()` on a registered listener and returns true; after `ignorePlayerInputs()` it doesn't
+  - [x] Test: every new label key exists in `messages.properties` (extend the existing i18n key test if there is one)
+  - [x] `./gradlew core:test` passes
+- result: Tactical computer menu choice persists with the other settings and T flips the overlay for the session.
+- playtest: The main menu lists "Tactical computer" under Perspective, and the controls list shows T. In game, T hides and shows the outlines.
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

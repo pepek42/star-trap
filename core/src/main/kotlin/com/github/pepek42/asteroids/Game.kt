@@ -84,6 +84,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
                 menuSettings(
                     inject<RelativitySettings>(), inject<ControlSettings>(), inject<DebugSettings>(),
                     display, Gdx.app.type == Application.ApplicationType.Desktop, ::applyFullscreen,
+                    inject<TacticalSettings>(),
                 )
             )
             bindSingleton<OrthographicCamera>(OrthographicCamera())

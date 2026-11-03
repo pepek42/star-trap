@@ -11,7 +11,6 @@ Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` car
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
 
 M3 Relativity MVP:
-18c. ST-124 Tactical overlay: menu setting and T key
 18d. ST-126 Owner decision: tactical computer defaults (needs-user)
 19. ST-038 Boundary field acts on proper velocity
 19a. ST-023 Boundary field: ~5 % loss per bounce, restitution 0.95
@@ -270,28 +269,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
 
 - note (2026-11-03, owner idea, game-design.md §12 "Tactical computer overlay"): realistic light-delayed drawing (pilot view) is hard to play, and the only thing that makes it playable is the Box2D debug renderer. So the ship gets a "tactical computer" (later a shop upgrade; no shop yet, so it's always installed, with a tier hook on the player) that draws a HUD-styled wireframe of the **true arena-frame state** (outlines at interpolated positions, velocity arrows) over the main view. ST-122 (pure geometry) → ST-123 (component + overlay system) → ST-124 (menu setting + key) → ST-126 (owner defaults). Tier 2 (true-state intercept markers) is ST-125 in M4. This extends the 2026-11-02 decision "the minimap stays a tactical computer with true arena positions" to the main view. It is a declared FAKE (instant knowledge, physics-lies.md row 34). `DebugSystem` (Box2D debug renderer, `IS_DEBUG`) stays as developer tooling and is not reused (it draws joints/AABBs, debug colours, no min size).
-
-### ST-124 Tactical overlay: menu setting and in-game key
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-123
-- files: `settings/MenuSettings.kt`, `Game.kt`, `input/InputBindings.kt`, `event/PlayerInputListener.kt`, `event/GameEventManager.kt`, `system/TacticalOverlaySystem.kt`, `assets/i18n/messages.properties`; tests in `settings/MenuSettingsTest.kt`, `event/GameEventManagerTest.kt`, `input/InputBindingsTest.kt`
-- refs: `CLAUDE.md` "Input & events", "Settings"; follow the existing `perspective` Choice and `TOGGLE_PILOT_VIEW` (V) exactly
-- goal: Let the player choose when the tactical computer is shown (Off / Pilot view only / Always) in the main menu, persisted like the other settings, and flip it in game with a key.
-- spec:
-  - `menuSettings(...)`: add a parameter `tactical: TacticalSettings = TacticalSettings()` (default keeps existing tests compiling) and pass `inject<TacticalSettings>()` from `Game.create()`. Add, right after the `perspective` Choice: `SettingSpec.Choice("tactical_overlay", TacticalOverlayMode.entries.map { it.flag }, TacticalOverlayMode.entries.map { "tactical_overlay_${it.flag}" }, TACTICAL_OVERLAY_DEFAULT_MODE.flag, { tactical.mode.flag }, { f -> TacticalOverlayMode.fromFlag(f)?.let { tactical.mode = it } })`.
-  - `InputAction.TOGGLE_TACTICAL_OVERLAY`, binding `Binding(InputAction.TOGGLE_TACTICAL_OVERLAY, InputTrigger.Key(Keys.T), "action_tactical_overlay")` after the pilot-view row.
-  - `PlayerInputListener.toggleTacticalOverlay() = Unit`. `GameEventManager.keyDown`: a `TOGGLE_TACTICAL_OVERLAY` branch next to `TOGGLE_PILOT_VIEW` that calls it on all listeners and returns true (gated by `ignoreInput` like V).
-  - `TacticalOverlaySystem` implements `PlayerInputListener` and registers/unregisters with `GameEventManager` in `addedToEngine`/`removedFromEngine`, exactly like `CameraSystem` (add `gameEventManager` as a constructor parameter, passed in `setupEcs()`). `toggleTacticalOverlay()` does `tactical.inverted = !tactical.inverted`. `inverted` is not persisted (session only); picking a value in the menu sets `inverted = false` (do it in the Choice setter).
-  - i18n (`messages.properties`): `setting_tactical_overlay=Tactical computer`, `setting_tactical_overlay_hint=Draws outlines of where things really are, with velocity arrows, over the view. Pilot: only in the realistic pilot perspective. T switches it in game.`, `tactical_overlay_off=Off`, `tactical_overlay_pilot=Pilot view only`, `tactical_overlay_always=Always`, `action_tactical_overlay=Toggle tactical computer`.
-- acceptance:
-  - [ ] Test: `menuSettings(...)` contains `tactical_overlay` with options `off, pilot, always`; `loadSettings` with stored "off" sets `TacticalSettings.mode = OFF`; `resetSettings` restores `TACTICAL_OVERLAY_DEFAULT_MODE`; setting a value resets `inverted` to false
-  - [ ] Test: `InputBindings.DEFAULT.keyAction(Keys.T) == TOGGLE_TACTICAL_OVERLAY`, and no two key bindings share a code
-  - [ ] Test: `GameEventManager.keyDown(Keys.T)` calls `toggleTacticalOverlay()` on a registered listener and returns true; after `ignorePlayerInputs()` it doesn't
-  - [ ] Test: every new label key exists in `messages.properties` (extend the existing i18n key test if there is one)
-  - [ ] `./gradlew core:test` passes
-- playtest: The main menu lists "Tactical computer" under Perspective, and the controls list shows T. In game, T hides and shows the outlines.
 
 ### ST-126 Owner decision: tactical computer defaults
 - status: needs-user

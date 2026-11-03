@@ -9,6 +9,7 @@ import com.github.pepek42.asteroids.physics.C_MIN
 import com.github.pepek42.asteroids.physics.PILOT_VIEW_DEFAULT
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
+import com.github.pepek42.asteroids.render.TacticalOverlayMode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -21,7 +22,7 @@ class MenuSettingsTest {
         val display = DisplaySettings()
         val applied = mutableListOf<Boolean>()
         val controls = ControlSettings()
-        val specs = menuSettings(rel, controls, dbg, display, true) { applied += it }.specs
+        val specs = menuSettings(rel, controls, dbg, display, true, applyFullscreen = { applied += it }).specs
         fun spec(key: String) = specs.first { it.key == key }
     }
 
@@ -124,6 +125,35 @@ class MenuSettingsTest {
         ).specs
         assertTrue(specs.none { it.key == "fullscreen" })
         assertTrue(specs.none { it.key == "language" })
+    }
+
+    @Test
+    fun tacticalOverlayChoiceIsPersistedAndResetsInverted() {
+        val tactical = TacticalSettings()
+        val specs = menuSettings(
+            RelativitySettings(), ControlSettings(), DebugSettings(panelAllowed = false, panelVisible = false),
+            includeFullscreen = false, tactical = tactical,
+        ).specs
+        val choice = specs.first { it.key == "tactical_overlay" } as SettingSpec.Choice
+        assertEquals(listOf("off", "pilot", "always"), choice.options)
+        assertEquals(TACTICAL_OVERLAY_DEFAULT_MODE.flag, choice.default)
+
+        tactical.inverted = true
+        choice.set("off")
+        assertEquals(TacticalOverlayMode.OFF, tactical.mode)
+        assertFalse(tactical.inverted)
+
+        val store = MemoryKeyValueStore()
+        store.putString("tactical_overlay", "off")
+        val fresh = TacticalSettings()
+        loadSettings(store, menuSettings(
+            RelativitySettings(), ControlSettings(), DebugSettings(panelAllowed = false, panelVisible = false),
+            includeFullscreen = false, tactical = fresh,
+        ).specs)
+        assertEquals(TacticalOverlayMode.OFF, fresh.mode)
+
+        resetSettings(specs)
+        assertEquals(TACTICAL_OVERLAY_DEFAULT_MODE, tactical.mode)
     }
 
     @Test

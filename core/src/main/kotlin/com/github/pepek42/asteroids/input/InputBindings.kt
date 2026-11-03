@@ -3,7 +3,7 @@ package com.github.pepek42.asteroids.input
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Input.Keys
 
-enum class InputAction { AIM, FIRE, THRUST, ZOOM, TOGGLE_PILOT_VIEW, BLOCK, DEBUG_PANEL }
+enum class InputAction { AIM, FIRE, THRUST, ZOOM, TOGGLE_PILOT_VIEW, TOGGLE_TACTICAL_OVERLAY, BLOCK, DEBUG_PANEL }
 
 sealed interface InputTrigger {
     data class Key(val code: Int) : InputTrigger
@@ -36,6 +36,7 @@ object InputBindings {
         Binding(InputAction.THRUST, InputTrigger.MouseButton(Input.Buttons.RIGHT), "action_thrust"),
         Binding(InputAction.ZOOM, InputTrigger.Wheel, "action_zoom"),
         Binding(InputAction.TOGGLE_PILOT_VIEW, InputTrigger.Key(Keys.V), "action_pilot_view"),
+        Binding(InputAction.TOGGLE_TACTICAL_OVERLAY, InputTrigger.Key(Keys.T), "action_tactical_overlay"),
         Binding(InputAction.BLOCK, InputTrigger.Key(Keys.CONTROL_RIGHT), "action_block"),
         Binding(InputAction.DEBUG_PANEL, InputTrigger.Key(Keys.F1), "action_debug_panel", debugOnly = true),
     )

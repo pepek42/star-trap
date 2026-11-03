@@ -48,4 +48,22 @@ class GameEventManagerTest {
         assertTrue(manager.keyDown(Keys.V))
         assertEquals(1, calls)
     }
+
+    @Test
+    fun tTogglesTacticalOverlayOnListenersUnlessIgnored() {
+        val manager = GameEventManager()
+        var calls = 0
+        manager.addInputListener(object : PlayerInputListener {
+            override fun toggleTacticalOverlay() {
+                calls++
+            }
+        })
+
+        assertTrue(manager.keyDown(Keys.T))
+        assertEquals(1, calls)
+
+        manager.ignorePlayerInputs()
+        assertFalse(manager.keyDown(Keys.T))
+        assertEquals(1, calls)
+    }
 }

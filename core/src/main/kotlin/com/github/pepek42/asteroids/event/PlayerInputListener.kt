@@ -12,4 +12,6 @@ interface PlayerInputListener {
     fun zoom(zoomDelta: Float) = Unit
 
     fun togglePilotView() = Unit
+
+    fun toggleTacticalOverlay() = Unit
 }

@@ -137,7 +137,7 @@ class PlayScreen(
                 )
             )
             addSystem(DebugVectorSystem(camera, settings, debugSettings))
-            addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>()))
+            addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>(), gameEventManager))
             if (IS_DEBUG) {
                 engine.addSystem(DebugSystem(world, engine, camera))
             }

@@ -76,7 +76,6 @@ ST-114 adds `ControlScheme.implemented`. **Owner 2026-11-03: the menu has no aim
 | Time warp (arena runs on ship time) | `RelativitySettings.timeWarpEnabled` | toggle | `TIME_WARP_ENABLED` (true) | **menu**, disabled when relativity is off |
 | Target pointers | `DebugSettings.targetPointersEnabled` | toggle | `TARGET_POINTERS_ENABLED` | **menu** |
 | Reference grid | `DebugSettings.gridEnabled` | toggle | `GRID_ENABLED` | **menu** |
-| Language | prefs only, read at startup | choice: system / English / Polski | system | **menu** (ST-117), applies on restart |
 | Fullscreen | `Gdx.graphics` | toggle, desktop only | false | **menu** (ST-117) |
 | Boundary field on/off, aberration, light delay | `RelativitySettings` | toggles | true | debug panel only |
 | Engine a0/c, brake boost, field damping, warp cap, γ cap | `RelativitySettings` | sliders | consts | debug panel only (balance knobs, ST-101) |
@@ -102,7 +101,7 @@ libGDX `Preferences` (name `PREFERENCES_NAME = "star-trap-settings"` in `Config.
 
 ## i18n
 
-Every label, hint and input name is a key in both `assets/i18n/messages.properties` and `messages_pl.properties`. ST-113 adds a test that the two files have identical key sets, and ST-114/ST-115 extend it to check that every `labelKey` in the bindings and settings tables exists.
+Every label, hint and input name is a key in `assets/i18n/messages.properties` (English only, owner 2026-11-03: Polish and the language setting were removed). Tests check that every `labelKey` in the bindings and settings tables exists.
 
 ## Out of scope (for now)
 

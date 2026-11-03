@@ -66,4 +66,4 @@ Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, conventio
 - Tests reference the same constants (`PHYSICS_UPDATE_INTERVAL`, `settings.c`) instead of copying their values, and a test that pins a tuned number says which constant it assumes.
 - Reviewer and verifier treat a new hardcoded derived value as a `major` issue.
 
-**i18n.** UI strings live in `assets/i18n/messages.properties` and `messages_pl.properties`. Keep both files in sync.
+**i18n.** UI strings live in `assets/i18n/messages.properties`; English only (owner 2026-11-03).

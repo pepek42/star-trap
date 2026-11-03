@@ -4,7 +4,6 @@ import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.assets.AssetManager
-import com.badlogic.gdx.assets.loaders.I18NBundleLoader
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.RandomXS128
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
@@ -34,10 +33,8 @@ import com.github.pepek42.asteroids.settings.DisplaySettings
 import com.github.pepek42.asteroids.settings.GdxPreferencesStore
 import com.github.pepek42.asteroids.settings.KeyValueStore
 import com.github.pepek42.asteroids.settings.MemoryKeyValueStore
-import com.github.pepek42.asteroids.settings.LANGUAGE_OPTIONS
 import com.github.pepek42.asteroids.settings.MenuSettings
 import com.github.pepek42.asteroids.settings.loadSettings
-import com.github.pepek42.asteroids.settings.localeFor
 import com.github.pepek42.asteroids.settings.menuSettings
 import ktx.app.KtxGame
 import ktx.app.KtxScreen
@@ -66,14 +63,9 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             if (options.screenshotPath != null) MemoryKeyValueStore()
             else GdxPreferencesStore(Gdx.app.getPreferences(PREFERENCES_NAME))
         val display = DisplaySettings()
-        // The language is read before the bundle loads; it applies on the next start.
-        display.language = store.getString("language", "").takeIf { it in LANGUAGE_OPTIONS } ?: ""
         val assetManager = AssetManager();
         assetManager.logger.level = Logger.ERROR
-        assetManager.load(
-            "i18n/messages", I18NBundle::class.java,
-            I18NBundleLoader.I18NBundleParameter(localeFor(display.language)),
-        )
+        assetManager.load("i18n/messages", I18NBundle::class.java)
         assetManager.load("ui/uiskin.atlas", TextureAtlas::class.java)
         assetManager.load("textures/textures.atlas", TextureAtlas::class.java)
         assetManager.finishLoading()

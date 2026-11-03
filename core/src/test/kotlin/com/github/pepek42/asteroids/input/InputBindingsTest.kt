@@ -59,13 +59,11 @@ class InputBindingsTest {
     }
 
     @Test
-    fun i18nKeysExistInBothFiles() {
+    fun i18nKeysExist() {
         val needed = InputBindings.DEFAULT.map { it.labelKey } +
             listOf("input_lmb", "input_rmb", "input_mmb", "input_mouse", "input_wheel")
-        listOf("messages.properties", "messages_pl.properties").forEach { file ->
-            val keys = i18nKeys(file)
-            assertEquals(emptyList<String>(), needed.filter { it !in keys }, "Missing in $file")
-        }
+        val keys = i18nKeys("messages.properties")
+        assertEquals(emptyList<String>(), needed.filter { it !in keys }, "Missing in messages.properties")
     }
 
     @Test

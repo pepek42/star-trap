@@ -248,21 +248,16 @@ class DebugPanel(
 
     private fun checkBox(title: String, get: () -> Boolean, set: (Boolean) -> Unit) {
         val box = CheckBox(" $title", skin)
+        val look = styleOnOffCheckBox(box, " $title: ON", " $title: off")
         box.isChecked = get()
-        tintCheckBox(box)
+        look()
         box.addListener(object : ChangeListener() {
             override fun changed(event: ChangeEvent, actor: Actor) {
                 set(box.isChecked)
-                tintCheckBox(box)
             }
         })
-        syncs.add { box.isChecked = get(); tintCheckBox(box) }
+        syncs.add { box.isChecked = get(); look() }
         root.add(box).colspan(2).left().row()
-    }
-
-    /** The skin's checkbox looks the same checked and unchecked, so tint it: green on, grey off. */
-    private fun tintCheckBox(box: CheckBox) {
-        box.color = if (box.isChecked) CHECKED_COLOR else UNCHECKED_COLOR
     }
 
     private fun slider(

@@ -31,10 +31,11 @@ class MainMenuLayoutTest {
     }
 
     @Test
-    fun menuKeysExistInBothFiles() {
-        val keys = listOf("menu_settings", "menu_controls", "menu_controls_debug", "menu_reset_defaults")
-        for (file in listOf("messages.properties", "messages_pl.properties")) {
-            assertTrue(i18nKeys(file).containsAll(keys), "$file missing menu keys")
-        }
+    fun menuKeysExist() {
+        val keys = listOf(
+            "menu_settings", "menu_controls", "menu_controls_debug", "menu_reset_defaults",
+            "menu_reset_defaults_hint", "setting_on", "setting_off",
+        )
+        assertTrue(i18nKeys("messages.properties").containsAll(keys), "messages.properties missing menu keys")
     }
 }

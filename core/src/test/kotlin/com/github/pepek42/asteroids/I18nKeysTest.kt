@@ -1,7 +1,6 @@
 package com.github.pepek42.asteroids
 
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
@@ -25,27 +24,10 @@ private fun i18nProperties(file: String): Properties {
 
 class I18nKeysTest {
 
-    private val files = listOf("messages.properties", "messages_pl.properties")
-
-    @Test
-    fun bothMessageFilesHaveSameKeys() {
-        val en = i18nKeys("messages.properties")
-        val pl = i18nKeys("messages_pl.properties")
-        val missingInPl = en - pl
-        val missingInEn = pl - en
-        assertTrue(
-            missingInPl.isEmpty() && missingInEn.isEmpty(),
-            "i18n keys out of sync. Missing in messages_pl.properties: $missingInPl. " +
-                "Missing in messages.properties: $missingInEn"
-        )
-    }
-
     @Test
     fun noMessageValueIsBlank() {
-        files.forEach { file ->
-            val props = i18nProperties(file)
-            val blank = props.stringPropertyNames().filter { props.getProperty(it).isBlank() }
-            assertEquals(emptyList<String>(), blank, "Blank i18n values in $file")
-        }
+        val props = i18nProperties("messages.properties")
+        val blank = props.stringPropertyNames().filter { props.getProperty(it).isBlank() }
+        assertEquals(emptyList<String>(), blank, "Blank i18n values in messages.properties")
     }
 }

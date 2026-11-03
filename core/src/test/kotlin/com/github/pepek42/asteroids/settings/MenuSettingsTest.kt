@@ -93,26 +93,17 @@ class MenuSettingsTest {
     }
 
     @Test
-    fun allI18nKeysExistInBothFiles() {
+    fun allI18nKeysExist() {
         val keys = Fixture().specs.flatMap { spec ->
             listOf(spec.labelKey, spec.hintKey) + ((spec as? SettingSpec.Choice)?.optionLabelKeys ?: emptyList())
         }
-        listOf("messages.properties", "messages_pl.properties").forEach { file ->
-            val missing = keys - i18nKeys(file)
-            assertTrue(missing.isEmpty(), "Missing in $file: $missing")
-        }
+        val missing = keys - i18nKeys("messages.properties")
+        assertTrue(missing.isEmpty(), "Missing in messages.properties: $missing")
     }
 
     @Test
-    fun localeForUsesDefaultWhenBlank() {
-        assertEquals("pl", localeFor("pl").language)
-        assertEquals(java.util.Locale.getDefault(), localeFor(""))
-    }
-
-    @Test
-    fun languageAndFullscreenRoundTripAndApply() {
+    fun fullscreenRoundTripAndApply() {
         val a = Fixture()
-        (a.spec("language") as SettingSpec.Choice).set("pl")
         (a.spec("fullscreen") as SettingSpec.Toggle).set(true)
         assertEquals(listOf(true), a.applied)
         val store = MemoryKeyValueStore()
@@ -120,7 +111,6 @@ class MenuSettingsTest {
 
         val b = Fixture()
         loadSettings(store, b.specs)
-        assertEquals("pl", b.display.language)
         assertTrue(b.display.fullscreen)
     }
 
@@ -131,6 +121,6 @@ class MenuSettingsTest {
             includeFullscreen = false,
         ).specs
         assertTrue(specs.none { it.key == "fullscreen" })
-        assertTrue(specs.any { it.key == "language" })
+        assertTrue(specs.none { it.key == "language" })
     }
 }

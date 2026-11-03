@@ -464,7 +464,7 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 - size: S
 - agent: kotlin-dev
 - depends: —
-- files: `system/DeathSystem.kt`, `Game.kt`, `screen/PlayScreen.kt`, `screen/MainMenuScreen.kt`, `GameState.kt`, `assets/i18n/messages.properties`, `assets/i18n/messages_pl.properties`; tests
+- files: `system/DeathSystem.kt`, `Game.kt`, `screen/PlayScreen.kt`, `screen/MainMenuScreen.kt`, `GameState.kt`, `assets/i18n/messages.properties`; tests
 - goal: Black-hole horizons kill (owner decision), and impact damage (ST-048) can kill too, but today a dead player is just tagged for removal, which breaks the level. Make death end the run cleanly.
 - spec:
   - `DeathSystem` gets a last constructor param `onPlayerDeath: () -> Unit = {}`. For an entity with `PlayerComponent` and `health ≤ 0`: call `onPlayerDeath()` once (guard with a flag reset in `addedToEngine`) and **don't** add `RemoveComponent`.

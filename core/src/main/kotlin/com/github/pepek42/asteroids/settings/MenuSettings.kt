@@ -94,14 +94,6 @@ fun menuSettings(
                 { debug.targetPointersEnabled }, { debug.targetPointersEnabled = it },
             ),
             SettingSpec.Toggle("grid", GRID_ENABLED, { debug.gridEnabled }, { debug.gridEnabled = it }),
-            SettingSpec.Choice(
-                "language",
-                LANGUAGE_OPTIONS,
-                listOf("language_system", "language_en", "language_pl"),
-                "",
-                { display.language },
-                { display.language = it },
-            ),
             if (includeFullscreen) {
                 SettingSpec.Toggle(
                     "fullscreen", false,

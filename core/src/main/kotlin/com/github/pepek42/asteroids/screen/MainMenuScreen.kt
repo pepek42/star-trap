@@ -14,7 +14,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
-import com.badlogic.gdx.scenes.scene2d.ui.TextTooltip
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.I18NBundle
 import com.github.pepek42.asteroids.Game
@@ -30,8 +29,9 @@ import com.github.pepek42.asteroids.settings.SettingSpec
 import com.github.pepek42.asteroids.settings.resetSettings
 import com.github.pepek42.asteroids.settings.saveSettings
 import com.github.pepek42.asteroids.ui.controlsRows
-import com.github.pepek42.asteroids.ui.CHECKED_COLOR
-import com.github.pepek42.asteroids.ui.UNCHECKED_COLOR
+import com.github.pepek42.asteroids.ui.hintTooltip
+import com.github.pepek42.asteroids.ui.hintTooltipManager
+import com.github.pepek42.asteroids.ui.styleOnOffCheckBox
 import com.github.pepek42.asteroids.ui.formatSettingValue
 import ktx.app.KtxScreen
 import ktx.app.clearScreen
@@ -53,6 +53,7 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
     private val controls = game.get<ControlSettings>()
     private val debug = game.get<DebugSettings>()
 
+    private val tooltips = hintTooltipManager()
     private val syncs = ArrayList<() -> Unit>()
     private var syncing = false
     private val menu: Actor = buildMenu()
@@ -106,18 +107,20 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         val enabledSyncs = ArrayList<() -> Unit>()
         for (spec in specs) {
             val label = Label(i18n[spec.labelKey], skin)
-            label.addListener(TextTooltip(i18n[spec.hintKey], skin))
+            label.addListener(hintTooltip(i18n[spec.hintKey], tooltips, skin))
             t.add(label)
             val widget: Actor = when (spec) {
                 is SettingSpec.Toggle -> toggleWidget(spec)
                 is SettingSpec.Slider -> sliderWidget(spec)
                 is SettingSpec.Choice -> choiceWidget(spec)
             }
+            widget.addListener(hintTooltip(i18n[spec.hintKey], tooltips, skin))
             t.add(widget).row()
             enabledSyncs.add { setDisabled(widget, !spec.enabled()); label.color.a = if (spec.enabled()) 1f else 0.5f }
         }
         syncs.addAll(enabledSyncs)
         t.add(TextButton(i18n["menu_reset_defaults"], skin).also { b ->
+            b.addListener(hintTooltip(i18n["menu_reset_defaults_hint"], tooltips, skin))
             b.onChange {
                 resetSettings(specs)
                 saveSettings(store, specs)
@@ -129,10 +132,9 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
 
     private fun toggleWidget(spec: SettingSpec.Toggle): Actor {
         val box = CheckBox("", skin)
-        // The skin's checkbox looks the same checked and unchecked, so tint it: green on, grey off.
-        val tint = { box.color.set(if (box.isChecked) CHECKED_COLOR else UNCHECKED_COLOR) }
-        box.onChange { tint(); userChanged { spec.set(box.isChecked) } }
-        syncs.add { box.isChecked = spec.get(); tint() }
+        val look = styleOnOffCheckBox(box, i18n["setting_on"], i18n["setting_off"])
+        box.onChange { userChanged { spec.set(box.isChecked) } }
+        syncs.add { box.isChecked = spec.get(); look() }
         return box
     }
 

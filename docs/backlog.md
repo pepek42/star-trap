@@ -9,7 +9,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 M3 Relativity MVP:
-8. ST-071 LightHistorySystem
 9. ST-072 PilotFrame transforms
 10. ST-073 PhotonAim
 11. ST-044 Length contraction of moving sprites (needed by ST-074)
@@ -178,25 +177,6 @@ Parked:
   - [ ] No per-frame allocation (preallocated queue, max 256 sprites; beyond that, skip the additive pass)
   - [ ] `./gradlew core:test` passes
 - playtest: Fly at an asteroid fast: it turns blue-white and glows. Fly away: asteroids behind turn red and dim.
-
-### ST-071 LightHistorySystem: record every body each physics step
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-069, ST-070
-- files: create `system/LightHistorySystem.kt`; edit `screen/PlayScreen.kt`; create `system/LightHistorySystemTest.kt`
-- goal: Fill a `LightHistory` per entity in arena time, so that the pilot-view renderer (ST-074) and later the AI (E13, M6) can ask "where did the light now reaching point o leave this entity?".
-- spec:
-  - `LightHistorySystem : EntitySystem(), PhysicsStepListener, EntityListener`, with the family `allOf(BodyComponent, BaseInfoComponent, TransformComponent)`. It owns `time: Float` (starts at 0 and gains `dt` in every `afterStep`, so it equals `GameClock.worldTime`) and an `IntMap<LightHistory>` keyed by `BaseInfoComponent.id` (ids are unique per run; Ashley pools `Entity` objects, so don't key by `Entity`). It keeps a free list of `LightHistory` objects for reuse.
-  - Register it as the **last** step listener, after `relativisticDynamics`, so it records the post-step state. `afterStep`: for every family entity record `(time, body.x, body.y, body.angle, v.x, v.y)`. An entity first seen at `time ≤ PHYSICS_UPDATE_INTERVAL` gets `eternal = true`.
-  - `entityRemoved`: keep the history and store `removedAt = time` (an `IntFloatMap`). Prune entries in `afterStep` once `time − removedAt > LIGHT_HISTORY_CAPACITY·PHYSICS_UPDATE_INTERVAL` and return them to the free list. ST-079 draws these ghosts.
-  - Query API: `fun historyOf(id: Int): LightHistory?`, `fun removedAt(id: Int): Float` (NaN while alive), `val now: Float`.
-  - `PlayScreen` adds it to the engine and the listener list and calls `clear()` (all histories back to the free list, `time = 0`) in `show()`.
-- acceptance:
-  - [ ] Test (real `World` with `PhysicsSystem`): after 45 steps a body moving at (10, 0) has 45 samples, the newest at `time = 1 ± 1e-5`, with x advanced 10 ± 1e-3
-  - [ ] Test: an entity added at step 0 is `eternal`; one added at step 20 isn't
-  - [ ] Test: after removal the history stays, `removedAt` is set, and it is pruned after the capacity window
-  - [ ] `./gradlew core:test` passes
 
 ### ST-072 PilotFrame: apparent position and hull-angle transforms (pure)
 - status: ready

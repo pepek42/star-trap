@@ -1160,6 +1160,26 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
   - [x] Game UI still renders (screenshot), `./gradlew core:test` passes
 - result: Removed the `font` region entry from uiskin.atlas (png pixels left, unused) and renamed the slider label to "γ cap".
 
+### ST-071 LightHistorySystem: record every body each physics step
+- status: done (2026-11-03, 8abe41d)
+- size: S
+- agent: kotlin-dev
+- depends: ST-069, ST-070
+- files: create `system/LightHistorySystem.kt`; edit `screen/PlayScreen.kt`; create `system/LightHistorySystemTest.kt`
+- goal: Fill a `LightHistory` per entity in arena time, so that the pilot-view renderer (ST-074) and later the AI (E13, M6) can ask "where did the light now reaching point o leave this entity?".
+- spec:
+  - `LightHistorySystem : EntitySystem(), PhysicsStepListener, EntityListener`, with the family `allOf(BodyComponent, BaseInfoComponent, TransformComponent)`. It owns `time: Float` (starts at 0 and gains `dt` in every `afterStep`, so it equals `GameClock.worldTime`) and an `IntMap<LightHistory>` keyed by `BaseInfoComponent.id` (ids are unique per run; Ashley pools `Entity` objects, so don't key by `Entity`). It keeps a free list of `LightHistory` objects for reuse.
+  - Register it as the **last** step listener, after `relativisticDynamics`, so it records the post-step state. `afterStep`: for every family entity record `(time, body.x, body.y, body.angle, v.x, v.y)`. An entity first seen at `time ≤ PHYSICS_UPDATE_INTERVAL` gets `eternal = true`.
+  - `entityRemoved`: keep the history and store `removedAt = time` (an `IntFloatMap`). Prune entries in `afterStep` once `time − removedAt > LIGHT_HISTORY_CAPACITY·PHYSICS_UPDATE_INTERVAL` and return them to the free list. ST-079 draws these ghosts.
+  - Query API: `fun historyOf(id: Int): LightHistory?`, `fun removedAt(id: Int): Float` (NaN while alive), `val now: Float`.
+  - `PlayScreen` adds it to the engine and the listener list and calls `clear()` (all histories back to the free list, `time = 0`) in `show()`.
+- acceptance:
+  - [x] Test (real `World` with `PhysicsSystem`): after 45 steps a body moving at (10, 0) has 45 samples, the newest at `time = 1 ± 1e-5`, with x advanced 10 ± 1e-3
+  - [x] Test: an entity added at step 0 is `eternal`; one added at step 20 isn't
+  - [x] Test: after removal the history stays, `removedAt` is set, and it is pruned after the capacity window
+  - [x] `./gradlew core:test` passes
+- result: `LightHistorySystem` is the last step listener and keeps id-keyed, pooled histories with eternal/removedAt; tests derive from PHYSICS_TICK_RATE (the 45-step criterion was written for the old 45 Hz tick).
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

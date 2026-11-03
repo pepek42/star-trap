@@ -32,6 +32,7 @@ import com.github.pepek42.asteroids.render.ShimmerImpacts
 import com.github.pepek42.asteroids.system.BoundaryFieldSystem
 import com.github.pepek42.asteroids.system.CameraSystem
 import com.github.pepek42.asteroids.system.ContactSystem
+import com.github.pepek42.asteroids.system.LightHistorySystem
 import com.github.pepek42.asteroids.system.DeathSystem
 import com.github.pepek42.asteroids.system.DebugPanelSystem
 import com.github.pepek42.asteroids.system.TimeWarpSystem
@@ -84,6 +85,8 @@ class PlayScreen(
         game.get<Skin>(), settings, debugSettings, game.get<ControlSettings>(),
     ) { visible -> Gdx.graphics.setSystemCursor(if (visible) SystemCursor.Arrow else SystemCursor.Crosshair) }
 
+    private lateinit var lightHistory: LightHistorySystem
+
     init {
         setupEcs()
     }
@@ -99,6 +102,8 @@ class PlayScreen(
         val projectileSweepSystem = ProjectileSweepSystem(world)
         // Must be the last step listener: it integrates the accelerations the others added.
         val relativisticDynamics = RelativisticDynamics(settings)
+        // Must come after relativisticDynamics: it records the post-step state.
+        lightHistory = LightHistorySystem()
         engine.add {
             addSystem(TimeWarpSystem(clock, settings))
             addSystem(EndLevelSystem(game))
@@ -109,10 +114,11 @@ class PlayScreen(
             addSystem(boundaryFieldSystem)
             addSystem(projectileSweepSystem)
             addSystem(relativisticDynamics)
+            addSystem(lightHistory)
             addSystem(
                 PhysicsSystem(
                     world, engine,
-                    listOf(moveSystem, boundaryFieldSystem, projectileSweepSystem, relativisticDynamics),
+                    listOf(moveSystem, boundaryFieldSystem, projectileSweepSystem, relativisticDynamics, lightHistory),
                     clock,
                 )
             )
@@ -142,6 +148,7 @@ class PlayScreen(
         super.show()
         observerState.reset()
         clock.reset()
+        lightHistory.clear()
         gameState.nextLevel()
         mapProvider.loadMap()
         playerEntityProvider.spawnPlayerEntity()

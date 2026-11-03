@@ -63,14 +63,14 @@ The owner wants two ways to play: "one from player perspective and one from outs
 | `AUTO_AIM` | `auto` | implemented (ST-062): mouse-hull movement, guns auto-target in a forward cone with honest fire control; ST-063 decides the default |
 | (trance) | — | parked, ST-091 |
 
-ST-114 adds `ControlScheme.implemented`. **Owner 2026-11-03: the menu has no aim-mode selector until there is a second mode to pick.** ST-061 (twin-stick) adds the `aim_mode` Choice over `ControlScheme.selectable()`, and the controls list then rebuilds when the mode changes. The debug panel keeps listing all schemes.
+ST-114 adds `ControlScheme.implemented`. **Owner 2026-11-03: the menu has no aim-mode selector until there is a second mode to pick.** That came with ST-062 (auto-aim): the `aim_mode` Choice over `ControlScheme.selectable()` is on the menu, and the controls list rebuilds when the mode changes. ST-061 (twin-stick) only flips `implemented` to join it. The debug panel keeps listing all schemes.
 
 ### Settings
 
 | Setting | Backing field | Type / range | Default | Where |
 |---|---|---|---|---|
 | Perspective | `RelativitySettings.pilotView` | choice: Outside (false) / Pilot, realistic (true); V switches in game | `PILOT_VIEW_DEFAULT` (outside) | **menu** |
-| Aim mode | `ControlSettings.scheme` | choice of implemented `ControlScheme`s | mouse | added by ST-061 |
+| Aim mode | `ControlSettings.scheme` | choice of implemented `ControlScheme`s | mouse | **menu** (Mouse / Auto-aim) |
 | Relativity (off = Newtonian) | `RelativitySettings.relativityEnabled` | toggle | `RELATIVITY_ENABLED` (true) | **menu** |
 | Speed of light c | `RelativitySettings.c` | slider `C_MIN`…`C_MAX_BOX2D_SAFE`, step 1 | `SPEED_OF_LIGHT` (20) | **menu**, disabled when relativity is off |
 | Time warp (arena runs on ship time) | `RelativitySettings.timeWarpEnabled` | toggle | `TIME_WARP_ENABLED` (true) | **menu**, disabled when relativity is off |
@@ -93,7 +93,7 @@ No new plumbing: `RelativitySettings`, `ControlSettings` and `DebugSettings` are
 libGDX `Preferences` (name `PREFERENCES_NAME = "star-trap-settings"` in `Config.kt`; a file in `~/.prefs/` on desktop, localStorage on TeaVM). Behind a small `KeyValueStore` interface so tests use an in-memory map.
 
 - Load once in `Game.create()` after the singletons are bound (`loadSettings`); values go through the existing clamping setters. Saved fullscreen is applied through its setter at load. A key missing from the prefs keeps the code default.
-- Command-line flags win over prefs. `--controls=` is applied after loading. The aim mode itself is not persisted yet (no `aim_mode` spec until ST-061).
+- Command-line flags win over prefs. `--controls=` is applied after loading, so it wins for that run (and is saved if the menu saves). The aim mode is persisted under `aim_mode`; an unimplemented scheme in the prefs is ignored.
 - Screenshot runs (`--screenshot`) use an in-memory store, so nothing is read from or written to the prefs file and harness output stays reproducible.
 - Save (and `flush`) whenever a menu widget changes a value, and on Play.
 - Only menu settings are persisted; debug-panel-only knobs reset every launch.

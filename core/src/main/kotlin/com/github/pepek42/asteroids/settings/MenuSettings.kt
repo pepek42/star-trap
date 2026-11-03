@@ -1,6 +1,7 @@
 package com.github.pepek42.asteroids.settings
 
 import com.github.pepek42.asteroids.debug.DebugSettings
+import com.github.pepek42.asteroids.input.ControlScheme
 import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.C_MAX_BOX2D_SAFE
 import com.github.pepek42.asteroids.physics.C_MIN
@@ -69,6 +70,16 @@ fun menuSettings(
     val relativityOn = { relativity.relativityEnabled }
     return MenuSettings(
         listOfNotNull(
+            ControlScheme.selectable().let { schemes ->
+                SettingSpec.Choice(
+                    "aim_mode",
+                    schemes.map { it.flag },
+                    schemes.map { "scheme_${it.flag}" },
+                    ControlScheme.MOUSE_HULL.flag,
+                    { controls.scheme.flag },
+                    { flag -> ControlScheme.fromFlag(flag)?.let { controls.scheme = it } },
+                )
+            },
             SettingSpec.Choice(
                 "perspective",
                 listOf(PERSPECTIVE_OUTSIDE, PERSPECTIVE_PILOT),

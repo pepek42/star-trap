@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.settings
 
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.i18nKeys
+import com.github.pepek42.asteroids.input.ControlScheme
 import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.C_MAX_BOX2D_SAFE
 import com.github.pepek42.asteroids.physics.C_MIN
@@ -19,7 +20,8 @@ class MenuSettingsTest {
         val dbg = DebugSettings(panelAllowed = false, panelVisible = false)
         val display = DisplaySettings()
         val applied = mutableListOf<Boolean>()
-        val specs = menuSettings(rel, ControlSettings(), dbg, display, true) { applied += it }.specs
+        val controls = ControlSettings()
+        val specs = menuSettings(rel, controls, dbg, display, true) { applied += it }.specs
         fun spec(key: String) = specs.first { it.key == key }
     }
 
@@ -122,5 +124,27 @@ class MenuSettingsTest {
         ).specs
         assertTrue(specs.none { it.key == "fullscreen" })
         assertTrue(specs.none { it.key == "language" })
+    }
+
+    @Test
+    fun controlSchemeIsSelectableAndPersisted() {
+        val a = Fixture()
+        val choice = a.spec("aim_mode") as SettingSpec.Choice
+        assertEquals(ControlScheme.selectable().map { it.flag }, choice.options)
+        assertEquals(ControlScheme.MOUSE_HULL.flag, choice.get())
+        choice.set(ControlScheme.AUTO_AIM.flag)
+        assertEquals(ControlScheme.AUTO_AIM, a.controls.scheme)
+        val store = MemoryKeyValueStore()
+        saveSettings(store, a.specs)
+
+        val b = Fixture()
+        loadSettings(store, b.specs)
+        assertEquals(ControlScheme.AUTO_AIM, b.controls.scheme)
+
+        // An unimplemented scheme in the store is ignored.
+        val c = Fixture()
+        store.putString("aim_mode", ControlScheme.TWIN_STICK.flag)
+        loadSettings(store, c.specs)
+        assertEquals(ControlScheme.MOUSE_HULL, c.controls.scheme)
     }
 }

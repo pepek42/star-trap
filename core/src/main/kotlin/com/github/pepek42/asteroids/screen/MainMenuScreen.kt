@@ -22,6 +22,7 @@ import com.github.pepek42.asteroids.TITLE
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.input.ControlSettings
+import com.github.pepek42.asteroids.input.ControlScheme
 import com.github.pepek42.asteroids.input.InputBindings
 import com.github.pepek42.asteroids.settings.KeyValueStore
 import com.github.pepek42.asteroids.settings.MenuSettings
@@ -199,21 +200,30 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         val t = Table()
         t.defaults().left().pad(ROW_SPACE / 2)
         val tr = { key: String -> i18n[key] }
-        t.add(Label(i18n["menu_controls"], skin)).colspan(2).row()
         fun rows(includeDebug: Boolean): List<Pair<String, String>> =
             controlsRows(InputBindings.DEFAULT, controls.scheme, includeDebug, tr)
-        for (row in rows(false)) {
-            t.add(Label(row.first, skin)).padRight(COLUMN_SPACE / 2)
-            t.add(Label(row.second, skin)).row()
-        }
-        if (debug.panelAllowed) {
-            val plain = rows(false).toSet()
-            t.add(Label(i18n["menu_controls_debug"], skin)).colspan(2).padTop(BUTTON_SPACE).row()
-            for (row in rows(true).filter { it !in plain }) {
+        var shownScheme: ControlScheme? = null
+        // Rebuilt from syncAll() so the list follows the "Controls" setting.
+        fun fill() {
+            if (shownScheme == controls.scheme) return
+            shownScheme = controls.scheme
+            t.clearChildren()
+            t.add(Label(i18n["menu_controls"], skin)).colspan(2).row()
+            for (row in rows(false)) {
                 t.add(Label(row.first, skin)).padRight(COLUMN_SPACE / 2)
                 t.add(Label(row.second, skin)).row()
             }
+            if (debug.panelAllowed) {
+                val plain = rows(false).toSet()
+                t.add(Label(i18n["menu_controls_debug"], skin)).colspan(2).padTop(BUTTON_SPACE).row()
+                for (row in rows(true).filter { it !in plain }) {
+                    t.add(Label(row.first, skin)).padRight(COLUMN_SPACE / 2)
+                    t.add(Label(row.second, skin)).row()
+                }
+            }
         }
+        fill()
+        syncs.add { fill() }
         return t
     }
 

@@ -286,11 +286,11 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - `TacticalOverlaySystem` implements `PlayerInputListener` and registers/unregisters with `GameEventManager` in `addedToEngine`/`removedFromEngine`, exactly like `CameraSystem` (add `gameEventManager` as a constructor parameter, passed in `setupEcs()`). `toggleTacticalOverlay()` does `tactical.inverted = !tactical.inverted`. `inverted` is not persisted (session only); picking a value in the menu sets `inverted = false` (do it in the Choice setter).
   - i18n (`messages.properties`): `setting_tactical_overlay=Tactical computer`, `setting_tactical_overlay_hint=Draws outlines of where things really are, with velocity arrows, over the view. Pilot: only in the realistic pilot perspective. T switches it in game.`, `tactical_overlay_off=Off`, `tactical_overlay_pilot=Pilot view only`, `tactical_overlay_always=Always`, `action_tactical_overlay=Toggle tactical computer`.
 - acceptance:
-  - [x] Test: `menuSettings(...)` contains `tactical_overlay` with options `off, pilot, always`; `loadSettings` with stored "off" sets `TacticalSettings.mode = OFF`; `resetSettings` restores `TACTICAL_OVERLAY_DEFAULT_MODE`; setting a value resets `inverted` to false
-  - [x] Test: `InputBindings.DEFAULT.keyAction(Keys.T) == TOGGLE_TACTICAL_OVERLAY`, and no two key bindings share a code
-  - [x] Test: `GameEventManager.keyDown(Keys.T)` calls `toggleTacticalOverlay()` on a registered listener and returns true; after `ignorePlayerInputs()` it doesn't
-  - [x] Test: every new label key exists in `messages.properties` (extend the existing i18n key test if there is one)
-  - [x] `./gradlew core:test` passes
+  - [ ] Test: `menuSettings(...)` contains `tactical_overlay` with options `off, pilot, always`; `loadSettings` with stored "off" sets `TacticalSettings.mode = OFF`; `resetSettings` restores `TACTICAL_OVERLAY_DEFAULT_MODE`; setting a value resets `inverted` to false
+  - [ ] Test: `InputBindings.DEFAULT.keyAction(Keys.T) == TOGGLE_TACTICAL_OVERLAY`, and no two key bindings share a code
+  - [ ] Test: `GameEventManager.keyDown(Keys.T)` calls `toggleTacticalOverlay()` on a registered listener and returns true; after `ignorePlayerInputs()` it doesn't
+  - [ ] Test: every new label key exists in `messages.properties` (extend the existing i18n key test if there is one)
+  - [ ] `./gradlew core:test` passes
 - playtest: The main menu lists "Tactical computer" under Perspective, and the controls list shows T. In game, T hides and shows the outlines.
 
 ### ST-126 Owner decision: tactical computer defaults
@@ -303,9 +303,9 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - goal: Two feel decisions for the overlay. Everything is built around the recommendations, so nothing waits on this; applying the answer is a constant change plus a §11 Decisions line.
 - question: Q1. When is the tactical computer shown by default? (a) Always, in both perspectives (it doubles as clean outlines over Doppler-tinted, contracted sprites). (b) Only in Pilot view, where the main view is distorted; Outside view stays clean, and T shows it on demand. (c) Off; the player turns it on. **Recommendation: (a)** for now, because your playtests rely on the Box2D-debug look in both views; revisit to (b) when the shop sells the computer. Q2. Velocity arrows relative to what? (a) The arena (true arena-frame velocity, same as the minimap and Box2D debug). (b) Relative to your ship (shows closing speed directly, better for dodging; your own arrow disappears). **Recommendation: (a)**, simpler to read alongside the minimap; (b) can become a tier-2 option.
 - acceptance:
-  - [x] `TACTICAL_OVERLAY_DEFAULT_MODE` matches the answer to Q1; if Q2 is (b), arrows use `v − v_player` (spec it on this card when answered) and the tests are updated
-  - [x] game-design.md §11 Decisions has a 2026-11-xx line with both answers
-  - [x] `./gradlew core:test` passes
+  - [ ] `TACTICAL_OVERLAY_DEFAULT_MODE` matches the answer to Q1; if Q2 is (b), arrows use `v − v_player` (spec it on this card when answered) and the tests are updated
+  - [ ] game-design.md §11 Decisions has a 2026-11-xx line with both answers
+  - [ ] `./gradlew core:test` passes
 
 ## M4 Relativistic view
 
@@ -326,9 +326,9 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - `RenderSystem` pilot path: after the live sprites, for each ghost `retarded(o, now)`; if it returns true and `state.t < removedAt`, draw it exactly like a live entity (same corner and boost code, ST-075 corners if present). Otherwise skip it.
   - In world view, ghosts are never drawn.
 - acceptance:
-  - [x] Test: an asteroid 30 u from a resting observer, removed at `t = 1`: at `now = 1.3` the ghost is visible (`t_ret = 0.8 < 1`), at `now = 1.6` it isn't
-  - [x] Test: the ghost's `GhostInfo` is freed when the history is pruned
-  - [x] `./gradlew core:test` passes
+  - [ ] Test: an asteroid 30 u from a resting observer, removed at `t = 1`: at `now = 1.3` the ghost is visible (`t_ret = 0.8 < 1`), at `now = 1.6` it isn't
+  - [ ] Test: the ghost's `GhostInfo` is freed when the history is pruned
+  - [ ] `./gradlew core:test` passes
 - playtest: Shoot a distant asteroid in pilot view: the shot reaches it, and it breaks a moment later, as seen. No asteroid pops out of existence early.
 
 ### ST-080 Searchlight k = 2 in pilot view, with a brightness floor and outlines
@@ -344,8 +344,8 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - `const val BRIGHTNESS_EXPONENT_PILOT = 2f`. Starfield and sprite tint use `B = clamp(D^k, B_MIN, B_MAX)` with `k = BRIGHTNESS_EXPONENT_PILOT` in pilot view and `BRIGHTNESS_EXPONENT_MVP` in world view. Pull it into `fun beamBrightness(d: Float, pilotView: Boolean): Float`.
   - Outlines: for non-player entities with `HealthComponent`, in pilot view, when `B < OUTLINE_B_THRESHOLD = 0.6f`, draw a `ShapeRenderer` circle (line, 24 segments) at the entity's apparent centre with radius `boundingRadius·1.1`, in the faction colour at alpha `0.5·(1 − B/OUTLINE_B_THRESHOLD)`. One `ShapeRenderer.begin/end` per frame, after the sprite batch ends.
 - acceptance:
-  - [x] Tests: `beamBrightness(2f, true) == 3f` (clamped from 4); `beamBrightness(0.3f, true) == 0.25f` (floor); `beamBrightness(0.6f, false) == 0.6f`; `beamBrightness(1f, true) == 1f`
-  - [x] `./gradlew core:test` passes
+  - [ ] Tests: `beamBrightness(2f, true) == 3f` (clamped from 4); `beamBrightness(0.3f, true) == 0.25f` (floor); `beamBrightness(0.6f, false) == 0.6f`; `beamBrightness(1f, true) == 1f`
+  - [ ] `./gradlew core:test` passes
 - playtest: At speed the view ahead is bright, and asteroids behind you are dim but outlined. Check whether the outline is too strong.
 
 ### ST-081 Doppler-scaled photon damage
@@ -360,9 +360,9 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - `fun photonEnergyFactor(bsx, bsy, btx, bty, nx, ny): Float = γ_t(1 − β_t·n̂) / (γ_s(1 − β_s·n̂))` in `Relativity.kt`, where `n̂` is the photon's arena direction (`PhotonComponent.dir`), with each β clamped to `BETA_MAX_MASSIVE`.
   - `applyProjectileHit`: if `settings.photonDopplerDamage` and the projectile has a `PhotonComponent`, `damage = laser.damage·photonEnergyFactor(...).coerceIn(PHOTON_DAMAGE_D_MIN = 0.25f, PHOTON_DAMAGE_D_MAX = 4f)`. β_t comes from the target's `relativisticCmpOptional?.vSet ?: body.linearVelocity`, divided by c. `RelativitySettings` gets a last param `photonDopplerDamage: Boolean = true`, with a debug checkbox.
 - acceptance:
-  - [x] Tests: shooter at rest, target moving at β = 0.6 against the photon → factor 2.0 ± 1e-3; target fleeing at 0.6 → 0.5; shooter moving at 0.6 along the photon, target at rest → 2.0; everything at rest → 1
-  - [x] Test: with a laser of damage 50, a head-on target at β = 0.6 loses 100 health; with `photonDopplerDamage = false` it loses 50
-  - [x] `./gradlew core:test` passes
+  - [ ] Tests: shooter at rest, target moving at β = 0.6 against the photon → factor 2.0 ± 1e-3; target fleeing at 0.6 → 0.5; shooter moving at 0.6 along the photon, target at rest → 2.0; everything at rest → 1
+  - [ ] Test: with a laser of damage 50, a head-on target at β = 0.6 loses 100 health; with `photonDopplerDamage = false` it loses 50
+  - [ ] `./gradlew core:test` passes
 - playtest: Head-on passes kill asteroids faster than shooting at ones that run away.
 
 ### ST-125 Tactical computer tier 2: true-state intercept markers
@@ -380,11 +380,11 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - Marker direction on screen (same rule as ST-078): `dir = n̂'` if `relativity.pilotHullTransform` is on or the scheme aims a turret (`ControlScheme.AUTO_AIM`, `TWIN_STICK`); otherwise (outside view + mouse-hull) `dir` = the W hull angle `pilotHullToWorld(atan2(n̂'), β)` as a unit vector, because that scheme fires along `worldHullToPilot(hull)`. Marker point `m = s + dir · |p_hit − s|` with `p_hit = target + v_target · t`. Draw a circle of radius `TACTICAL_LEAD_RING_PX · wpp` (`= 6f` px) at `m` and a line from the target's centre to `m`, in the target's faction colour at `TACTICAL_ALPHA`. Inject `ControlSettings` into the system for the scheme.
   - physics-lies row 34: add "tier 2 intercept markers use the true state" to the same row (Where: ST-123, ST-125).
 - acceptance:
-  - [x] Test: `trueLeadDirection` with shooter and target at rest returns the unit vector toward the target and `t = dist / c`
-  - [x] Test: shooter at rest, target 20 u away along +y moving (0.5·c, 0): the photon fired along the returned direction hits: `|s + c·t·n̂_W − (target + v·t)| < 1e-3` (check via the world direction before the muzzle conversion; at β = 0 the two are equal)
-  - [x] Integration test (real `World`, `PhysicsSystem`, `RelativisticDynamics`, `ProjectileSweepSystem`): ship moving at β = 0.6 along +x, asteroid 15 u away along +y moving (0.3·c, 0); set `aimAngleRad = atan2(trueLeadDirection(...))`, fire; the sweep hits the asteroid within 1 s
-  - [x] Test: with the player's tier = `TACTICAL_TIER_WIREFRAME` no marker circles are drawn; with 10 targets in range at most `TACTICAL_LEAD_MAX` markers are drawn
-  - [x] `./gradlew core:test` passes
+  - [ ] Test: `trueLeadDirection` with shooter and target at rest returns the unit vector toward the target and `t = dist / c`
+  - [ ] Test: shooter at rest, target 20 u away along +y moving (0.5·c, 0): the photon fired along the returned direction hits: `|s + c·t·n̂_W − (target + v·t)| < 1e-3` (check via the world direction before the muzzle conversion; at β = 0 the two are equal)
+  - [ ] Integration test (real `World`, `PhysicsSystem`, `RelativisticDynamics`, `ProjectileSweepSystem`): ship moving at β = 0.6 along +x, asteroid 15 u away along +y moving (0.3·c, 0); set `aimAngleRad = atan2(trueLeadDirection(...))`, fire; the sweep hits the asteroid within 1 s
+  - [ ] Test: with the player's tier = `TACTICAL_TIER_WIREFRAME` no marker circles are drawn; with 10 targets in range at most `TACTICAL_LEAD_MAX` markers are drawn
+  - [ ] `./gradlew core:test` passes
 - playtest: In mouse-hull and pilot view at speed, put the cursor on a ring and fire: the shot hits even though the sprite is elsewhere. In auto-aim, check whether 6 rings clutter the view.
 
 ---
@@ -413,13 +413,13 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - The inverse of `gmFromRs`: `fun rsFromGm(gm: Float, c: Float) = 2·gm/c²` (used by ST-086 for planets).
   - `fun mergeSources(m1, x1, y1, vx1, vy1, m2, x2, y2, vx2, vy2, out: FloatArray)`: `out = [m1 + m2, xcm, ycm, vxcm, vycm]` (mass-weighted centre and velocity: momentum is conserved). For black holes `m ∝ rs`, so callers pass rs as the mass and the merged hole gets `rs = rs1 + rs2`.
 - acceptance:
-  - [x] Test: integrate `gravityAccelTau` with RK4 in τ (step 1e-3) for one orbit starting at r = 12 with tangential `|u| = circularOrbitL(12)/12` → r stays within 12 ± 5 %
-  - [x] Test: a photon (step `dt = 1/450`) with impact parameter b = 40, starting 400 u away, is deflected by `2r_s/b = 0.1 rad ± 15 %`
-  - [x] Test: a photon with b = 2.3 r_s ends inside r_s (captured); one with b = 2.9 r_s escapes
-  - [x] Test: far from the hole (r = 100, small u) `gravityAccelTau` matches `newtonAccel` within 1 %
-  - [x] Test: two sources with gm 3600 each, at rest 60 u apart, both pulled by `SOURCE_COUPLING_DEFAULT·newtonAccel` (semi-implicit Euler, dt = 1/45) close to 4 u apart after `19.2 s ± 5 %` (radial free fall `t = (π/2)·sqrt(r₀³/(2μ))`, `μ = 0.1·7200`)
-  - [x] Test: `mergeSources` conserves `m·v` and puts the merged centre on the segment between the two
-  - [x] `./gradlew core:test` passes
+  - [ ] Test: integrate `gravityAccelTau` with RK4 in τ (step 1e-3) for one orbit starting at r = 12 with tangential `|u| = circularOrbitL(12)/12` → r stays within 12 ± 5 %
+  - [ ] Test: a photon (step `dt = 1/450`) with impact parameter b = 40, starting 400 u away, is deflected by `2r_s/b = 0.1 rad ± 15 %`
+  - [ ] Test: a photon with b = 2.3 r_s ends inside r_s (captured); one with b = 2.9 r_s escapes
+  - [ ] Test: far from the hole (r = 100, small u) `gravityAccelTau` matches `newtonAccel` within 1 %
+  - [ ] Test: two sources with gm 3600 each, at rest 60 u apart, both pulled by `SOURCE_COUPLING_DEFAULT·newtonAccel` (semi-implicit Euler, dt = 1/45) close to 4 u apart after `19.2 s ± 5 %` (radial free fall `t = (π/2)·sqrt(r₀³/(2μ))`, `μ = 0.1·7200`)
+  - [ ] Test: `mergeSources` conserves `m·v` and puts the merged centre on the segment between the two
+  - [ ] `./gradlew core:test` passes
 
 ### ST-083 GravitySystem: n-body sources, bodies and photons
 - status: ready
@@ -439,12 +439,12 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - `RelativitySettings`: append `gravityEnabled: Boolean = GRAVITY_ENABLED` (`const val GRAVITY_ENABLED = true`), `sourceCoupling: Float = SOURCE_COUPLING_DEFAULT` (clamped to [0, 1]) and `playerGm: Float = PLAYER_GM` (clamped to [0, 200]), restored by `resetDebugDefaults`. Debug panel: checkbox "gravity", sliders "source coupling" and "player GM".
   - The system does nothing when there are no sources, so all levels play as before until ST-085.
 - acceptance:
-  - [x] Test (real `World`, a black-hole source on a dynamic sensor body at the origin, player-like relativistic body): released at rest at r = 30, it falls inward, and after 0.5 s its radial speed matches the integrated `gravityAccelTau/γ` within 5 %
-  - [x] Test: a photon passing at b = 40 is deflected 0.1 rad ± 15 % (the sweep through the real system)
-  - [x] Test: two black-hole sources at rest 60 u apart move toward each other with equal and opposite velocities (within 1 %), and with `sourceCoupling = 0` they stay at rest
-  - [x] Test: a source at rest 10 u from the player gains velocity toward the player of `playerGm/100·t` (± 5 % after 0.5 s); an asteroid next to the source doesn't move the source
-  - [x] Test: `gravityEnabled = false` → no velocity change on any body
-  - [x] `./gradlew core:test` passes
+  - [ ] Test (real `World`, a black-hole source on a dynamic sensor body at the origin, player-like relativistic body): released at rest at r = 30, it falls inward, and after 0.5 s its radial speed matches the integrated `gravityAccelTau/γ` within 5 %
+  - [ ] Test: a photon passing at b = 40 is deflected 0.1 rad ± 15 % (the sweep through the real system)
+  - [ ] Test: two black-hole sources at rest 60 u apart move toward each other with equal and opposite velocities (within 1 %), and with `sourceCoupling = 0` they stay at rest
+  - [ ] Test: a source at rest 10 u from the player gains velocity toward the player of `playerGm/100·t` (± 5 % after 0.5 s); an asteroid next to the source doesn't move the source
+  - [ ] Test: `gravityEnabled = false` → no velocity change on any body
+  - [ ] `./gradlew core:test` passes
 
 ### ST-084 Player death ends the run
 - status: ready
@@ -458,10 +458,10 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - `Game.endRun()`: `gameState.resetGame()`, set a `gameState.lastRunEnded = true` flag, `setScreen<MainMenuScreen>()`. `PlayScreen` passes `{ game.endRun() }`. The screen switch must not happen in the middle of `engine.update`: post it with `Gdx.app.postRunnable`.
   - `MainMenuScreen.show()`: if `gameState.lastRunEnded`, show a label `run_ended_message` above the buttons and clear the flag. i18n: `run_ended_message=Your ship was lost. Run over.` and `run_ended_message=Statek stracony. Koniec gry.` in both files.
 - acceptance:
-  - [x] Test: `DeathSystem` with a player at health 0 calls the callback once over 3 updates and adds no `RemoveComponent`; an asteroid at health 0 is still split and removed as before
-  - [x] Test: `GameState.resetGame()` puts the level back to its start value and `lastRunEnded` is settable
-  - [x] The i18n key exists in both files
-  - [x] `./gradlew core:test` passes
+  - [ ] Test: `DeathSystem` with a player at health 0 calls the callback once over 3 updates and adds no `RemoveComponent`; an asteroid at health 0 is still split and removed as before
+  - [ ] Test: `GameState.resetGame()` puts the level back to its start value and `lastRunEnded` is settable
+  - [ ] The i18n key exists in both files
+  - [ ] `./gradlew core:test` passes
 - playtest: Die (debug: set health to 0, or fly into a black hole after ST-085): you land on the main menu with the message, and a new game starts at level 1.
 
 ### ST-085 Black holes in the arena: spawn, horizon, merge, shadow and rings
@@ -479,12 +479,12 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - `BlackHoleRenderer` (`ShapeRenderer`, called by `RenderSystem` after the backdrop and before sprites): a filled black circle of radius `2.598·rs` (the shadow), a thin bright ring at `1.5·rs` (photon ring, white, alpha 0.6) and a dashed ring at `3·rs` (ISCO, 32 dashes, orange, alpha 0.4). World view: at the interpolated transform. Pilot view: the holes move, so take the hole's retarded position from `LightHistorySystem.historyOf(id).retarded(...)` (holes exist from level start, so their history is `eternal`), then draw each circle as a 64-point polyline/fan through `o + apparentOffset(p − o, β)` around that position.
   - Minimap: a black dot with a white outline at each hole's true position.
 - acceptance:
-  - [x] Tests: `validSourcePosition` rejects points 20 u from a wall, 30 u from the centre and 50 u from another hole; accepts a valid point. With seed 42, level 3 spawns two holes satisfying all rules, both with zero velocity
-  - [x] Test (real `World`): an asteroid dropped at r = 10 from a hole with no velocity is removed within 3 s; a player in the same spot ends up with `health == 0`
-  - [x] Test: two holes placed 3 u apart merge in one step into one hole with `rs = 4`, at the midpoint, with the summed momentum; the other entity has a `RemoveComponent`
-  - [x] Test: a hole given a velocity toward a wall stays inside the arena for 10 s (boundary field)
-  - [x] Test: no asteroid spawns within 16 u of a hole (seed 42, level 4)
-  - [x] `./gradlew core:test` passes
+  - [ ] Tests: `validSourcePosition` rejects points 20 u from a wall, 30 u from the centre and 50 u from another hole; accepts a valid point. With seed 42, level 3 spawns two holes satisfying all rules, both with zero velocity
+  - [ ] Test (real `World`): an asteroid dropped at r = 10 from a hole with no velocity is removed within 3 s; a player in the same spot ends up with `health == 0`
+  - [ ] Test: two holes placed 3 u apart merge in one step into one hole with `rs = 4`, at the midpoint, with the summed momentum; the other entity has a `RemoveComponent`
+  - [ ] Test: a hole given a velocity toward a wall stays inside the arena for 10 s (boundary field)
+  - [ ] Test: no asteroid spawns within 16 u of a hole (seed 42, level 4)
+  - [ ] `./gradlew core:test` passes
 - playtest: A black disc with rings sits in the arena and slowly drifts. Ships slingshot around it, and lasers bend near it. Flying close tugs the hole toward you. On level 3+, the two holes drift together and merge. Is the ISCO ring readable as "danger"?
 
 ### ST-093 Planets: solid gravity sources and obstacles
@@ -502,10 +502,10 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - `PlanetTextures` (DI singleton, created in `Game` after the atlas, disposed in `Game.dispose`): 4 variants built once with the seeded random, each a 96×96 `Pixmap` disc. Pull the colour rule into a pure `fun planetTexel(variant: Int, seed: Long, u: Float, v: Float): Int` (RGBA8888; transparent outside the unit disc; inside, 3–5 horizontal bands from a 1D value-noise in `v` with a palette per variant, plus a darker 1-texel rim). Nearest filtering, matching the pixel-art atlas.
   - Minimap: a filled circle at true scale and position, grey.
 - acceptance:
-  - [x] Tests: `planetCount(1) == 1`, `planetCount(4) == 2`; `planetTexel` is transparent at (0.99, 0.99) and opaque at (0.5, 0.5), and is deterministic for the same seed
-  - [x] Test (seed 42, level 4): 2 planets, each at least 30 u from every hole and from the centre, all at rest; no asteroid within 11 u of a planet
-  - [x] Test (real `World`): a ship dropped 15 u above a planet with no velocity falls, collides and comes to rest on the surface (centre distance `PLANET_RADIUS + ship radius ± 0.3` after 5 s); a planet placed 10 u from a hole is removed within 3 s
-  - [x] `./gradlew core:test` passes
+  - [ ] Tests: `planetCount(1) == 1`, `planetCount(4) == 2`; `planetTexel` is transparent at (0.99, 0.99) and opaque at (0.5, 0.5), and is deterministic for the same seed
+  - [ ] Test (seed 42, level 4): 2 planets, each at least 30 u from every hole and from the centre, all at rest; no asteroid within 11 u of a planet
+  - [ ] Test (real `World`): a ship dropped 15 u above a planet with no velocity falls, collides and comes to rest on the surface (centre distance `PLANET_RADIUS + ship radius ± 0.3` after 5 s); a planet placed 10 u from a hole is removed within 3 s
+  - [ ] `./gradlew core:test` passes
 - playtest: A banded planet sits in the arena and drifts slowly toward the hole. Orbit it, slingshot around it, try landing gently. Hitting it fast should hurt. Are the generated planet sprites good enough as placeholders?
 
 ### ST-094 Level decoration: drifting debris
@@ -520,9 +520,9 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - Placement with `validSourcePosition` (ST-085): wall margin 15, at least 20 u from the centre, at least 12 u from every source, at least 8 u apart. Spawned after asteroids. Setting `decorationEnabled = true` (last param, debug checkbox).
   - Gravity, the boundary field and light history all apply through the existing families (they're ordinary bodies).
 - acceptance:
-  - [x] Test (seed 42, level 2): 6 debris entities, all at rest, satisfying the placement rules
-  - [x] Test: a level with only debris left (no asteroids) counts as cleared; a debris piece at health 0 is removed without spawning anything
-  - [x] `./gradlew core:test` passes
+  - [ ] Test (seed 42, level 2): 6 debris entities, all at rest, satisfying the placement rules
+  - [ ] Test: a level with only debris left (no asteroids) counts as cleared; a debris piece at health 0 is removed without spawning anything
+  - [ ] `./gradlew core:test` passes
 - playtest: Debris drifts toward the nearest hole or planet and gets swallowed or settles on the surface. Is 6 pieces the right amount?
 
 ### ST-086 Gravitational time dilation in ship clocks and the time warp
@@ -539,9 +539,9 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - `TimeWarpSystem`: the warp uses `γ_eff = gUsed/gravFactor` instead of `gUsed`. Rotation factor `f` for non-players (ST-040): `gravFactor/gUsed`.
   - Pure: `fun gravTimeFactor(r: Float, rs: Float): Float`.
 - acceptance:
-  - [x] Tests: `gravTimeFactor(4f, 2f) ≈ 0.7071`; `gravTimeFactor(1f, 2f) ≈ √(1 − 1/1.01)` (clamped); far away (r = 1000) ≈ 1
-  - [x] Test: a body held at rest at r = 2 r_s accumulates `tau ≈ 0.707` per second of world time, and with it as the player the warp is `1.414 ± 0.01`
-  - [x] `./gradlew core:test` passes
+  - [ ] Tests: `gravTimeFactor(4f, 2f) ≈ 0.7071`; `gravTimeFactor(1f, 2f) ≈ √(1 − 1/1.01)` (clamped); far away (r = 1000) ≈ 1
+  - [ ] Test: a body held at rest at r = 2 r_s accumulates `tau ≈ 0.707` per second of world time, and with it as the player the warp is `1.414 ± 0.01`
+  - [ ] `./gradlew core:test` passes
 - playtest: Skim close to a hole and watch the world time race ahead on the HUD while your guns feel the same.
 
 ### ST-087 Accretion disk: GPU particle disk
@@ -559,10 +559,10 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - Vertex shader: `φ = a_phi0 + sqrt(u_gm/a_r³)·u_time` (`u_time` = `GameClock.worldTime`, so the disk turns at arena speed and visibly fast-forwards with the warp), `pos = u_center + a_r·(cos φ, sin φ) + a_corner·a_size`, colour from a 256×1 blackbody LUT texture built from `BlackbodyLut` (ST-043) at `a_temp`, brightness `g⁴`. Fragment: soft round dot. Additive blending (`GL_SRC_ALPHA, GL_ONE`). GLSL must be TeaVM/WebGL-safe (`#ifdef GL_ES precision mediump float;`).
   - No radial drift in this version (declared omission). World view only; pilot view comes in ST-089 (in pilot view, skip the disk until then).
 - acceptance:
-  - [x] Tests: `diskTemperature` peaks at `r = 49/36·rIn` with value `tPeak ± 1 %` and is 0 at `rIn`; `diskRedshift(3·rs, rs) ≈ 0.7071`; `diskOmega(12f, 3600f) ≈ 1.443`
-  - [x] Test: the mesh builder fills `DISK_PARTICLES·4` vertices with all radii in `[DISK_INNER, DISK_OUTER]`
-  - [x] Screenshot via the harness (seed 42, level 1) viewed by the agent: a bright disk around the hole, whiter inside, redder outside
-  - [x] `./gradlew core:test` passes
+  - [ ] Tests: `diskTemperature` peaks at `r = 49/36·rIn` with value `tPeak ± 1 %` and is 0 at `rIn`; `diskRedshift(3·rs, rs) ≈ 0.7071`; `diskOmega(12f, 3600f) ≈ 1.443`
+  - [ ] Test: the mesh builder fills `DISK_PARTICLES·4` vertices with all radii in `[DISK_INNER, DISK_OUTER]`
+  - [ ] Screenshot via the harness (seed 42, level 1) viewed by the agent: a bright disk around the hole, whiter inside, redder outside
+  - [ ] `./gradlew core:test` passes
 - playtest: The disk swirls, faster near the hole. It speeds up when the world fast-forwards.
 
 ### ST-088 Gravitational lensing of the backdrop
@@ -579,9 +579,9 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - A setting `lensingEnabled = true` (last param, debug checkbox). When off, render the backdrop directly as before.
   - Holes spawn at least 60 u apart (ST-085) and a quad's half-size is 24 u, but they drift together under gravity before merging. When two quads overlap, each samples the unlensed FBO, so the second lens doesn't see the first one's image (declared FAKE; it lasts only until the merge). Centre each quad on the hole's interpolated position (world view) or apparent position (pilot view).
 - acceptance:
-  - [x] Tests: `lensSourceOffset` returns false at `|ρ| = 5` (shadow 5.196 at r_s 2); at `|ρ| = R_E` it maps to (0, 0) (the Einstein ring images the point behind the hole); at the quad edge `out == ρ`; it is continuous along a radial line (no jump > 0.1 u between samples 0.01 u apart outside the shadow)
-  - [x] Screenshot via the harness (seed 42) viewed by the agent: an Einstein ring of stars around the shadow
-  - [x] `./gradlew core:test` passes
+  - [ ] Tests: `lensSourceOffset` returns false at `|ρ| = 5` (shadow 5.196 at r_s 2); at `|ρ| = R_E` it maps to (0, 0) (the Einstein ring images the point behind the hole); at the quad edge `out == ρ`; it is continuous along a radial line (no jump > 0.1 u between samples 0.01 u apart outside the shadow)
+  - [ ] Screenshot via the harness (seed 42) viewed by the agent: an Einstein ring of stars around the shadow
+  - [ ] `./gradlew core:test` passes
 - playtest: Fly past a hole: stars smear into arcs and a ring around it. You can spot holes from the backdrop.
 
 ### ST-089 Accretion disk in pilot view, with Doppler beaming
@@ -597,9 +597,9 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - The hole moves (ST-085): `center` is the hole's retarded position from its `LightHistory` (as in ST-085's pilot-view rings), and each particle is then retarded by the tangent-line formula relative to that centre (declared approximation: the centre and the particles use separate retardations; the error is about `v_hole·T`, under 1 u for holes slower than 2 u/s at 30 u).
   - Colour temperature `a_temp·D`, brightness `g⁴·beamBrightness(D, pilotView = true)`. Uniforms `u_pilot`, `u_observer`, `u_beta`, `u_c`. With `u_pilot = 0` the output equals ST-087.
 - acceptance:
-  - [x] Tests: with the observer at rest 100 u from the hole, the particle moving toward the observer has D > 1 and the one moving away has D < 1, with `D_toward·D_away` equal for mirrored particles on either side of the line of sight (within 1e-3); with β_obs = 0 the apparent position differs from the true one by less than `|v|·T`
-  - [x] Screenshot (pilot view, near a hole) viewed by the agent: one side of the disk is brighter and bluer
-  - [x] `./gradlew core:test` passes
+  - [ ] Tests: with the observer at rest 100 u from the hole, the particle moving toward the observer has D > 1 and the one moving away has D < 1, with `D_toward·D_away` equal for mirrored particles on either side of the line of sight (within 1e-3); with β_obs = 0 the apparent position differs from the true one by less than `|v|·T`
+  - [ ] Screenshot (pilot view, near a hole) viewed by the agent: one side of the disk is brighter and bluer
+  - [ ] `./gradlew core:test` passes
 - playtest: Orbit a hole in pilot view: the approaching half of the disk glows blue-white and the other half dims red.
 
 ### ST-095 Lighting math: falloff, wrapped diffuse and light picking (pure)
@@ -618,10 +618,10 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - `fun shade(nx, ny, nz, px, py, lights: Array<LightSource>, idx: IntArray, n: Int, ambient: Float, out: FloatArray)`: `out(rgb) = ambient + Σ colour·intensity·falloff·wrapDiffuse(N·L)` (falloff 1 for directional).
   - `fun pickLights(px, py, lights, count, max, outIdx: IntArray): Int`: the indices of up to `max` lights with the largest `intensity·falloff(d)`, skipping those with 0. Insertion into a small sorted array, no allocation.
 - acceptance:
-  - [x] Tests: `falloff(0, 4, 100) == 1`, `falloff(4, 4, 100) == 0.5`, `falloff(100, 4, 100) == 0`, monotonic in d
-  - [x] Tests: a normal facing the light gets `ambient + intensity`; facing away with `wrap = 0` gets `ambient` only; with `wrap = 1` the back side still gets half the front side's diffuse
-  - [x] Test: `pickLights` with 6 lights returns the 4 strongest at the point, in descending order, and skips one beyond its range
-  - [x] `./gradlew core:test` passes
+  - [ ] Tests: `falloff(0, 4, 100) == 1`, `falloff(4, 4, 100) == 0.5`, `falloff(100, 4, 100) == 0`, monotonic in d
+  - [ ] Tests: a normal facing the light gets `ambient + intensity`; facing away with `wrap = 0` gets `ambient` only; with `wrap = 1` the back side still gets half the front side's diffuse
+  - [ ] Test: `pickLights` with 6 lights returns the 4 strongest at the point, in descending order, and skips one beyond its range
+  - [ ] `./gradlew core:test` passes
 
 ### ST-096 Normal maps from sprite alpha in the texture packer
 - status: ready
@@ -636,10 +636,10 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - Add JUnit test dependencies to `tool/build.gradle.kts` the same way `core` has them, if missing.
   - Run `./gradlew tool:packTextures` and commit the regenerated atlas. Region lookups by name in `core` are unchanged (new regions are only added).
 - acceptance:
-  - [x] Test: for a 32×32 filled disc of radius 12, the centre normal is (0, 0, 1) ± 0.05, a texel at the right rim has `nx > 0.5`, at the top rim (row 4) `ny > 0.5`
-  - [x] Test: a fully transparent image gives all-transparent output; a fully opaque 8×8 square has flat normals in its inner 2×2
-  - [x] After packing, `textures.atlas` contains `asteroid_big_n`, `debris_n` and `spaceship/triangle_blue_n` (or the path form the packer uses), with the same width and height as their colour regions
-  - [x] `./gradlew core:test` and `./gradlew tool:test` pass
+  - [ ] Test: for a 32×32 filled disc of radius 12, the centre normal is (0, 0, 1) ± 0.05, a texel at the right rim has `nx > 0.5`, at the top rim (row 4) `ny > 0.5`
+  - [ ] Test: a fully transparent image gives all-transparent output; a fully opaque 8×8 square has flat normals in its inner 2×2
+  - [ ] After packing, `textures.atlas` contains `asteroid_big_n`, `debris_n` and `spaceship/triangle_blue_n` (or the path form the packer uses), with the same width and height as their colour regions
+  - [ ] `./gradlew core:test` and `./gradlew tool:test` pass
 
 ### ST-097 Lit sprites: accretion disks light ships, asteroids and planets
 - status: ready
@@ -660,11 +660,11 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
     - FAKE 3: lighting ignores length contraction (ST-044) of the lit sprite, and the disk is one soft point light (ST-095).
   - With `lightingEnabled = false` (or no lights) the render path and output are unchanged.
 - acceptance:
-  - [x] Test: an asteroid (mode 2) at (10, 0) with a disk light at the origin: the texel at `q = (−1, 0)` (facing the hole) is brighter than at `q = (1, 0)`, which gets about the ambient plus the wrap term
-  - [x] Test: a normal-map texel with tangent normal (1, 0, 0) on a sprite rotated by 90° gets the light from +y, not from +x
-  - [x] Test: pilot-view emitter extrapolation: a hole moving at (2, 0) with the object's `t_ret` 0.5 s ago gives an emitter 1 u behind the current hole position
-  - [x] Screenshot via the harness (seed 42, level 1, world view and pilot view) viewed by the agent: asteroids near the hole are lit on the side facing the disk
-  - [x] `./gradlew core:test` passes
+  - [ ] Test: an asteroid (mode 2) at (10, 0) with a disk light at the origin: the texel at `q = (−1, 0)` (facing the hole) is brighter than at `q = (1, 0)`, which gets about the ambient plus the wrap term
+  - [ ] Test: a normal-map texel with tangent normal (1, 0, 0) on a sprite rotated by 90° gets the light from +y, not from +x
+  - [ ] Test: pilot-view emitter extrapolation: a hole moving at (2, 0) with the object's `t_ret` 0.5 s ago gives an emitter 1 u behind the current hole position
+  - [ ] Screenshot via the harness (seed 42, level 1, world view and pilot view) viewed by the agent: asteroids near the hole are lit on the side facing the disk
+  - [ ] `./gradlew core:test` passes
 - playtest: Fly near a black hole: your ship and the asteroids pick up a warm glow on the side facing the disk, and it fades with distance. Toggle "lighting" in the debug panel to compare. Check the frame rate on a busy level.
 
 ### ST-098 Shadows from planets and large asteroids
@@ -680,10 +680,10 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - Self-shadowing on the far side already comes from N·L. Small asteroids, ships and debris don't cast (performance; KDoc it).
   - Setting `shadowsEnabled = true` (last param, debug checkbox).
 - acceptance:
-  - [x] Tests: an occluder exactly between point and light → < 0.05; offset sideways by `cr + 2w` → > 0.95; an occluder behind the point or beyond the light → 1; continuous along a sideways sweep (no jump > 0.1 between samples 0.01 u apart)
-  - [x] Test: the CPU selection skips the sprite's own circle and keeps at most 6
-  - [x] Screenshot (seed 42, a debug setup with a ship behind a planet relative to a hole) viewed by the agent: the ship is darker than one beside the planet
-  - [x] `./gradlew core:test` passes
+  - [ ] Tests: an occluder exactly between point and light → < 0.05; offset sideways by `cr + 2w` → > 0.95; an occluder behind the point or beyond the light → 1; continuous along a sideways sweep (no jump > 0.1 between samples 0.01 u apart)
+  - [ ] Test: the CPU selection skips the sprite's own circle and keeps at most 6
+  - [ ] Screenshot (seed 42, a debug setup with a ship behind a planet relative to a hole) viewed by the agent: the ship is darker than one beside the planet
+  - [ ] `./gradlew core:test` passes
 - playtest: Hide behind a planet from a black hole's glow: your ship goes dark. Are disk shadows (very soft, because the disk is large) readable?
 
 ### ST-099 A distant star as a directional light
@@ -699,9 +699,9 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - Pilot view: the star is static and infinitely far, so the illumination direction in the arena frame is exact (by the ST-097 events argument), and only FAKE 2 (no Doppler at the object) applies.
   - Setting `starLightEnabled = true` (last param, debug checkbox).
 - acceptance:
-  - [x] Test: seed 42 gives the same star direction and temperature on every run of a level; a different level gives a different one
-  - [x] Test: with only the star light, a sphere-mode texel facing the star direction is brighter than one facing away, and the result doesn't depend on distance
-  - [x] `./gradlew core:test` passes
+  - [ ] Test: seed 42 gives the same star direction and temperature on every run of a level; a different level gives a different one
+  - [ ] Test: with only the star light, a sphere-mode texel facing the star direction is brighter than one facing away, and the result doesn't depend on distance
+  - [ ] `./gradlew core:test` passes
 - playtest: Each level has a sun direction: everything is lit from one side. Does it read well with the disk glow on top? Does the owner want visible in-arena stars instead (later card)?
 
 ### ST-090 Bring docs in line after M4/M5
@@ -712,7 +712,7 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 - files: `docs/tech/architecture.md`, `CLAUDE.md`, `docs/design/game-design.md` (§6, §7 entities, §9 visuals, §11 decisions only)
 - goal: Document the pilot view render path and its flags (V key), `LightHistorySystem` and ghosts, the step-listener order including `GravitySystem` and `LightHistorySystem`, `GravitySourceComponent` and the n-body source path (Newtonian, sensor bodies for holes, `sourceCoupling`, `playerGm`), black holes (`EntityType.BLACK_HOLE`, horizon kill, merging), planets and debris, the player death flow, the accretion disk, lighting (lit-sprite shader, normal maps from the packer, shadows, star light, the pilot-view exact/FAKE list) and lensing passes, and the new constants and settings.
 - acceptance:
-  - [x] Every statement in the updated sections can be traced to the current code or to an answered owner decision
+  - [ ] Every statement in the updated sections can be traced to the current code or to an answered owner decision
 
 ---
 
@@ -734,10 +734,10 @@ Owner 2026-11-02: control modes for later (game-design §12). Keep them ready bu
   - `MoveComponent.instantTurn = false` (reset false). `PhysicsSystem.applyRotation`: if set and `targetAngleRad != null`, `body.setTransform(body.position, target)` and `angularVelocity = 0` instead of the PD impulse (FAKE).
   - `LeadMarkerSystem` draws the markers while the trance is active, even if `controlSettings.leadMarkers` is off.
 - acceptance:
-  - [x] Test: with LMB held the clock's `slowMo == 0.2` and no shot is fired over 1 s; on release exactly one shot fires and `slowMo == 1`
-  - [x] Test: pressing and releasing again 0.5 s after a shot fires nothing and doesn't slow time; LMB held from 0.5 s to 1.5 s enters the trance at 1.0 s and the release at 1.5 s fires the second shot
-  - [x] Test: `instantTurn` sets the body angle to the target in one step with zero angular velocity
-  - [x] Test: switching away from the scheme mid-trance resets `slowMo` to 1
-  - [x] `./gradlew core:test` passes
+  - [ ] Test: with LMB held the clock's `slowMo == 0.2` and no shot is fired over 1 s; on release exactly one shot fires and `slowMo == 1`
+  - [ ] Test: pressing and releasing again 0.5 s after a shot fires nothing and doesn't slow time; LMB held from 0.5 s to 1.5 s enters the trance at 1.0 s and the release at 1.5 s fires the second shot
+  - [ ] Test: `instantTurn` sets the body angle to the target in one step with zero angular velocity
+  - [ ] Test: switching away from the scheme mid-trance resets `slowMo` to 1
+  - [ ] `./gradlew core:test` passes
 - playtest: With `--controls=trance`, hold LMB: time crawls, the markers appear and the nose snaps to the cursor; release to fire one shot, then wait a second. Does the 1 s cooldown feel right?
 

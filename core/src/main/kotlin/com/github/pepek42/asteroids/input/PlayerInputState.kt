@@ -10,4 +10,8 @@ class PlayerInputState {
     val aimWorld = Vector2()
     /** Movement axis for schemes with decoupled movement; zero until ST-061. */
     val moveAxis = Vector2()
+    /** The ship's visual velocity over c in W (`ObserverState.betaVisual`), the boost into the pilot frame. */
+    val betaShip = Vector2()
+    /** True when the screen shows the pilot's frame (pilot view with relativity on), so aim angles are pilot-frame angles. */
+    var pilotView = false
 }

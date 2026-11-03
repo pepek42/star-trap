@@ -20,6 +20,8 @@ import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.input.ControlStrategy
 import com.github.pepek42.asteroids.input.MouseHullStrategy
 import com.github.pepek42.asteroids.input.PlayerInputState
+import com.github.pepek42.asteroids.physics.ObserverState
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import ktx.ashley.allOf
 import ktx.log.logger
 
@@ -28,6 +30,8 @@ class PlayerInputSystem(
     private val gameEventManager: GameEventManager,
     private val camera: Camera,
     private val controlSettings: ControlSettings = ControlSettings(),
+    private val observer: ObserverState = ObserverState(),
+    private val settings: RelativitySettings = RelativitySettings(),
 ) : IteratingSystem(allOf(PlayerComponent::class, MoveComponent::class, BodyComponent::class).get()),
     PlayerInputListener {
     private val input = PlayerInputState()
@@ -58,6 +62,8 @@ class PlayerInputSystem(
         unprojected.set(screenAimPoint.x, screenAimPoint.y, 0f)
         camera.unproject(unprojected)
         input.aimWorld.set(unprojected.x, unprojected.y)
+        input.betaShip.set(observer.betaVisual)
+        input.pilotView = settings.pilotView && settings.relativityEnabled
         super.update(deltaTime)
     }
 

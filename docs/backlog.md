@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-112**.
+Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-113**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -9,7 +9,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 M3 Relativity MVP:
-13. ST-076 Pilot-frame aiming
+13b. ST-112 Pilot view: one gate for hull transform and aim
 14. ST-078 Lead markers
 14a. ST-062 Auto-aim + auto-shoot scheme (owner 2026-11-02: the default, un-parked)
 14b. ST-063 Make auto-aim the default control scheme
@@ -173,24 +173,6 @@ Parked:
   - [ ] `./gradlew core:test` passes
 - playtest: Fast asteroids crossing close by look slightly skewed. No flicker or corner jitter.
 
-### ST-076 Pilot-frame aiming: the cursor points in the pilot's frame
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-039, ST-072, ST-074
-- files: `input/PlayerInputState.kt`, `input/MouseHullStrategy.kt`, `system/PlayerInputSystem.kt`, `provider/WeaponProjectileProvider.kt`; tests in `input/MouseHullStrategyTest.kt`, `provider/WeaponProjectileProviderTest.kt`
-- goal: In pilot view the screen shows the pilot's frame, so the cursor direction from the ship is a pilot-frame (P) direction. The hull and the shots must follow the cursor as the pilot sees it. Shots already treat `aimAngleRad` and the hull as shooter-frame angles (ST-039), so this card makes the hull consistent.
-- spec:
-  - `PlayerInputState`: add `val betaShip = Vector2()` and `var pilotView = false`. `PlayerInputSystem` fills them every frame from `ObserverState.betaVisual` and `settings.pilotView && settings.relativityEnabled`.
-  - `MouseHullStrategy`: `θ = atan2(aim − shipPos)`. If `input.pilotView`, then `targetAngleRad = pilotHullToWorld(θ, betaShip)`, so the hull, drawn at `worldHullToPilot(body.angle)` in pilot view, points at the cursor. Otherwise `θ` as today.
-  - `WeaponProjectileProvider` hull fallback (no `aimAngleRad`): `aim = worldHullToPilot(body.angle, β_ship)` when relativity is on (the hull's angle in the ship's rest frame), else `body.angle`. The muzzle offset uses the same `aim`.
-  - Follow-up from ST-039: the muzzle offset still uses the unaberrated `aim`, so at high β the shot starts slightly off its flight line. Decide here whether the muzzle should follow `n̂` or the P-frame aim.
-- acceptance:
-  - [ ] Test: `MouseHullStrategy` with `pilotView = true`, `betaShip = (0.9, 0)` and the cursor at 45° from the ship → `targetAngleRad = 66.45° ± 0.05°`; with `pilotView = false` → 45°
-  - [ ] Test: a ship at β = 0.9 along +x with body angle 66.45° and no `aimAngleRad` fires along the shooter-frame 45°, i.e. a W direction of `aberratePhoton(β, 45°)` ± 0.1°
-  - [ ] `./gradlew core:test` passes
-- playtest: In pilot view at speed, the ship's nose and the shots go where the cursor is.
-
 ### ST-077 Pilot view: starfield, field band and shimmer through the boost
 - status: ready
 - size: M
@@ -312,6 +294,22 @@ Parked:
   - [ ] `docs/tech/balance.md` has the tables, the chosen constants and the reasoning; the constants are updated in code
   - [ ] `./gradlew core:test` passes (the sweep is not part of the default `test` run)
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
+
+### ST-112 Pilot view: one gate for hull transform and aim (ST-076 follow-ups)
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-076
+- files: `render/PilotView.kt`, `system/RenderSystem.kt`, `system/PlayerInputSystem.kt`, `physics/RelativitySettings.kt`; tests
+- refs: ST-076 result (`docs/backlog-done.md`)
+- goal: The drawn hull and the cursor mapping must use the same switch, otherwise the nose and the cursor disagree. Today `RenderSystem`/`PilotView` apply `worldHullToPilot` whenever `pilotView` is on, but the input side gates on `pilotView && relativityEnabled`, and neither looks at `pilotAberration`.
+- spec:
+  - Add one helper on `RelativitySettings`, e.g. `val pilotHullTransform get() = pilotView && relativityEnabled && pilotAberration`. Use it in the renderer (player hull rotation) and in `PlayerInputSystem` (`input.pilotView`). Sprite projection (delay/aberration of other entities) stays gated as in ST-074.
+- acceptance:
+  - [ ] Test: with relativity off, or with `pilotAberration` off, the player hull is drawn at `body.angle` and `MouseHullStrategy` returns the raw cursor angle
+  - [ ] Test: with all three on, both use the transform (β = (0.9, 0), 45° → 66.45°)
+  - [ ] `./gradlew core:test` passes
+- playtest: Toggle relativity / aberration in the debug panel at speed: the nose stays on the cursor in every combination.
 
 ## M4 Relativistic view
 

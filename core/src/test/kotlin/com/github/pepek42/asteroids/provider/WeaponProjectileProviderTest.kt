@@ -22,6 +22,7 @@ import com.github.pepek42.asteroids.component.photonCmp
 import com.github.pepek42.asteroids.component.photonCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.aberratePhoton
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.lifetimeCmp
@@ -145,6 +146,37 @@ class WeaponProjectileProviderTest {
         assertEquals(25.84f, laser.transformCmp.prevRotationDeg, 0.1f)
         assertEquals(25.84f, body.angle * MathUtils.radiansToDegrees, 0.1f)
         assertEquals(1f, laser.photonCmp.dir.len(), 1e-4f)
+    }
+
+    @Test
+    fun hullFallbackFiresAlongShooterFrameHullAngle() {
+        val beta = 0.9f
+        val shipBody = world.createBody(BodyDef().apply {
+            type = BodyDef.BodyType.DynamicBody
+            angle = 66.45f * MathUtils.degreesToRadians
+        })
+        val ship = Entity()
+            .add(BodyComponent().apply { body = shipBody })
+            .add(BaseInfoComponent(faction = FactionEnum.PLAYER))
+            .add(RelativisticComponent().apply { vSet.set(beta * c, 0f) })
+        provider.spawnProjectile(WeaponComponent(projectileRadius = 0.1f), ship)
+
+        val laser = engine.entities.first { it.bodyCmp.body !== shipBody && it.photonCmpOptional != null }
+        val expected = aberratePhoton(beta, 0f, MathUtils.cosDeg(45f), MathUtils.sinDeg(45f), Vector2())
+        val expectedDeg = MathUtils.atan2(expected.y, expected.x) * MathUtils.radiansToDegrees
+        val dir = laser.photonCmp.dir
+        assertEquals(expectedDeg, MathUtils.atan2(dir.y, dir.x) * MathUtils.radiansToDegrees, 0.1f)
+    }
+
+    @Test
+    fun muzzleOffsetFollowsFlightLine() {
+        val laser = fireFrom(provider, Math.PI.toFloat() / 2f, Vector2(0.9f * c, 0f))
+
+        val dir = laser.photonCmp.dir
+        val pos = laser.bodyCmp.body.position
+        // The photon starts exactly on the line from the ship (at the origin) along its flight direction, 2 radii out.
+        assertEquals(dir.x * 0.2f, pos.x, 1e-4f)
+        assertEquals(dir.y * 0.2f, pos.y, 1e-4f)
     }
 
     @Test

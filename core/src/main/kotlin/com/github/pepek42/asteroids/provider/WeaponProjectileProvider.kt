@@ -23,6 +23,7 @@ import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.aberratePhoton
+import com.github.pepek42.asteroids.physics.worldHullToPilot
 import com.github.pepek42.asteroids.weapon.PHOTON_WORLD_LIFETIME
 import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.ashley.entity
@@ -40,11 +41,13 @@ class WeaponProjectileProvider(
 ) {
     fun spawnProjectile(weaponCmp: WeaponComponent, entity: Entity) {
         val bodyCmp = entity.bodyCmp
-        val aim = weaponCmp.aimAngleRad ?: bodyCmp.body.angle
-        val muzzle = vec2(2f * weaponCmp.projectileRadius, 0f).rotateRad(aim)
+        val aim = weaponCmp.aimAngleRad ?: hullAimInShooterFrame(entity)
+        val photonDir = photonDirection(aim, entity)
+        // The muzzle offset is a displacement in W, so it follows the flight line n̂ = photonDir, not the shooter-frame aim:
+        // the photon then starts on the straight line from the gun along which it travels (ST-076 decision).
+        val muzzle = Vector2(photonDir).scl(2f * weaponCmp.projectileRadius)
         val position = bodyCmp.body.position +
             Vector2(weaponCmp.weaponPosition).rotateRad(bodyCmp.body.angle) + muzzle
-        val photonDir = photonDirection(aim, entity)
         val angle = photonDir.angleRad()
         val faction = entity.baseInfoCmp.faction
 
@@ -100,12 +103,29 @@ class WeaponProjectileProvider(
         }
     }
 
+    /** Ship velocity over c in W, the boost into the shooter's rest frame. */
+    private fun shooterBeta(shooter: Entity): Vector2 {
+        val vShip = shooter.relativisticCmpOptional?.vSet ?: shooter.bodyCmp.body.linearVelocity
+        return vec2(vShip.x / settings.c, vShip.y / settings.c)
+    }
+
+    /**
+     * Hull angle in the shooter's rest frame, used when no explicit `aimAngleRad` is set. The hull angle in the body is a W
+     * angle (length-contracted along the motion), so the shooter-frame angle is `worldHullToPilot(body.angle, β_ship)`.
+     */
+    private fun hullAimInShooterFrame(shooter: Entity): Float {
+        val angle = shooter.bodyCmp.body.angle
+        if (!settings.relativityEnabled) return angle
+        val beta = shooterBeta(shooter)
+        return worldHullToPilot(angle, beta.x, beta.y)
+    }
+
     /** Unit direction in W of a photon fired at shooter-frame angle [aim], aberrated by the shooter's velocity. */
     private fun photonDirection(aim: Float, shooter: Entity): Vector2 {
         val nx = MathUtils.cos(aim)
         val ny = MathUtils.sin(aim)
         if (!settings.relativityEnabled) return vec2(nx, ny)
-        val vShip = shooter.relativisticCmpOptional?.vSet ?: shooter.bodyCmp.body.linearVelocity
-        return aberratePhoton(vShip.x / settings.c, vShip.y / settings.c, nx, ny, Vector2())
+        val beta = shooterBeta(shooter)
+        return aberratePhoton(beta.x, beta.y, nx, ny, Vector2())
     }
 }

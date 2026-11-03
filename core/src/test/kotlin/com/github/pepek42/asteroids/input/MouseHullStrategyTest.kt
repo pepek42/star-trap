@@ -27,6 +27,23 @@ class MouseHullStrategyTest {
     }
 
     @Test
+    fun pilotViewConvertsCursorAngleToWorldHullAngle() {
+        val input = PlayerInputState().apply {
+            pilotView = true
+            betaShip.set(0.9f, 0f)
+            aimWorld.set(10f, 10f)
+        }
+        val move = MoveComponent()
+        MouseHullStrategy().apply(input, Vector2(), 0f, move, null, 0.016f)
+        // tan θ_W = γ·tan θ_P with γ = 1/sqrt(1 − 0.9²), so a 45° cursor gives 66.45°.
+        assertEquals(66.45f, Math.toDegrees(move.targetAngleRad!!.toDouble()).toFloat(), 0.05f)
+
+        input.pilotView = false
+        MouseHullStrategy().apply(input, Vector2(), 0f, move, null, 0.016f)
+        assertEquals(45f, Math.toDegrees(move.targetAngleRad!!.toDouble()).toFloat(), 0.05f)
+    }
+
+    @Test
     fun worksWithoutWeapon() {
         MouseHullStrategy().apply(PlayerInputState(), Vector2(), 0f, MoveComponent(), null, 0.016f)
     }

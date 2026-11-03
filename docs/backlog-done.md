@@ -1280,6 +1280,25 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - playtest: At speed, the edge arrows point where the asteroids appear, not where they "really" are.
 - result: `PilotViewProjector.apparentCentre` drives HudSystem edge pointers in pilot view; `--near-asteroids=<n>` spawns a seeded 8–15 u ring around the player.
 
+### ST-076 Pilot-frame aiming: the cursor points in the pilot's frame
+- status: done (2026-11-03, 96b5b7b)
+- size: S
+- agent: kotlin-dev
+- depends: ST-039, ST-072, ST-074
+- files: `input/PlayerInputState.kt`, `input/MouseHullStrategy.kt`, `system/PlayerInputSystem.kt`, `provider/WeaponProjectileProvider.kt`; tests in `input/MouseHullStrategyTest.kt`, `provider/WeaponProjectileProviderTest.kt`
+- goal: In pilot view the screen shows the pilot's frame, so the cursor direction from the ship is a pilot-frame (P) direction. The hull and the shots must follow the cursor as the pilot sees it. Shots already treat `aimAngleRad` and the hull as shooter-frame angles (ST-039), so this card makes the hull consistent.
+- spec:
+  - `PlayerInputState`: add `val betaShip = Vector2()` and `var pilotView = false`. `PlayerInputSystem` fills them every frame from `ObserverState.betaVisual` and `settings.pilotView && settings.relativityEnabled`.
+  - `MouseHullStrategy`: `θ = atan2(aim − shipPos)`. If `input.pilotView`, then `targetAngleRad = pilotHullToWorld(θ, betaShip)`, so the hull, drawn at `worldHullToPilot(body.angle)` in pilot view, points at the cursor. Otherwise `θ` as today.
+  - `WeaponProjectileProvider` hull fallback (no `aimAngleRad`): `aim = worldHullToPilot(body.angle, β_ship)` when relativity is on (the hull's angle in the ship's rest frame), else `body.angle`. The muzzle offset uses the same `aim`.
+  - Follow-up from ST-039: the muzzle offset still uses the unaberrated `aim`, so at high β the shot starts slightly off its flight line. Decide here whether the muzzle should follow `n̂` or the P-frame aim.
+- acceptance:
+  - [x] Test: `MouseHullStrategy` with `pilotView = true`, `betaShip = (0.9, 0)` and the cursor at 45° from the ship → `targetAngleRad = 66.45° ± 0.05°`; with `pilotView = false` → 45°
+  - [x] Test: a ship at β = 0.9 along +x with body angle 66.45° and no `aimAngleRad` fires along the shooter-frame 45°, i.e. a W direction of `aberratePhoton(β, 45°)` ± 0.1°
+  - [x] `./gradlew core:test` passes
+- playtest: In pilot view at speed, the ship's nose and the shots go where the cursor is.
+- result: MouseHullStrategy uses `pilotHullToWorld` in pilot view, the hull fallback fires at `worldHullToPilot(body.angle, β)`, and the muzzle offset now follows the W-frame flight direction n̂ (decision: keeps the shot on its own flight line).
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

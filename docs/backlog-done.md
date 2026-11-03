@@ -1261,6 +1261,25 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - playtest: Accelerate: the asteroid field visibly crowds forward and stretches ahead; things beside you appear ahead. V switches between pilot view and the true (world) view. Hitting things should still feel fair; note anything that feels like a desync.
 - result: `render/PilotView.kt` projects every non-player sprite through light delay + aberration (`PilotViewProjector`), RenderSystem/CameraSystem use it when `pilotView` is on, V toggles.
 
+### ST-111 Pilot view: apparent edge pointers + harness near-asteroid (ST-074 follow-ups)
+- status: done (2026-11-03, 9ff8ee3)
+- size: S
+- agent: kotlin-dev
+- depends: ST-074
+- files: `system/HudSystem.kt` (edge/target pointers), `render/PilotView.kt`, screenshot harness launch options (`LaunchOptions`, see `docs/tech/dev-workflow.md`); tests
+- refs: ST-074 result (`docs/backlog-done.md`), `docs/tech/dev-workflow.md`
+- goal: Two loose ends from ST-074. (1) Edge pointers still point at true arena positions while the sprites are drawn at apparent ones, so a pointer can disagree with what the pilot sees. In pilot view, aim them at the apparent position (`PilotViewProjector` centre: retarded + boosted; hide while its light hasn't arrived). This follows the pilot-frame-first rule (owner, 2026-11-02). The minimap keeps true positions. (2) Level 1 spawns all asteroids far away, so the pilot-view effect can't be verified by screenshot. Add a harness option `--near-asteroids=<n>` that places n asteroids in a ring 8–15 u around the player (seeded RNG).
+- spec:
+  - Add a projector method that gives the apparent centre of an entity (no quad), allocation-free, false if not arrived. HudSystem uses it when `settings.pilotView` is on, else the old true position.
+  - `--near-asteroids` parsed in `LaunchOptions`, applied at level spawn, documented in `docs/tech/dev-workflow.md`.
+- acceptance:
+  - [x] Test: in pilot view with β = 0.8 the pointer direction to an off-screen asteroid matches its apparent centre, not its true position; in world view it is unchanged
+  - [x] Test: `--near-asteroids=4` parses and spawns 4 asteroids within 15 u of the player
+  - [x] Screenshot `--seed=42 --thrust --frames=150 --near-asteroids=6`, viewed by the agent: asteroids bunch toward the direction of motion
+  - [x] `./gradlew core:test` passes
+- playtest: At speed, the edge arrows point where the asteroids appear, not where they "really" are.
+- result: `PilotViewProjector.apparentCentre` drives HudSystem edge pointers in pilot view; `--near-asteroids=<n>` spawns a seeded 8–15 u ring around the player.
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

@@ -40,4 +40,10 @@ class LaunchOptionsTest {
         val o = parseLaunchOptions(arrayOf("--bogus=1", "-x", "--frames=10"))
         assertEquals(LaunchOptions(frames = 10), o)
     }
+
+    @Test
+    fun parsesNearAsteroids() {
+        assertEquals(4, parseLaunchOptions(arrayOf("--near-asteroids=4")).nearAsteroids)
+        assertEquals(0, parseLaunchOptions(arrayOf("--near-asteroids=x")).nearAsteroids)
+    }
 }

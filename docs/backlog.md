@@ -9,7 +9,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 M3 Relativity MVP:
-12. ST-111 Pilot view: apparent edge pointers + harness near-asteroid
 13. ST-076 Pilot-frame aiming
 14. ST-078 Lead markers
 14a. ST-062 Auto-aim + auto-shoot scheme (owner 2026-11-02: the default, un-parked)
@@ -313,24 +312,6 @@ Parked:
   - [ ] `docs/tech/balance.md` has the tables, the chosen constants and the reasoning; the constants are updated in code
   - [ ] `./gradlew core:test` passes (the sweep is not part of the default `test` run)
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
-
-### ST-111 Pilot view: apparent edge pointers + harness near-asteroid (ST-074 follow-ups)
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-074
-- files: `system/HudSystem.kt` (edge/target pointers), `render/PilotView.kt`, screenshot harness launch options (`LaunchOptions`, see `docs/tech/dev-workflow.md`); tests
-- refs: ST-074 result (`docs/backlog-done.md`), `docs/tech/dev-workflow.md`
-- goal: Two loose ends from ST-074. (1) Edge pointers still point at true arena positions while the sprites are drawn at apparent ones, so a pointer can disagree with what the pilot sees. In pilot view, aim them at the apparent position (`PilotViewProjector` centre: retarded + boosted; hide while its light hasn't arrived). This follows the pilot-frame-first rule (owner, 2026-11-02). The minimap keeps true positions. (2) Level 1 spawns all asteroids far away, so the pilot-view effect can't be verified by screenshot. Add a harness option `--near-asteroids=<n>` that places n asteroids in a ring 8–15 u around the player (seeded RNG).
-- spec:
-  - Add a projector method that gives the apparent centre of an entity (no quad), allocation-free, false if not arrived. HudSystem uses it when `settings.pilotView` is on, else the old true position.
-  - `--near-asteroids` parsed in `LaunchOptions`, applied at level spawn, documented in `docs/tech/dev-workflow.md`.
-- acceptance:
-  - [ ] Test: in pilot view with β = 0.8 the pointer direction to an off-screen asteroid matches its apparent centre, not its true position; in world view it is unchanged
-  - [ ] Test: `--near-asteroids=4` parses and spawns 4 asteroids within 15 u of the player
-  - [ ] Screenshot `--seed=42 --thrust --frames=150 --near-asteroids=6`, viewed by the agent: asteroids bunch toward the direction of motion
-  - [ ] `./gradlew core:test` passes
-- playtest: At speed, the edge arrows point where the asteroids appear, not where they "really" are.
 
 ## M4 Relativistic view
 

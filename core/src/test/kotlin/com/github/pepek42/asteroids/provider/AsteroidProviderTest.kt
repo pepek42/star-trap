@@ -72,6 +72,19 @@ class AsteroidProviderTest {
         }
     }
 
+    @Test
+    fun nearAsteroidsSpawnInRingAroundPlayer() {
+        val around = Vector2(100f, 100f)
+        provider.spawnNearAsteroids(4, around)
+        val asteroids = engine.entities.filter { it.getComponent(AsteroidComponent::class.java) != null }
+        assertEquals(4, asteroids.size)
+        for (a in asteroids) {
+            val p = a.getComponent(BodyComponent::class.java).body.position
+            val d = hypot(p.x - around.x, p.y - around.y)
+            assertTrue(d >= AsteroidProvider.NEAR_ASTEROID_MIN_DIST - 1e-3f && d <= AsteroidProvider.NEAR_ASTEROID_MAX_DIST + 1e-3f)
+        }
+    }
+
     companion object {
         @JvmStatic
         @BeforeAll

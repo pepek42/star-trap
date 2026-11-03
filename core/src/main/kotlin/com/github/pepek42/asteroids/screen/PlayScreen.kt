@@ -105,6 +105,7 @@ class PlayScreen(
         val relativisticDynamics = RelativisticDynamics(settings)
         // Must come after relativisticDynamics: it records the post-step state.
         lightHistory = LightHistorySystem()
+        val pilotViewProjector = PilotViewProjector(lightHistory, observerState, clock, settings)
         engine.add {
             addSystem(TimeWarpSystem(clock, settings))
             addSystem(EndLevelSystem(game))
@@ -130,7 +131,7 @@ class PlayScreen(
                     game, spriteBatch, viewport,
                     FieldShimmerRenderer(shimmerImpacts, mapProvider, settings),
                     gridRenderer, mapProvider, debugSettings, settings,
-                    PilotViewProjector(lightHistory, observerState, clock, settings),
+                    pilotViewProjector,
                 )
             )
             addSystem(DebugVectorSystem(camera, settings, debugSettings))
@@ -138,7 +139,7 @@ class PlayScreen(
                 engine.addSystem(DebugSystem(world, engine, camera))
             }
             addSystem(DebugPanelSystem(debugPanel, observerState, clock))
-            addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock))
+            addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock, settings, pilotViewProjector))
             addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, panelWidthPx = { debugPanel.widthInScreenPx() }))
             addSystem(LifetimeSystem(clock))
             addSystem(DeathSystem(engine, asteroidProvider, game.get<RandomXS128>()))
@@ -155,6 +156,9 @@ class PlayScreen(
         mapProvider.loadMap()
         playerEntityProvider.spawnPlayerEntity()
         asteroidProvider.spawnAsteroids(gameState.level, mapProvider)
+        if (game.options.nearAsteroids > 0) {
+            asteroidProvider.spawnNearAsteroids(game.options.nearAsteroids, mapProvider.playerSpawnLocation())
+        }
         hud.toggleHud(show = true)
         hud.updateLevel(gameState.level)
         if (debugSettings.panelAllowed) {

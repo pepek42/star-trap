@@ -71,6 +71,7 @@ Options (parsed by `parseLaunchOptions` in `core/.../debug/ScreenshotHarness.kt`
 - `--scene=play|menu`: `play` skips the main menu (default), `menu` stays on it.
 - `--thrust`: hold the thrusters during the run.
 - `--seed=<long>`: seeds all gameplay randomness (one `RandomXS128` in the DI context). Without it the seed comes from the clock. Screenshot runs also use a fixed 1/60 s frame delta, so the same args give byte-identical PNGs.
+- `--near-asteroids=<n>`: additionally places n large asteroids in a ring 8-15 u around the player (seeded RNG), so near-field effects such as the pilot view are visible on level 1.
 
 No player input is sent otherwise. After frame N the framebuffer is saved as PNG and the app exits by itself. Wrap the command in `timeout 120` to be safe. Unknown flags and invalid values are ignored.
 

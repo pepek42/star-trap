@@ -71,6 +71,29 @@ class PilotViewProjector(
     }
 
     /**
+     * Writes where the pilot sees the centre of [entity] into [out]: retarded (when [RelativitySettings.pilotDelay]) and boosted
+     * (when [RelativitySettings.pilotAberration]), the same point [project] centres the quad on. Returns false when its light
+     * has not arrived yet. Call [begin] first. Allocation-free.
+     */
+    fun apparentCentre(entity: Entity, out: Vector2): Boolean {
+        if (playerMapper.has(entity)) return out.set(ox, oy).let { true }
+        val h = if (settings.pilotDelay) baseInfoMapper.get(entity)?.let { history.historyOf(it.id) } else null
+        val x: Float
+        val y: Float
+        if (h != null) {
+            if (!h.retarded(ox, oy, now, settings.c, state)) return false
+            x = state.x
+            y = state.y
+        } else {
+            val pos = entity.transformCmp.interpolatedPosition
+            x = pos.x
+            y = pos.y
+        }
+        pilotCorner(x, y, ox, oy, betaX, betaY, settings.pilotAberration, out)
+        return true
+    }
+
+    /**
      * Writes the four corners of [entity]'s sprite as seen by the pilot into [out] (20 floats, the Sprite vertex layout).
      * Returns false when the entity's light has not reached the pilot yet (skip drawing it).
      */

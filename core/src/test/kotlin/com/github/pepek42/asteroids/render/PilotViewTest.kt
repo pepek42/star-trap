@@ -194,6 +194,41 @@ class PilotViewTest {
         assertTrue(projector.project(asteroid, verts))
     }
 
+    @Test
+    fun pointerDirectionFollowsApparentCentreInPilotViewOnly() {
+        val player = addEntity(50f, 50f, player = true)
+        val asteroid = addEntity(80f, 80f, player = false)
+        step(seconds(2f))
+        observer.betaVisual.set(0.8f, 0f)
+        begin(player)
+        val apparent = Vector2()
+        assertTrue(projector.apparentCentre(asteroid, apparent))
+        val expected = Vector2()
+        apparentOffset(30f, 30f, 0.8f, 0f, expected)
+        assertEquals(50f + expected.x, apparent.x, 0.05f)
+        assertEquals(50f + expected.y, apparent.y, 0.05f)
+        val out = Vector2()
+        val pilotAngle = edgePointer(50f, 50f, 1f, 1f, apparent.x, apparent.y, 0f, out)
+        val trueAngle = edgePointer(50f, 50f, 1f, 1f, 80f, 80f, 0f, out)
+        assertEquals(Math.atan2(expected.y.toDouble(), expected.x.toDouble()).toFloat(), pilotAngle, 1e-3f)
+        assertTrue(Math.abs(pilotAngle - trueAngle) > 0.3f)
+        // World view (beta 0) leaves the direction unchanged.
+        observer.betaVisual.set(0f, 0f)
+        begin(player)
+        assertTrue(projector.apparentCentre(asteroid, apparent))
+        assertEquals(trueAngle, edgePointer(50f, 50f, 1f, 1f, apparent.x, apparent.y, 0f, out), 1e-3f)
+    }
+
+    @Test
+    fun apparentCentreIsFalseWhileLightHasNotArrived() {
+        val player = addEntity(50f, 50f, player = true)
+        step(10)
+        val asteroid = addEntity(80f, 50f, player = false)
+        step(1)
+        begin(player)
+        assertFalse(projector.apparentCentre(asteroid, Vector2()))
+    }
+
     companion object {
         private const val SPRITE_SIZE = 0.2f
 

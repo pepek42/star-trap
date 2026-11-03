@@ -25,6 +25,8 @@ import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
+import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.ui.Hud
 import ktx.ashley.allOf
 
@@ -36,6 +38,8 @@ class HudSystem(
     private val pointerRenderer: ReferenceGridRenderer,
     private val observer: ObserverState,
     private val clock: GameClock,
+    private val settings: RelativitySettings,
+    private val pilotView: PilotViewProjector,
 ) : IteratingSystem(allOf(PlayerComponent::class, TransformComponent::class, BodyComponent::class).get()) {
 
     private val targetFamily = allOf(BaseInfoComponent::class, TransformComponent::class).get()
@@ -45,6 +49,7 @@ class HudSystem(
     private val pointerPos = Vector2()
     private val screenPos = Vector3()
     private val playerPos = Vector2()
+    private val apparentPos = Vector2()
     private var hasPlayer = false
 
     override fun update(deltaTime: Float) {
@@ -75,6 +80,9 @@ class HudSystem(
         val halfW = camera.viewportWidth * camera.zoom / 2f
         val halfH = camera.viewportHeight * camera.zoom / 2f
         val entities = engine.getEntitiesFor(targetFamily)
+        // In pilot view the arrows aim at where the sprites are drawn (apparent centre); the minimap keeps true positions.
+        val apparent = settings.pilotView
+        if (apparent) pilotView.begin(playerPos.x, playerPos.y)
         var count = 0
         for (i in 0 until entities.size()) {
             val e = entities[i]
@@ -83,9 +91,14 @@ class HudSystem(
             if (info.entityType == EntityType.PROJECTILE || removeMapper.has(e)) continue
             if (2 * count + 1 >= candidates.size) candidates = candidates.copyOf(candidates.size * 2)
             if (count >= candidateEntities.size) candidateEntities = candidateEntities.copyOf(candidates.size / 2)
-            val pos = e.transformCmp.interpolatedPosition
-            candidates[2 * count] = pos.x
-            candidates[2 * count + 1] = pos.y
+            if (apparent) {
+                // Light not arrived yet: nothing is visible, so no arrow.
+                if (!pilotView.apparentCentre(e, apparentPos)) continue
+            } else {
+                apparentPos.set(e.transformCmp.interpolatedPosition)
+            }
+            candidates[2 * count] = apparentPos.x
+            candidates[2 * count + 1] = apparentPos.y
             candidateEntities[count] = e
             count++
         }

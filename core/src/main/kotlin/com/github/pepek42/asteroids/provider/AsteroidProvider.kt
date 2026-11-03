@@ -97,4 +97,24 @@ class AsteroidProvider(
             )
         }
     }
+
+    /** Spawns [count] extra large asteroids on a ring [NEAR_ASTEROID_MIN_DIST]..[NEAR_ASTEROID_MAX_DIST] u around [around] (harness only). */
+    fun spawnNearAsteroids(count: Int, around: Vector2) {
+        val speedMax = ASTEROID_SPAWN_BETA_MAX * settings.c
+        for (i in 0 until count) {
+            val angle = random.nextFloat() * MathUtils.PI2
+            val r = NEAR_ASTEROID_MIN_DIST + random.nextFloat() * (NEAR_ASTEROID_MAX_DIST - NEAR_ASTEROID_MIN_DIST)
+            spawnAsteroid(
+                size = AsteroidSize.LARGE,
+                position = around + vec2(r, 0f).rotateRad(angle),
+                velocity = vec2((random.nextFloat() * 2f - 1f) * speedMax, (random.nextFloat() * 2f - 1f) * speedMax),
+                angularSpeed = random.nextFloat() * 3f,
+            )
+        }
+    }
+
+    companion object {
+        const val NEAR_ASTEROID_MIN_DIST = 8f
+        const val NEAR_ASTEROID_MAX_DIST = 15f
+    }
 }

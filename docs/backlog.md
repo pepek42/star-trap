@@ -9,7 +9,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 M3 Relativity MVP:
-0g. ST-110 UI font cleanup (ST-109 follow-ups)
 8. ST-071 LightHistorySystem
 9. ST-072 PilotFrame transforms
 10. ST-073 PhotonAim
@@ -379,20 +378,6 @@ Parked:
   - architecture.md: remove the stale "boundary field until ST-038" wording. Note that `FieldShimmerRenderer`, `MinimapSystem` and `CameraSystem` still read the `FIELD_SKIN` const, not `settings.fieldParams.skin`.
 - acceptance:
   - [ ] The tests above exist, and `./gradlew core:test` passes
-
-### ST-110 UI font cleanup (ST-109 follow-ups)
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-109
-- refs: ST-109 in `docs/backlog-done.md`, `tool/font/gen_font.py`
-- files: `assets/ui/uiskin.atlas` (+ png), `ui/DebugPanel.kt`
-- goal: Tidy up after the font swap.
-- spec:
-  - Remove the now-unused `font` region from `assets/ui/uiskin.atlas` (the skin loads `font-glyphs.png` instead); only if it can be done without disturbing the other regions, otherwise leave it and note it.
-  - Rename the debug panel slider label "gamma cap" to "γ cap".
-- acceptance:
-  - [ ] Game UI still renders (screenshot), `./gradlew core:test` passes
 
 ### ST-049 Bring docs in line after M3
 - status: ready

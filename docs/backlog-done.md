@@ -1145,6 +1145,21 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
   - [x] `./gradlew core:test` passes
 - result: New `font-glyphs.fnt/.png` generated from Liberation Sans by `tool/font/gen_font.py` (Pillow); uiskin.json points to it, Polish strings fixed, HUD/debug panel show β γ τ.
 
+### ST-110 UI font cleanup (ST-109 follow-ups)
+- status: done (2026-11-03, 7094ddc)
+- size: S
+- agent: junior-dev
+- depends: ST-109
+- refs: ST-109 in `docs/backlog-done.md`, `tool/font/gen_font.py`
+- files: `assets/ui/uiskin.atlas` (+ png), `ui/DebugPanel.kt`
+- goal: Tidy up after the font swap.
+- spec:
+  - Remove the now-unused `font` region from `assets/ui/uiskin.atlas` (the skin loads `font-glyphs.png` instead); only if it can be done without disturbing the other regions, otherwise leave it and note it.
+  - Rename the debug panel slider label "gamma cap" to "γ cap".
+- acceptance:
+  - [x] Game UI still renders (screenshot), `./gradlew core:test` passes
+- result: Removed the `font` region entry from uiskin.atlas (png pixels left, unused) and renamed the slider label to "γ cap".
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

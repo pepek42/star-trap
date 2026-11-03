@@ -212,7 +212,7 @@ class DebugPanel(
         slider("brake boost", 0f, 5f, 0.1f, 1, { relativitySettings.brakeBoost }) { relativitySettings.brakeBoost = it }
         slider("field damping", 0f, 5f, 0.1f, 1, { relativitySettings.fieldDamping }) { relativitySettings.fieldDamping = it }
         slider("warp cap", 1f, TIME_WARP_MAX_LIMIT, 1f, 0, { relativitySettings.timeWarpMax }) { relativitySettings.timeWarpMax = it }
-        slider("gamma cap", GAMMA_MAX_MIN, GAMMA_MAX_MASSIVE, 1f, 0, { relativitySettings.gammaMaxMassive }) { relativitySettings.gammaMaxMassive = it }
+        slider("γ cap", GAMMA_MAX_MIN, GAMMA_MAX_MASSIVE, 1f, 0, { relativitySettings.gammaMaxMassive }) { relativitySettings.gammaMaxMassive = it }
 
         val select = SelectBox<String>(skin)
         controlsSelect = select

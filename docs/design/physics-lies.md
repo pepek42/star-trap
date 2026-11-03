@@ -60,3 +60,5 @@ Tags: **FAKE** is a deliberate departure. **APPROX** is a simplification that is
 | 24 | Lighting: light received by a moving object has no Doppler shift or aberration at the object | FAKE | Cost | ST-097 (FAKE 2) | — |
 | 25 | Lighting ignores length contraction of the lit sprite, and the disk is one soft point light, plus an ambient floor of 0.35 | FAKE | Cost and readability | ST-095, ST-097 (FAKE 3) | — |
 | 26 | The disk's pilot-view centre uses the hole's retarded position (approximation) | APPROX | Cost | ST-089 | — |
+| 31 | World-view length contraction stops at 25 % of rest length (`CONTRACTION_MIN_SCALE`), so past γ = 4 sprites stop shrinking | FAKE | Readability: true 1/γ makes fast ships invisible slivers | ST-044 (`render/RelativityVisuals.kt`) | — |
+| 32 | Hitboxes aren't length-contracted; only sprites are | APPROX | Box2D fixtures are fixed shapes | ST-044 | Research E20 |

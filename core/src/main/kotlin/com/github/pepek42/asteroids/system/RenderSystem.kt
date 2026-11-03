@@ -13,6 +13,14 @@ import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
+import com.github.pepek42.asteroids.component.bodyCmpOptional
+import com.github.pepek42.asteroids.component.relativisticCmpOptional
+import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.gammaFromV
+import com.github.pepek42.asteroids.render.contractOffset
+import com.github.pepek42.asteroids.render.contractionK
+import com.badlogic.gdx.math.Vector2
+import kotlin.math.sqrt
 import com.github.pepek42.asteroids.provider.BackgroundProvider
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -30,6 +38,7 @@ class RenderSystem(
     private val gridRenderer: ReferenceGridRenderer,
     private val mapProvider: MapProvider,
     private val debugSettings: DebugSettings,
+    private val settings: RelativitySettings,
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()), Disposable {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
 
@@ -86,10 +95,34 @@ class RenderSystem(
             """.trimIndent()
             }
         }
-        sprite.draw(batch)
+        val v = entity.bodyCmpOptional?.body?.linearVelocity
+        val speed = if (v == null) 0f else sqrt(v.x * v.x + v.y * v.y)
+        if (v == null || speed <= MIN_CONTRACTION_SPEED) {
+            sprite.draw(batch)
+            return
+        }
+        val gamma = entity.relativisticCmpOptional?.gUsed ?: gammaFromV(v.x, v.y, settings.c)
+        val k = contractionK(gamma)
+        val vhx = v.x / speed
+        val vhy = v.y / speed
+        val cx = transformComp.interpolatedPosition.x
+        val cy = transformComp.interpolatedPosition.y
+        System.arraycopy(sprite.vertices, 0, scratch, 0, VERTEX_FLOATS)
+        for (i in 0 until VERTEX_FLOATS step VERTEX_STRIDE) {
+            contractOffset(scratch[i] - cx, scratch[i + 1] - cy, vhx, vhy, k, tmp)
+            scratch[i] = cx + tmp.x
+            scratch[i + 1] = cy + tmp.y
+        }
+        batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
     }
 
+    private val scratch = FloatArray(VERTEX_FLOATS)
+    private val tmp = Vector2()
+
     companion object {
+        private const val VERTEX_FLOATS = 20
+        private const val VERTEX_STRIDE = 5
+        private const val MIN_CONTRACTION_SPEED = 1e-3f
         private val logger = logger<RenderSystem>()
     }
 }

@@ -1217,6 +1217,24 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
   - [x] `./gradlew core:test` passes
 - result: Added pure PhotonAim.photonInterceptDir and muzzleDirForWorldDir (inverse aberration), covered by tests.
 
+### ST-044 Length contraction of moving sprites
+- status: done (2026-11-03, fa4ac14)
+- size: S
+- agent: kotlin-dev
+- depends: ST-035
+- files: `system/RenderSystem.kt`, `render/RelativityVisuals.kt` (create or extend); tests
+- goal: In world view, moving objects are flattened along their motion to `L₀/γ` (research E5, exact for the top-down camera). It's done on the CPU with 4-corner quads, so no shader is needed and batching survives. Hitboxes stay uncontracted for now (research E20, later).
+- spec:
+  - Constant `CONTRACTION_STRENGTH = 1f`. Add `fun contractOffset(ox, oy, vhx, vhy, k, out: Vector2)`: `o' = o − k·(o·v̂)·v̂`.
+  - Readability clamp: there's no gameplay γ cap (ST-032), so a γ = 50 ship would become an invisible sliver. Add `CONTRACTION_MIN_SCALE = 0.25f` and compute `k = min(CONTRACTION_STRENGTH·(1 − 1/γ), 1 − CONTRACTION_MIN_SCALE)`, so a sprite never drops below 25 % of its rest length along v̂.
+  - `RenderSystem.processEntity`: after setting the sprite rotation and position, if the entity has a body with speed > 1e-3: `γ = relativisticCmpOptional?.gUsed ?: gammaFromV(v)` and `k = CONTRACTION_STRENGTH·(1 − 1/γ)`. Copy `sprite.vertices` (20 floats) into a reusable `FloatArray(20)`. For corners at offsets 0, 5, 10, 15, transform `(x − cx, y − cy)` with `contractOffset` around the interpolated centre. Then `batch.draw(sprite.texture, scratch, 0, 20)`. Otherwise use `sprite.draw(batch)` as today.
+- note (2026-11-02): this is the world-view path. Pilot view (ST-074) reuses `contractOffset` on the retarded corners before the boost, so keep it a pure top-level function.
+- acceptance:
+  - [x] Tests: `contractOffset` with k = 0 is the identity. A point along v̂ with k = 1 − 1/2.294 is scaled to 0.436. A point perpendicular to v̂ is unchanged. At γ = 50 the computed k gives a scale of exactly 0.25
+  - [x] `./gradlew core:test` passes
+- playtest: The player ship visibly flattens along its direction of travel near c. Slow asteroids look unchanged.
+- result: RenderSystem contracts sprite quads along v̂ via pure contractOffset/contractionK (min scale 25 %), with physics-lies rows 31-32.
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

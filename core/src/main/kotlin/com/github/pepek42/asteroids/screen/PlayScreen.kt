@@ -128,7 +128,7 @@ class PlayScreen(
                 RenderSystem(
                     game, spriteBatch, viewport,
                     FieldShimmerRenderer(shimmerImpacts, mapProvider, settings),
-                    gridRenderer, mapProvider, debugSettings,
+                    gridRenderer, mapProvider, debugSettings, settings,
                 )
             )
             addSystem(DebugVectorSystem(camera, settings, debugSettings))

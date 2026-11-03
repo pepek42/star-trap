@@ -1180,6 +1180,25 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
   - [x] `./gradlew core:test` passes
 - result: `LightHistorySystem` is the last step listener and keeps id-keyed, pooled histories with eternal/removedAt; tests derive from PHYSICS_TICK_RATE (the 45-step criterion was written for the old 45 Hz tick).
 
+### ST-072 PilotFrame: apparent position and hull-angle transforms (pure)
+- status: done (2026-11-03, 97154af)
+- size: S
+- agent: junior-dev
+- depends: ST-035
+- files: create `physics/PilotFrame.kt`; create `core/src/test/kotlin/com/github/pepek42/asteroids/physics/PilotFrameTest.kt`
+- goal: Pure functions for the boost into the pilot frame (research E9) and for the ship's hull angle between the arena frame and the ship's rest frame. Used by the pilot-view renderer (ST-074) and pilot-frame aiming (ST-076).
+- spec (all allocation-free; `β = (betaX, betaY)`; if `|β| < 1e-6` every function is the identity):
+  - `fun apparentOffset(rx: Float, ry: Float, betaX: Float, betaY: Float, out: Vector2): Vector2`. Here `r` is the arena-frame offset from the observer to the source's **retarded** position. With `b̂ = β/|β|`, `r∥ = r·b̂` and `r⊥ = r − r∥·b̂`: `r'∥ = γ·(r∥ + |β|·|r|)`, `r'⊥ = r⊥`, and `out = r'∥·b̂ + r'⊥`. Then `|r'| = D·|r|` with `D = γ(1 + β·r̂)`. KDoc: "Lorentz boost of the light-reception event into the pilot frame (research E9). Objects slide toward the direction of motion."
+  - `fun worldHullToPilot(angleW: Float, betaX: Float, betaY: Float): Float`: take the unit vector at `angleW`, multiply its component along `b̂` by `γ`, return `atan2`. A rod at rest in the ship is contracted in the arena frame, so `tan θ_W = γ·tan θ_P` (angles measured from `b̂`).
+  - `fun pilotHullToWorld(angleP: Float, betaX: Float, betaY: Float): Float`: same, but divide the component along `b̂` by `γ`.
+  - `γ = 1/√(1 − β²)` with `β²` clamped to `BETA_MAX_MASSIVE²`.
+- acceptance:
+  - [x] Test: `apparentOffset((0, 10), β = (0.9, 0))` → (20.65, 10) ± 0.01, i.e. 25.84° ± 0.05° from +x and length 22.94 ± 0.01
+  - [x] Test: `apparentOffset` at β = 0 is the identity; a point straight ahead `(10, 0)` at β = 0.9 maps to (43.59, 0) (= D·10 with D = 4.359); for 20 random `r` and β with |β| ≤ 0.95, `|r'| = γ(1 + β·r̂)·|r|` within 1e-3 relative
+  - [x] Test: `worldHullToPilot(45°, (0.9, 0)) = 23.55° ± 0.05°`; `pilotHullToWorld(45°, (0.9, 0)) = 66.45° ± 0.05°`; both functions round-trip within 1e-5 rad for 20 random angles and β; a hull parallel or perpendicular to β is unchanged
+  - [x] `./gradlew core:test` passes
+- result: Added pure PilotFrame.apparentOffset and world/pilot hull-angle transforms, all covered by tests.
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

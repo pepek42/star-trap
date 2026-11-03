@@ -3,7 +3,7 @@ package com.github.pepek42.asteroids.input
 enum class ControlScheme(val flag: String, val implemented: Boolean) {
     MOUSE_HULL("mouse", true),
     TWIN_STICK("twin", false),
-    AUTO_AIM("auto", false);
+    AUTO_AIM("auto", true);
 
     companion object {
         /** Schemes the menu offers; unimplemented ones fall back to mouse-hull. */

@@ -23,7 +23,7 @@ class WeaponComponent(
     var projectileSpeed: Float = 0f,
     var projectileDamage: Float = 0f,
     var projectileRadius: Float = 0f,
-    /** World-frame fire direction; null means fire along the hull. */
+    /** Shooter-frame (muzzle) fire direction, before aberration to the world frame by `WeaponProjectileProvider`; null means fire along the hull. */
     var aimAngleRad: Float? = null,
 ) : Component, Pool.Poolable {
     override fun reset() {

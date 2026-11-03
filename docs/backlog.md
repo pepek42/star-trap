@@ -11,7 +11,6 @@ Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` car
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
 
 M3 Relativity MVP:
-14a. ST-062 Auto-aim + auto-shoot scheme (owner 2026-11-02: the default, un-parked)
 14b. ST-063 Make auto-aim the default control scheme
 16. ST-043 Doppler colour and searchlight on the starfield
 18. ST-045 Doppler tint on sprites
@@ -217,6 +216,8 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] Integration test (real `World` with `PhysicsSystem`, `RelativisticDynamics`, `ProjectileSweepSystem` and `LightHistorySystem`): a ship moving at β = 0.8 along +x, an asteroid 20 u away along +y moving (10, 0), histories warmed up for 1 s; set `aimAngleRad = atan2(leadDirection(...))` and fire. The photon's sweep hits the asteroid within 1 s
   - [ ] `./gradlew core:test` passes
 - playtest: At speed, aim at the ring instead of the asteroid and the shots hit. Check whether 8 markers clutter the screen.
+- note: (2026-11-03, from ST-062) when unparked, also highlight the auto-aim target in the AUTO_AIM scheme; `leadDirection` already exists in `physics/PhotonAim.kt`.
+
 
 ### ST-047 Relativistic mass in Box2D collisions
 - status: ready
@@ -694,25 +695,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 ## Parked (low priority)
 
 Owner 2026-11-02: control modes for later (game-design §12). Keep them ready but behind all other milestones.
-
-### ST-062 Auto-aim + auto-shoot control scheme (the player manages momentum)
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-058, ST-073, ST-114
-- files: create `input/AutoAim.kt`, `input/AutoAimStrategy.kt`; edit `system/PlayerInputSystem.kt`, `input/ControlScheme.kt`, `input/InputBindings.kt`, `screen/PlayScreen.kt`; tests
-- goal: **Reworked 2026-11-02** (owner: parked mode (a), Brotato / vampire-survivors style). Movement is mouse-hull as in scheme (a): the mouse steers the hull and RMB thrusts. The guns pick a target in a forward cone and fire on their own. It uses the honest fire control of the lead markers (ST-078: retarded state, extrapolated), so auto-aim never peeks at true positions. The photon math moved to `physics/PhotonAim.kt` (ST-073).
-- spec:
-  - (Added 2026-11-03, owner parked ST-078) Implement the pure fire-control function `leadDirection(...)` here, in `physics/PhotonAim.kt`, exactly as ST-078's spec defines it (retarded state, extrapolated at constant velocity, never true positions), with ST-078's math tests. The on-screen lead markers stay parked in ST-078.
-  - Pure `fun pickTargetIndex(sx, sy, facingRad, coneHalfRad, range, xs: FloatArray, ys: FloatArray, n: Int): Int` in `AutoAim.kt`: the index of the nearest candidate with `dist ≤ range` and `|shortestAngleDiffRad(facing, atan2(dy, dx))| ≤ coneHalfRad`, or −1. No allocation.
-  - `AutoAimStrategy(targets, lightHistory, observer, clock, settings)`: the targets are the family `allOf(HealthComponent, BodyComponent, BaseInfoComponent)` minus the player faction. Candidate positions are their retarded positions (`LightHistory.retarded`), filled into reused scratch arrays. Movement as in `MouseHullStrategy`. Fire: `i = pickTargetIndex(…, AUTO_AIM_CONE_HALF_DEG = 30°, AUTO_AIM_RANGE = 40f)`. If `i ≥ 0`, then `leadDirection(…)` (ST-078) gives `n̂'`, `weapon.aimAngleRad = atan2(n̂')` and `doAttack = true`. Otherwise `doAttack = fireHeld` and `aimAngleRad = null`.
-  - Register it in `PlayerInputSystem.strategies[AUTO_AIM]`.
-  - (Added 2026-11-03, ST-114) Set `ControlScheme.AUTO_AIM.implemented = true` so the main menu offers it. In `InputBindings.DEFAULT`, give AUTO_AIM its own FIRE row with label `action_fire_manual` ("Fire (guns also fire on their own)" / "Strzał (działa strzelają też same)", both files) and restrict the plain FIRE row to the other schemes, so the menu explains the difference.
-- acceptance:
-  - [ ] Tests: `pickTargetIndex` picks the nearest in-cone target, skips a nearer one at 45° off the facing and one beyond range, and returns −1 for none
-  - [ ] Test (real `World`): a ship at β = 0.8 along +x, facing +y, with an asteroid 20 u away along +y (histories warmed up), fires a photon whose sweep hits it
-  - [ ] `./gradlew core:test` passes
-- playtest: With `--controls=auto`, fly around: the guns hit asteroids ahead even at high speed. Does it feel like the game plays itself?
 
 ### ST-091 Targeting-trance control scheme (hold LMB: slow-mo aim, release: one shot)
 - status: parked

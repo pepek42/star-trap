@@ -35,3 +35,22 @@ fun photonInterceptDir(rx: Float, ry: Float, vtx: Float, vty: Float, c: Float, o
  */
 fun muzzleDirForWorldDir(betaX: Float, betaY: Float, nWx: Float, nWy: Float, out: Vector2): Vector2 =
     aberratePhoton(-betaX, -betaY, nWx, nWy, out)
+
+/**
+ * Honest fire control (ST-078): the shooter-frame direction n̂' that makes a photon hit a target the pilot sees only as
+ * its retarded state [ret], extrapolated at constant velocity to arena time [now] (`x_e = ret.x + ret.vx·(now − ret.t)`).
+ * It never reads the target's true position. The shooter is at ([sx], [sy]) with velocity over c ([betaX], [betaY]).
+ * Solves the intercept in W with [photonInterceptDir], then converts the world direction to the muzzle direction with
+ * [muzzleDirForWorldDir]. Writes the unit direction into [out] and returns true; returns false (and leaves [out] untouched)
+ * when there is no intercept.
+ */
+fun leadDirection(
+    sx: Float, sy: Float, betaX: Float, betaY: Float, ret: RetardedState, now: Float, c: Float, out: Vector2,
+): Boolean {
+    val age = now - ret.t
+    val rx = ret.x + ret.vx * age - sx
+    val ry = ret.y + ret.vy * age - sy
+    if (photonInterceptDir(rx, ry, ret.vx, ret.vy, c, out).isNaN()) return false
+    muzzleDirForWorldDir(betaX, betaY, out.x, out.y, out)
+    return true
+}

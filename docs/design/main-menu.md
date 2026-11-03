@@ -60,7 +60,7 @@ The owner wants two ways to play: "one from player perspective and one from outs
 |---|---|---|
 | `MOUSE_HULL` | `mouse` | implemented (`MouseHullStrategy`) |
 | `TWIN_STICK` | `twin` | falls back to mouse-hull until ST-061 (WASD thrust direction, mouse turret) |
-| `AUTO_AIM` | `auto` | falls back to mouse-hull until ST-062 (guns auto-target in a forward cone); ST-063 makes it the default |
+| `AUTO_AIM` | `auto` | implemented (ST-062): mouse-hull movement, guns auto-target in a forward cone with honest fire control; ST-063 decides the default |
 | (trance) | — | parked, ST-091 |
 
 ST-114 adds `ControlScheme.implemented`. **Owner 2026-11-03: the menu has no aim-mode selector until there is a second mode to pick.** ST-061 (twin-stick) adds the `aim_mode` Choice over `ControlScheme.selectable()`, and the controls list then rebuilds when the mode changes. The debug panel keeps listing all schemes.

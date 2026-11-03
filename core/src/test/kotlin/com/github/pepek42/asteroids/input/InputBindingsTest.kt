@@ -31,7 +31,7 @@ class InputBindingsTest {
     @Test
     fun forMenuFiltersDebugAndSchemes() {
         val noDebug = InputBindings.DEFAULT.forMenu(ControlScheme.MOUSE_HULL, includeDebug = false)
-        assertEquals(InputBindings.DEFAULT.dropLast(1), noDebug)
+        assertEquals(InputBindings.DEFAULT.filter { !it.debugOnly && ControlScheme.MOUSE_HULL in it.schemes }, noDebug)
         assertEquals(6, noDebug.size)
         val withDebug = InputBindings.DEFAULT.forMenu(ControlScheme.MOUSE_HULL, includeDebug = true)
         assertEquals(InputAction.DEBUG_PANEL, withDebug.last().action)
@@ -68,6 +68,17 @@ class InputBindingsTest {
 
     @Test
     fun selectableSchemes() {
-        assertEquals(listOf(ControlScheme.MOUSE_HULL), ControlScheme.selectable())
+        assertEquals(listOf(ControlScheme.MOUSE_HULL, ControlScheme.AUTO_AIM), ControlScheme.selectable())
+    }
+
+    @Test
+    fun autoAimHasItsOwnFireRow() {
+        fun fireLabels(scheme: ControlScheme) =
+            InputBindings.DEFAULT.forMenu(scheme, includeDebug = false).filter { it.action == InputAction.FIRE }.map { it.labelKey }
+        assertEquals(listOf("action_fire_manual"), fireLabels(ControlScheme.AUTO_AIM))
+        assertEquals(listOf("action_fire"), fireLabels(ControlScheme.MOUSE_HULL))
+        assertEquals(listOf("action_fire"), fireLabels(ControlScheme.TWIN_STICK))
+        // Dispatch ignores schemes, so LMB still resolves to FIRE.
+        assertEquals(InputAction.FIRE, InputBindings.DEFAULT.buttonAction(Input.Buttons.LEFT))
     }
 }

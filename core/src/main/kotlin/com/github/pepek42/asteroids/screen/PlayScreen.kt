@@ -109,7 +109,7 @@ class PlayScreen(
         engine.add {
             addSystem(TimeWarpSystem(clock, settings))
             addSystem(EndLevelSystem(game))
-            addSystem(PlayerInputSystem(gameEventManager, camera, game.get<ControlSettings>(), observerState, settings))
+            addSystem(PlayerInputSystem(gameEventManager, camera, game.get<ControlSettings>(), observerState, settings, lightHistory, clock))
             addSystem(moveSystem)
             addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world, settings), clock))
             addSystem(ContactSystem(world))

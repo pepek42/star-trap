@@ -25,7 +25,14 @@ data class Binding(
 object InputBindings {
     val DEFAULT: List<Binding> = listOf(
         Binding(InputAction.AIM, InputTrigger.MouseMove, "action_aim"),
-        Binding(InputAction.FIRE, InputTrigger.MouseButton(Input.Buttons.LEFT), "action_fire"),
+        Binding(
+            InputAction.FIRE, InputTrigger.MouseButton(Input.Buttons.LEFT), "action_fire",
+            schemes = ControlScheme.entries.toSet() - ControlScheme.AUTO_AIM,
+        ),
+        Binding(
+            InputAction.FIRE, InputTrigger.MouseButton(Input.Buttons.LEFT), "action_fire_manual",
+            schemes = setOf(ControlScheme.AUTO_AIM),
+        ),
         Binding(InputAction.THRUST, InputTrigger.MouseButton(Input.Buttons.RIGHT), "action_thrust"),
         Binding(InputAction.ZOOM, InputTrigger.Wheel, "action_zoom"),
         Binding(InputAction.TOGGLE_PILOT_VIEW, InputTrigger.Key(Keys.V), "action_pilot_view"),

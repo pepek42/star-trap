@@ -1529,3 +1529,25 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
   - [x] The four files say the above, and no doc still claims the keys live in `GameEventManager`'s `when`
   - [x] `./gradlew core:test` passes
 
+## Parked (low priority)
+
+### ST-062 Auto-aim + auto-shoot control scheme (the player manages momentum)
+- status: done (2026-11-03, 5131420)
+- size: M
+- agent: kotlin-dev
+- depends: ST-058, ST-073, ST-114
+- files: create `input/AutoAim.kt`, `input/AutoAimStrategy.kt`; edit `system/PlayerInputSystem.kt`, `input/ControlScheme.kt`, `input/InputBindings.kt`, `screen/PlayScreen.kt`; tests
+- goal: **Reworked 2026-11-02** (owner: parked mode (a), Brotato / vampire-survivors style). Movement is mouse-hull as in scheme (a): the mouse steers the hull and RMB thrusts. The guns pick a target in a forward cone and fire on their own. It uses the honest fire control of the lead markers (ST-078: retarded state, extrapolated), so auto-aim never peeks at true positions. The photon math moved to `physics/PhotonAim.kt` (ST-073).
+- spec:
+  - (Added 2026-11-03, owner parked ST-078) Implement the pure fire-control function `leadDirection(...)` here, in `physics/PhotonAim.kt`, exactly as ST-078's spec defines it (retarded state, extrapolated at constant velocity, never true positions), with ST-078's math tests. The on-screen lead markers stay parked in ST-078.
+  - Pure `fun pickTargetIndex(sx, sy, facingRad, coneHalfRad, range, xs: FloatArray, ys: FloatArray, n: Int): Int` in `AutoAim.kt`: the index of the nearest candidate with `dist ≤ range` and `|shortestAngleDiffRad(facing, atan2(dy, dx))| ≤ coneHalfRad`, or −1. No allocation.
+  - `AutoAimStrategy(targets, lightHistory, observer, clock, settings)`: the targets are the family `allOf(HealthComponent, BodyComponent, BaseInfoComponent)` minus the player faction. Candidate positions are their retarded positions (`LightHistory.retarded`), filled into reused scratch arrays. Movement as in `MouseHullStrategy`. Fire: `i = pickTargetIndex(…, AUTO_AIM_CONE_HALF_DEG = 30°, AUTO_AIM_RANGE = 40f)`. If `i ≥ 0`, then `leadDirection(…)` (ST-078) gives `n̂'`, `weapon.aimAngleRad = atan2(n̂')` and `doAttack = true`. Otherwise `doAttack = fireHeld` and `aimAngleRad = null`.
+  - Register it in `PlayerInputSystem.strategies[AUTO_AIM]`.
+  - (Added 2026-11-03, ST-114) Set `ControlScheme.AUTO_AIM.implemented = true` so the main menu offers it. In `InputBindings.DEFAULT`, give AUTO_AIM its own FIRE row with label `action_fire_manual` ("Fire (guns also fire on their own)" / "Strzał (działa strzelają też same)", both files) and restrict the plain FIRE row to the other schemes, so the menu explains the difference.
+- acceptance:
+  - [x] Tests: `pickTargetIndex` picks the nearest in-cone target, skips a nearer one at 45° off the facing and one beyond range, and returns −1 for none
+  - [x] Test (real `World`): a ship at β = 0.8 along +x, facing +y, with an asteroid 20 u away along +y (histories warmed up), fires a photon whose sweep hits it
+  - [x] `./gradlew core:test` passes
+- playtest: With `--controls=auto`, fly around: the guns hit asteroids ahead even at high speed. Does it feel like the game plays itself?
+- result: AUTO_AIM scheme is selectable: `AutoAimStrategy` picks the nearest retarded-position target in a 30° cone within 40 u and fires along `leadDirection` (ST-078 math, now in `PhotonAim.kt`); target highlighting left to parked ST-078.
+

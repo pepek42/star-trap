@@ -6,7 +6,9 @@ import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.math.Vector3
+import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
+import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.bodyCmp
@@ -15,11 +17,13 @@ import com.github.pepek42.asteroids.component.weaponCmpOptional
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
+import com.github.pepek42.asteroids.input.AutoAimStrategy
 import com.github.pepek42.asteroids.input.ControlScheme
 import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.input.ControlStrategy
 import com.github.pepek42.asteroids.input.MouseHullStrategy
 import com.github.pepek42.asteroids.input.PlayerInputState
+import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import ktx.ashley.allOf
@@ -32,6 +36,8 @@ class PlayerInputSystem(
     private val controlSettings: ControlSettings = ControlSettings(),
     private val observer: ObserverState = ObserverState(),
     private val settings: RelativitySettings = RelativitySettings(),
+    private val lightHistory: LightHistorySystem? = null,
+    private val clock: GameClock? = null,
 ) : IteratingSystem(allOf(PlayerComponent::class, MoveComponent::class, BodyComponent::class).get()),
     PlayerInputListener {
     private val input = PlayerInputState()
@@ -41,8 +47,9 @@ class PlayerInputSystem(
 
     private val mouseHull = MouseHullStrategy()
 
-    // TWIN_STICK and AUTO_AIM fall back to MouseHullStrategy until ST-061/ST-062.
-    private val strategies: Map<ControlScheme, ControlStrategy> = mapOf(
+    // TWIN_STICK falls back to MouseHullStrategy until ST-061. AUTO_AIM is registered in addedToEngine, when the
+    // target family exists (and falls back too if no light history or clock was given).
+    private val strategies: MutableMap<ControlScheme, ControlStrategy> = mutableMapOf(
         ControlScheme.MOUSE_HULL to mouseHull,
         ControlScheme.TWIN_STICK to mouseHull,
         ControlScheme.AUTO_AIM to mouseHull,
@@ -50,6 +57,12 @@ class PlayerInputSystem(
 
     override fun addedToEngine(engine: Engine?) {
         super.addedToEngine(engine)
+        if (engine != null && lightHistory != null && clock != null) {
+            val targets = engine.getEntitiesFor(
+                allOf(HealthComponent::class, BodyComponent::class, BaseInfoComponent::class).get(),
+            )
+            strategies[ControlScheme.AUTO_AIM] = AutoAimStrategy(targets, lightHistory, observer, clock, settings)
+        }
         gameEventManager.addInputListener(this)
     }
 

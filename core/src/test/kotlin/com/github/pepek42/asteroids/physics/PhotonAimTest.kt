@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.physics
 
 import com.badlogic.gdx.math.Vector2
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.Random
@@ -73,5 +74,50 @@ class PhotonAimTest {
             assertEquals(nx, back.x, 1e-5f)
             assertEquals(ny, back.y, 1e-5f)
         }
+    }
+
+    private fun retardedAt(x: Float, y: Float, vx: Float, vy: Float, t: Float) = RetardedState().also {
+        it.x = x; it.y = y; it.vx = vx; it.vy = vy; it.t = t
+    }
+
+    @Test
+    fun leadDirectionAtRestOnStaticTargetIsRadial() {
+        val out = Vector2()
+        assertTrue(leadDirection(0f, 0f, 0f, 0f, retardedAt(30f, 40f, 0f, 0f, 1f), 1f, c, out))
+        assertEquals(0.6f, out.x, 1e-5f)
+        assertEquals(0.8f, out.y, 1e-5f)
+    }
+
+    @Test
+    fun leadDirectionExtrapolatesRetardedStateToNow() {
+        // Seen at x = 30 at t = 0 moving +y at 20: by now = 1 it is at (30, 20), and leadDirection must aim there.
+        val extrapolated = Vector2()
+        photonInterceptDir(30f, 20f, 0f, 20f, c, extrapolated)
+        val out = Vector2()
+        assertTrue(leadDirection(0f, 0f, 0f, 0f, retardedAt(30f, 0f, 0f, 20f, 0f), 1f, c, out))
+        assertEquals(extrapolated.x, out.x, 1e-5f)
+        assertEquals(extrapolated.y, out.y, 1e-5f)
+    }
+
+    @Test
+    fun leadDirectionConvertsToShooterFrame() {
+        val beta = 0.8f
+        val out = Vector2()
+        val world = Vector2()
+        assertTrue(leadDirection(0f, 0f, beta, 0f, retardedAt(0f, 20f, 0f, 0f, 0f), 0f, c, out))
+        photonInterceptDir(0f, 20f, 0f, 0f, c, world)
+        // Aberrating the muzzle direction forward must give the world direction back.
+        val back = aberratePhoton(beta, 0f, out.x, out.y, Vector2())
+        assertEquals(world.x, back.x, 1e-5f)
+        assertEquals(world.y, back.y, 1e-5f)
+    }
+
+    @Test
+    fun leadDirectionFailsWithoutIntercept() {
+        val out = Vector2(7f, 7f)
+        // A target faster than c moving away has no intercept.
+        assertFalse(leadDirection(0f, 0f, 0f, 0f, retardedAt(10f, 0f, 2f * c, 0f, 0f), 0f, c, out))
+        assertEquals(7f, out.x)
+        assertEquals(7f, out.y)
     }
 }

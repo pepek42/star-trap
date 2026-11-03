@@ -1,12 +1,21 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-113**.
+Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-120**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
 ## Implementation order
 
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
+
+Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
+0a. ST-113 i18n key parity test
+0b. ST-114 Input bindings table
+0c. ST-115 Settings table and persistence
+0d. ST-116 Main menu rework: settings panel and controls list
+0e. ST-117 Menu: language and fullscreen
+0f. ST-118 Docs: main menu, bindings, persistence
+0g. ST-119 Owner decision: key rebinding (needs-user)
 
 M3 Relativity MVP:
 13b. ST-112 Pilot view: one gate for hull transform and aim
@@ -54,6 +63,174 @@ Parked:
 
 ---
 
+## M2a Main menu: controls and settings
+
+- note (owner 2026-11-03, top priority): "Main screen should show all control shortcuts. Before starting the game, I want to have options to choose whatever can be changed. For example, choosing aim mode [...]. Start screen can have play and quit as now, but add all controls and settings that could be changed." Design: `docs/design/main-menu.md`. Two single sources of truth: the bindings table (`input/InputBindings.kt`, ST-114) feeds both `GameEventManager` and the controls list; the settings table (`settings/MenuSettings.kt`, ST-115) feeds the menu widgets, persistence and "Reset defaults". Settings are the existing DI singletons (`RelativitySettings`, `ControlSettings`, `DebugSettings`), so nothing new is plumbed into `PlayScreen`. Non-ASCII characters in `.properties` files are written as `\uXXXX` escapes, like the existing entries.
+
+### ST-113 i18n key parity test
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: —
+- files: create `core/src/test/kotlin/com/github/pepek42/asteroids/I18nKeysTest.kt`
+- refs: `main-menu.md` "i18n"
+- goal: The menu work adds many UI strings. A test that both message files have the same keys keeps them in sync, and gives later cards a helper to check their own keys.
+- spec:
+  - Top-level test helper in the same file: `fun i18nKeys(file: String): Set<String>` loads `i18n/$file` from the test classpath (`assets/` is on it) with `java.util.Properties` and returns `stringPropertyNames()`.
+  - Test 1: `i18nKeys("messages.properties") == i18nKeys("messages_pl.properties")`. On failure the message lists the keys missing from each file.
+  - Test 2: no value in either file is blank.
+- acceptance:
+  - [ ] Both tests exist and pass on the current files
+  - [ ] `./gradlew core:test` passes
+
+### ST-114 Input bindings table: one source for GameEventManager and the menu
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-113
+- files: create `input/InputBindings.kt`; edit `event/GameEventManager.kt`, `input/ControlScheme.kt`, `assets/i18n/messages.properties`, `assets/i18n/messages_pl.properties`; `GameEventManagerTest.kt`, new `InputBindingsTest.kt`
+- refs: `main-menu.md` "Single sources of truth", "Bindings (today)", "Aim modes"
+- goal: Today the keys live in `when` branches inside `GameEventManager`, so a controls screen would have to copy them and could drift. Move every binding into one table that the input dispatcher reads and the menu (ST-116) lists. Behaviour is unchanged.
+- spec:
+  - In `InputBindings.kt`:
+    ```kotlin
+    enum class InputAction { AIM, FIRE, THRUST, ZOOM, TOGGLE_PILOT_VIEW, BLOCK, DEBUG_PANEL }
+    sealed interface InputTrigger {
+        data class Key(val code: Int) : InputTrigger
+        data class MouseButton(val button: Int) : InputTrigger
+        data object MouseMove : InputTrigger
+        data object Wheel : InputTrigger
+    }
+    data class Binding(
+        val action: InputAction, val trigger: InputTrigger, val labelKey: String,
+        val debugOnly: Boolean = false,
+        val schemes: Set<ControlScheme> = ControlScheme.entries.toSet(),  // menu filter only
+    )
+    object InputBindings { val DEFAULT: List<Binding> }
+    ```
+    `DEFAULT`, in this order: AIM/MouseMove/`action_aim`, FIRE/MouseButton(LEFT)/`action_fire`, THRUST/MouseButton(RIGHT)/`action_thrust`, ZOOM/Wheel/`action_zoom`, TOGGLE_PILOT_VIEW/Key(V)/`action_pilot_view`, BLOCK/Key(CONTROL_RIGHT)/`action_block`, DEBUG_PANEL/Key(F1)/`action_debug_panel`/debugOnly.
+  - Pure lookups on a `List<Binding>`: `fun List<Binding>.keyAction(code: Int): InputAction?`, `fun List<Binding>.buttonAction(button: Int): InputAction?`, `fun List<Binding>.forMenu(scheme: ControlScheme, includeDebug: Boolean): List<Binding>` (keeps table order, filters by `scheme in schemes` and `debugOnly`).
+  - Pure `fun triggerLabel(t: InputTrigger, i18n: (String) -> String): String`: `Key` → `Input.Keys.toString(code)` (e.g. "R-Ctrl", "V", "F1"); `MouseButton` LEFT/RIGHT/MIDDLE → `i18n("input_lmb" / "input_rmb" / "input_mmb")`; `MouseMove` → `i18n("input_mouse")`; `Wheel` → `i18n("input_wheel")`.
+  - `GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAULT)`. `keyDown`: look up the action; `DEBUG_PANEL` dispatches to the debug listeners **before** the `ignoreInput` check (as F1 does today); then `ignoreInput` returns false; `TOGGLE_PILOT_VIEW` → `togglePilotView`, `BLOCK` → `block`; no action → false. `touchDown/Up`: `FIRE` → `fire(true/false)`, `THRUST` → `thrusters(1f/0f)`. No `Keys.`/`Buttons.` literals stay in `GameEventManager`. Mouse move and wheel keep their callbacks (they're listed in the table for the menu).
+  - `ControlScheme` gets a constructor property `val implemented: Boolean`: `MOUSE_HULL` true, `TWIN_STICK` and `AUTO_AIM` false (they fall back to mouse-hull). Add `companion fun selectable(): List<ControlScheme> = entries.filter { it.implemented }`. ST-061 and ST-062 flip their flag.
+  - i18n (both files): `action_aim=Aim` / `Celowanie`, `action_fire=Fire` / `Strzał`, `action_thrust=Thrust` / `Ciąg silnika`, `action_zoom=Zoom` / `Przybliżenie`, `action_pilot_view=Toggle pilot view` / `Przełącz widok pilota`, `action_block=Shield (not yet)` / `Tarcza (wkrótce)`, `action_debug_panel=Debug panel` / `Panel debugowania`, `input_lmb=LMB` / `LPM`, `input_rmb=RMB` / `PPM`, `input_mmb=MMB` / `ŚPM`, `input_mouse=Mouse` / `Mysz`, `input_wheel=Mouse wheel` / `Kółko myszy`.
+- acceptance:
+  - [ ] Existing `GameEventManagerTest` cases pass unchanged (F1 works while input is ignored, V toggles pilot view, unbound key returns false)
+  - [ ] Test: a `GameEventManager` built with a custom table that binds TOGGLE_PILOT_VIEW to `Keys.P` toggles on P and not on V (proves dispatch reads the table)
+  - [ ] Test: `forMenu(MOUSE_HULL, includeDebug = false)` has 6 entries in table order without F1; `includeDebug = true` adds F1 last; a binding with `schemes = setOf(TWIN_STICK)` is excluded for MOUSE_HULL
+  - [ ] Test: `triggerLabel(Key(CONTROL_RIGHT)) == "R-Ctrl"`, `triggerLabel(MouseButton(LEFT), i18n)` returns `i18n("input_lmb")`
+  - [ ] Test (using `i18nKeys` from ST-113): every `labelKey` in `DEFAULT` and every `input_*` key exists in both files
+  - [ ] Test: `ControlScheme.selectable() == listOf(MOUSE_HULL)`
+  - [ ] `./gradlew core:test` passes
+
+### ST-115 Settings table and persistence (libGDX Preferences)
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-114
+- files: create `settings/KeyValueStore.kt`, `settings/MenuSettings.kt`; edit `Config.kt`, `Game.kt`, both `assets/i18n/messages*.properties`; new `settings/MenuSettingsTest.kt`
+- refs: `main-menu.md` "Settings", "Persistence", "Flow into PlayScreen"
+- goal: One list describes every player-facing setting (key, label, range, default, getter/setter onto the existing DI objects). The menu (ST-116), persistence and "Reset defaults" iterate it. Settings survive restarts via libGDX `Preferences`.
+- spec:
+  - `KeyValueStore` interface: `contains(key)`, `getBoolean/getFloat/getString(key, default)`, `putBoolean/putFloat/putString(key, value)`, `flush()`. `GdxPreferencesStore(prefs: Preferences)` delegates; `MemoryKeyValueStore` (a `HashMap`, `flush` no-op) lives in main code (tests and screenshot runs use it).
+  - `sealed class SettingSpec(val key: String, val enabled: () -> Boolean = { true })` with `labelKey = "setting_$key"`, `hintKey = "setting_${key}_hint"`, subclasses:
+    - `Toggle(key, default: Boolean, get: () -> Boolean, set: (Boolean) -> Unit, enabled)`
+    - `Slider(key, min: Float, max: Float, step: Float, decimals: Int, default: Float, get, set, enabled)`
+    - `Choice(key, options: List<String>, optionLabelKeys: List<String>, default: String, get: () -> String, set: (String) -> Unit, enabled)`
+  - `class MenuSettings(val specs: List<SettingSpec>)` (a wrapper so DI can bind it) and `fun menuSettings(relativity: RelativitySettings, controls: ControlSettings, debug: DebugSettings): MenuSettings` with, in this order:
+    1. `aim_mode` Choice: options `ControlScheme.selectable().map { it.flag }`, labels `scheme_<flag>`, default `ControlSettings().scheme.flag`, set = `ControlScheme.fromFlag(v)?.takeIf { it.implemented }?.let { controls.scheme = it }` (unknown or unimplemented values are ignored)
+    2. `pilot_view` Toggle ↔ `relativity.pilotView`, default `PILOT_VIEW_DEFAULT`
+    3. `relativity` Toggle ↔ `relativityEnabled`, default `RELATIVITY_ENABLED`
+    4. `speed_of_light` Slider ↔ `c`, `C_MIN`..`C_MAX_BOX2D_SAFE`, step 1, 0 decimals, default `SPEED_OF_LIGHT`, enabled = `{ relativity.relativityEnabled }`
+    5. `time_warp` Toggle ↔ `timeWarpEnabled`, default `TIME_WARP_ENABLED`, enabled = `{ relativity.relativityEnabled }`
+    6. `target_pointers` Toggle ↔ `debug.targetPointersEnabled`, default `TARGET_POINTERS_ENABLED`
+    7. `grid` Toggle ↔ `debug.gridEnabled`, default `GRID_ENABLED`
+  - Pure functions: `loadSettings(store, specs)`: for each spec whose key the store contains, `set(store.getX(key, default))` (setters clamp, e.g. c). `saveSettings(store, specs)`: put every `get()`, put `SETTINGS_VERSION_KEY = "settings_version"` = 1, `flush()`. `resetSettings(specs)`: `set(default)` for each.
+  - `Config.kt`: `const val PREFERENCES_NAME = "star-trap-settings"`.
+  - `Game.create()`: bind `KeyValueStore` as `GdxPreferencesStore(Gdx.app.getPreferences(PREFERENCES_NAME))`, or `MemoryKeyValueStore()` when `options.screenshotPath != null` (harness output must not depend on a developer's saved prefs). Bind `menuSettings(...)`. After the context is built: `loadSettings(...)`, then `options.controls?.let { controls.scheme = it }` so the command line wins over prefs.
+  - i18n (both files, labels and hints): `setting_aim_mode=Aim mode` / `Tryb celowania`, hint `How you steer and aim the ship.` / `Jak sterujesz statkiem i celujesz.`; `scheme_mouse=Mouse: hull follows the cursor` / `Mysz: kadłub za kursorem`; `scheme_twin=Twin-stick: WASD + mouse turret` / `Twin-stick: WASD + wieżyczka`; `scheme_auto=Auto-aim: guns pick targets` / `Auto-celowanie: działa same wybierają cel`; `setting_pilot_view=Pilot view (experimental)` / `Widok pilota (eksperymentalny)`, hint `Draw what the pilot sees: delayed light and aberration. V toggles it in game.` / `Pokazuje to, co widzi pilot: opóźnione światło i aberrację. V przełącza w grze.`; `setting_relativity=Relativity` / `Relatywistyka`, hint `Off: classic Newtonian physics.` / `Wyłączona: klasyczna fizyka Newtona.`; `setting_speed_of_light=Speed of light` / `Prędkość światła`, hint `Lower c makes relativistic effects show up sooner.` / `Mniejsze c: efekty relatywistyczne pojawiają się wcześniej.`; `setting_time_warp=Time warp` / `Przyspieszenie czasu`, hint `The arena runs on the pilot's clock and speeds up at high speed.` / `Arena biegnie według zegara pilota i przyspiesza przy dużej prędkości.`; `setting_target_pointers=Target pointers` / `Wskaźniki celów`, hint `Arrows at the screen edge point at off-screen targets.` / `Strzałki na krawędzi ekranu wskazują cele poza ekranem.`; `setting_grid=Reference grid` / `Siatka odniesienia`, hint `A background grid that makes your motion visible.` / `Siatka w tle, dzięki której widać ruch.`
+- acceptance:
+  - [ ] Test: change every setting, `saveSettings` into a `MemoryKeyValueStore`, reset the objects, `loadSettings`: all values come back; `settings_version` is 1
+  - [ ] Test: a stored `speed_of_light` of 1000 loads as `C_MAX_BOX2D_SAFE`; stored `aim_mode` "foo" or "twin" (not implemented) leaves the scheme unchanged; an empty store changes nothing
+  - [ ] Test: `resetSettings` restores every default (pilot view false, c = `SPEED_OF_LIGHT`, ...)
+  - [ ] Test: `speed_of_light` and `time_warp` report `enabled() == false` when relativity is off
+  - [ ] Test (ST-113 helper): every `labelKey`, `hintKey` and option label key exists in both files
+  - [ ] `./gradlew core:test` passes
+- playtest: Change c in the F1 panel, quit from the menu, restart: c is still changed (it is a menu setting). `--controls=mouse` on the command line overrides a saved aim mode.
+
+### ST-116 Main menu rework: settings panel and controls list
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-115
+- files: `screen/MainMenuScreen.kt`; create `ui/MainMenuLayout.kt` (pure helpers); both `assets/i18n/messages*.properties`; new `ui/MainMenuLayoutTest.kt`
+- refs: `main-menu.md` "Layout", "Persistence"; `ui/DebugPanel.kt` `checkBox`/`slider`/`SelectBox` code as the widget pattern
+- goal: The main screen keeps Play and Quit, and adds a settings panel built from `MenuSettings` and a controls list built from `InputBindings`, so the player can see every shortcut and choose options before a run.
+- spec:
+  - Pure, in `MainMenuLayout.kt`: `fun controlsRows(bindings: List<Binding>, scheme: ControlScheme, includeDebug: Boolean, i18n: (String) -> String): List<Pair<String, String>>` = `bindings.forMenu(scheme, includeDebug).map { triggerLabel(it.trigger, i18n) to i18n(it.labelKey) }`. `fun formatSettingValue(v: Float, decimals: Int): String`.
+  - Screen layout: a root `Table` with `setFillParent(true)`; a title label (`TITLE`); then three columns: (1) the existing Play (`menu_single_player`) and Exit (`menu_exit`, still hidden on WebGL) buttons with their current behaviour; (2) `menu_settings` heading, one row per spec (label with a `TextTooltip` of `i18n[hintKey]`, widget: `Toggle` → `CheckBox`, `Slider` → `Slider` + value label, `Choice` → `SelectBox<String>` showing `i18n[optionLabelKeys[i]]` and mapping the index back to `options[i]`), then a `menu_reset_defaults` button; (3) `menu_controls` heading and a two-column table from `controlsRows(InputBindings.DEFAULT, controls.scheme, includeDebug = false, ...)`, plus a `menu_controls_debug` subheading and the debug rows when `DebugSettings.panelAllowed`. Wrap columns 2 and 3 in a `ScrollPane` so a short window still works.
+  - Behaviour: on any widget change, `spec.set(...)`, `saveSettings(store, specs)`, refresh every row's disabled state from `spec.enabled()`, and rebuild the controls table when `aim_mode` changed. Reset: `resetSettings`, save, re-sync widgets. Play: `saveSettings` first, then the existing `gameState.resetGame(); game.setScreen<PlayScreen>()`. `show()` re-syncs every widget from `spec.get()` (V and the F1 panel change the same objects in game). Guard against the sync firing change listeners that save half-synced state (set a `syncing` flag).
+  - A `Choice` with a single option (today's aim mode) is shown but disabled.
+  - i18n (both files): `menu_settings=Settings` / `Ustawienia`, `menu_controls=Controls` / `Sterowanie`, `menu_controls_debug=Debug` / `Debugowanie`, `menu_reset_defaults=Reset defaults` / `Przywróć domyślne`.
+  - ST-084 later adds a "run ended" label above the buttons; leave room in column 1.
+- acceptance:
+  - [ ] Test: `controlsRows(DEFAULT, MOUSE_HULL, false, i18n)` has 6 rows in table order, with ("R-Ctrl", i18n("action_block")) and (i18n("input_lmb"), i18n("action_fire")); with `includeDebug = true` the last row is ("F1", i18n("action_debug_panel"))
+  - [ ] Test: `formatSettingValue(20f, 0) == "20"`, `formatSettingValue(0.25f, 2) == "0.25"`
+  - [ ] Test (ST-113 helper): the four `menu_*` keys exist in both files
+  - [ ] If a display is available, `./gradlew lwjgl3:run --args="--screenshot=menu.png --scene=menu"` renders the menu without exceptions (state the outcome in the result)
+  - [ ] `./gradlew core:test` passes
+- playtest: Start the game: every shortcut is listed; hover a setting for its hint; untick relativity and the c slider and time warp grey out; toggle pilot view, press Play, it's on; press V in game, finish the level, back at the menu the box matches.
+
+### ST-117 Menu: language and fullscreen settings
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-116
+- files: `Game.kt`, `settings/MenuSettings.kt`, create `settings/DisplaySettings.kt`, both `assets/i18n/messages*.properties`; `MenuSettingsTest.kt`
+- refs: `main-menu.md` "Settings"
+- goal: The two remaining things a player expects to change before a run: the UI language (both bundles already exist) and fullscreen.
+- spec:
+  - Language: `Choice` spec `language`, options `""`, `"en"`, `"pl"`, labels `language_system`, `language_en`, `language_pl`, default `""`, backed by a `var language: String` on `DisplaySettings`. Pure `fun localeFor(code: String): Locale` = default locale when blank, else `Locale.forLanguageTag(code)`. In `Game.create()`, create the `KeyValueStore` **before** loading assets, read `language` from it, and load the bundle with `I18NBundleLoader.I18NBundleParameter(localeFor(code))`. The new language applies on the next start (the hint says so); no live UI rebuild.
+  - Fullscreen: `class DisplaySettings(var language: String = "", var fullscreen: Boolean = false)` bound in DI. `Toggle` spec `fullscreen` ↔ `display.fullscreen`, default false; `menuSettings` takes `applyFullscreen: (Boolean) -> Unit = {}` and the setter calls it. `Game` passes `{ if (it) Gdx.graphics.setFullscreenMode(Gdx.graphics.displayMode) else Gdx.graphics.setWindowedMode(BASE_WIDTH, BASE_HEIGHT) }` and applies the loaded value once after `loadSettings`. Only include the fullscreen spec when `Gdx.app.type == Desktop` (pass `includeFullscreen: Boolean` into `menuSettings`; tests pass true with a recording lambda).
+  - i18n (both files): `setting_language=Language` / `Język`, hint `Applies after restart.` / `Zmiana po ponownym uruchomieniu.`; `language_system=System` / `Systemowy`; `language_en=English` (same in both); `language_pl=Polski` (same in both); `setting_fullscreen=Fullscreen` / `Pełny ekran`, hint `Switch between window and fullscreen.` / `Przełącza okno i pełny ekran.`
+- acceptance:
+  - [ ] Test: `localeFor("pl").language == "pl"`, `localeFor("")` is `Locale.getDefault()`
+  - [ ] Test: language and fullscreen round-trip through `saveSettings`/`loadSettings`; setting fullscreen calls the lambda with the new value; `includeFullscreen = false` leaves the spec out
+  - [ ] Test (ST-113 helper): the new keys exist in both files
+  - [ ] `./gradlew core:test` passes
+- playtest: Pick Polski, restart: the menu and HUD are in Polish. Tick fullscreen: the window goes fullscreen at once, and stays so after a restart.
+
+### ST-118 Docs: main menu, bindings table and settings persistence
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-116
+- files: `docs/design/game-design.md` §4, `docs/tech/architecture.md`, `CLAUDE.md` ("Input & events" paragraph), `docs/design/main-menu.md`
+- refs: `main-menu.md`
+- goal: Keep the docs true after ST-114 … ST-116.
+- spec:
+  - game-design.md §4: add the V (pilot view) and F1 (debug panel) rows to the table, and a line: "The source of truth is `input/InputBindings.kt`; the main menu lists it."
+  - architecture.md and CLAUDE.md "Input & events": `GameEventManager` dispatches through the `InputBindings` table (add new keys there, never as literals); player settings are `settings/MenuSettings.kt` specs persisted in libGDX `Preferences` (`PREFERENCES_NAME`), loaded in `Game.create()`, skipped for `--screenshot` runs, command-line flags win.
+  - main-menu.md: mark ST-113 … ST-116 as done in the "Cards" line; fix anything the implementation changed (read the code, don't guess).
+- acceptance:
+  - [ ] The four files say the above, and no doc still claims the keys live in `GameEventManager`'s `when`
+  - [ ] `./gradlew core:test` passes
+
+### ST-119 Owner decision: key rebinding on the menu
+- status: needs-user
+- size: S
+- agent: kotlin-dev
+- depends: ST-116
+- files: `input/InputBindings.kt`, `settings/MenuSettings.kt`, `screen/MainMenuScreen.kt`
+- refs: `main-menu.md` "Out of scope"
+- goal: The menu lists the controls (ST-116). Should the player also be able to change them?
+- question: (a) no, the controls list is read-only for now (recommended: the scheme set is still changing with ST-061/ST-062, and rebinding is easy to add later because everything reads one table); (b) rebind keyboard keys only (V, R-Ctrl, later WASD): click a row, press a key, stored in prefs as `bind_<action>`, with conflict detection; (c) full rebinding including mouse buttons.
+- acceptance (if b):
+  - [ ] `GameEventManager` reads a mutable bindings table loaded from prefs; a test rebinds TOGGLE_PILOT_VIEW to P and P toggles while V doesn't; binding a key already in use swaps the two
+  - [ ] `./gradlew core:test` passes
+
+---
+
 ## M2 Arena boundary field
 
 - note: Physics source is `docs/research/relativity-effects.md` §1, §3 and §7 (items 1–6). **Step-input rule, decided in ST-014:** every per-step physics input goes through `PhysicsStepListener.beforeStep(dt)`. That covers thrust force, field force or velocity kick, and (still inline in `PhysicsSystem`) the rotation impulse. `world.clearForces()` runs after **every** `world.step`. This replaces the old "thrust applied once per frame, persists across substeps, cleared after the loop" scheme. Per step the result is the same: each step still integrates the thrust exactly once. The shimmer uses `ARENA_BOUNDARY_COLOR` (orange, `ui/Colors.kt`) rather than the research doc's cyan, so it matches the minimap frame.
@@ -87,14 +264,15 @@ Parked:
 - status: ready
 - size: M
 - agent: kotlin-dev
-- depends: ST-058
-- files: create `input/TwinStickStrategy.kt`; edit `event/PlayerInputListener.kt`, `event/GameEventManager.kt`, `system/PlayerInputSystem.kt`; tests
+- depends: ST-058, ST-114
+- files: create `input/TwinStickStrategy.kt`, edit `input/InputBindings.kt`, `input/ControlScheme.kt`; edit `event/PlayerInputListener.kt`, `event/GameEventManager.kt`, `system/PlayerInputSystem.kt`; tests
 - goal: Scheme (b) for the owner to try. WASD gives the desired thrust direction in the world frame. The hull turns toward it through the existing PD rotation controller (`MoveComponent.targetAngleRad`), and the engine fires as the hull lines up. The mouse aims an independent turret (`WeaponComponent.aimAngleRad`), and LMB fires. Gamepad support (left/right stick through gdx-controllers) is **out of scope**. Ask the planner for a card if the owner picks (b) in ST-063.
 - spec:
   - `PlayerInputListener`: add `fun moveAxis(x: Float, y: Float) = Unit`. In `GameEventManager`, track W/A/S/D (and the arrow keys) as booleans in `keyDown` and a new `keyUp` override. Respect `ignoreInput`, and return true only for these keys. On every change, dispatch `moveAxis(x = right − left, y = up − down)`, normalised when the length is > 1. Clear the axis in `ignorePlayerInputs()` so a held key doesn't stick across screens.
   - `PlayerInputSystem` copies it into `PlayerInputState.moveAxis`.
   - `TwinStickStrategy` (it keeps `lastTarget`, set to the ship angle in `onActivate`): if `|moveAxis| > 0.1`: `target = atan2(axis)`, `lastTarget = target`, `Δ = shortestAngleDiffRad(shipAngle, target)`, `move.thrusters = |axis|·max(0, cos Δ)^TWIN_STICK_ALIGN_EXPONENT` with `TWIN_STICK_ALIGN_EXPONENT = 2f`. Otherwise `thrusters = 0` and `targetAngleRad = lastTarget` (the ship holds its heading instead of drifting in spin). RMB is ignored. Turret: `weapon.aimAngleRad = atan2(aimWorld − shipPos)`, `doAttack = fireHeld`.
   - Register it in `PlayerInputSystem.strategies[TWIN_STICK]`, replacing the fallback.
+  - (Added 2026-11-03, ST-114) Keys come from the bindings table, not literals: add `MOVE_UP/MOVE_DOWN/MOVE_LEFT/MOVE_RIGHT` to `InputAction` with W/S/A/D and the arrow keys as `Binding`s (`schemes = setOf(TWIN_STICK)`, label keys `action_move_up` … in both i18n files), and resolve them in `GameEventManager` through `keyAction`. Set `ControlScheme.TWIN_STICK.implemented = true` so the main menu offers it.
   - Note for relativity: the turret aim is the shooter-frame direction n̂'. Once ST-039 lands, a laser aimed at the cursor at high speed visibly sweeps forward (aberration). That's intended and part of what the owner should feel.
 - acceptance:
   - [ ] Test: hull at 0, axis (0, 1): `targetAngleRad = π/2`, thrusters = 0 (cos 90° = 0). Hull at π/2, same axis: thrusters = 1. Hull at π/4: thrusters = 0.5 ± 1e-4
@@ -701,13 +879,14 @@ Owner 2026-11-02: control modes for later (game-design §12). Keep them ready bu
 - status: ready
 - size: M
 - agent: kotlin-dev
-- depends: ST-058, ST-073, ST-078
-- files: create `input/AutoAim.kt`, `input/AutoAimStrategy.kt`; edit `system/PlayerInputSystem.kt`, `screen/PlayScreen.kt`; tests
+- depends: ST-058, ST-073, ST-078, ST-114
+- files: create `input/AutoAim.kt`, `input/AutoAimStrategy.kt`; edit `system/PlayerInputSystem.kt`, `input/ControlScheme.kt`, `input/InputBindings.kt`, `screen/PlayScreen.kt`; tests
 - goal: **Reworked 2026-11-02** (owner: parked mode (a), Brotato / vampire-survivors style). Movement is mouse-hull as in scheme (a): the mouse steers the hull and RMB thrusts. The guns pick a target in a forward cone and fire on their own. It uses the honest fire control of the lead markers (ST-078: retarded state, extrapolated), so auto-aim never peeks at true positions. The photon math moved to `physics/PhotonAim.kt` (ST-073).
 - spec:
   - Pure `fun pickTargetIndex(sx, sy, facingRad, coneHalfRad, range, xs: FloatArray, ys: FloatArray, n: Int): Int` in `AutoAim.kt`: the index of the nearest candidate with `dist ≤ range` and `|shortestAngleDiffRad(facing, atan2(dy, dx))| ≤ coneHalfRad`, or −1. No allocation.
   - `AutoAimStrategy(targets, lightHistory, observer, clock, settings)`: the targets are the family `allOf(HealthComponent, BodyComponent, BaseInfoComponent)` minus the player faction. Candidate positions are their retarded positions (`LightHistory.retarded`), filled into reused scratch arrays. Movement as in `MouseHullStrategy`. Fire: `i = pickTargetIndex(…, AUTO_AIM_CONE_HALF_DEG = 30°, AUTO_AIM_RANGE = 40f)`. If `i ≥ 0`, then `leadDirection(…)` (ST-078) gives `n̂'`, `weapon.aimAngleRad = atan2(n̂')` and `doAttack = true`. Otherwise `doAttack = fireHeld` and `aimAngleRad = null`.
   - Register it in `PlayerInputSystem.strategies[AUTO_AIM]`.
+  - (Added 2026-11-03, ST-114) Set `ControlScheme.AUTO_AIM.implemented = true` so the main menu offers it. In `InputBindings.DEFAULT`, give AUTO_AIM its own FIRE row with label `action_fire_manual` ("Fire (guns also fire on their own)" / "Strzał (działa strzelają też same)", both files) and restrict the plain FIRE row to the other schemes, so the menu explains the difference.
 - acceptance:
   - [ ] Tests: `pickTargetIndex` picks the nearest in-cone target, skips a nearer one at 45° off the facing and one beyond range, and returns −1 for none
   - [ ] Test (real `World`): a ship at β = 0.8 along +x, facing +y, with an asteroid 20 u away along +y (histories warmed up), fires a photon whose sweep hits it

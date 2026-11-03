@@ -17,7 +17,9 @@ class MenuSettingsTest {
     private class Fixture {
         val rel = RelativitySettings()
         val dbg = DebugSettings(panelAllowed = false, panelVisible = false)
-        val specs = menuSettings(rel, ControlSettings(), dbg).specs
+        val display = DisplaySettings()
+        val applied = mutableListOf<Boolean>()
+        val specs = menuSettings(rel, ControlSettings(), dbg, display, true) { applied += it }.specs
         fun spec(key: String) = specs.first { it.key == key }
     }
 
@@ -99,5 +101,36 @@ class MenuSettingsTest {
             val missing = keys - i18nKeys(file)
             assertTrue(missing.isEmpty(), "Missing in $file: $missing")
         }
+    }
+
+    @Test
+    fun localeForUsesDefaultWhenBlank() {
+        assertEquals("pl", localeFor("pl").language)
+        assertEquals(java.util.Locale.getDefault(), localeFor(""))
+    }
+
+    @Test
+    fun languageAndFullscreenRoundTripAndApply() {
+        val a = Fixture()
+        (a.spec("language") as SettingSpec.Choice).set("pl")
+        (a.spec("fullscreen") as SettingSpec.Toggle).set(true)
+        assertEquals(listOf(true), a.applied)
+        val store = MemoryKeyValueStore()
+        saveSettings(store, a.specs)
+
+        val b = Fixture()
+        loadSettings(store, b.specs)
+        assertEquals("pl", b.display.language)
+        assertTrue(b.display.fullscreen)
+    }
+
+    @Test
+    fun fullscreenSpecIsOptional() {
+        val specs = menuSettings(
+            RelativitySettings(), ControlSettings(), DebugSettings(panelAllowed = false, panelVisible = false),
+            includeFullscreen = false,
+        ).specs
+        assertTrue(specs.none { it.key == "fullscreen" })
+        assertTrue(specs.any { it.key == "language" })
     }
 }

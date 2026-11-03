@@ -58,10 +58,17 @@ sealed class SettingSpec(val key: String, val enabled: () -> Boolean = { true })
 /** Wrapper so DI can bind the list. */
 class MenuSettings(val specs: List<SettingSpec>)
 
-fun menuSettings(relativity: RelativitySettings, controls: ControlSettings, debug: DebugSettings): MenuSettings {
+fun menuSettings(
+    relativity: RelativitySettings,
+    controls: ControlSettings,
+    debug: DebugSettings,
+    display: DisplaySettings = DisplaySettings(),
+    includeFullscreen: Boolean = true,
+    applyFullscreen: (Boolean) -> Unit = {},
+): MenuSettings {
     val relativityOn = { relativity.relativityEnabled }
     return MenuSettings(
-        listOf(
+        listOfNotNull(
             SettingSpec.Choice(
                 "perspective",
                 listOf(PERSPECTIVE_OUTSIDE, PERSPECTIVE_PILOT),
@@ -87,6 +94,24 @@ fun menuSettings(relativity: RelativitySettings, controls: ControlSettings, debu
                 { debug.targetPointersEnabled }, { debug.targetPointersEnabled = it },
             ),
             SettingSpec.Toggle("grid", GRID_ENABLED, { debug.gridEnabled }, { debug.gridEnabled = it }),
+            SettingSpec.Choice(
+                "language",
+                LANGUAGE_OPTIONS,
+                listOf("language_system", "language_en", "language_pl"),
+                "",
+                { display.language },
+                { display.language = it },
+            ),
+            if (includeFullscreen) {
+                SettingSpec.Toggle(
+                    "fullscreen", false,
+                    { display.fullscreen },
+                    {
+                        display.fullscreen = it
+                        applyFullscreen(it)
+                    },
+                )
+            } else null,
         )
     )
 }

@@ -9,7 +9,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
-0e. ST-117 Menu: language and fullscreen
 0f. ST-118 Docs: main menu, bindings, persistence
 
 M3 Relativity MVP:
@@ -62,25 +61,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 ## M2a Main menu: controls and settings
 
 - note (owner 2026-11-03, top priority): "Main screen should show all control shortcuts. Before starting the game, I want to have options to choose whatever can be changed. For example, choosing aim mode [...]. Start screen can have play and quit as now, but add all controls and settings that could be changed." Design: `docs/design/main-menu.md`. Two single sources of truth: the bindings table (`input/InputBindings.kt`, ST-114) feeds both `GameEventManager` and the controls list; the settings table (`settings/MenuSettings.kt`, ST-115) feeds the menu widgets, persistence and "Reset defaults". Settings are the existing DI singletons (`RelativitySettings`, `ControlSettings`, `DebugSettings`), so nothing new is plumbed into `PlayScreen`. Non-ASCII characters in `.properties` files are written as `\uXXXX` escapes, like the existing entries.
-
-### ST-117 Menu: language and fullscreen settings
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-116
-- files: `Game.kt`, `settings/MenuSettings.kt`, create `settings/DisplaySettings.kt`, both `assets/i18n/messages*.properties`; `MenuSettingsTest.kt`
-- refs: `main-menu.md` "Settings"
-- goal: The two remaining things a player expects to change before a run: the UI language (both bundles already exist) and fullscreen.
-- spec:
-  - Language: `Choice` spec `language`, options `""`, `"en"`, `"pl"`, labels `language_system`, `language_en`, `language_pl`, default `""`, backed by a `var language: String` on `DisplaySettings`. Pure `fun localeFor(code: String): Locale` = default locale when blank, else `Locale.forLanguageTag(code)`. In `Game.create()`, create the `KeyValueStore` **before** loading assets, read `language` from it, and load the bundle with `I18NBundleLoader.I18NBundleParameter(localeFor(code))`. The new language applies on the next start (the hint says so); no live UI rebuild.
-  - Fullscreen: `class DisplaySettings(var language: String = "", var fullscreen: Boolean = false)` bound in DI. `Toggle` spec `fullscreen` ↔ `display.fullscreen`, default false; `menuSettings` takes `applyFullscreen: (Boolean) -> Unit = {}` and the setter calls it. `Game` passes `{ if (it) Gdx.graphics.setFullscreenMode(Gdx.graphics.displayMode) else Gdx.graphics.setWindowedMode(BASE_WIDTH, BASE_HEIGHT) }` and applies the loaded value once after `loadSettings`. Only include the fullscreen spec when `Gdx.app.type == Desktop` (pass `includeFullscreen: Boolean` into `menuSettings`; tests pass true with a recording lambda).
-  - i18n (both files): `setting_language=Language` / `Język`, hint `Applies after restart.` / `Zmiana po ponownym uruchomieniu.`; `language_system=System` / `Systemowy`; `language_en=English` (same in both); `language_pl=Polski` (same in both); `setting_fullscreen=Fullscreen` / `Pełny ekran`, hint `Switch between window and fullscreen.` / `Przełącza okno i pełny ekran.`
-- acceptance:
-  - [ ] Test: `localeFor("pl").language == "pl"`, `localeFor("")` is `Locale.getDefault()`
-  - [ ] Test: language and fullscreen round-trip through `saveSettings`/`loadSettings`; setting fullscreen calls the lambda with the new value; `includeFullscreen = false` leaves the spec out
-  - [ ] Test (ST-113 helper): the new keys exist in both files
-  - [ ] `./gradlew core:test` passes
-- playtest: Pick Polski, restart: the menu and HUD are in Polish. Tick fullscreen: the window goes fullscreen at once, and stays so after a restart.
 
 ### ST-118 Docs: main menu, bindings table and settings persistence
 - status: ready

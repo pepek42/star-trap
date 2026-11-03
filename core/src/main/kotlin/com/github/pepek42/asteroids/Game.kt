@@ -4,6 +4,7 @@ import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.assets.AssetManager
+import com.badlogic.gdx.assets.loaders.I18NBundleLoader
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.math.RandomXS128
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
@@ -29,11 +30,14 @@ import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.screen.LevelClearedScreen
 import com.github.pepek42.asteroids.screen.MainMenuScreen
 import com.github.pepek42.asteroids.screen.PlayScreen
+import com.github.pepek42.asteroids.settings.DisplaySettings
 import com.github.pepek42.asteroids.settings.GdxPreferencesStore
 import com.github.pepek42.asteroids.settings.KeyValueStore
 import com.github.pepek42.asteroids.settings.MemoryKeyValueStore
+import com.github.pepek42.asteroids.settings.LANGUAGE_OPTIONS
 import com.github.pepek42.asteroids.settings.MenuSettings
 import com.github.pepek42.asteroids.settings.loadSettings
+import com.github.pepek42.asteroids.settings.localeFor
 import com.github.pepek42.asteroids.settings.menuSettings
 import ktx.app.KtxGame
 import ktx.app.KtxScreen
@@ -57,9 +61,19 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
         } else {
             Gdx.app.logLevel = Application.LOG_ERROR
         }
+        // Screenshot runs must not depend on a developer's saved prefs.
+        val store: KeyValueStore =
+            if (options.screenshotPath != null) MemoryKeyValueStore()
+            else GdxPreferencesStore(Gdx.app.getPreferences(PREFERENCES_NAME))
+        val display = DisplaySettings()
+        // The language is read before the bundle loads; it applies on the next start.
+        display.language = store.getString("language", "").takeIf { it in LANGUAGE_OPTIONS } ?: ""
         val assetManager = AssetManager();
         assetManager.logger.level = Logger.ERROR
-        assetManager.load("i18n/messages", I18NBundle::class.java)
+        assetManager.load(
+            "i18n/messages", I18NBundle::class.java,
+            I18NBundleLoader.I18NBundleParameter(localeFor(display.language)),
+        )
         assetManager.load("ui/uiskin.atlas", TextureAtlas::class.java)
         assetManager.load("textures/textures.atlas", TextureAtlas::class.java)
         assetManager.finishLoading()
@@ -70,12 +84,14 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             bindSingleton(RelativitySettings())
             bindSingleton(ControlSettings(options.controls ?: ControlScheme.MOUSE_HULL))
             bindSingleton(DebugSettings(panelAllowed = IS_DEBUG || options.debugPanel, panelVisible = options.debugPanel))
-            // Screenshot runs must not depend on a developer's saved prefs.
-            bindSingleton<KeyValueStore>(
-                if (options.screenshotPath != null) MemoryKeyValueStore()
-                else GdxPreferencesStore(Gdx.app.getPreferences(PREFERENCES_NAME))
+            bindSingleton(store)
+            bindSingleton(display)
+            bindSingleton(
+                menuSettings(
+                    inject<RelativitySettings>(), inject<ControlSettings>(), inject<DebugSettings>(),
+                    display, Gdx.app.type == Application.ApplicationType.Desktop, ::applyFullscreen,
+                )
             )
-            bindSingleton(menuSettings(inject<RelativitySettings>(), inject<ControlSettings>(), inject<DebugSettings>()))
             bindSingleton<OrthographicCamera>(OrthographicCamera())
             bindSingleton(GameEventManager())
             bindSingleton(SpriteBatch())
@@ -118,6 +134,11 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
     override fun render() {
         super.render()
         screenshotHarness.afterRender()
+    }
+
+    private fun applyFullscreen(on: Boolean) {
+        if (on) Gdx.graphics.setFullscreenMode(Gdx.graphics.displayMode)
+        else Gdx.graphics.setWindowedMode(BASE_WIDTH, BASE_HEIGHT)
     }
 
     fun finishLevel() {

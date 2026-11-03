@@ -1475,3 +1475,23 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
   - [x] Value label width derives from the slider range, no char-count constant
   - [x] `./gradlew core:test lwjgl3:compileKotlin` passes
 
+### ST-117 Menu: language and fullscreen settings
+- status: done (2026-11-03, 83e5a1f)
+- size: S
+- agent: kotlin-dev
+- depends: ST-116
+- files: `Game.kt`, `settings/MenuSettings.kt`, create `settings/DisplaySettings.kt`, both `assets/i18n/messages*.properties`; `MenuSettingsTest.kt`
+- refs: `main-menu.md` "Settings"
+- goal: The two remaining things a player expects to change before a run: the UI language (both bundles already exist) and fullscreen.
+- spec:
+  - Language: `Choice` spec `language`, options `""`, `"en"`, `"pl"`, labels `language_system`, `language_en`, `language_pl`, default `""`, backed by a `var language: String` on `DisplaySettings`. Pure `fun localeFor(code: String): Locale` = default locale when blank, else `Locale.forLanguageTag(code)`. In `Game.create()`, create the `KeyValueStore` **before** loading assets, read `language` from it, and load the bundle with `I18NBundleLoader.I18NBundleParameter(localeFor(code))`. The new language applies on the next start (the hint says so); no live UI rebuild.
+  - Fullscreen: `class DisplaySettings(var language: String = "", var fullscreen: Boolean = false)` bound in DI. `Toggle` spec `fullscreen` ↔ `display.fullscreen`, default false; `menuSettings` takes `applyFullscreen: (Boolean) -> Unit = {}` and the setter calls it. `Game` passes `{ if (it) Gdx.graphics.setFullscreenMode(Gdx.graphics.displayMode) else Gdx.graphics.setWindowedMode(BASE_WIDTH, BASE_HEIGHT) }` and applies the loaded value once after `loadSettings`. Only include the fullscreen spec when `Gdx.app.type == Desktop` (pass `includeFullscreen: Boolean` into `menuSettings`; tests pass true with a recording lambda).
+  - i18n (both files): `setting_language=Language` / `Język`, hint `Applies after restart.` / `Zmiana po ponownym uruchomieniu.`; `language_system=System` / `Systemowy`; `language_en=English` (same in both); `language_pl=Polski` (same in both); `setting_fullscreen=Fullscreen` / `Pełny ekran`, hint `Switch between window and fullscreen.` / `Przełącza okno i pełny ekran.`
+- acceptance:
+  - [x] Test: `localeFor("pl").language == "pl"`, `localeFor("")` is `Locale.getDefault()`
+  - [x] Test: language and fullscreen round-trip through `saveSettings`/`loadSettings`; setting fullscreen calls the lambda with the new value; `includeFullscreen = false` leaves the spec out
+  - [x] Test (ST-113 helper): the new keys exist in both files
+  - [x] `./gradlew core:test` passes
+- playtest: Pick Polski, restart: the menu and HUD are in Polish. Tick fullscreen: the window goes fullscreen at once, and stays so after a restart.
+- result: DisplaySettings with language (bundle locale read from the store before asset load) and desktop-only fullscreen; loadSettings applies saved fullscreen through the setter.
+

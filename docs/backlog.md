@@ -11,7 +11,6 @@ Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` car
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
 
 M3 Relativity MVP:
-16. ST-043 Doppler colour and searchlight on the starfield
 18. ST-045 Doppler tint on sprites
 19. ST-038 Boundary field acts on proper velocity
 19a. ST-023 Boundary field: ~5 % loss per bounce, restitution 0.95
@@ -124,26 +123,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] Test: a body at γ = 5 toward the wall triggers the backstop, ends inside the map with |u| ≤ 0.9·|u_before| and moving inward
   - [ ] `./gradlew core:test` passes
 - playtest: Bouncing off the edge at high speed feels like a strong rubber wall. Very fast hits snap back with a backstop ripple.
-
-### ST-043 Doppler colour and mild searchlight on the starfield
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-041
-- files: create `render/BlackbodyLut.kt`, `render/RelativityVisuals.kt` (create or extend); edit `render/Starfield.kt`, `provider/BackgroundProvider.kt`, `system/RenderSystem.kt`; tests
-- goal: The sky ahead turns blue-white and bright, and behind turns red and dim (research E4, plus E10 with k = 1). It's done on the CPU over the existing `StarData` with a LUT, with no shader, which is TeaVM-safe and cheap for 1500 stars. The research's GPU-shader path is deferred.
-- spec:
-  - `BlackbodyLut`: 256 entries, log-spaced 1000–60000 K, holding r, g, b from `blackbodyRgb`, built once. `fun rgbInto(kelvin: Float, out: FloatArray)` interpolates linearly and doesn't allocate.
-  - `RelativityVisuals.kt` constants: `DOPPLER_COLOR_STRENGTH = 1f`, `DOPPLER_D_MIN = 0.25f`, `DOPPLER_D_MAX = 4f`, `BRIGHTNESS_EXPONENT_MVP = 1f`, `B_MIN = 0.25f`, `B_MAX = 3f`. `fun effectiveDoppler(d: Float) = exp(DOPPLER_COLOR_STRENGTH·ln d).coerceIn(DOPPLER_D_MIN, DOPPLER_D_MAX)`. `fun starDoppler(betaX, betaY, gamma, sx, sy) = gamma·(1 + betaX·sx + betaY·sy)`, where ŝ is the unit vector from the player to the star's on-screen position. This is the static-source case of `dopplerFactor`.
-  - `Starfield.render(batch, camera, zoom, logicalWidthPx, observer: ObserverState)`: if `observer.betaVisual.len() < 1e-4`, use the cached `packedColor` (fast path). Otherwise, per drawn star: ŝ = normalize((cx + dx, cy + dy) − `observer.position`), i.e. from the player to where the star is drawn; `D = effectiveDoppler(starDoppler(betaVisual, gammaVisual, ŝ))`; `rgb = lut(kelvin·D)`; `B = D^BRIGHTNESS_EXPONENT_MVP` clamped to `[B_MIN, B_MAX]`; colour = `rgb·brightness·min(B, 1)` packed with `Color.toFloatBits`; size × `sqrt(max(B, 1))`. No allocation.
-  - `BackgroundProvider.renderBg` and `RenderSystem` pass the `ObserverState` through.
-- note (2026-11-02): pilot view (ST-074, ST-077) moves where stars are drawn, but `starDoppler` keeps using the arena-frame `ŝ` from the player to the star's unaberrated offset. That is the correct source direction for `D`, so this card needs no pilot-view branch.
-- acceptance:
-  - [ ] Tests: `starDoppler` at β = 0.9 (+x) gives 4.36 for ŝ = (1, 0), 0.229 for (−1, 0), and 2.294 for (0, 1). `effectiveDoppler` clamps to [0.25, 4]. `BlackbodyLut.rgbInto` matches `blackbodyRgb` within 1/255 at 2000, 6500 and 20000 K
-  - [ ] Screenshot via the harness with `--seed=42 --thrust --frames=150` shows a blue-shifted side and a red-shifted side, and the agent has looked at it
-  - [ ] No per-frame allocation in `Starfield.render`
-  - [ ] `./gradlew core:test` passes
-- playtest: At speed you can tell which way you're flying from the sky colour alone. Stars behind dim but don't vanish.
 
 ### ST-045 Doppler tint on sprites
 - status: ready

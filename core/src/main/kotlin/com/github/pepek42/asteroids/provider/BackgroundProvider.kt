@@ -8,6 +8,7 @@ import com.badlogic.gdx.utils.Disposable
 import com.github.pepek42.asteroids.UNIT_SCALE
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.MapEventListener
+import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.render.Starfield
 import kotlin.math.ceil
 
@@ -41,7 +42,7 @@ class BackgroundProvider(
         starfield = null
     }
 
-    fun renderBg(camera: Camera, zoom: Float, logicalWidthPx: Int) {
+    fun renderBg(camera: Camera, zoom: Float, logicalWidthPx: Int, observer: ObserverState) {
         val oldColor = batch.packedColor
         batch.setColor(1f, 1f, 1f, NEBULA_ALPHA)
         for (i in -1..xRepeats) {
@@ -50,7 +51,7 @@ class BackgroundProvider(
             }
         }
         batch.packedColor = oldColor
-        starfield?.render(batch, camera, zoom, logicalWidthPx)
+        starfield?.render(batch, camera, zoom, logicalWidthPx, observer)
     }
 
     companion object {

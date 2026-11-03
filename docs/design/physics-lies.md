@@ -62,3 +62,4 @@ Tags: **FAKE** is a deliberate departure. **APPROX** is a simplification that is
 | 26 | The disk's pilot-view centre uses the hole's retarded position (approximation) | APPROX | Cost | ST-089 | — |
 | 31 | World-view length contraction stops at 25 % of rest length (`CONTRACTION_MIN_SCALE`), so past γ = 4 sprites stop shrinking | FAKE | Readability: true 1/γ makes fast ships invisible slivers | ST-044 (`render/RelativityVisuals.kt`) | — |
 | 32 | Hitboxes aren't length-contracted; only sprites are | APPROX | Box2D fixtures are fixed shapes | ST-044 | Research E20 |
+| 33 | Starfield Doppler: D is clamped to [0.25, 4], star brightness scales as D¹ (not D³–D⁴) clamped to [0.25, 3], and colour is a blackbody LUT lookup at T·D | FAKE | Readability: stars behind dim but never vanish, stars ahead don't blow out | ST-043 (`render/RelativityVisuals.kt`, `Starfield`) | Raise `BRIGHTNESS_EXPONENT_MVP` / widen clamps; GPU shader path (research E4/E10) |

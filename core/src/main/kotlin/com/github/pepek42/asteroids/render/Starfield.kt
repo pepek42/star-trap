@@ -7,7 +7,10 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.utils.Disposable
+import com.github.pepek42.asteroids.physics.ObserverState
 import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -105,8 +108,19 @@ fun wrappedOffset(starPos: Float, cameraPos: Float, parallax: Float, tile: Float
  */
 class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable {
     private val dot: Texture = createDotTexture()
+    private val rgb = FloatArray(3)
 
-    fun render(batch: Batch, camera: Camera, zoom: Float, logicalWidthPx: Int) {
+    /**
+     * Draws the stars. While the visual speed is below [DOPPLER_MIN_BETA] the cached [StarData.packedColor] is used; otherwise each
+     * star's colour and size follow its Doppler factor (blue and larger ahead, red and dimmer behind). Does not allocate.
+     */
+    fun render(batch: Batch, camera: Camera, zoom: Float, logicalWidthPx: Int, observer: ObserverState) {
+        val bx = observer.betaVisual.x
+        val by = observer.betaVisual.y
+        val gamma = observer.gammaVisual
+        val doppler = observer.betaVisual.len() >= DOPPLER_MIN_BETA
+        val px = observer.position.x
+        val py = observer.position.y
         val halfW = camera.viewportWidth * zoom / 2f
         val halfH = camera.viewportHeight * zoom / 2f
         val worldPerPx = camera.viewportWidth * zoom / logicalWidthPx.coerceAtLeast(1)
@@ -123,8 +137,22 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
             val dx = wrappedOffset(data.x[i], cx, p)
             val dy = wrappedOffset(data.y[i], cy, p)
             if (dx < -halfW - size || dx > halfW + size || dy < -halfH - size || dy > halfH + size) continue
-            batch.packedColor = data.packedColor[i]
-            batch.draw(dot, cx + dx - size / 2, cy + dy - size / 2, size, size)
+            if (!doppler) {
+                batch.packedColor = data.packedColor[i]
+                batch.draw(dot, cx + dx - size / 2, cy + dy - size / 2, size, size)
+                continue
+            }
+            // Direction from the player to where the star is drawn.
+            val ox = cx + dx - px
+            val oy = cy + dy - py
+            val dist = sqrt(ox * ox + oy * oy)
+            val d = if (dist < 1e-6f) 1f else effectiveDoppler(starDoppler(bx, by, gamma, ox / dist, oy / dist))
+            BlackbodyLut.rgbInto(data.kelvin[i] * d, rgb)
+            val b = d.pow(BRIGHTNESS_EXPONENT_MVP).coerceIn(B_MIN, B_MAX)
+            val scale = data.brightness[i] * min(b, 1f)
+            batch.packedColor = Color.toFloatBits(rgb[0] * scale, rgb[1] * scale, rgb[2] * scale, 1f)
+            val s = size * sqrt(max(b, 1f))
+            batch.draw(dot, cx + dx - s / 2, cy + dy - s / 2, s, s)
         }
         batch.setBlendFunction(oldSrc, oldDst)
         batch.packedColor = oldColor

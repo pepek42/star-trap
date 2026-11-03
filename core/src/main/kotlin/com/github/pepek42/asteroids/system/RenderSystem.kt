@@ -20,6 +20,7 @@ import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
+import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaFromV
 import com.github.pepek42.asteroids.provider.BackgroundProvider
@@ -47,6 +48,7 @@ class RenderSystem(
     private val debugSettings: DebugSettings,
     private val settings: RelativitySettings,
     private val pilotView: PilotViewProjector,
+    private val observer: ObserverState,
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()), Disposable {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
     private var players: ImmutableArray<Entity>? = null
@@ -66,7 +68,7 @@ class RenderSystem(
         val camera = viewport.camera as OrthographicCamera
         batch.use(camera) {
             // Logical width (not back buffer) keeps star sizes HiDPI independent.
-            backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width)
+            backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width, observer)
         }
         if (debugSettings.gridEnabled) {
             gridRenderer.render(camera, camera.zoom, mapProvider.mapWidth, mapProvider.mapHeight)

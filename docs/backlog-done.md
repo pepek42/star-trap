@@ -1354,6 +1354,23 @@ Finished cards, moved here from `docs/backlog.md` by `scripts/backlog.py archive
 - result: Sprites are Doppler-tinted on the vertex path (world and retarded pilot view) with a bounded additive glow queue for approaching objects.
 - playtest: Fly at an asteroid fast: it turns blue-white and glows. Fly away: asteroids behind turn red and dim.
 
+### ST-121 Doppler tint follow-ups: glow strength and projectiles
+- status: done (2026-11-03, d90ef85)
+- size: S
+- agent: junior-dev
+- depends: ST-045
+- refs: ST-045 (`render/RelativityVisuals.kt` `additiveGlowAlpha`, `system/RenderSystem.kt` `tintAndQueue`)
+- goal: Keep the sprite Doppler glow readable rather than blinding.
+- spec:
+  - Add `DOPPLER_GLOW_STRENGTH = 0.5f` in `RelativityVisuals.kt`; glow alpha becomes `clamp((D − 1)·DOPPLER_GLOW_STRENGTH, 0, 1)`. Update the KDoc and the `SpriteTintTest` glow test.
+  - Projectiles (`EntityType` of the projectile in `BaseInfoComponent`) keep the colour tint but skip the additive glow queue (they fly near c and would always glow). Add a constant/flag, not a literal check scattered in code.
+- acceptance:
+  - [x] Glow alpha test updated for the strength factor
+  - [x] Projectiles never enter the additive queue (unit test on the decision helper, or a documented check in `tintAndQueue`)
+  - [x] `./gradlew core:test` passes
+- result: Glow alpha scaled by DOPPLER_GLOW_STRENGTH = 0.5 and projectiles skip the additive pass via glowsAdditively().
+- playtest: A fast asteroid ahead glows but its sprite is still readable; your own shots don't flare.
+
 ## M4 Relativistic view
 
 ### ST-050 Plan M4 (relativistic view) from research

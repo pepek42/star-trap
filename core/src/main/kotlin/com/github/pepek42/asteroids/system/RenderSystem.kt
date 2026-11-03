@@ -16,6 +16,8 @@ import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
+import com.github.pepek42.asteroids.component.EntityType
+import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.playerMapper
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
@@ -40,6 +42,7 @@ import com.github.pepek42.asteroids.render.SPRITE_VERTEX_FLOATS
 import com.github.pepek42.asteroids.render.SPRITE_VERTEX_STRIDE
 import com.github.pepek42.asteroids.render.contractOffset
 import com.github.pepek42.asteroids.render.contractionK
+import com.github.pepek42.asteroids.render.glowsAdditively
 import com.github.pepek42.asteroids.render.effectiveDoppler
 import com.github.pepek42.asteroids.render.tintSpriteVertices
 import kotlin.math.sqrt
@@ -109,10 +112,11 @@ class RenderSystem(
             return
         }
         val isPlayer = playerMapper.has(entity)
+        val type = baseInfoMapper.get(entity)?.entityType ?: EntityType.UNKNOWN
         if (pilotViewActive) {
             if (!pilotView.project(entity, scratch)) return
             if (!isPlayer) {
-                tintAndQueue(sprite, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy)
+                tintAndQueue(sprite, type, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy)
             }
             batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
             return
@@ -163,7 +167,7 @@ class RenderSystem(
                 scratch[i + 1] = cy + tmp.y
             }
         }
-        if (tinted) tintAndQueue(sprite, cx, cy, vx, vy)
+        if (tinted) tintAndQueue(sprite, type, cx, cy, vx, vy)
         batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
     }
 
@@ -177,9 +181,10 @@ class RenderSystem(
 
     /**
      * Tints the quad in [scratch] by the Doppler factor of a source at ([sx], [sy]) moving at ([vx], [vy]) as seen by the
-     * observer (ST-045): `n̂` runs from the source to the observer, β_s = v / c. Blueshifted sprites also queue an additive glow copy.
+     * observer (ST-045): `n̂` runs from the source to the observer, β_s = v / c. Blueshifted sprites also queue an additive glow
+     * copy, unless [glowsAdditively] is false for [type] (projectiles, ST-121).
      */
-    private fun tintAndQueue(sprite: Sprite, sx: Float, sy: Float, vx: Float, vy: Float) {
+    private fun tintAndQueue(sprite: Sprite, type: EntityType, sx: Float, sy: Float, vx: Float, vy: Float) {
         val nx = observer.position.x - sx
         val ny = observer.position.y - sy
         val dist = sqrt(nx * nx + ny * ny)
@@ -192,7 +197,7 @@ class RenderSystem(
         }
         val col = sprite.color
         val glow = tintSpriteVertices(scratch, d, col.r, col.g, col.b, col.a, BlackbodyLut, rgb)
-        if (glow > 0f) additive.add(sprite.texture, scratch, glow * col.a)
+        if (glow > 0f && glowsAdditively(type)) additive.add(sprite.texture, scratch, glow * col.a)
     }
 
     /** Draws the queued glow copies once with additive blending, then restores the blend function. */

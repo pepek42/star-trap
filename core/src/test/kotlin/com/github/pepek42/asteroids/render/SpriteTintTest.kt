@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.render
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Texture
+import com.github.pepek42.asteroids.component.EntityType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -43,8 +44,16 @@ class SpriteTintTest {
         assertEquals(B_MAX, spriteBrightness(100f))
         assertEquals(1f, spriteBrightness(1f), 1e-6f)
         assertEquals(0f, additiveGlowAlpha(0.5f))
-        assertEquals(0.5f, additiveGlowAlpha(1.5f), 1e-6f)
+        assertEquals(DOPPLER_GLOW_STRENGTH * 0.5f, additiveGlowAlpha(1.5f), 1e-6f)
+        assertEquals(1f, additiveGlowAlpha(1f + 1f / DOPPLER_GLOW_STRENGTH), 1e-6f)
         assertEquals(1f, additiveGlowAlpha(4f))
+    }
+
+    @Test
+    fun projectilesKeepTintButSkipGlow() {
+        assertFalse(glowsAdditively(EntityType.PROJECTILE))
+        assertTrue(glowsAdditively(EntityType.SHIP))
+        assertTrue(glowsAdditively(EntityType.ASTEROID))
     }
 
     @Test
@@ -64,7 +73,7 @@ class SpriteTintTest {
     fun blueshiftedSpriteIsFullAlphaWithGlow() {
         val v = FloatArray(SPRITE_VERTEX_FLOATS)
         val glow = tintSpriteVertices(v, 1.5f, 1f, 1f, 1f, 1f, BlackbodyLut, rgb)
-        assertEquals(0.5f, glow, 1e-6f)
+        assertEquals(DOPPLER_GLOW_STRENGTH * 0.5f, glow, 1e-6f)
         val c = Color()
         Color.abgr8888ToColor(c, v[SPRITE_COLOR_OFFSET])
         assertEquals(1f, c.a, 0.01f)

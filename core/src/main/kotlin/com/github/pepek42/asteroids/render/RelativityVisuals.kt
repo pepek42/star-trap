@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.math.Vector2
+import com.github.pepek42.asteroids.component.EntityType
 import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.min
@@ -82,8 +83,20 @@ fun spriteTint(d: Float, lut: BlackbodyLut, out: FloatArray) {
 /** Searchlight brightness of an object at (effective) Doppler factor [d]: `D^BRIGHTNESS_EXPONENT_MVP` in [[B_MIN], [B_MAX]]. */
 fun spriteBrightness(d: Float): Float = d.pow(BRIGHTNESS_EXPONENT_MVP).coerceIn(B_MIN, B_MAX)
 
-/** Alpha of the additive glow copy of a blueshifted sprite: `clamp(D − 1, 0, 1)`, 0 when it is not blueshifted. */
-fun additiveGlowAlpha(d: Float): Float = (d - 1f).coerceIn(0f, 1f)
+/** Glow strength of the additive copy: 1 would make `D − 1` full alpha; 0.5 keeps the glow readable rather than blinding (ST-121). */
+const val DOPPLER_GLOW_STRENGTH = 0.5f
+
+/**
+ * Alpha of the additive glow copy of a blueshifted sprite: `clamp((D − 1)·DOPPLER_GLOW_STRENGTH, 0, 1)`, 0 when it is not
+ * blueshifted.
+ */
+fun additiveGlowAlpha(d: Float): Float = ((d - 1f) * DOPPLER_GLOW_STRENGTH).coerceIn(0f, 1f)
+
+/**
+ * Whether an entity of [type] may get the additive glow copy. Projectiles fly near c and would always glow, so they keep
+ * only the colour tint (ST-121).
+ */
+fun glowsAdditively(type: EntityType): Boolean = type != EntityType.PROJECTILE
 
 /** Writes the packed colour `(r, g, b, a)` into the four corner colour slots of the sprite quad [v] (20 floats). */
 fun setSpriteVertexColor(v: FloatArray, r: Float, g: Float, b: Float, a: Float) {

@@ -11,7 +11,6 @@ Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` car
 Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
 
 M3 Relativity MVP:
-18a. ST-121 Doppler tint follow-ups: glow strength and projectiles
 19. ST-038 Boundary field acts on proper velocity
 19a. ST-023 Boundary field: ~5 % loss per bounce, restitution 0.95
 20. ST-047 Relativistic mass in Box2D collisions
@@ -265,22 +264,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] `docs/tech/balance.md` has the tables, the chosen constants and the reasoning; the constants are updated in code
   - [ ] `./gradlew core:test` passes (the sweep is not part of the default `test` run)
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
-
-### ST-121 Doppler tint follow-ups: glow strength and projectiles
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-045
-- refs: ST-045 (`render/RelativityVisuals.kt` `additiveGlowAlpha`, `system/RenderSystem.kt` `tintAndQueue`)
-- goal: Keep the sprite Doppler glow readable rather than blinding.
-- spec:
-  - Add `DOPPLER_GLOW_STRENGTH = 0.5f` in `RelativityVisuals.kt`; glow alpha becomes `clamp((D − 1)·DOPPLER_GLOW_STRENGTH, 0, 1)`. Update the KDoc and the `SpriteTintTest` glow test.
-  - Projectiles (`EntityType` of the projectile in `BaseInfoComponent`) keep the colour tint but skip the additive glow queue (they fly near c and would always glow). Add a constant/flag, not a literal check scattered in code.
-- acceptance:
-  - [ ] Glow alpha test updated for the strength factor
-  - [ ] Projectiles never enter the additive queue (unit test on the decision helper, or a documented check in `tintAndQueue`)
-  - [ ] `./gradlew core:test` passes
-- playtest: A fast asteroid ahead glows but its sprite is still readable; your own shots don't flare.
 
 ## M4 Relativistic view
 

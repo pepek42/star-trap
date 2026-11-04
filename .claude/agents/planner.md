@@ -20,6 +20,7 @@ Inputs: `docs/design/todo.md` (the owner's wishes), `docs/design/game-design.md`
 - depends: ST-xxx, ... | —
 - files: <main files to touch or create>
 - refs: <doc sections the implementer must read, e.g. `relativity-effects.md` §E8, `architecture.md` "Physics loop"; — if none>
+- layer: sim | assist | infra   (see CLAUDE.md "Vision": sim = ground-truth physics/what light shows; assist = ship-computer tool, a toggle, never changes physics)
 - goal: <1–3 sentences: what and why>
 - acceptance:
   - [ ] <checkable criterion, prefer ones a unit test can prove>
@@ -34,6 +35,8 @@ Inputs: `docs/design/todo.md` (the owner's wishes), `docs/design/game-design.md`
 - `status: needs-user` only for decisions that are really the owner's: game feel, art direction, scope trade-offs. Put the question on the card as `question:` with 2–3 options and your recommendation. Plan the rest around your recommended option where you can, so work doesn't stall.
 
 ## Principles
+- **Vision first** (`CLAUDE.md` "Vision"): the main goal is a very realistic sim plus ship-computer assists. Prefer the physically correct design. When a sim effect makes play hard, plan an **assist** card for it (a computer overlay, marker or auto-function as a toggleable setting) instead of watering the physics down.
+- **Web is the primary target.** Specs must be TeaVM-safe (`CLAUDE.md` "Web first"); name the web risk on the card when it touches one (reflection, shaders, JVM APIs).
 - Each card is a vertical slice that leaves the game runnable, with tests green.
 - Pull pure logic (math, formulas) out into functions that can be tested, and make that the first card of a feature.
 - Prefer feature flags or constants over big-bang rewrites, e.g. a `RELATIVITY_ENABLED` constant.

@@ -6,6 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Star Trap: a proof-of-concept physics-based 2D space shooter (Asteroids-like, aiming toward an action roguelike) built with libGDX + Kotlin + KTX, using Ashley ECS and Box2D. Controls: LMB fire, RMB thrusters, mouse wheel zoom. The Kotlin package is `com.github.pepek42.asteroids` (not `startrap`).
 
+**The web build (TeaVM) is the primary release target.** Desktop (`lwjgl3`) is the fast dev and test loop, but a feature isn't shipped until it works in the browser. See "Web first" below.
+
+## Vision: a very realistic sim, made playable by ship computers
+
+The main goal (owner 2026-11-04) is a **very, very realistic relativistic space sim** with **player-assist tools** layered on top. Every feature belongs to one of two layers, and cards should say which:
+
+1. **Sim (ground truth).** Physics as real as we can compute: relativistic dynamics, finite light speed, and later gravity. Ideally the **pilot view** shows only what the pilot's eyes could physically see: light-delayed (retarded) positions, aberration, Doppler, searchlight, length contraction. That makes it hard to play, and that's intended.
+2. **Assist (the ship's computer).** In-fiction instruments that help the player read and beat the sim, e.g. the tactical overlay (true current positions as wireframes over the delayed sprites), intercept and lead markers, target pointers, the reference grid, the time warp, and auto-aim. Assists **never change the physics**. They only show information the computer could plausibly compute, or act through the same controls the player has. Each assist is a setting or a toggle, so the player can choose between the raw sim and computer-aided play.
+
+Rules that follow from this:
+- Prefer the physically correct behaviour. A simplification (FAKE/APPROX) needs a reason and a row in `docs/design/physics-lies.md`.
+- Readability problems are solved by **adding or improving an assist**, not by making the sim less real.
+- Wording: "displayed sprite" = what light shows the pilot; "true state" = Box2D/ECS state in the arena frame; "computer" = an assist that draws or uses the true state (or a prediction of it).
+
 Docs index: `docs/README.md`. Owner's raw roadmap: `docs/design/todo.md`. Game design: `docs/design/game-design.md`. Physics research: `docs/research/`. Task cards: `docs/backlog.md` (open) and `docs/backlog-done.md` (archive); query them with `scripts/backlog.py next|show|list` instead of reading them. Detailed architecture and known issues: `docs/tech/architecture.md`. Library gotchas: `docs/tech/ktx-cheatsheet.md`.
 
 Development is agent-driven (see `docs/tech/dev-workflow.md`). Subagents live in `.claude/agents/` (planner, kotlin-dev, junior-dev, verifier, reviewer, physics-researcher). `/auto-dev` runs the backlog loop and `/plan-backlog` adds cards. `scratch_pad/` is gitignored reference material (the gdx template used for the stack migration) and is not part of the build.
@@ -21,7 +35,8 @@ Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, conventio
 ./gradlew core:test --tests "*MoveSystemTest.thrustersShouldWork*"                 # single test method
 ./gradlew lwjgl3:jar          # runnable fat jar -> lwjgl3/build/lib
 ./gradlew tool:packTextures  # repack raw_assets/*.png -> assets/textures/textures.atlas/.png
-./gradlew teavm:run           # experimental web build at http://localhost:8080
+./gradlew teavm:generateJavaScript   # web bundle -> teavm/build/dist/js/webapp (owner only for now, see ST-127)
+./gradlew teavm:javaScriptDevServer  # web dev server at http://localhost:8080 (owner only for now, see ST-127)
 ```
 
 - There is no linter. Formatting follows `.editorconfig`: 4-space indent for Kotlin, 2 for Gradle scripts.
@@ -32,8 +47,17 @@ Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, conventio
 
 - `core`: all game logic.
 - `lwjgl3`: desktop launcher (`Lwjgl3Launcher.kt`).
-- `teavm`: experimental browser launcher.
+- `teavm`: browser launcher (TeaVM → JS). **Primary release target.**
 - `tool`: texture packer (`packTextures`).
+
+## Web first
+
+`teavm:compileKotlin` passing does **not** mean the web build works: TeaVM finds problems only in `generateJavaScript` or at runtime in the browser. Automated web verification is pending **ST-127**. Until that card is done, agents don't run TeaVM builds (`generateJavaScript`, the dev server); `teavm:compileKotlin` in the normal verify step is still fine. Write code so it stays web-safe. Web-risk areas:
+- **Reflection.** TeaVM keeps reflection metadata only for classes registered in `teavm/build.gradle.kts` (`reflection(...)`). Ashley's `PooledEngine` creates components reflectively, so a component outside `com.github.pepek42.asteroids.component` needs registering.
+- **JVM-only APIs.** No threads, `java.io.File`, `System.getenv`, `String.format` with locale tricks, `java.util.concurrent` beyond the basics, or JNI libraries other than gdx/box2d/freetype. Use libGDX abstractions (`Gdx.files`, `Preferences`, `TimeUtils`).
+- **GLSL.** ES 1.00 / WebGL 1 only (`#ifdef GL_ES precision mediump float; #endif`); no `glLineWidth` > 1 or desktop-only GL calls.
+- **Performance.** JS is slower than the JVM: no per-frame allocation, and watch Box2D body counts.
+- **Launch options.** The web launcher has no command line, so any new `LaunchOptions` flag needs a URL-query equivalent once the web harness supports it.
 
 ## Architecture
 

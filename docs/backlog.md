@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-127**.
+Open task cards for agent-driven development. Finished cards are moved to `docs/backlog-done.md` (`scripts/backlog.py archive`). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-128**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -8,7 +8,9 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
-Main menu: controls and settings (owner 2026-11-03, top priority, `docs/design/main-menu.md`):
+Web build (owner 2026-11-04: web is the primary target; blocked until the dev machine is stable):
+0. ST-127 Web build: get the TeaVM bundle running and checked automatically (blocked)
+
 
 M3 Relativity MVP:
 18d. ST-126 Owner decision: tactical computer defaults (needs-user)
@@ -51,6 +53,34 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 55. ST-079 Ghosts of removed entities
 56. ST-080 Searchlight k = 2 in pilot view
 57. ST-089 Accretion disk in pilot view
+
+---
+
+## Web build
+
+### ST-127 Web build: get the TeaVM bundle running and checked automatically
+- status: blocked
+- blocker: dev machine instability on 2026-11-04 (JVM SIGSEGVs in several processes, a Gradle-cache jar whose bytes changed at rest, VS Code/IntelliJ crashes, two full system crashes during TeaVM builds). Owner: check hardware (memtest86+) and the JDK before resuming.
+- size: M
+- agent: kotlin-dev
+- layer: infra
+- depends: —
+- files: `teavm/build.gradle.kts`, `teavm/src/main/kotlin/com/github/pepek42/asteroids/teavm/TeaVMLauncher.kt`, new `scripts/web-smoke.mjs` + `scripts/web-check.sh` (working reference: `scratch_pad/web-smoke/`, gitignored), `.claude/skills/auto-dev/SKILL.md`, `CLAUDE.md` "Web first", `docs/tech/dev-workflow.md`
+- refs: `CLAUDE.md` "Web first"
+- goal: Web is the primary release target, but until now agents only ran `teavm:compileKotlin`; the bundle was never generated or run. Make the web build work, add an automated browser smoke test, and wire it into /auto-dev.
+- findings (2026-11-04):
+  - Task names: `teavm:generateJavaScript` (→ `teavm/build/dist/js/webapp`), `teavm:javaScriptDevServer`. `teavm:run` (formerly in CLAUDE.md) doesn't exist.
+  - `generateJavaScript` crashed the TeaVM worker JVM (SIGSEGV, Arch OpenJDK 25.0.5.0.3) almost every time. `JAVA_TOOL_OPTIONS=-Xint ./gradlew --no-daemon teavm:generateJavaScript` built once (~3.5 min); C1-only and C2-only still crashed. The worker (`org.teavm.tooling.daemon.BuildDaemon`) inherits the Gradle daemon's `java.home` and env; there's no JVM-args hook. The Gradle daemon is pinned to JDK 25 by `gradle/gradle-daemon-jvm.properties`, and build-logic needs JVM 25. The crashes coincided with machine-wide instability, so the JDK isn't proven guilty.
+  - Built bundle in headless Firefox: the main menu renders with no JS errors. Clicking "Single Player" throws `CreateComponentException: Could not create component class ...BodyComponent` (Ashley `PooledEngine` instantiates components reflectively). Likely fix, untested: `reflection("com.github.pepek42.asteroids.component")` in `gdxTeaVM {}` (gdx-teavm 1.6.2 `reflection()` accepts package patterns).
+  - Canvas stays 800×600 instead of filling the window. The first character of every menu label is clipped (check desktop too; split into its own card if it's a general UI bug).
+  - `TeaVMLauncher` calls `Game()` with default `LaunchOptions`, so web has no seed/scene/screenshot options. Parse the URL query into `LaunchOptions`.
+  - Smoke harness design (reference script in `scratch_pad/web-smoke/`): Node ≥ 22 global `WebSocket` + `firefox --headless --remote-debugging-port` (WebDriver BiDi), no npm deps; a tiny Node static server for the webapp dir. TeaVM logs uncaught Java exceptions at **info** level ("Fatal Error", "Exception N:"), so match on text, not on level. `browsingContext.setViewport` needs `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS`; use `--window-size` instead. "Single Player" is at about (365, 209) in a 1280×800 window.
+- acceptance:
+  - [ ] `teavm:generateJavaScript` builds reliably on the dev machine (or a documented workaround in `dev-workflow.md`)
+  - [ ] component reflection registered; `scripts/web-check.sh --play` shows a level playing with 0 exceptions
+  - [ ] canvas fills the browser window; URL query → `LaunchOptions` (at least seed and scene)
+  - [ ] /auto-dev runs the web check every 3 committed cards, after web-risk cards, and at the end of a run; `CLAUDE.md` "Web first" updated to match
+- playtest: open the dev server in a browser, start a level, fly and shoot.
 
 ---
 

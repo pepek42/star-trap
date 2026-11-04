@@ -23,6 +23,8 @@ You get exactly one task card from `docs/backlog.md`. Implement that card and no
 - Rendering reads `TransformComponent.interpolated*`, never the raw body position.
 - Physics constants go in named `const val`s, derived from the base constants where they follow from them. Avoid magic numbers. Gameplay tunables go in the place the card names, or in a companion object.
 - Box2D limits translation to 2 units per step (`b2_maxTranslation`), so the safe speed is `C_MAX_BOX2D_SAFE` (derived from `PHYSICS_TICK_RATE`), and c must stay under it. Never hardcode derived numbers (tick rate, c, speed cap); see "Constants are the single source of truth" in `CLAUDE.md`.
+- The web (TeaVM) build is the primary target: follow `CLAUDE.md` "Web first". No threads, `java.io.File` or other JVM-only APIs; GLSL ES 1.00; a component outside the `component` package must be registered with `reflection(...)` in `teavm/build.gradle.kts`.
+- Assists (ship-computer features) only read true state or act through player controls; they never change the physics.
 - Add UI strings to `assets/i18n/messages.properties` (English only).
 - If the card adds or changes sprites in `raw_assets/`, run `./gradlew tool:packTextures`.
 - Write or extend JUnit 5 tests in `core/src/test/kotlin/...` for every piece of logic that can run without a GL context: math, state transitions, system behaviour with mocked bodies or a real `World`. Put pure math (relativity formulas, angle wrapping, force fields) in small pure functions so they can be tested.

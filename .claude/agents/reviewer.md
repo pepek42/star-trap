@@ -19,9 +19,11 @@ Check, in order of importance:
    - Forces are applied from a `PhysicsStepListener.beforeStep`, i.e. once per physics step.
    - Box2D speeds stay under `C_MAX_BOX2D_SAFE` (2 units per step at `PHYSICS_TICK_RATE`), and c stays under it.
    - No new hardcoded derived values (tick rate, `1/tick`, c, speed cap): they are derived from base constants, and per-step code uses the step `dt`. A new hardcoded derived value is a `major` issue.
-3. **Relativity physics**, if touched: the formulas match `docs/research/relativity-effects.md`, gamma never divides by zero or goes NaN (clamp v below c), and the code is clear about which frame (world vs player) each quantity is in.
-4. **Tests**: is the new logic covered? Are the tests meaningful, or do they only re-state the implementation?
-5. **Scope creep**: changes outside the card.
+3. **Web (TeaVM) safety**, since web is the primary target: JVM-only APIs (threads, `java.io.File`, `System.getenv`, reflection on unregistered classes, components outside the `component` package without a `reflection(...)` entry), non-ES-1.00 GLSL, per-frame allocation. A web break is a `major` issue.
+4. **Sim vs assist** (`CLAUDE.md` "Vision"): an assist must not change physics, and it must be toggleable. A sim simplification needs a `physics-lies.md` row.
+5. **Relativity physics**, if touched: the formulas match `docs/research/relativity-effects.md`, gamma never divides by zero or goes NaN (clamp v below c), and the code is clear about which frame (world vs player) each quantity is in.
+6. **Tests**: is the new logic covered? Are the tests meaningful, or do they only re-state the implementation?
+7. **Scope creep**: changes outside the card.
 
 Report only real problems. Skip style nits unless they break a convention. Mark an issue `minor` only if it can wait; if its fix is a line or two in a file the diff already touches, say so ("trivial") so the orchestrator can fix it in this round instead of opening a follow-up card.
 

@@ -51,6 +51,7 @@ Spawn **reviewer**. If you get `CHANGES_REQUESTED` with a blocker or major issue
 - Commit message: `ST-NNN: <card title>`, then a blank line, a one-line summary, and the attribution trailer from the system reminder.
 - On the card: set `status: done (<YYYY-MM-DD>, <short sha>)`, tick the acceptance boxes, and add a `result:` line (one sentence). Then run `scripts/backlog.py archive ST-NNN` (moves the card to `docs/backlog-done.md` and drops it from the order list), `git add docs/backlog.md docs/backlog-done.md`, and amend the commit: `git commit --amend --no-edit`.
 - If the agent reported FOLLOW-UPS, add them as **one** `status: ready` (or `needs-user`) card at the end of the milestone, and put it into `## Implementation order` right after the card that produced it. Mark it `size: S` or `M`, pick the agent using the routing rules in `.claude/agents/planner.md`, add a `refs:` line, and bump the next free ID in the backlog header.
+- If the card adds a sim effect that hurts readability, make sure an assist (ship computer, `CLAUDE.md` "Vision") covers it or a follow-up card adds one.
 - If the card introduces or changes a FAKE/APPROX (non-physical behaviour), add or update its row in `docs/design/physics-lies.md` in the same commit.
 - Keep `docs/tech/architecture.md` current. If the card changed the system order, components or invariants, have junior-dev update it in the same commit.
 
@@ -59,7 +60,7 @@ Repeat from step 1 until N cards are done, or nothing is ready.
 
 ## 7. Final report to the owner (short)
 - Cards done: ID, title, commit sha.
-- **Playtest checklist**: the `playtest:` lines of the cards that are done. Tell the owner to run `./gradlew lwjgl3:run`.
+- **Playtest checklist**: the `playtest:` lines of the cards that are done. Tell the owner to playtest in the browser (`./gradlew teavm:javaScriptDevServer`, then http://localhost:8080) or with `./gradlew lwjgl3:run`.
 - **Questions**: every `needs-user` card, with its options and your recommendation.
 - Blocked cards and why.
 

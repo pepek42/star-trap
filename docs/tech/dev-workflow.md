@@ -17,7 +17,7 @@ Most of the volume goes to Haiku and Sonnet. Opus is used only for planning and 
 
 ## Skills (`.claude/skills/`)
 
-- **`/auto-dev [N | ST-xxx]`**: the orchestrator loop. It picks a ready card (`scripts/backlog.py next`) → the implementer → Gradle build → (reviewer for M) → commits `ST-NNN: title` on the `AI-slop` branch → marks the card done and archives it to `docs/backlog-done.md`. At the end it reports a playtest checklist and open questions. To run it unattended: `/loop /auto-dev 3`.
+- **`/auto-dev [N | ST-xxx]`**: the orchestrator loop. It picks a ready card (`scripts/backlog.py next`) → the implementer → Gradle build → (reviewer for M) → commits `ST-NNN: title` on the `AI-slop` branch → moves lasting facts into the docs and closes (deletes) the card. At the end it reports a playtest checklist and open questions. To run it unattended: `/loop /auto-dev 3`.
 - **`/plan-backlog <idea | research doc>`**: has the planner turn something into cards.
 
 ## Lifecycle of a card
@@ -32,7 +32,7 @@ flowchart LR
   build -- FAIL (≤2 rounds) --> impl
   build -- PASS --> reviewer
   reviewer -- changes --> impl
-  reviewer -- approve --> commit["commit ST-NNN<br/>status: done<br/>→ backlog-done.md"]
+  reviewer -- approve --> commit["commit ST-NNN<br/>facts → docs<br/>card closed"]
   impl -- owner decision needed --> needsuser["status: needs-user<br/>question + recommendation"]
 ```
 
@@ -48,7 +48,8 @@ flowchart LR
 
 ## Saving tokens
 
-- `docs/backlog.md` holds only open cards; finished ones are in `docs/backlog-done.md`. Nobody reads either file in full: `scripts/backlog.py next | show ST-NNN | list | archive [ST-NNN]`.
+- `docs/backlog.md` holds only open cards. Finished cards are closed (deleted): their lasting knowledge goes into the docs, their text stays in git history (`scripts/backlog.py show ST-NNN` lists the commits). Nobody reads the backlog in full: `scripts/backlog.py next | show ST-NNN | list | close [ST-NNN]`.
+- Only cards near the top of the order carry a full spec; far-future cards are short stubs until they come up, so specs don't go stale.
 - Cards carry a `refs:` line naming the doc sections the implementer needs, so nobody reads all of `docs/research/relativity-effects.md`.
 - The orchestrator runs Gradle itself; the verifier agent is only for unclear failures.
 - Trivial review findings are fixed in the same round; the rest of a card's follow-ups go into one card.

@@ -2,7 +2,7 @@
 
 Owner request (2026-11-03): "Main screen should show all control shortcuts. Before starting the game, I want to have options to choose whatever can be changed. For example, choosing aim mode [...]. Start screen can have play and quit as now, but add all controls and settings that could be changed."
 
-Cards: ST-113 … ST-120 (`docs/backlog.md`, milestone "Main menu"). Done: ST-113, ST-114, ST-115, ST-116, ST-117, ST-118, ST-119, ST-120 (`docs/backlog-done.md`). All done.
+Cards: ST-113 … ST-120 (`docs/backlog.md`, milestone "Main menu"). Done: ST-113, ST-114, ST-115, ST-116, ST-117, ST-118, ST-119, ST-120 All done (closed; see `git log --grep ST-11`).
 
 ## Layout
 

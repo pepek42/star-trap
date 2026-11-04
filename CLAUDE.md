@@ -20,7 +20,7 @@ Rules that follow from this:
 - Readability problems are solved by **adding or improving an assist**, not by making the sim less real.
 - Wording: "displayed sprite" = what light shows the pilot; "true state" = Box2D/ECS state in the arena frame; "computer" = an assist that draws or uses the true state (or a prediction of it).
 
-Docs index: `docs/README.md`. Owner's raw roadmap: `docs/design/todo.md`. Game design: `docs/design/game-design.md`. Physics research: `docs/research/`. Task cards: `docs/backlog.md` (open) and `docs/backlog-done.md` (archive); query them with `scripts/backlog.py next|show|list` instead of reading them. Detailed architecture and known issues: `docs/tech/architecture.md`. Library gotchas: `docs/tech/ktx-cheatsheet.md`.
+Docs index: `docs/README.md`. Owner's raw roadmap: `docs/design/todo.md`. Game design: `docs/design/game-design.md`. Physics research: `docs/research/`. Task cards: `docs/backlog.md` (open cards only; finished cards are closed, i.e. deleted, and live on in git history); query them with `scripts/backlog.py next|show|list` instead of reading the file. Detailed architecture and known issues: `docs/tech/architecture.md`. Library gotchas: `docs/tech/ktx-cheatsheet.md`.
 
 Development is agent-driven (see `docs/tech/dev-workflow.md`). Subagents live in `.claude/agents/` (planner, kotlin-dev, junior-dev, verifier, reviewer, physics-researcher). `/auto-dev` runs the backlog loop and `/plan-backlog` adds cards. `scratch_pad/` is gitignored reference material (the gdx template used for the stack migration) and is not part of the build.
 

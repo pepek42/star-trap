@@ -23,6 +23,7 @@ import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.input.ControlStrategy
 import com.github.pepek42.asteroids.input.MouseHullStrategy
 import com.github.pepek42.asteroids.input.PlayerInputState
+import com.github.pepek42.asteroids.input.TwinStickStrategy
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
@@ -47,11 +48,11 @@ class PlayerInputSystem(
 
     private val mouseHull = MouseHullStrategy()
 
-    // TWIN_STICK falls back to MouseHullStrategy until ST-061. AUTO_AIM is registered in addedToEngine, when the
+    // AUTO_AIM is registered in addedToEngine, when the
     // target family exists (and falls back too if no light history or clock was given).
     private val strategies: MutableMap<ControlScheme, ControlStrategy> = mutableMapOf(
         ControlScheme.MOUSE_HULL to mouseHull,
-        ControlScheme.TWIN_STICK to mouseHull,
+        ControlScheme.TWIN_STICK to TwinStickStrategy(),
         ControlScheme.AUTO_AIM to mouseHull,
     )
 
@@ -99,6 +100,10 @@ class PlayerInputSystem(
 
     override fun movement(thrusters: Float) {
         input.thrustHeld = thrusters
+    }
+
+    override fun moveAxis(x: Float, y: Float) {
+        input.moveAxis.set(x, y)
     }
 
     override fun screenAimPoint(screenX: Int, screenY: Int) {

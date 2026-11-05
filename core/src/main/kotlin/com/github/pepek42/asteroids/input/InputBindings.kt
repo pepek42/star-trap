@@ -3,7 +3,7 @@ package com.github.pepek42.asteroids.input
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Input.Keys
 
-enum class InputAction { AIM, FIRE, THRUST, ZOOM, TOGGLE_PILOT_VIEW, TOGGLE_TACTICAL_OVERLAY, BLOCK, DEBUG_PANEL }
+enum class InputAction { AIM, FIRE, THRUST, ZOOM, TOGGLE_PILOT_VIEW, TOGGLE_TACTICAL_OVERLAY, BLOCK, DEBUG_PANEL, MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT }
 
 sealed interface InputTrigger {
     data class Key(val code: Int) : InputTrigger
@@ -23,6 +23,8 @@ data class Binding(
 
 /** Single source of truth for input bindings: read by `GameEventManager` and listed by the menu. */
 object InputBindings {
+    private val TWIN = setOf(ControlScheme.TWIN_STICK)
+
     val DEFAULT: List<Binding> = listOf(
         Binding(InputAction.AIM, InputTrigger.MouseMove, "action_aim"),
         Binding(
@@ -33,7 +35,18 @@ object InputBindings {
             InputAction.FIRE, InputTrigger.MouseButton(Input.Buttons.LEFT), "action_fire_manual",
             schemes = setOf(ControlScheme.AUTO_AIM),
         ),
-        Binding(InputAction.THRUST, InputTrigger.MouseButton(Input.Buttons.RIGHT), "action_thrust"),
+        Binding(
+            InputAction.THRUST, InputTrigger.MouseButton(Input.Buttons.RIGHT), "action_thrust",
+            schemes = ControlScheme.entries.toSet() - ControlScheme.TWIN_STICK,
+        ),
+        Binding(InputAction.MOVE_UP, InputTrigger.Key(Keys.W), "action_move_up", schemes = TWIN),
+        Binding(InputAction.MOVE_UP, InputTrigger.Key(Keys.UP), "action_move_up", schemes = TWIN),
+        Binding(InputAction.MOVE_DOWN, InputTrigger.Key(Keys.S), "action_move_down", schemes = TWIN),
+        Binding(InputAction.MOVE_DOWN, InputTrigger.Key(Keys.DOWN), "action_move_down", schemes = TWIN),
+        Binding(InputAction.MOVE_LEFT, InputTrigger.Key(Keys.A), "action_move_left", schemes = TWIN),
+        Binding(InputAction.MOVE_LEFT, InputTrigger.Key(Keys.LEFT), "action_move_left", schemes = TWIN),
+        Binding(InputAction.MOVE_RIGHT, InputTrigger.Key(Keys.D), "action_move_right", schemes = TWIN),
+        Binding(InputAction.MOVE_RIGHT, InputTrigger.Key(Keys.RIGHT), "action_move_right", schemes = TWIN),
         Binding(InputAction.ZOOM, InputTrigger.Wheel, "action_zoom"),
         Binding(InputAction.TOGGLE_PILOT_VIEW, InputTrigger.Key(Keys.V), "action_pilot_view"),
         Binding(InputAction.TOGGLE_TACTICAL_OVERLAY, InputTrigger.Key(Keys.T), "action_tactical_overlay"),

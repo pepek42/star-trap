@@ -8,9 +8,20 @@ import com.github.pepek42.asteroids.i18nKeys
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import com.badlogic.gdx.Application
+import com.badlogic.gdx.Gdx
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
 
 class InputBindingsTest {
+    @BeforeEach
+    fun stubGdxApp() {
+        // GameEventManager logs on init; give it a quiet Application when no earlier test installed one.
+        if (Gdx.app == null) Gdx.app = mock<Application> { on { logLevel } doReturn Application.LOG_NONE }
+    }
+
     private val i18n: (String) -> String = { "<$it>" }
 
     @Test
@@ -52,7 +63,7 @@ class InputBindingsTest {
     fun lookups() {
         assertEquals(InputAction.FIRE, InputBindings.DEFAULT.buttonAction(Input.Buttons.LEFT))
         assertEquals(InputAction.BLOCK, InputBindings.DEFAULT.keyAction(Keys.CONTROL_RIGHT))
-        assertEquals(null, InputBindings.DEFAULT.keyAction(Keys.A))
+        assertEquals(null, InputBindings.DEFAULT.keyAction(Keys.Q))
     }
 
     @Test
@@ -75,7 +86,7 @@ class InputBindingsTest {
 
     @Test
     fun selectableSchemes() {
-        assertEquals(listOf(ControlScheme.MOUSE_HULL, ControlScheme.AUTO_AIM), ControlScheme.selectable())
+        assertEquals(listOf(ControlScheme.MOUSE_HULL, ControlScheme.TWIN_STICK, ControlScheme.AUTO_AIM), ControlScheme.selectable())
     }
 
     @Test

@@ -15,6 +15,10 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
     private val mapEventListener = GdxArray<MapEventListener>()
     private val debugListeners = GdxArray<DebugInputListener>()
     private var ignoreInput = false
+    private var up = false
+    private var down = false
+    private var left = false
+    private var right = false
 
     fun addInputListener(listener: PlayerInputListener) = playerInputListeners.add(listener)
 
@@ -34,6 +38,11 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
 
     fun ignorePlayerInputs() {
         ignoreInput = true
+        up = false
+        down = false
+        left = false
+        right = false
+        dispatchMoveAxis()
     }
 
     fun enablePlayerInputs() {
@@ -60,8 +69,42 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
                 playerInputListeners.forEach { it.toggleTacticalOverlay() }
                 true
             }
+            // Move keys are consumed in every scheme; only TwinStickStrategy reads moveAxis today.
+            InputAction.MOVE_UP, InputAction.MOVE_DOWN, InputAction.MOVE_LEFT, InputAction.MOVE_RIGHT ->
+                setMoveKey(action, true)
             else -> false
         }
+    }
+
+    override fun keyUp(keycode: Int): Boolean {
+        if (ignoreInput) return false
+        return when (val action = bindings.keyAction(keycode)) {
+            InputAction.MOVE_UP, InputAction.MOVE_DOWN, InputAction.MOVE_LEFT, InputAction.MOVE_RIGHT ->
+                setMoveKey(action, false)
+            else -> false
+        }
+    }
+
+    private fun setMoveKey(action: InputAction, pressed: Boolean): Boolean {
+        when (action) {
+            InputAction.MOVE_UP -> up = pressed
+            InputAction.MOVE_DOWN -> down = pressed
+            InputAction.MOVE_LEFT -> left = pressed
+            else -> right = pressed
+        }
+        dispatchMoveAxis()
+        return true
+    }
+
+    private fun dispatchMoveAxis() {
+        var x = (if (right) 1f else 0f) - (if (left) 1f else 0f)
+        var y = (if (up) 1f else 0f) - (if (down) 1f else 0f)
+        val len = Math.sqrt((x * x + y * y).toDouble()).toFloat()
+        if (len > 1f) {
+            x /= len
+            y /= len
+        }
+        playerInputListeners.forEach { it.moveAxis(x, y) }
     }
 
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {

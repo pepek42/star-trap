@@ -174,11 +174,15 @@ class MenuSettingsTest {
         loadSettings(store, b.specs)
         assertEquals(ControlScheme.MOUSE_HULL, b.controls.scheme)
 
-        // An unimplemented scheme in the store is ignored.
+        assertTrue("twin" in choice.options)
         val c = Fixture()
         store.putString("aim_mode", ControlScheme.TWIN_STICK.flag)
         loadSettings(store, c.specs)
-        assertEquals(ControlScheme.AUTO_AIM, c.controls.scheme)
+        assertEquals(ControlScheme.TWIN_STICK, c.controls.scheme)
+        // Game.create applies --controls after loading, so the flag wins over the saved value.
+        com.github.pepek42.asteroids.debug.parseLaunchOptions(arrayOf("--controls=mouse")).controls
+            ?.let { c.controls.scheme = it }
+        assertEquals(ControlScheme.MOUSE_HULL, c.controls.scheme)
     }
 
     @Test

@@ -5,6 +5,9 @@ interface PlayerInputListener {
 
     fun screenAimPoint(screenX: Int, screenY: Int) = Unit
 
+    /** WASD / arrow keys as a world-frame desired-thrust axis, length at most 1. */
+    fun moveAxis(x: Float, y: Float) = Unit
+
     fun fire(fire: Boolean) = Unit
 
     fun block() = Unit

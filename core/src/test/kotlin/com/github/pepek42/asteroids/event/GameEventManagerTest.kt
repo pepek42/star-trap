@@ -5,9 +5,20 @@ import com.github.pepek42.asteroids.event.PlayerInputListener
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import com.badlogic.gdx.Application
+import com.badlogic.gdx.Gdx
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
 
 class GameEventManagerTest {
+    @BeforeEach
+    fun stubGdxApp() {
+        // GameEventManager logs on init; give it a quiet Application when no earlier test installed one.
+        if (Gdx.app == null) Gdx.app = mock<Application> { on { logLevel } doReturn Application.LOG_NONE }
+    }
+
     @Test
     fun f1CallsDebugListenerOnce() {
         val manager = GameEventManager()
@@ -32,7 +43,7 @@ class GameEventManagerTest {
     @Test
     fun unhandledKeyReturnsFalse() {
         val manager = GameEventManager()
-        assertFalse(manager.keyDown(Keys.A))
+        assertFalse(manager.keyDown(Keys.Q))
     }
 
     @Test
@@ -66,4 +77,30 @@ class GameEventManagerTest {
         assertFalse(manager.keyDown(Keys.T))
         assertEquals(1, calls)
     }
+
+    @Test
+    fun moveKeysDispatchNormalisedAxis() {
+        val manager = GameEventManager()
+        manager.addInputListener(object : PlayerInputListener {
+            override fun moveAxis(x: Float, y: Float) {
+                lastX = x
+                lastY = y
+            }
+        })
+        assertTrue(manager.keyDown(Keys.W))
+        assertTrue(manager.keyDown(Keys.D))
+        assertEquals(0.7071f, lastX, 1e-4f)
+        assertEquals(0.7071f, lastY, 1e-4f)
+        assertTrue(manager.keyUp(Keys.W))
+        assertEquals(1f, lastX, 1e-4f)
+        assertEquals(0f, lastY, 1e-4f)
+        manager.ignorePlayerInputs()
+        assertEquals(0f, lastX, 1e-4f)
+        assertEquals(0f, lastY, 1e-4f)
+        assertFalse(manager.keyDown(Keys.W))
+        assertFalse(manager.keyDown(Keys.Q))
+    }
+
+    private var lastX = -1f
+    private var lastY = -1f
 }

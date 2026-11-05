@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-131**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-132**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -12,7 +12,7 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 0. ST-127 Web build: get the TeaVM bundle running and checked automatically (blocked)
 
 M3 Relativity MVP:
-24. ST-061 Twin-stick control scheme
+24. ST-131 Twin-stick follow-ups: pilot-frame input (needs-user)
 25. ST-064 RelativitySettings follow-ups
 28. ST-130 Balance sim follow-ups
 29. ST-049 Bring docs in line after M3
@@ -83,29 +83,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - note (2026-11-01, owner playtest after M2 + ST-037): "Feels a bit chaotic, maybe the arena should be bigger" → ST-030 answered (c), and ST-046 now also calms a0 and the asteroid spawn. "Relativity debug options on the side" → ST-056 (runtime `RelativitySettings`), ST-057 (plumbing), ST-059 (panel), ST-060 (vector overlay). Controls are undecided → ST-058/ST-061/ST-062 make schemes (a)/(b)/(c) switchable at runtime, and ST-063 asks for the default. γ: no gameplay cap (ST-032), safety bound 50 (ST-055). **From ST-056 on**, runtime code reads c, a0, the γ cap, field params and relativity/field on/off from the DI singleton `RelativitySettings`, not the consts (the consts are its defaults). Cards written earlier (ST-038 … ST-048) that say `SPEED_OF_LIGHT`, `ENGINE_PROPER_ACCEL`, `BETA_MAX_MASSIVE` or `RELATIVITY_ENABLED` mean the corresponding setting once ST-056 is done.
 
 - note (2026-11-02, owner interview, game-design.md §11): **The game is perceived from the pilot's frame.** The game clock is the pilot's proper time (research E21): the arena advances `γ·dt_real` per frame, capped at about 10× (declared FAKE past the cap, shown on the HUD), and the player's guns and turning run on real time (ST-068, ST-069, ST-040). **Pilot view is the main rendering** and is pulled forward from M4 into this milestone (E8 light delay + E9 aberration: ST-070 … ST-078, default on). The minimap stays true arena positions ("tactical computer"). Aim help is a lead marker (ST-078). Also decided: braking boost (ST-066), shots leave the arena instead of bouncing (ST-067, reworks ST-039), ramming yes (ST-033), photon laser default (ST-034). The alternative control modes (auto-aim + auto-shoot, targeting trance) are **parked** at the end of the backlog.
-
-### ST-061 Twin-stick control scheme (WASD thrust direction + mouse turret)
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-058, ST-114, ST-115, ST-116
-- files: create `input/TwinStickStrategy.kt`, edit `input/InputBindings.kt`, `input/ControlScheme.kt`; edit `event/PlayerInputListener.kt`, `event/GameEventManager.kt`, `system/PlayerInputSystem.kt`; tests
-- goal: Scheme (b) for the owner to try. WASD gives the desired thrust direction in the world frame. The hull turns toward it through the existing PD rotation controller (`MoveComponent.targetAngleRad`), and the engine fires as the hull lines up. The mouse aims an independent turret (`WeaponComponent.aimAngleRad`), and LMB fires. Gamepad support (left/right stick through gdx-controllers) is **out of scope**. Ask the planner for a card if the owner picks (b) in ST-063.
-- spec:
-  - `PlayerInputListener`: add `fun moveAxis(x: Float, y: Float) = Unit`. In `GameEventManager`, track W/A/S/D (and the arrow keys) as booleans in `keyDown` and a new `keyUp` override. Respect `ignoreInput`, and return true only for these keys. On every change, dispatch `moveAxis(x = right − left, y = up − down)`, normalised when the length is > 1. Clear the axis in `ignorePlayerInputs()` so a held key doesn't stick across screens.
-  - `PlayerInputSystem` copies it into `PlayerInputState.moveAxis`.
-  - `TwinStickStrategy` (it keeps `lastTarget`, set to the ship angle in `onActivate`): if `|moveAxis| > 0.1`: `target = atan2(axis)`, `lastTarget = target`, `Δ = shortestAngleDiffRad(shipAngle, target)`, `move.thrusters = |axis|·max(0, cos Δ)^TWIN_STICK_ALIGN_EXPONENT` with `TWIN_STICK_ALIGN_EXPONENT = 2f`. Otherwise `thrusters = 0` and `targetAngleRad = lastTarget` (the ship holds its heading instead of drifting in spin). RMB is ignored. Turret: `weapon.aimAngleRad = atan2(aimWorld − shipPos)`, `doAttack = fireHeld`.
-  - Register it in `PlayerInputSystem.strategies[TWIN_STICK]`, replacing the fallback.
-  - (Added 2026-11-03, ST-114) Keys come from the bindings table, not literals: add `MOVE_UP/MOVE_DOWN/MOVE_LEFT/MOVE_RIGHT` to `InputAction` with W/S/A/D and the arrow keys as `Binding`s (`schemes = setOf(TWIN_STICK)`, label keys `action_move_up` … in both i18n files), and resolve them in `GameEventManager` through `keyAction`. Set `ControlScheme.TWIN_STICK.implemented = true` so the main menu offers it.
-  - Note for relativity: the turret aim is the shooter-frame direction n̂'. Once ST-039 lands, a laser aimed at the cursor at high speed visibly sweeps forward (aberration). That's intended and part of what the owner should feel.
-  - (Added 2026-11-03, owner; updated 2026-11-03) The `aim_mode` Choice in `settings/MenuSettings.kt` already exists (added with auto-aim, after ST-062): it lists `ControlScheme.selectable()` with labels `scheme_<flag>`, is persisted, and the menu controls list rebuilds on change. Here only add i18n `scheme_twin` and extend `setting_aim_mode_hint` with twin-stick.
-- acceptance:
-  - [ ] Test: the menu settings `aim_mode` options include `twin`; `--controls=mouse` overrides a saved "twin"
-  - [ ] Test: hull at 0, axis (0, 1): `targetAngleRad = π/2`, thrusters = 0 (cos 90° = 0). Hull at π/2, same axis: thrusters = 1. Hull at π/4: thrusters = 0.5 ± 1e-4
-  - [ ] Test: no axis after having had one: thrusters = 0 and `targetAngleRad` equals the last target. The turret angle follows the mouse whatever the hull angle
-  - [ ] Test: `GameEventManager`: W down + D down dispatches (0.7071, 0.7071) ± 1e-4. W up leaves (1, 0). `ignorePlayerInputs()` dispatches (0, 0)
-  - [ ] `./gradlew core:test` passes
-- playtest: With `--controls=twin`, strafe past an asteroid while shooting it. Near c, try to turn around: the hull swings fast but the velocity changes slowly (γ² turning cost), which is the momentum-management skill.
 
 ### ST-075 Pilot view: per-corner retarded time (Terrell rotation)
 - status: parked
@@ -207,6 +184,25 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] `./gradlew tool:balanceSim` reports the `expert` bot
   - [ ] tagged smoke run exists and passes; `./gradlew core:test tool:test` passes without it
 - playtest: none (tooling)
+
+---
+
+### ST-131 Twin-stick follow-ups: pilot-frame input
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: none
+- refs: `input/TwinStickStrategy.kt`, `event/GameEventManager.kt`, `system/PlayerInputSystem.kt`
+- question: In pilot view (camera rotates with the hull), should twin-stick WASD mean screen directions (convert the axis with `pilotHullToWorld`, "W = up on screen") or stay world-frame as now? Recommendation: screen directions in pilot view; world frame in outside view. The turret already aims at the cursor's world position, which is correct in both views.
+- goal: Make twin-stick usable in pilot view.
+- spec:
+  - If the owner picks screen directions: when pilot view is on, rotate `PlayerInputState.moveAxis` from the pilot/screen frame into the world frame (`pilotHullToWorld` or equivalent) before `TwinStickStrategy` uses it. No change in outside view.
+  - Reset `PlayerInputState.moveAxis` to (0, 0) when the active control scheme changes (reviewer minor, ST-061).
+- acceptance:
+  - [ ] Test: pilot view on, hull at π/2, axis (0, 1) → target angle = hull-relative "up" mapped to world as specified
+  - [ ] Test: scheme change clears `moveAxis`
+  - [ ] `./gradlew core:test` passes
+- playtest: `--controls=twin`, toggle pilot view, press W: the ship heads toward the top of the screen.
 
 ---
 

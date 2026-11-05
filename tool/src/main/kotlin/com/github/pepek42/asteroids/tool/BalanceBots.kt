@@ -85,6 +85,9 @@ object BotTuning {
     /** Cautious pilot keeps β at or below this. */
     const val CAUTIOUS_BETA_MAX = 0.5f
 
+    /** Expert pilot: the cautious logic with a looser speed cap, to bracket human skill from above. */
+    const val EXPERT_BETA_MAX = 0.8f
+
     /** Nearest asteroid closer than this (u, centre to centre) is a threat the cautious pilot steers away from. */
     const val THREAT_RADIUS = 15f
 
@@ -111,8 +114,10 @@ object BotTuning {
  * Braking uses the braking boost: the hull turns retrograde and the main engine burns against the motion (3x at k = 2).
  * While the hull still points roughly along the velocity it uses the reverse thrusters instead.
  */
-class CautiousBot(private val betaMax: Float = BotTuning.CAUTIOUS_BETA_MAX) : BalanceBot {
-    override val name = "cautious"
+class CautiousBot(
+    private val betaMax: Float = BotTuning.CAUTIOUS_BETA_MAX,
+    override val name: String = "cautious",
+) : BalanceBot {
 
     override fun decide(view: BotView, out: BotCommand) {
         out.reset()
@@ -183,7 +188,8 @@ class IdleBot : BalanceBot {
 
 fun botByName(name: String): BalanceBot = when (name.lowercase()) {
     "cautious" -> CautiousBot()
+    "expert" -> CautiousBot(BotTuning.EXPERT_BETA_MAX, "expert")
     "aggressive" -> AggressiveBot()
     "idle" -> IdleBot()
-    else -> error("Unknown bot '$name' (cautious, aggressive, idle)")
+    else -> error("Unknown bot '$name' (cautious, expert, aggressive, idle)")
 }

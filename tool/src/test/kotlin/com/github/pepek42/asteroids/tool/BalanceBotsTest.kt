@@ -107,6 +107,11 @@ class BalanceBotsTest {
     }
 
     @Test
+    fun botByNameKnowsTheExpert() {
+        assertEquals("expert", botByName("expert").name)
+    }
+
+    @Test
     fun botByNameKnowsTheThreeBots() {
         assertEquals(listOf("cautious", "aggressive", "idle"), listOf("cautious", "AGGRESSIVE", "idle").map { botByName(it).name })
     }

@@ -21,7 +21,13 @@ No owner-decided value changed (c = 20, tick rate, γ caps, `ENGINE_ACCEL_PER_C`
 ./gradlew tool:balanceSim -PbalanceArgs="--seeds=8 --levels=1,2 --bots=cautious --c=20 --accel=default"
 ```
 
-Options: `--c=15,20,30`, `--accel=0.25,default,0.7` (fraction of c, `default` = `ENGINE_ACCEL_PER_C`), `--levels=1,2,3,4,5`, `--bots=cautious,aggressive,idle`, `--seeds=20`, `--seed-base=1`, `--max-seconds=120`, `--scheme=auto|mouse`, `--out=<dir>`. The default c list is `SPEED_OF_LIGHT` × {0.75, 1, 1.5}. Seeds are `seed-base + i`, the same for every bot and setting, so the tables are paired. The full sweep is 2100 runs (20 seeds, no reduction needed). Code: `tool/src/main/kotlin/.../tool/` (`BalanceSim.kt` sweep and CLI, `HeadlessLevel.kt` runner, `BalanceBots.kt` pilots, `BalanceReport.kt` tables), tests in `tool/src/test`.
+Smoke test (tagged `balance`, 6 seeds, c = 20, default a0, levels 1 and 5, loose bounds on the T1 and T2 targets; not part of `test`, takes a minute or two):
+
+```bash
+./gradlew tool:balanceSmoke
+```
+
+Options: `--c=15,20,30`, `--accel=0.25,default,0.7` (fraction of c, `default` = `ENGINE_ACCEL_PER_C`), `--levels=1,2,3,4,5`, `--bots=cautious,expert,aggressive,idle`, `--seeds=20`, `--seed-base=1`, `--max-seconds=120`, `--scheme=auto|mouse`, `--out=<dir>`. The default c list is `SPEED_OF_LIGHT` × {0.75, 1, 1.5}. Seeds are `seed-base + i`, the same for every bot and setting, so the tables are paired. The full sweep is 2100 runs (20 seeds, no reduction needed). Code: `tool/src/main/kotlin/.../tool/` (`BalanceSim.kt` sweep and CLI, `HeadlessLevel.kt` runner, `BalanceBots.kt` pilots, `BalanceReport.kt` tables), tests in `tool/src/test`.
 
 ### What is simulated
 
@@ -34,6 +40,7 @@ Options: `--c=15,20,30`, `--accel=0.25,default,0.7` (fraction of c, `default` = 
 ### Pilots
 
 - **cautious**: keeps β ≤ 0.5; when faster, turns the hull retrograde and burns against the motion (braking boost 3×, `BRAKE_BOOST_K`), or uses the reverse thrusters while the hull still points along the motion; steers away from the nearest asteroid inside 15 u; otherwise closes on the nearest asteroid until it is 22 u away; fires at the nearest asteroid inside a 30° cone (15° each side) and 40 u.
+- **expert**: the cautious logic with β ≤ 0.8 (`BotTuning.EXPERT_BETA_MAX`), a faster, riskier pilot. Together with `--scheme=mouse` (a weaker aimer) it brackets human skill.
 - **aggressive**: thrusts at full power toward the nearest asteroid all the time and holds fire. No speed limit.
 - **idle**: does nothing (baseline; auto-aim guns still shoot what crosses the hull's cone).
 
@@ -127,5 +134,7 @@ The full tables for every cell (c × a0 × level × bot) are produced by the tas
 - **Speed is the only thing that hurts.** Idle and cautious take almost no damage at any setting: asteroid spawn speeds (≤ 0.14c) stay under the ram damage threshold (γrel − 1 < 0.02, about 0.2c relative), so a rock only hurts when the ship brings the speed. That is the design intent ("going fast is a gamble"). It also means asteroid speed is a weak lever on danger and a strong lever on how hard the rocks are to hit.
 - **Throughput limits the high levels, not survival.** Kill rate of the cautious pilot is 22 to 41 per minute; level 5 needs 26 large rocks = 78 kills (130 shots). At 3 shots/s, 120 s is a hard ceiling of 360 shots, so fire rate and hit rate cap the level length. If weapons are upgraded later (shop), revisit the counts.
 - **Time warp is rarely capped.** With the default engine the aggressive pilot reaches γ p95 ≈ 3.4, well under the 10× cap (`TIME_WARP_MAX`), so the FAKE time-warp cap (`TIME_WARP_MAX`, see `physics-lies.md`) practically never triggers. Worst cell in the sweep: 3.0 % (c = 15, a0/c = 0.7, level 3). Mean physics steps per frame stay at about 1.1 for a careful pilot and about 2 for a fast one (cap 10 per frame, `MAX_STEPS_PER_FRAME`), so web performance headroom is fine at these asteroid counts.
+- **Level 5 margin is thin.** The T2 target (cautious clears level 5 in ≥ 50 %) passes with only ~15 points of margin. Re-run the sweep (at least `--levels=5 --bots=cautious`, or `tool:balanceSmoke`) whenever weapon fire rate or upgrades, or the 120 s level cap (`--max-seconds`), change.
+- **Single-threaded sweep.** `BaseInfoComponent.globalCounter` is a plain `@Volatile` int, not atomic, and the runs share it; a parallel sweep would need an atomic counter. It stays single-threaded (about 2 min is fine) and the game code stays free of `java.util.concurrent`, which keeps it web-safe.
 - **Caveats.** The bots are scripted and tuned once; they model a decent but not expert human. Numbers will shift if the bots change. The sweep uses true positions for decisions (an assist), and the auto-aim control scheme; a mouse-hull sweep (`--scheme=mouse`) is possible but the cautious pilot's non-leading shots will clear much less. 20 seeds give about ±10 % on a rate, so the 50 % level-5 target is met with margin of about 15 points only (65 % at 20 seeds, 70 % at 40 seeds).
 - **No physics lie added.** The changed constants are gameplay tunables (asteroid count and speed) and the damage scale already registered as `physics-lies.md` row 35 (now 0.5).

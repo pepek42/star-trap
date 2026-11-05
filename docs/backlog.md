@@ -13,7 +13,6 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 
 M3 Relativity MVP:
 24. ST-131 Twin-stick follow-ups: pilot-frame input (needs-user)
-28. ST-130 Balance sim follow-ups
 29. ST-049 Bring docs in line after M3
 
 M4 Relativistic view:
@@ -148,24 +147,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - goal: Document the relativistic dynamics layer (step-listener order, `RelativisticComponent`, `RELATIVITY_ENABLED`), `ObserverState`, the projectile sweep and photons, the new constants, the M3 promotions listed in this milestone's note, the runtime `RelativitySettings`/`DebugSettings`/`ControlSettings` singletons, the debug panel (F1, `--debug-panel`), the `ControlScheme` strategies and `--controls=`, the UI-first input multiplexer order, and (2026-11-02) the pilot clock (`GameClock`, `TimeWarpSystem`, the 10-step cap), the braking boost, shots leaving the arena, and the pilot view with `LightHistorySystem`, aiming and lead markers.
 - acceptance:
   - [ ] Every statement in the updated sections can be traced to the current code or to an answered owner decision
-
-### ST-130 Balance sim follow-ups
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-101
-- refs: `docs/tech/balance.md`, `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/`
-- files: `tool/.../BalanceBots.kt`, `tool/.../BalanceSim.kt`, `core/.../component/BaseInfoComponent.kt`, `docs/tech/balance.md`
-- goal: ST-101 follow-ups to make the balance sweep a better proxy for human play and cheaper to re-run.
-- spec:
-  - Add an `expert` bot (cautious with a looser β cap, e.g. 0.8) and report it in the sweep, to bracket human skill alongside `--scheme=mouse`.
-  - Add a small balance smoke run behind a JUnit tag (few seeds, c = 20, default a0, levels 1 and 5) that asserts the ST-101 targets loosely; not part of the default `test` run.
-  - Note in `balance.md` that the level-5 target has only ~15 points of margin and must be re-run when weapon fire rate/upgrades or the 120 s level cap change.
-  - Optional: make `BaseInfoComponent.globalCounter` safe for a parallel sweep only if it stays web-safe (no `java.util.concurrent` beyond basics); otherwise leave single-threaded and document why.
-- acceptance:
-  - [ ] `./gradlew tool:balanceSim` reports the `expert` bot
-  - [ ] tagged smoke run exists and passes; `./gradlew core:test tool:test` passes without it
-- playtest: none (tooling)
 
 ---
 

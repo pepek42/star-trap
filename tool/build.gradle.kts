@@ -21,6 +21,21 @@ dependencies {
     testRuntimeOnly(libs.junitPlatformLauncher)
 }
 
+// Slow sim runs are tagged "balance": excluded from `test`, run with `./gradlew tool:balanceSmoke`.
+tasks.test {
+    useJUnitPlatform { excludeTags("balance") }
+}
+
+tasks.register<Test>("balanceSmoke") {
+    group = rootProject.name
+    description = "Balance smoke run (ST-130): few seeds, c = 20, levels 1 and 5, loose ST-101 targets"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform { includeTags("balance") }
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    outputs.upToDateWhen { false }
+}
+
 tasks.register<JavaExec>("packTextures") {
     group = rootProject.name
     description = "Packs raw_assets/*.png into assets/textures/textures.atlas"

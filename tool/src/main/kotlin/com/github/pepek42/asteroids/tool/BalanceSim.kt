@@ -19,7 +19,7 @@ import kotlin.system.exitProcess
  * Options (all optional, `--name=value`):
  * - `--c=15,20,30` speeds of light to sweep (the default sweep is [SPEED_OF_LIGHT] and 0.75x and 1.5x of it)
  * - `--accel=0.25,default,0.7` engine proper acceleration as a fraction of c; `default` is [ENGINE_ACCEL_PER_C]
- * - `--levels=1,2,3,4,5`, `--bots=cautious,aggressive,idle`, `--seeds=20`, `--seed-base=1`
+ * - `--levels=1,2,3,4,5`, `--bots=cautious,expert,aggressive,idle`, `--seeds=20`, `--seed-base=1`
  * - `--max-seconds=120` pilot seconds per level, `--scheme=auto|mouse` (the control scheme the bots use)
  * - `--out=tool/build/balance` output directory
  */
@@ -27,7 +27,7 @@ data class SweepConfig(
     val cs: List<Float> = listOf(SPEED_OF_LIGHT * 0.75f, SPEED_OF_LIGHT, SPEED_OF_LIGHT * 1.5f),
     val accelsPerC: List<Float> = listOf(0.25f, ENGINE_ACCEL_PER_C, 0.7f),
     val levels: List<Int> = listOf(1, 2, 3, 4, 5),
-    val bots: List<String> = listOf("cautious", "aggressive", "idle"),
+    val bots: List<String> = listOf("cautious", "expert", "aggressive", "idle"),
     val seeds: Int = 20,
     val seedBase: Long = 1L,
     val maxSeconds: Float = 120f,

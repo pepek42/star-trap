@@ -13,7 +13,6 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 
 M3 Relativity MVP:
 18d. ST-126 Owner decision: tactical computer defaults (needs-user)
-20a. ST-128 γ-mass follow-ups: debug toggle and overshoot check
 21. ST-048 Impact damage from relativistic kinetic energy
 21a. ST-084 Player death ends the run (moved up from M5, needed by ST-101)
 21b. ST-101 Balance pass: headless sim games, pick c, tune physics
@@ -250,23 +249,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] `TACTICAL_OVERLAY_DEFAULT_MODE` matches the answer to Q1; if Q2 is (b), arrows use `v − v_player` (spec it on this card when answered) and the tests are updated
   - [ ] game-design.md §11 Decisions has a 2026-11-xx line with both answers
   - [ ] `./gradlew core:test` passes
-
-### ST-128 γ-mass follow-ups: debug toggle and overshoot check
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-047
-- files: `ui/DebugPanel.kt`, `assets/i18n/messages.properties`, `core/src/test/.../RelativisticDynamicsTest.kt`
-- refs: ST-047 commit; `RelativitySettings.gammaMassEnabled`; architecture.md "Relativistic mass in collisions (ST-047)"
-- goal: Review follow-ups from ST-047. Let the owner A/B the γ-mass effect in play, and pin the elastic-overshoot safety.
-- spec:
-  - Debug panel: add a checkbox bound to `settings.gammaMassEnabled`, next to the existing relativity on/off checkbox, same pattern. Label via i18n.
-  - Test: restitution-1 head-on collision, A at γ = 5 into B at rest (equal rest mass). After each of the next 5 steps, both bodies' Box2D speed is < `settings.c` and |u| stays finite.
-- acceptance:
-  - [ ] Debug panel shows a working "γ-mass" checkbox (toggling it restores rest mass, see `massStaysRestMassWhenSlowOrRelativityIsOff`)
-  - [ ] Overshoot test passes
-  - [ ] `./gradlew core:test` passes
-- playtest: In the debug panel, toggle γ-mass and ram an asteroid at high speed: with it on, the asteroid flies off much faster.
 
 ## M4 Relativistic view
 

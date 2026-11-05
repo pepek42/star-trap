@@ -311,6 +311,33 @@ class RelativisticDynamicsTest {
     }
 
     @Test
+    fun elasticGammaMassCollisionDoesNotOvershootC() {
+        // A at γ = 5 rams B at rest, equal rest mass, restitution 1. Newtonian elastic kick would send B past c.
+        val w = World(Vector2.Zero, true).apply { setAutoClearForces(false) }
+        try {
+            val e = Engine()
+            val mv = MoveSystem()
+            val d = RelativisticDynamics(RelativitySettings(gammaMassEnabled = true))
+            e.addSystem(mv)
+            e.addSystem(d)
+            val ph = PhysicsSystem(w, e, listOf(mv, d))
+            val a = addShip(x = -2f, vx = sqrt(24f) / 5f * c, restitution = 1f, w = w, e = e)
+            val b = addShip(x = 0f, restitution = 1f, w = w, e = e)
+            var collided = false
+            repeat(5) { step ->
+                ph.update(PhysicsSystem.PHYSICS_UPDATE_INTERVAL + 1e-4f)
+                if (b.body.linearVelocity.len() > 0f) collided = true
+                assertTrue(a.body.linearVelocity.len() < c, "step $step: A speed ${a.body.linearVelocity.len()} >= c=$c")
+                assertTrue(b.body.linearVelocity.len() < c, "step $step: B speed ${b.body.linearVelocity.len()} >= c=$c")
+                assertTrue(a.rel.u.len().isFinite() && b.rel.u.len().isFinite(), "step $step: u not finite")
+            }
+            assertTrue(collided, "bodies never collided")
+        } finally {
+            w.dispose()
+        }
+    }
+
+    @Test
     fun massGammaIsCappedAtBox2dStabilityLimit() {
         setup()
         val ship = addShip()

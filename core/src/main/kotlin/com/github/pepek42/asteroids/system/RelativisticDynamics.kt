@@ -37,7 +37,8 @@ import kotlin.math.sqrt
  * contact-changed velocity and converts it back to u, then advances proper time.
  *
  * With `RelativitySettings.gammaMassEnabled` the Box2D mass and inertia follow `min(γ, GAMMA_MASS_CAP)·m₀` (ST-047), so
- * contacts conserve `Σ γ m v`, and the readback is `u = γUsed·v` (momentum) instead of `u = γ(v)·v`.
+ * contacts conserve `Σ γ m v`, and the readback is `u = γUsed·v` (momentum) instead of `u = γ(v)·v`. The readback
+ * then writes `v = u/γ` back to Box2D, so a body is never left above c between steps.
  */
 class RelativisticDynamics(
     private val settings: RelativitySettings = RelativitySettings(),
@@ -143,6 +144,12 @@ class RelativisticDynamics(
                 } else {
                     uFromV(bodyVelocity.x, bodyVelocity.y, c, betaMax, rel.u)
                 }
+                // The Newtonian kick of a heavy body can push a light one past c. u is the truth, so write the
+                // physical v = u/γ back now: nothing that reads the Box2D velocity before the next beforeStep
+                // (contact sweep, rendering, other systems) may see a speed above c.
+                velocityFromU(rel.u.x, rel.u.y, c, velocity)
+                entity.bodyCmp.body.setLinearVelocity(velocity)
+                rel.vSet.set(velocity)
             }
             rel.tau += dt / rel.gUsed
             rel.lastAccel.set(rel.accel)

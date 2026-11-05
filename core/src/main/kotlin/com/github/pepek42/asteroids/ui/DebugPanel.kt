@@ -183,6 +183,7 @@ class DebugPanel(
             "what the pilot's own accelerometer would integrate.")
 
         checkBox("relativity", { relativitySettings.relativityEnabled }) { relativitySettings.relativityEnabled = it }
+        checkBox("γ-mass", { relativitySettings.gammaMassEnabled }) { relativitySettings.gammaMassEnabled = it }
         checkBox("boundary field", { relativitySettings.fieldEnabled }) { relativitySettings.fieldEnabled = it }
         checkBox("time warp", { relativitySettings.timeWarpEnabled }) { relativitySettings.timeWarpEnabled = it }
         checkBox("pilot view", { relativitySettings.pilotView }) { relativitySettings.pilotView = it }

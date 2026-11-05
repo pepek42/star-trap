@@ -11,10 +11,8 @@ Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` car
 Web build (owner 2026-11-04: web is the primary target; blocked until the dev machine is stable):
 0. ST-127 Web build: get the TeaVM bundle running and checked automatically (blocked)
 
-
 M3 Relativity MVP:
 18d. ST-126 Owner decision: tactical computer defaults (needs-user)
-19. ST-038 Boundary field acts on proper velocity
 19a. ST-023 Boundary field: ~5 % loss per bounce, restitution 0.95
 20. ST-047 Relativistic mass in Box2D collisions
 21. ST-048 Impact damage from relativistic kinetic energy
@@ -137,23 +135,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] Test: `GameEventManager`: W down + D down dispatches (0.7071, 0.7071) ± 1e-4. W up leaves (1, 0). `ignorePlayerInputs()` dispatches (0, 0)
   - [ ] `./gradlew core:test` passes
 - playtest: With `--controls=twin`, strafe past an asteroid while shooting it. Near c, try to turn around: the hull swings fast but the velocity changes slowly (γ² turning cost), which is the momentum-management skill.
-
-### ST-038 Boundary field acts on proper velocity
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-025, ST-037
-- files: `system/BoundaryFieldSystem.kt`, tests
-- goal: In M2 the field applies a Box2D force. Relativistic bodies must instead get `du/dt = a_field` (research §3 "Relativistic behaviour", exact: a charge in a static potential), and the backstop must reflect `u`.
-- spec:
-  - `beforeStep`: if the entity has a `RelativisticComponent`, compute `boundaryAcceleration` with velocity = `u` (damping acts on `u`) and **add** it to `relCmp.accel` instead of applying a force. Others keep the M2 path.
-  - After ST-056: params come from `settings.fieldParams`, and with `!settings.fieldEnabled` the field acceleration is skipped but the backstop below still runs. The test passes its params through `RelativitySettings(fieldParams = …)` and a `MapProvider(mock(), 100f, 100f)`.
-  - Backstop for relativistic bodies: reflect `u_n → −FIELD_BACKSTOP_RESTITUTION·u_n`, then set `v = velocityFromU(u)`, `body.setLinearVelocity(v)`, and `relCmp.vSet = v`, so `RelativisticDynamics.afterStep` (which runs later) doesn't treat it as a collision.
-- acceptance:
-  - [ ] Test (explicit `BoundaryFieldParams(skin = 8f, damping = 0f)`): a relativistic body heading straight at a wall with β = 0.9 turns around at a depth of 6.7 ± 0.4 u (research §3 table) and never reaches the wall
-  - [ ] Test: a body at γ = 5 toward the wall triggers the backstop, ends inside the map with |u| ≤ 0.9·|u_before| and moving inward
-  - [ ] `./gradlew core:test` passes
-- playtest: Bouncing off the edge at high speed feels like a strong rubber wall. Very fast hits snap back with a backstop ripple.
 
 ### ST-075 Pilot view: per-corner retarded time (Terrell rotation)
 - status: parked

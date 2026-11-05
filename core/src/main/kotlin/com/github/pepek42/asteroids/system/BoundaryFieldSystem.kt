@@ -10,11 +10,13 @@ import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.utils.Array
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.ProjectileComponent
+import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.projectileCmpOptional
 import com.github.pepek42.asteroids.component.projectileMapper
+import com.github.pepek42.asteroids.component.relativisticMapper
 import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.physics.FIELD_BACKSTOP_RESTITUTION
@@ -23,6 +25,7 @@ import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.boundaryAcceleration
 import com.github.pepek42.asteroids.physics.boundaryDepthQ
+import com.github.pepek42.asteroids.physics.velocityFromU
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.ShimmerImpacts
 import kotlin.math.pow
@@ -32,6 +35,10 @@ import ktx.log.logger
 /**
  * Applies the repulsive arena boundary field to every non-static body once per physics step
  * ([beforeStep]) and enforces a hard backstop after the step ([afterStep]).
+ *
+ * Relativistic bodies (a [RelativisticComponent] with relativity on) get `du/dt = a_field` by adding the field to
+ * [RelativisticComponent.accel], with the damping acting on `u`; the backstop reflects `u`. Other bodies get a Box2D
+ * force (dynamic) or a velocity kick (kinematic). It must be registered before `RelativisticDynamics`.
  */
 class BoundaryFieldSystem(
     private val mapProvider: MapProvider,
@@ -60,13 +67,17 @@ class BoundaryFieldSystem(
             if (projectileMapper.has(entities[i])) continue
             if (bodyCmp.boundingRadius < 0f) bodyCmp.boundingRadius = computeBoundingRadius(body)
             val pos = body.position
-            val vel = body.linearVelocity
+            val rel = relativisticOf(entities[i])
+            // Relativistic bodies feel the field on their proper velocity u, not on the Box2D velocity.
+            val vel = rel?.u ?: body.linearVelocity
             boundaryAcceleration(
                 pos.x, pos.y, vel.x, vel.y, bodyCmp.boundingRadius,
                 mapProvider.mapWidth, mapProvider.mapHeight, params, accel,
             )
             if (accel.x == 0f && accel.y == 0f) continue
-            if (body.type == BodyDef.BodyType.DynamicBody) {
+            if (rel != null) {
+                rel.accel.add(accel)
+            } else if (body.type == BodyDef.BodyType.DynamicBody) {
                 val mass = body.mass
                 body.applyForceToCenter(accel.x * mass, accel.y * mass, true)
             } else {
@@ -90,10 +101,14 @@ class BoundaryFieldSystem(
                 continue
             }
             emitFieldImpact(id, body, bodyCmp.boundingRadius)
-            enforceBackstop(id, body, bodyCmp.boundingRadius)
+            enforceBackstop(id, body, bodyCmp.boundingRadius, relativisticOf(entities[i]))
         }
         impacts.prune()
     }
+
+    /** The body's [RelativisticComponent] while relativity is on; otherwise null (Newtonian path). */
+    private fun relativisticOf(entity: Entity): RelativisticComponent? =
+        if (settings.relativityEnabled) relativisticMapper.get(entity) else null
 
     /** BaseInfoComponent id, or the entity identity hash for entities without one (e.g. in tests). */
     private fun entityId(entity: Entity): Int = baseInfoMapper.get(entity)?.id ?: System.identityHashCode(entity)
@@ -152,14 +167,15 @@ class BoundaryFieldSystem(
         }
     }
 
-    private fun enforceBackstop(id: Int, body: Body, rBody: Float) {
+    private fun enforceBackstop(id: Int, body: Body, rBody: Float, rel: RelativisticComponent?) {
         val r = if (settings.fieldParams.useBodyRadius) rBody else 0f
         val w = mapProvider.mapWidth
         val h = mapProvider.mapHeight
         var x = body.position.x
         var y = body.position.y
-        var vx = body.linearVelocity.x
-        var vy = body.linearVelocity.y
+        // Relativistic bodies reflect their proper velocity u, the rest the Box2D velocity.
+        var vx = rel?.u?.x ?: body.linearVelocity.x
+        var vy = rel?.u?.y ?: body.linearVelocity.y
         var hit = false
         if (x - r <= 0f) {
             x = r + BACKSTOP_GAP; hit = true
@@ -177,7 +193,15 @@ class BoundaryFieldSystem(
         }
         if (!hit) return
         body.setTransform(x, y, body.angle)
-        body.setLinearVelocity(vx, vy)
+        if (rel != null) {
+            rel.u.set(vx, vy)
+            velocityFromU(vx, vy, settings.c, velocity)
+            body.setLinearVelocity(velocity)
+            // Same as the velocity RelativisticDynamics wrote, so its afterStep sees no collision.
+            rel.vSet.set(velocity)
+        } else {
+            body.setLinearVelocity(vx, vy)
+        }
         emitAtNearestWall(id, x, y, w, h, BACKSTOP_STRENGTH, true)
         defaultLoggingUtils.tryLogging { logger.debug { "Boundary backstop hit at ($x, $y)" } }
     }

@@ -15,10 +15,12 @@ import com.badlogic.gdx.utils.GdxNativesLoader
 import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.ProjectileComponent
+import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.BoundaryFieldParams
+import com.github.pepek42.asteroids.physics.FIELD_BACKSTOP_RESTITUTION
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import kotlin.math.sqrt
 
 class BoundaryFieldSystemTest {
     /** Test body speed: c, so the bodies move about a third of a unit per step. */
@@ -212,6 +215,97 @@ class BoundaryFieldSystemTest {
         } finally {
             localWorld.dispose()
         }
+    }
+
+    /**
+     * Relativistic head-on tests need c = 60 (the research §3 table assumes it: Phi = c^2 (gamma - 1) = 4660 at
+     * beta 0.9), well under C_MAX_BOX2D_SAFE. The field is A = 3000, s = 8, n = 2 without damping.
+     */
+    private val relC = 60f
+    private val relSettings = RelativitySettings(c = relC, fieldParams = BoundaryFieldParams(skin = 8f, damping = 0f))
+
+    private class RelSetup(val body: Body, val rel: RelativisticComponent, val physics: PhysicsSystem)
+
+    /** Relativistic body heading in +x with Lorentz factor [gamma], starting at [x]. */
+    private fun relativisticSetup(x: Float, gamma: Float, radius: Float): RelSetup {
+        val relEngine = Engine()
+        val relField = BoundaryFieldSystem(mapProvider, impacts, relSettings)
+        val dynamics = RelativisticDynamics(relSettings)
+        relEngine.addSystem(relField)
+        relEngine.addSystem(dynamics)
+        val body = world.createBody(BodyDef().apply {
+            type = BodyDef.BodyType.DynamicBody
+            position.set(x, 50f)
+            allowSleep = false
+        })
+        val shape = CircleShape().apply { this.radius = radius }
+        body.createFixture(shape, 1f)
+        shape.dispose()
+        val rel = RelativisticComponent()
+        rel.u.set(relC * sqrt(gamma * gamma - 1f), 0f)
+        relEngine.addEntity(
+            Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent()).add(rel),
+        )
+        return RelSetup(body, rel, PhysicsSystem(world, relEngine, listOf(relField, dynamics)))
+    }
+
+    @Test
+    fun relativisticBodyTurnsAroundAtResearchDepth() {
+        val radius = 0.1f
+        val setup = relativisticSetup(60f, 1f / sqrt(1f - 0.81f), radius)
+        val body = setup.body
+        val rel = setup.rel
+        val wallEdge = 100f - relSettings.fieldParams.skin
+        var maxDepth = 0f
+        var steps = 0
+        while (rel.u.x > 0f && steps < 600) {
+            setup.physics.update(PhysicsSystem.PHYSICS_UPDATE_INTERVAL + 1e-4f)
+            maxDepth = maxOf(maxDepth, body.position.x + radius - wallEdge)
+            steps++
+        }
+        assertTrue(rel.u.x < 0f, "never turned around, x=${body.position.x}")
+        assertEquals(6.7f, maxDepth, 0.4f)
+        assertTrue(body.position.x + radius < 100f)
+        // The wall was never touched: no backstop ripple.
+        for (i in 0 until impacts.count) assertTrue(impacts.data[i * 4 + 3] < 1.5f)
+    }
+
+    @Test
+    fun relativisticBodyBeyondFieldReachHitsBackstopAndReflectsU() {
+        val radius = 0.1f
+        val setup = relativisticSetup(60f, 5f, radius)
+        val body = setup.body
+        val rel = setup.rel
+        // The field alone can't stop gamma = 5 (Phi needed 14400 > A s / 3 = 8000), so the first turn is the backstop.
+        var uBefore = rel.u.len()
+        var uAfterBackstop = -1f
+        repeat(60) {
+            uBefore = rel.u.len()
+            setup.physics.update(PhysicsSystem.PHYSICS_UPDATE_INTERVAL + 1e-4f)
+            if (uAfterBackstop < 0f && rel.u.x < 0f) {
+                uAfterBackstop = rel.u.len()
+                assertTrue(uAfterBackstop <= FIELD_BACKSTOP_RESTITUTION * uBefore + 1e-2f, "|u|=$uAfterBackstop before=$uBefore")
+            }
+        }
+        assertTrue(uAfterBackstop > 0f, "backstop never turned the body")
+        assertTrue(body.position.x + radius < 100f && body.position.x > 0f, "x=${body.position.x}")
+        assertTrue(rel.u.x < 0f, "u=${rel.u}")
+        assertTrue(body.linearVelocity.x < 0f)
+        var backstop = false
+        for (i in 0 until impacts.count) if (impacts.data[i * 4 + 3] >= 1.5f) backstop = true
+        assertTrue(backstop, "no backstop ripple")
+    }
+
+    @Test
+    fun relativisticBodyIgnoresFieldWhenDisabled() {
+        relSettings.fieldEnabled = false
+        val setup = relativisticSetup(90f, 2f, 0.1f)
+        val body = setup.body
+        val rel = setup.rel
+        val u0 = rel.u.x
+        repeat(10) { setup.physics.update(PhysicsSystem.PHYSICS_UPDATE_INTERVAL + 1e-4f) }
+        assertEquals(u0, rel.u.x, 1e-3f)
+        assertTrue(body.position.x > 90f)
     }
 
     @Test

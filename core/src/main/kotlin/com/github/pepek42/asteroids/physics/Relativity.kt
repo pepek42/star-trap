@@ -205,6 +205,35 @@ fun dopplerFactor(betaObs: Vector2, betaSrc: Vector2, nx: Float, ny: Float): Flo
 }
 
 /**
+ * Energy of a photon as absorbed by the target relative to the energy the shooter emitted (research E12, exact):
+ * `γt(1 − βt·n̂) / (γs(1 − βs·n̂))`, the Doppler factor from shooter to target. [bsx], [bsy] is the shooter's velocity over c
+ * at emission, [btx], [bty] the target's velocity over c at the hit, [nx], [ny] the photon's arena direction. Each β is
+ * clamped to [BETA_MAX_MASSIVE] so γ stays finite. Returns 1 for non-finite input.
+ */
+fun photonEnergyFactor(bsx: Float, bsy: Float, btx: Float, bty: Float, nx: Float, ny: Float): Float {
+    val sx = bsx.toDouble()
+    val sy = bsy.toDouble()
+    val tx = btx.toDouble()
+    val ty = bty.toDouble()
+    val px = nx.toDouble()
+    val py = ny.toDouble()
+    if (!finite(sx) || !finite(sy) || !finite(tx) || !finite(ty) || !finite(px) || !finite(py)) return 1f
+    val limit = BETA_MAX_MASSIVE.toDouble()
+    val sLen = sqrt(sx * sx + sy * sy)
+    val tLen = sqrt(tx * tx + ty * ty)
+    val sk = if (sLen > limit) limit / sLen else 1.0
+    val tk = if (tLen > limit) limit / tLen else 1.0
+    val bs = min(sLen, limit)
+    val bt = min(tLen, limit)
+    val gammaS = 1.0 / sqrt(1.0 - bs * bs)
+    val gammaT = 1.0 / sqrt(1.0 - bt * bt)
+    val den = gammaS * (1.0 - sk * (sx * px + sy * py))
+    if (den <= 1e-12) return 1f
+    val f = gammaT * (1.0 - tk * (tx * px + ty * py)) / den
+    return if (finite(f)) f.toFloat() else 1f
+}
+
+/**
  * World-frame acceleration of a thruster firing along unit direction (nx, ny) in the ship frame:
  * a = a0·[(n̂'·v̂)v̂ + (n̂' - (n̂'·v̂)v̂)/γ]. Falls back to a0·n̂' when |v| < 1e-6.
  */

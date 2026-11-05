@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-133**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-134**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -15,7 +15,7 @@ M3 Relativity MVP:
 24. ST-131 Twin-stick follow-ups: pilot-frame input (needs-user)
 
 M4 Relativistic view:
-32. ST-081 Doppler-scaled photon damage
+32. ST-133 Assist: show the expected laser damage multiplier
 33. ST-125 Tactical computer tier 2: true-state intercept markers
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
@@ -199,22 +199,20 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew core:test` passes
 - playtest: At speed the view ahead is bright, and asteroids behind you are dim but outlined. Check whether the outline is too strong.
 
-### ST-081 Doppler-scaled photon damage
+### ST-133 Assist: show the expected laser damage multiplier
 - status: ready
 - size: S
 - agent: kotlin-dev
-- depends: ST-039, ST-048
-- files: `component/ProjectileComponent.kt`, `provider/WeaponProjectileProvider.kt`, `system/ContactSystem.kt`, `physics/Relativity.kt`, `physics/RelativitySettings.kt`; tests
-- goal: A photon's energy as absorbed depends on both ends' motion (research E12, exact): charging enemies take more damage, fleeing ones less, and firing forward while charging hits harder. It makes Doppler colour tactically meaningful.
+- depends: none
+- refs: `physics/Relativity.kt` (`photonEnergyFactor`), `system/ContactSystem.kt`, tactical overlay / auto-aim target code, `docs/design/physics-lies.md` row 36
+- goal: Follow-up of ST-081 (assist layer). Doppler-scaled photon damage is invisible except through the Doppler tint; the ship computer should show what a shot would do.
 - spec:
-  - `ProjectileComponent`: add `shooterBetaX`, `shooterBetaY` (reset to 0). `WeaponProjectileProvider` sets them to `v_ship / c` at emission.
-  - `fun photonEnergyFactor(bsx, bsy, btx, bty, nx, ny): Float = γ_t(1 − β_t·n̂) / (γ_s(1 − β_s·n̂))` in `Relativity.kt`, where `n̂` is the photon's arena direction (`PhotonComponent.dir`), with each β clamped to `BETA_MAX_MASSIVE`.
-  - `applyProjectileHit`: if `settings.photonDopplerDamage` and the projectile has a `PhotonComponent`, `damage = laser.damage·photonEnergyFactor(...).coerceIn(PHOTON_DAMAGE_D_MIN = 0.25f, PHOTON_DAMAGE_D_MAX = 4f)`. β_t comes from the target's `relativisticCmpOptional?.vSet ?: body.linearVelocity`, divided by c. `RelativitySettings` gets a last param `photonDopplerDamage: Boolean = true`, with a debug checkbox.
+  - For the current aim target (auto-aim target, or the asteroid nearest the cursor in other schemes), compute `photonEnergyFactor` with the player's β, the target's true-state β and the aim direction, clamped like `applyProjectileHit`.
+  - Draw it next to the target marker as `×1.8` (green above 1, red below 1), only when `settings.photonDopplerDamage` and relativity are on. Make it a toggle in the tactical overlay settings (default on). No per-frame allocation (reuse a `StringBuilder`/cached strings).
 - acceptance:
-  - [ ] Tests: shooter at rest, target moving at β = 0.6 against the photon → factor 2.0 ± 1e-3; target fleeing at 0.6 → 0.5; shooter moving at 0.6 along the photon, target at rest → 2.0; everything at rest → 1
-  - [ ] Test: with a laser of damage 50, a head-on target at β = 0.6 loses 100 health; with `photonDopplerDamage = false` it loses 50
+  - [ ] Test: the pure helper that picks the displayed factor matches `photonEnergyFactor` clamped, and returns null when the setting is off
   - [ ] `./gradlew core:test` passes
-- playtest: Head-on passes kill asteroids faster than shooting at ones that run away.
+- playtest: Charge an asteroid head-on: the marker shows ×2-ish; chase a fleeing one: below ×1.
 
 ### ST-125 Tactical computer tier 2: true-state intercept markers
 - status: ready

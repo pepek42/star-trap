@@ -17,14 +17,19 @@ import com.github.pepek42.asteroids.component.removeMapper
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.healthCmp
 import com.github.pepek42.asteroids.component.healthMapper
+import com.github.pepek42.asteroids.component.bodyCmpOptional
+import com.github.pepek42.asteroids.component.photonCmpOptional
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.projectileCmp
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.physics.DAMAGE_PER_REST_ENERGY
 import com.github.pepek42.asteroids.physics.PLAYER_RAM_DAMAGE_FACTOR
+import com.github.pepek42.asteroids.physics.PHOTON_DAMAGE_D_MAX
+import com.github.pepek42.asteroids.physics.PHOTON_DAMAGE_D_MIN
 import com.github.pepek42.asteroids.physics.RAM_GAMMA_THRESHOLD
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaRel
+import com.github.pepek42.asteroids.physics.photonEnergyFactor
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.component.AsteroidComponent
 import com.github.pepek42.asteroids.component.asteroidMapper
@@ -36,13 +41,18 @@ import ktx.log.logger
  * Applies a projectile's damage to [target] (if it has health), then marks the projectile as spent and tags it
  * with [RemoveComponent]. Does nothing if the projectile was already spent, so a projectile hits at most once.
  */
-fun applyProjectileHit(engine: Engine, projectile: Entity, target: Entity) {
+fun applyProjectileHit(
+    engine: Engine,
+    projectile: Entity,
+    target: Entity,
+    settings: RelativitySettings = RelativitySettings(),
+) {
     val projectileCmp = projectile.projectileCmp
     if (projectileCmp.spent) return
     if (target.has(healthMapper)) {
         val targetHealth = target.healthCmp
         val damage = when (val laser = projectileCmp.projectile) {
-            is LaserProjectile -> laser.damage
+            is LaserProjectile -> laser.damage * photonDamageFactor(projectile, target, settings)
         }
         targetHealth.health -= damage
     }
@@ -50,6 +60,24 @@ fun applyProjectileHit(engine: Engine, projectile: Entity, target: Entity) {
     if (!projectile.has(removeMapper)) {
         projectile.add(engine.createComponent(RemoveComponent::class.java))
     }
+}
+
+/**
+ * Doppler multiplier on a photon's damage (ST-081, research E12): [photonEnergyFactor] from the shooter's emission β
+ * ([ProjectileComponent.shooterBetaX]) and the target's pre-step velocity over `settings.c`, clamped to
+ * [PHOTON_DAMAGE_D_MIN]..[PHOTON_DAMAGE_D_MAX]. 1 for non-photon projectiles or when disabled.
+ */
+private fun photonDamageFactor(projectile: Entity, target: Entity, settings: RelativitySettings): Float {
+    if (!settings.photonDopplerDamage || !settings.relativityEnabled) return 1f
+    val photon = projectile.photonCmpOptional ?: return 1f
+    val projectileCmp = projectile.projectileCmp
+    val targetV = target.relativisticCmpOptional?.vSet ?: target.bodyCmpOptional?.body?.linearVelocity ?: return 1f
+    val factor = photonEnergyFactor(
+        projectileCmp.shooterBetaX, projectileCmp.shooterBetaY,
+        targetV.x / settings.c, targetV.y / settings.c,
+        photon.dir.x, photon.dir.y,
+    )
+    return factor.coerceIn(PHOTON_DAMAGE_D_MIN, PHOTON_DAMAGE_D_MAX)
 }
 
 /**
@@ -89,9 +117,9 @@ class ContactSystem(
         val entityOne = contact.fixtureA.body.userData as Entity
         val entityTwo = contact.fixtureB.body.userData as Entity
         if (entityOne.baseInfoCmp.entityType == EntityType.PROJECTILE) {
-            applyProjectileHit(engine, entityOne, entityTwo)
+            applyProjectileHit(engine, entityOne, entityTwo, settings)
         } else if (entityTwo.baseInfoCmp.entityType == EntityType.PROJECTILE) {
-            applyProjectileHit(engine, entityTwo, entityOne)
+            applyProjectileHit(engine, entityTwo, entityOne, settings)
         } else if (!contact.fixtureA.isSensor && !contact.fixtureB.isSensor) {
             applyRamDamage(entityOne, contact.fixtureA.body, entityTwo, contact.fixtureB.body)
         }

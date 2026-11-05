@@ -10,6 +10,7 @@ import com.badlogic.gdx.physics.box2d.Fixture
 import com.badlogic.gdx.physics.box2d.RayCastCallback
 import com.badlogic.gdx.physics.box2d.World
 import com.badlogic.gdx.utils.Array
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.ProjectileComponent
 import com.github.pepek42.asteroids.component.TransformComponent
@@ -29,7 +30,10 @@ import ktx.ashley.allOf
  * ([TransformComponent.prevPosition]) is stored once per tick. Known limitation: a projectile reflected by the
  * boundary backstop gets a chord ray from its old position to the post-reflection position (low risk).
  */
-class ProjectileSweepSystem(private val world: World) : EntitySystem(), PhysicsStepListener {
+class ProjectileSweepSystem(
+    private val world: World,
+    private val settings: RelativitySettings = RelativitySettings(),
+) : EntitySystem(), PhysicsStepListener {
     private var entities: ImmutableArray<Entity> = ImmutableArray(Array())
     private val callback = SweepCallback()
     private val start = Vector2()
@@ -57,7 +61,7 @@ class ProjectileSweepSystem(private val world: World) : EntitySystem(), PhysicsS
             callback.reset(body, projectile.baseInfoCmp.faction)
             world.rayCast(callback, start, end)
             val target = callback.target ?: continue
-            applyProjectileHit(engine, projectile, target)
+            applyProjectileHit(engine, projectile, target, settings)
         }
         callback.reset(null, null)
     }

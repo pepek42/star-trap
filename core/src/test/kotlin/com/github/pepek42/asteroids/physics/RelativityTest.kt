@@ -340,4 +340,44 @@ class RelativityTest {
         assertEquals(1f, brakeBoostFactor(-1f, 0f, 0f, 0f, k), 1e-6f)
         assertEquals(1f, brakeBoostFactor(-1f, 0f, 1f, 0f, 0f), 1e-6f)
     }
+
+    @Test
+    fun photonEnergyFactorChargingTargetGetsDoubleEnergy() {
+        // Photon along +x, target at rest shooter: target moving against the photon at 0.6c -> 1.25 * 1.6 = 2.
+        assertEquals(2f, photonEnergyFactor(0f, 0f, -0.6f, 0f, 1f, 0f), 1e-3f)
+    }
+
+    @Test
+    fun photonEnergyFactorFleeingTargetGetsHalfEnergy() {
+        assertEquals(0.5f, photonEnergyFactor(0f, 0f, 0.6f, 0f, 1f, 0f), 1e-3f)
+    }
+
+    @Test
+    fun photonEnergyFactorShooterMovingAlongPhotonDoublesEnergy() {
+        assertEquals(2f, photonEnergyFactor(0.6f, 0f, 0f, 0f, 1f, 0f), 1e-3f)
+    }
+
+    @Test
+    fun photonEnergyFactorIsOneAtRest() {
+        assertEquals(1f, photonEnergyFactor(0f, 0f, 0f, 0f, 1f, 0f), 1e-6f)
+    }
+
+    @Test
+    fun photonEnergyFactorMatchesDopplerFactor() {
+        val rnd = Random(81)
+        repeat(cases) {
+            val n = randomDir(rnd)
+            val bs = Vector2(rnd.nextFloat() * 1.6f - 0.8f, rnd.nextFloat() * 1.6f - 0.8f).limit(0.9f)
+            val bt = Vector2(rnd.nextFloat() * 1.6f - 0.8f, rnd.nextFloat() * 1.6f - 0.8f).limit(0.9f)
+            val expected = dopplerFactor(bt, bs, n.x, n.y)
+            assertEquals(expected, photonEnergyFactor(bs.x, bs.y, bt.x, bt.y, n.x, n.y), expected * 1e-4f)
+        }
+    }
+
+    @Test
+    fun photonEnergyFactorStaysFiniteAtAndAboveBetaCap() {
+        val f = photonEnergyFactor(2f, 0f, -2f, 0f, 1f, 0f)
+        assertTrue(f.isFinite() && f > 0f)
+        assertEquals(1f, photonEnergyFactor(Float.NaN, 0f, 0f, 0f, 1f, 0f))
+    }
 }

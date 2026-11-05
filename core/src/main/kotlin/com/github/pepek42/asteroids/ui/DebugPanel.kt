@@ -30,6 +30,7 @@ import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_MAX
 import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_MIN
 import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_PER_C
 import com.github.pepek42.asteroids.physics.FIELD_DAMPING
+import com.github.pepek42.asteroids.physics.GAMMA_MASS_ENABLED
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
@@ -118,6 +119,8 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     relativity.pilotView = PILOT_VIEW_DEFAULT
     relativity.pilotAberration = true
     relativity.pilotDelay = true
+    relativity.gammaMassEnabled = GAMMA_MASS_ENABLED
+    relativity.photonDopplerDamage = true
     debug.timeScale = 1f
     debug.showVectors = false
     debug.gridEnabled = GRID_ENABLED
@@ -184,6 +187,7 @@ class DebugPanel(
 
         checkBox("relativity", { relativitySettings.relativityEnabled }) { relativitySettings.relativityEnabled = it }
         checkBox("γ-mass", { relativitySettings.gammaMassEnabled }) { relativitySettings.gammaMassEnabled = it }
+        checkBox("photon Doppler dmg", { relativitySettings.photonDopplerDamage }) { relativitySettings.photonDopplerDamage = it }
         checkBox("boundary field", { relativitySettings.fieldEnabled }) { relativitySettings.fieldEnabled = it }
         checkBox("time warp", { relativitySettings.timeWarpEnabled }) { relativitySettings.timeWarpEnabled = it }
         checkBox("pilot view", { relativitySettings.pilotView }) { relativitySettings.pilotView = it }

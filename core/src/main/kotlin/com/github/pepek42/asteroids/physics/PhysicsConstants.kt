@@ -134,3 +134,7 @@ const val TIME_WARP_MAX_LIMIT = 12f
  * unplayable because sprites and hitboxes disagree. V toggles it at runtime.
  */
 const val PILOT_VIEW_DEFAULT = false
+
+/** Bounds of the Doppler damage multiplier on a photon hit (ST-081): the factor is clamped to [MIN, MAX]. */
+const val PHOTON_DAMAGE_D_MIN = 0.25f
+const val PHOTON_DAMAGE_D_MAX = 4f

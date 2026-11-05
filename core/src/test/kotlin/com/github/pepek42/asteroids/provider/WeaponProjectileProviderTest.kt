@@ -22,6 +22,7 @@ import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.lifetimeCmp
 import com.github.pepek42.asteroids.component.photonCmp
 import com.github.pepek42.asteroids.component.photonCmpOptional
+import com.github.pepek42.asteroids.component.projectileCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.RelativitySettings
@@ -133,6 +134,14 @@ class WeaponProjectileProviderTest {
         assertEquals(0f, v.y, 1e-3f)
         assertEquals(0f, laser.transformCmp.prevRotationDeg, 1e-3f)
         assertEquals(1f, laser.photonCmp.dir.x, 1e-4f)
+    }
+
+    @Test
+    fun laserRecordsShooterBetaAtEmission() {
+        val laser = fireFrom(provider, 0f, Vector2(0.6f * c, -0.3f * c))
+
+        assertEquals(0.6f, laser.projectileCmp.shooterBetaX, 1e-4f)
+        assertEquals(-0.3f, laser.projectileCmp.shooterBetaY, 1e-4f)
     }
 
     @Test

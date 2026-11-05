@@ -63,7 +63,7 @@ class GameplaySystems(val lightHistory: LightHistorySystem)
 fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> Unit = {}): GameplaySystems {
     val moveSystem = MoveSystem(deps.settings)
     val boundaryFieldSystem = BoundaryFieldSystem(deps.mapProvider, deps.shimmerImpacts, deps.settings)
-    val projectileSweepSystem = ProjectileSweepSystem(deps.world)
+    val projectileSweepSystem = ProjectileSweepSystem(deps.world, deps.settings)
     // Must be the last step listener: it integrates the accelerations the others added.
     val relativisticDynamics = RelativisticDynamics(deps.settings)
     // Must come after relativisticDynamics: it records the post-step state.

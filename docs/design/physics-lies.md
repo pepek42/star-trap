@@ -10,7 +10,7 @@ Tags: **FAKE** is a deliberate departure. **APPROX** is a simplification that is
 
 | # | Lie | Tag | Why | Where | Exact alternative / revisit |
 |---|---|---|---|---|---|
-| 1 | The pilot clock's fast-forward is capped at ~10×. Past the cap the arena stops speeding up relative to the pilot | FAKE, ENGINE | Each step multiplies CPU cost (γ physics steps per frame) | ST-068, ST-069 | Raise the cap if profiling allows |
+| 1 | The pilot clock's fast-forward is capped at ~12× (`TIME_WARP_MAX_LIMIT`). Past the cap the arena stops speeding up relative to the pilot | FAKE, ENGINE | Each step multiplies CPU cost (γ physics steps per frame) | ST-068, ST-069 | Raise the cap if profiling allows |
 | 2 | The arena is simulated in one frame (the arena rest frame), and Box2D collisions/contacts aren't Lorentz-covariant | APPROX | Box2D can only work in one inertial frame | whole sim | — |
 | 3 | Box2D clamps movement to 2 u per step, so c = 20 u/s, well under the ~90 u/s Box2D cap at 60 Hz | ENGINE | Box2D limitation | `PhysicsConstants.kt`, ST-101 | Substeps (costs CPU) |
 | 4 | γ safety bound at 50 | ENGINE | Float precision | ST-055 | — |
@@ -29,6 +29,7 @@ Tags: **FAKE** is a deliberate departure. **APPROX** is a simplification that is
 | 28 | The player's turn controller is slowed by 1/warp, not 1/γ, so past the warp cap turning is slower in real time | FAKE | Physics stays in the arena frame; the warp is what the arena actually runs at | ST-040 (`rotationTimeFactor`) | Raise the warp cap |
 | 29 | Free spin is ω₀/γ, applied as a per-step rescale of the angular velocity; Box2D angular damping still acts in world time | APPROX | Exact for constant γ and survives collisions | ST-040 (`RelativisticDynamics`) | — |
 | 30 | A slowed-clock PD controller is stepped at the world step (kd·f applied once per world step) | APPROX | Turn timing is within 15 % and overshoot under 5° in tests | ST-040 (`PhysicsSystem.applyRotation`) | Substep the controller in proper time |
+| 36 | Laser damage scales with the exact photon energy ratio γ_t(1 − β_t·n̂)/(γ_s(1 − β_s·n̂)), but the factor is clamped to [0.25, 4] (`PHOTON_DAMAGE_D_MIN/MAX`), and it is off when relativity is off | FAKE | Keeps extreme head-on/fleeing shots from one-shotting or doing nothing | ST-081 (`photonEnergyFactor`, `ContactSystem.applyProjectileHit`) | Drop the clamp; `RelativitySettings.photonDopplerDamage` switches the effect off |
 
 ## Arena boundary field
 

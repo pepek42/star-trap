@@ -137,4 +137,12 @@ class DebugPanelTest {
         assertTrue(rel.pilotAberration)
         assertTrue(rel.pilotDelay)
     }
+
+    @Test
+    fun resetRestoresPhotonDopplerDamageAndGammaMass() {
+        val rel = RelativitySettings().apply { photonDopplerDamage = false; gammaMassEnabled = false }
+        resetDebugDefaults(rel, DebugSettings(debugMode = true, panelVisible = true, timeScale = 1f, showVectors = false))
+        assertTrue(rel.photonDopplerDamage)
+        assertTrue(rel.gammaMassEnabled)
+    }
 }

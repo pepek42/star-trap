@@ -50,6 +50,7 @@ class WeaponProjectileProvider(
             Vector2(weaponCmp.weaponPosition).rotateRad(bodyCmp.body.angle) + muzzle
         val angle = photonDir.angleRad()
         val faction = entity.baseInfoCmp.faction
+        val shooterBeta = shooterBeta(entity)
 
         engine.entity {
             with<BodyComponent> {
@@ -102,6 +103,8 @@ class WeaponProjectileProvider(
             }
             with<ProjectileComponent> {
                 projectile = LaserProjectile().apply { damage = 50f }
+                shooterBetaX = shooterBeta.x
+                shooterBetaY = shooterBeta.y
             }
         }
     }

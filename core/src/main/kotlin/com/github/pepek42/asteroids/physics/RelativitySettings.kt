@@ -23,6 +23,7 @@ class RelativitySettings(
     timeWarpEnabled: Boolean = TIME_WARP_ENABLED,
     timeWarpMax: Float = TIME_WARP_MAX,
     var gammaMassEnabled: Boolean = GAMMA_MASS_ENABLED,
+    photonDopplerDamage: Boolean = true,
 ) {
     var relativityEnabled: Boolean = relativityEnabled
 
@@ -52,6 +53,12 @@ class RelativitySettings(
         }
 
     var timeWarpEnabled: Boolean = timeWarpEnabled
+
+    /**
+     * Photon damage scales with the Doppler factor shooter to target, clamped to [PHOTON_DAMAGE_D_MIN, PHOTON_DAMAGE_D_MAX]
+     * (ST-081, research E12). Only applies while [relativityEnabled].
+     */
+    var photonDopplerDamage: Boolean = photonDopplerDamage
 
     // gammaMassEnabled (constructor property, ST-047): Box2D mass = min(γ, GAMMA_MASS_CAP)·m₀ while relativity is on.
 

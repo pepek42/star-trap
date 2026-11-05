@@ -16,8 +16,14 @@ class ProjectileComponent : Component, Pool.Poolable {
     /** True once the shimmer ripple for leaving the arena has been emitted. */
     var exitRippleEmitted = false
 
+    /** Shooter velocity over c in the arena frame at emission (ST-081); feeds the Doppler damage factor. */
+    var shooterBetaX = 0f
+    var shooterBetaY = 0f
+
     override fun reset() {
         projectile = LaserProjectile()
+        shooterBetaX = 0f
+        shooterBetaY = 0f
         spent = false
         exitRippleEmitted = false
     }

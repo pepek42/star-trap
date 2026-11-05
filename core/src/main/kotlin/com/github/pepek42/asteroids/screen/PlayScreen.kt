@@ -18,6 +18,8 @@ import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.debug.SCREENSHOT_FRAME_DELTA
 import com.github.pepek42.asteroids.ecs.clearLevel
+import com.github.pepek42.asteroids.ecs.GameplayDeps
+import com.github.pepek42.asteroids.ecs.buildGameplaySystems
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.RelativitySettings
@@ -29,32 +31,18 @@ import com.github.pepek42.asteroids.render.FieldShimmerRenderer
 import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.ReferenceGridRenderer
 import com.github.pepek42.asteroids.render.ShimmerImpacts
-import com.github.pepek42.asteroids.system.BoundaryFieldSystem
 import com.github.pepek42.asteroids.system.CameraSystem
-import com.github.pepek42.asteroids.system.ContactSystem
 import com.github.pepek42.asteroids.system.LightHistorySystem
-import com.github.pepek42.asteroids.system.DeathSystem
 import com.github.pepek42.asteroids.system.DebugPanelSystem
-import com.github.pepek42.asteroids.system.TimeWarpSystem
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.system.DebugSystem
 import com.github.pepek42.asteroids.system.DebugVectorSystem
 import com.github.pepek42.asteroids.system.TacticalOverlaySystem
 import com.github.pepek42.asteroids.settings.TacticalSettings
-import com.github.pepek42.asteroids.system.EndLevelSystem
 import com.github.pepek42.asteroids.system.HudSystem
-import com.github.pepek42.asteroids.system.LifetimeSystem
 import com.github.pepek42.asteroids.system.MinimapSystem
-import com.github.pepek42.asteroids.system.MoveSystem
 import com.github.pepek42.asteroids.physics.ObserverState
-import com.github.pepek42.asteroids.system.ObserverSystem
-import com.github.pepek42.asteroids.system.PhysicsSystem
-import com.github.pepek42.asteroids.system.PlayerInputSystem
-import com.github.pepek42.asteroids.system.ProjectileSweepSystem
-import com.github.pepek42.asteroids.system.RemoveSystem
 import com.github.pepek42.asteroids.system.RenderSystem
-import com.github.pepek42.asteroids.system.RelativisticDynamics
-import com.github.pepek42.asteroids.system.WeaponSystem
 import com.github.pepek42.asteroids.ui.DebugPanel
 import com.github.pepek42.asteroids.ui.Hud
 import com.github.pepek42.asteroids.ui.MinimapViewport
@@ -96,55 +84,50 @@ class PlayScreen(
     private fun setupEcs() {
         val gameEventManager = game.get<GameEventManager>()
         val spriteBatch = game.get<SpriteBatch>()
-        val moveSystem = MoveSystem(settings)
         val gridRenderer = ReferenceGridRenderer()
-        // Shared by the boundary field (emits) and the shimmer renderer (draws).
         val shimmerImpacts = ShimmerImpacts()
-        val boundaryFieldSystem = BoundaryFieldSystem(mapProvider, shimmerImpacts, settings)
-        val projectileSweepSystem = ProjectileSweepSystem(world)
-        // Must be the last step listener: it integrates the accelerations the others added.
-        val relativisticDynamics = RelativisticDynamics(settings)
-        // Must come after relativisticDynamics: it records the post-step state.
-        lightHistory = LightHistorySystem()
-        val pilotViewProjector = PilotViewProjector(lightHistory, observerState, clock, settings)
-        val contactSystem = ContactSystem(world, settings)
-        engine.add {
-            addSystem(TimeWarpSystem(clock, settings))
-            addSystem(EndLevelSystem(game))
-            addSystem(PlayerInputSystem(gameEventManager, camera, game.get<ControlSettings>(), observerState, settings, lightHistory, clock))
-            addSystem(moveSystem)
-            addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world, settings), clock))
-            addSystem(contactSystem)
-            addSystem(boundaryFieldSystem)
-            addSystem(projectileSweepSystem)
-            addSystem(relativisticDynamics)
-            addSystem(lightHistory)
-            addSystem(
-                PhysicsSystem(
-                    world, engine,
-                    listOf(moveSystem, boundaryFieldSystem, projectileSweepSystem, relativisticDynamics, lightHistory, contactSystem),
-                    clock,
+        val deps = GameplayDeps(
+            engine = engine,
+            world = world,
+            settings = settings,
+            mapProvider = mapProvider,
+            clock = clock,
+            observerState = observerState,
+            gameEventManager = gameEventManager,
+            camera = camera,
+            controlSettings = game.get<ControlSettings>(),
+            weaponProjectileProvider = WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world, settings),
+            asteroidProvider = asteroidProvider,
+            random = game.get<RandomXS128>(),
+            shimmerImpacts = shimmerImpacts,
+            onLevelCleared = {
+                logger.info { "Level ${gameState.level} finished" }
+                game.finishLevel()
+            },
+            onPlayerDeath = { game.endRun() },
+        )
+        // Execution order lives in buildGameplaySystems (shared with the headless balance runner); the presentation
+        // systems below are inserted between the observer and the lifetime system.
+        buildGameplaySystems(deps) { systems ->
+            lightHistory = systems.lightHistory
+            val pilotViewProjector = PilotViewProjector(lightHistory, observerState, clock, settings)
+            engine.add {
+                addSystem(CameraSystem(camera, gameEventManager, mapProvider, observerState, settings))
+                addSystem(
+                    RenderSystem(
+                        game, spriteBatch, viewport,
+                        FieldShimmerRenderer(shimmerImpacts, mapProvider, settings),
+                        gridRenderer, mapProvider, debugSettings, settings,
+                        pilotViewProjector, observerState,
+                    )
                 )
-            )
-            addSystem(ObserverSystem(observerState, settings, clock))
-            addSystem(CameraSystem(camera, gameEventManager, mapProvider, observerState, settings))
-            addSystem(
-                RenderSystem(
-                    game, spriteBatch, viewport,
-                    FieldShimmerRenderer(shimmerImpacts, mapProvider, settings),
-                    gridRenderer, mapProvider, debugSettings, settings,
-                    pilotViewProjector, observerState,
-                )
-            )
-            addSystem(DebugVectorSystem(camera, settings, debugSettings))
-            addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>(), gameEventManager))
-            addSystem(DebugSystem(world, engine, camera, debugSettings))
-            addSystem(DebugPanelSystem(debugPanel, observerState, clock))
-            addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock, settings, pilotViewProjector))
-            addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, panelWidthPx = { debugPanel.widthInScreenPx() }))
-            addSystem(LifetimeSystem(clock))
-            addSystem(DeathSystem(engine, asteroidProvider, game.get<RandomXS128>()) { game.endRun() })
-            addSystem(RemoveSystem(world, mapProvider))
+                addSystem(DebugVectorSystem(camera, settings, debugSettings))
+                addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>(), gameEventManager))
+                addSystem(DebugSystem(world, engine, camera, debugSettings))
+                addSystem(DebugPanelSystem(debugPanel, observerState, clock))
+                addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock, settings, pilotViewProjector))
+                addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, panelWidthPx = { debugPanel.widthInScreenPx() }))
+            }
         }
     }
 

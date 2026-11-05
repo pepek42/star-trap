@@ -18,6 +18,7 @@ import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_MIN_RADIUS
 import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_BETA_MAX
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.environment.AsteroidSize
+import com.github.pepek42.asteroids.environment.asteroidCount
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.physics.FIELD_SKIN
 import org.junit.jupiter.api.AfterEach
@@ -49,7 +50,7 @@ class AsteroidProviderTest {
     fun tearDown() = world.dispose()
 
     @Test
-    fun level3SpawnsNineteenAsteroidsInsideDiscAroundCentre() {
+    fun level3SpawnsAsteroidCountOfLevelInsideDiscAroundCentre() {
         // given
         val map = MapProvider(mock<GameEventManager>(), 200f, 200f)
         val centerX = 100f
@@ -61,7 +62,7 @@ class AsteroidProviderTest {
 
         // then
         val asteroids = engine.entities.filter { it.getComponent(AsteroidComponent::class.java) != null }
-        assertEquals(19, asteroids.size)
+        assertEquals(asteroidCount(3), asteroids.size)
         val speedMax = ASTEROID_SPAWN_BETA_MAX * SPEED_OF_LIGHT
         for (asteroid in asteroids) {
             val body = asteroid.getComponent(BodyComponent::class.java).body

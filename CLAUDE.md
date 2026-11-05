@@ -35,6 +35,7 @@ Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, conventio
 ./gradlew core:test --tests "*MoveSystemTest.thrustersShouldWork*"                 # single test method
 ./gradlew lwjgl3:jar          # runnable fat jar -> lwjgl3/build/lib
 ./gradlew tool:packTextures  # repack raw_assets/*.png -> assets/textures/textures.atlas/.png
+./gradlew tool:balanceSim    # headless balance sweep (ST-101) -> tool/build/balance/{runs.csv,summary.md}; -PbalanceArgs="--seeds=8 --levels=1,2" narrows it; ~2 min, see docs/tech/balance.md
 ./gradlew teavm:generateJavaScript   # web bundle -> teavm/build/dist/js/webapp (owner only for now, see ST-127)
 ./gradlew teavm:javaScriptDevServer  # web dev server at http://localhost:8080 (owner only for now, see ST-127)
 ```
@@ -63,7 +64,7 @@ Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, conventio
 
 **Bootstrap & DI.** `Game` (a `KtxGame`) loads assets synchronously through `AssetManager`, then registers singletons in a `ktx.inject.Context`: camera, `FitViewport` (48×27 world units), `SpriteBatch`, atlas, skin, i18n bundle, `GameEventManager`, `MapProvider`, `GameState`, and the screens. It also registers one seeded `RandomXS128`; gameplay randomness must use it. `Game` takes a `LaunchOptions`, parsed from the command line by `Lwjgl3Launcher`. Other code fetches singletons with `game.get<T>()`. Screens: `MainMenuScreen` → `PlayScreen` → `LevelClearedScreen` (`game.finishLevel()`).
 
-**ECS (Ashley `PooledEngine`).** `PlayScreen` owns the per-level `PooledEngine` and Box2D `World` and registers all systems in `setupEcs()`. **System registration order is the execution order and matters.** The order is input → move → weapons → contact → boundary field → projectile sweep → physics step → camera → render → debug/HUD/minimap → lifetime → death → remove. `show()` advances the level and spawns the player and asteroids, with the asteroid count growing with level².
+**ECS (Ashley `PooledEngine`).** `PlayScreen` owns the per-level `PooledEngine` and Box2D `World` and registers the systems in `setupEcs()` through `buildGameplaySystems` (`ecs/GameplaySystems.kt`, shared with the headless balance runner; PlayScreen adds the GL systems via its `presentation` callback). **System registration order is the execution order and matters.** The order is input → move → weapons → contact → boundary field → projectile sweep → physics step → camera → render → debug/HUD/minimap → lifetime → death → remove. `show()` advances the level and spawns the player and asteroids, with the asteroid count growing with level².
 
 **Component convention.** Each component file defines the component class (usually `Pool.Poolable`), a `xxxMapper = mapperFor<...>()`, and `Entity.xxxCmp` / `Entity.xxxCmpOptional` extension properties via `propertyFor`. Follow this pattern for new components. Every entity should have a `BaseInfoComponent` (id, faction, `EntityType`).
 

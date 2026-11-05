@@ -16,11 +16,11 @@ import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
-import com.github.pepek42.asteroids.environment.ASTEROID_COUNT_PER_LEVEL_SQ
 import com.github.pepek42.asteroids.environment.ASTEROID_DENSITY
 import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_MIN_RADIUS
 import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_BETA_MAX
 import com.github.pepek42.asteroids.environment.AsteroidSize
+import com.github.pepek42.asteroids.environment.asteroidCount
 import com.github.pepek42.asteroids.environment.asteroidHealth
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.FIELD_SKIN
@@ -33,7 +33,6 @@ import ktx.box2d.circle
 import ktx.math.plus
 import ktx.math.vec2
 import kotlin.math.min
-import kotlin.math.pow
 
 class AsteroidProvider(
     private val textureAtlas: TextureAtlas,
@@ -90,7 +89,7 @@ class AsteroidProvider(
     }
 
     fun spawnAsteroids(level: Int, mapProvider: MapProvider) {
-        val maxAsteroids = 1 + ASTEROID_COUNT_PER_LEVEL_SQ * level.toDouble().pow(2).toInt()
+        val maxAsteroids = asteroidCount(level)
         val center = vec2(mapProvider.mapWidth / 2f, mapProvider.mapHeight / 2f)
         val maxRadius = min(center.x, center.y) - FIELD_SKIN - AsteroidSize.LARGE.radius - 1f
         val step = MathUtils.PI2 / maxAsteroids

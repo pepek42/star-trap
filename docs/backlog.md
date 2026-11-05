@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-130**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-131**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -12,9 +12,9 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 0. ST-127 Web build: get the TeaVM bundle running and checked automatically (blocked)
 
 M3 Relativity MVP:
-21b. ST-101 Balance pass: headless sim games, pick c, tune physics
 24. ST-061 Twin-stick control scheme
 25. ST-064 RelativitySettings follow-ups
+28. ST-130 Balance sim follow-ups
 29. ST-049 Bring docs in line after M3
 
 M4 Relativistic view:
@@ -190,32 +190,25 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - acceptance:
   - [ ] Every statement in the updated sections can be traced to the current code or to an answered owner decision
 
----
-
-### ST-101 Balance pass: headless sim games, pick c and tune the physics
+### ST-130 Balance sim follow-ups
 - status: ready
-- size: M
+- size: S
 - agent: kotlin-dev
-- depends: ST-048, ST-084
-- files: create `tool/src/main/kotlin/.../BalanceSim.kt` (or `core/src/test/.../BalanceSim.kt` behind a JUnit tag), Gradle task `tool:balanceSim`; `physics/PhysicsConstants.kt`, `physics/RelativitySettings.kt`; create `docs/tech/balance.md`; `docs/design/game-design.md` §11
-- goal: Owner (2026-11-02, ST-020): "Pick some c value for now. Run some sim games and try to balance whole physics so that player still will have some chance to play." Make the numbers evidence-based.
+- depends: ST-101
+- refs: `docs/tech/balance.md`, `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/`
+- files: `tool/.../BalanceBots.kt`, `tool/.../BalanceSim.kt`, `core/.../component/BaseInfoComponent.kt`, `docs/tech/balance.md`
+- goal: ST-101 follow-ups to make the balance sweep a better proxy for human play and cheaper to re-run.
 - spec:
-  - Headless runner: build the gameplay systems the way `PlayScreen.setupEcs()` does, but without render, HUD and minimap. Use a real Box2D `World`, the seeded `RandomXS128` and fixed `dt = 1/60`. Factor out a shared `buildGameplaySystems(...)` if needed so it doesn't drift from `PlayScreen`.
-  - Bot pilots drive `PlayerInputListener`/`ControlScheme` inputs:
-    - `cautious`: keeps β ≤ 0.5 using the braking boost, steers away from the nearest threat inside 15 u, and fires at the nearest asteroid in a 30° cone.
-    - `aggressive`: full thrust toward the nearest target, firing constantly.
-    - `idle`: does nothing (baseline).
-  - Sweep: c ∈ {40, 60, 80}, `engineProperAccel` ∈ {15, 25, 40}, levels 1–5. Run 20 seeds each, max 120 s per level.
-  - Metrics: survival rate, time to death, damage taken per minute, kills per minute, mean and p95 γ, fraction of time the time warp is capped, mean physics steps per frame.
-  - Targets: `cautious` clears levels 1–3 in ≥ 90 % of runs and level 5 in ≥ 50 %. `aggressive` dies in 20–60 % of level 1–3 runs (speed should be risky but not suicide). The time warp is capped < 5 % of the time.
-  - Pick c and a0 (and tune asteroid count/speed and impact damage scale if the targets are missed). Write the tables and choices to `docs/tech/balance.md`, and add a §11 decisions line. If a target needs a non-physical tweak, add a row to `docs/design/physics-lies.md`.
+  - Add an `expert` bot (cautious with a looser β cap, e.g. 0.8) and report it in the sweep, to bracket human skill alongside `--scheme=mouse`.
+  - Add a small balance smoke run behind a JUnit tag (few seeds, c = 20, default a0, levels 1 and 5) that asserts the ST-101 targets loosely; not part of the default `test` run.
+  - Note in `balance.md` that the level-5 target has only ~15 points of margin and must be re-run when weapon fire rate/upgrades or the 120 s level cap change.
+  - Optional: make `BaseInfoComponent.globalCounter` safe for a parallel sweep only if it stays web-safe (no `java.util.concurrent` beyond basics); otherwise leave single-threaded and document why.
 - acceptance:
-  - [ ] `./gradlew tool:balanceSim` (or the tagged test) runs the sweep headless in under ~10 min and writes a CSV plus a markdown summary
-  - [ ] `docs/tech/balance.md` has the tables, the chosen constants and the reasoning; the constants are updated in code
-  - [ ] `./gradlew core:test` passes (the sweep is not part of the default `test` run)
-- playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
+  - [ ] `./gradlew tool:balanceSim` reports the `expert` bot
+  - [ ] tagged smoke run exists and passes; `./gradlew core:test tool:test` passes without it
+- playtest: none (tooling)
 
-- note (2026-11-03, owner idea, game-design.md §12 "Tactical computer overlay"): realistic light-delayed drawing (pilot view) is hard to play, and the only thing that makes it playable is the Box2D debug renderer. So the ship gets a "tactical computer" (later a shop upgrade; no shop yet, so it's always installed, with a tier hook on the player) that draws a HUD-styled wireframe of the **true arena-frame state** (outlines at interpolated positions, velocity arrows) over the main view. ST-122 (pure geometry) → ST-123 (component + overlay system) → ST-124 (menu setting + key) → ST-126 (owner defaults). Tier 2 (true-state intercept markers) is ST-125 in M4. This extends the 2026-11-02 decision "the minimap stays a tactical computer with true arena positions" to the main view. It is a declared FAKE (instant knowledge, physics-lies.md row 34). `DebugSystem` (Box2D debug renderer, "Debug mode" setting) stays as developer tooling and is not reused (it draws joints/AABBs, debug colours, no min size).
+---
 
 ## M4 Relativistic view
 

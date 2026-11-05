@@ -15,6 +15,7 @@ mockitoKotlinVersion = "6.4.0"
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinVersion" }
 #gdx base
 gdx = { module = "com.badlogicgames.gdx:gdx", version.ref = "gdxVersion" }
+gdxBackendHeadless = { module = "com.badlogicgames.gdx:gdx-backend-headless", version.ref = "gdxVersion" }
 gdxBackendLwjgl3 = { module = "com.badlogicgames.gdx:gdx-backend-lwjgl3", version.ref = "gdxVersion" }
 gdxPlatform = { module = "com.badlogicgames.gdx:gdx-platform", version.ref = "gdxVersion" }
 gdxTools = { module = "com.badlogicgames.gdx:gdx-tools", version.ref = "gdxVersion" }

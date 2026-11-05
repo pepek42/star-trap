@@ -88,7 +88,7 @@ const val BRAKE_BOOST_K = 2f
  * (γrel − 1)·μ·this, c-independent. Calibrated against a large asteroid (r 2.25, density 10: m = 159, health 150)
  * and the ship (1.33 u box, density 20: m = 35.6): μ = 29, so a γrel = 3 ram does 2·29·3 = 175 and kills the asteroid
  * in one hit, γrel = 2.3 (about 0.9c) does 112 (two hits), and the threshold edge (γrel − 1 = 0.02) does under 2.
- * Two large asteroids (μ = 80) at the fastest spawn speeds (about 0.4c relative, γrel − 1 = 0.09) lose about 20.
+ * Two large asteroids (μ = 80) at the fastest spawn speeds (about 0.28c relative, γrel − 1 = 0.04) lose about 10.
  */
 const val DAMAGE_PER_REST_ENERGY = 3f
 
@@ -96,11 +96,12 @@ const val DAMAGE_PER_REST_ENERGY = 3f
 const val RAM_GAMMA_THRESHOLD = 0.02f
 
 /**
- * Share of the ram damage the player ship takes (ST-129). A γrel = 3 ram into a large asteroid does 175 raw damage
- * (μ = 29); the player has 100 health, so 0.4 costs 70 (a large share, survivable). A bump at the fastest spawn
- * speeds (about 0.4c relative, γrel − 1 = 0.09) costs the ship about 3, slower than 0.2c relative costs nothing.
+ * Share of the ram damage the player ship takes (ST-129, 0.4 until ST-101). A γrel = 3 ram into a large asteroid does 175
+ * raw damage (μ = 29); the player has 100 health, so 0.5 costs 87 (nearly everything, survivable). A rock at the fastest
+ * spawn speed (about 0.14c) bumping a ship at rest costs nothing: damage starts at about 0.2c relative. ST-101 raised
+ * it from 0.4 so that a pilot who flies flat out dies in about 30 % of level 1 to 3 runs (target 20 to 60 %).
  */
-const val PLAYER_RAM_DAMAGE_FACTOR = 0.4f
+const val PLAYER_RAM_DAMAGE_FACTOR = 0.5f
 
 /** Physics steps a freshly split fragment is immune to ram damage, so it cannot re-ram the ship that broke its parent. */
 const val FRAGMENT_RAM_IMMUNITY_STEPS = 5

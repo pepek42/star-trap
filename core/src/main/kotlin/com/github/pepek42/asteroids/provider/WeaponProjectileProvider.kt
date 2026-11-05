@@ -81,9 +81,12 @@ class WeaponProjectileProvider(
             }
             with<SpriteComponent> {
                 val sprite = textureAtlas.createSprite("player_laser", 1)
-                val scale = weaponCmp.projectileRadius / sprite.texture.height * 3
-                sprite.setSize(sprite.texture.width * scale, sprite.texture.height * scale)
-                sprite.setOriginCenter()
+                // The headless balance runner hands out texture-less sprites, which are never drawn.
+                sprite.texture?.let { texture ->
+                    val scale = weaponCmp.projectileRadius / texture.height * 3
+                    sprite.setSize(texture.width * scale, texture.height * scale)
+                    sprite.setOriginCenter()
+                }
                 this.sprite = sprite
             }
             with<BaseInfoComponent> {

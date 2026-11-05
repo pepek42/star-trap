@@ -39,30 +39,36 @@ class RelativitySettingsRuntimeTest {
     @AfterEach
     fun tearDown() = world.dispose()
 
-    private class Ship(val body: Body, val rel: RelativisticComponent)
+    private class Ship(val body: Body, val rel: RelativisticComponent?)
 
+    /** Adds a unit-radius ship. Without [relativistic] it has no RelativisticComponent, so it is Newtonian. */
     private fun addShip(
         settings: RelativitySettings,
         x: Float = 50f,
+        y: Float = 50f,
         vx: Float = 0f,
         thrusters: Float = 0f,
         density: Float = 1f,
+        relativistic: Boolean = true,
     ): Ship {
         val body = world.createBody(BodyDef().apply {
             type = BodyDef.BodyType.DynamicBody
-            position.set(x, 50f)
+            position.set(x, y)
             allowSleep = false
         })
         val shape = CircleShape().apply { radius = 0.5f }
         body.createFixture(shape, density)
         shape.dispose()
         body.setLinearVelocity(vx, 0f)
-        val rel = RelativisticComponent()
-        uFromV(vx, 0f, settings.c, settings.betaMaxMassive, rel.u)
-        engine.addEntity(
-            Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent()).add(rel)
-                .add(MoveComponent(thrusters = thrusters))
-        )
+        val entity = Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent())
+            .add(MoveComponent(thrusters = thrusters))
+        val rel = if (relativistic) {
+            RelativisticComponent().also { uFromV(vx, 0f, settings.c, settings.betaMaxMassive, it.u) }
+        } else {
+            null
+        }
+        rel?.let { entity.add(it) }
+        engine.addEntity(entity)
         return Ship(body, rel)
     }
 
@@ -72,6 +78,15 @@ class RelativitySettingsRuntimeTest {
         engine.addSystem(move)
         engine.addSystem(dynamics)
         return PhysicsSystem(world, engine, listOf(move, dynamics))
+    }
+
+    /** Boundary field plus relativistic integration, in the order the game uses. */
+    private fun boundaryPhysics(settings: RelativitySettings): PhysicsSystem {
+        val field = BoundaryFieldSystem(MapProvider(mock(), 100f, 100f), ShimmerImpacts(), settings)
+        val dynamics = RelativisticDynamics(settings)
+        engine.addSystem(field)
+        engine.addSystem(dynamics)
+        return PhysicsSystem(world, engine, listOf(field, dynamics))
     }
 
     private fun PhysicsSystem.step() = update(PhysicsSystem.PHYSICS_UPDATE_INTERVAL + 1e-4f)
@@ -109,15 +124,21 @@ class RelativitySettingsRuntimeTest {
         val settings = RelativitySettings(relativityEnabled = false)
         val physics = physics(settings)
         // Mass 10 keeps v well below the Box2D translation clamp.
-        val ship = addShip(settings, thrusters = 1f, density = 10f / (Math.PI.toFloat() * 0.25f))
+        val density = 10f / (Math.PI.toFloat() * 0.25f)
+        val ship = addShip(settings, thrusters = 1f, density = density)
+        // Newtonian reference: same hull and thrust, but no RelativisticComponent, in its own lane.
+        val reference = addShip(settings, y = 70f, thrusters = 1f, density = density, relativistic = false)
         repeat(PhysicsSystem.PHYSICS_TICK_RATE.toInt()) { physics.step() }
-        assertEquals(MoveSystem.MAIN_ENGINE_THRUST / ship.body.mass, ship.body.linearVelocity.len(), 1f)
+        val speed = ship.body.linearVelocity.len()
+        assertEquals(MoveSystem.MAIN_ENGINE_THRUST / ship.body.mass, speed, 0.1f)
+        assertEquals(reference.body.linearVelocity.len(), speed, 0.1f)
+        val rel = ship.rel!!
         val expectedU = Vector2()
         val v = ship.body.linearVelocity
         uFromV(v.x, v.y, settings.c, settings.betaMaxMassive, expectedU)
-        assertEquals(expectedU.x, ship.rel.u.x, expectedU.x * 1e-3f) // relative: u is huge near the cap
-        assertEquals(1f, ship.rel.gUsed)
-        assertTrue(ship.rel.tau > 0.9f)
+        assertEquals(expectedU.x, rel.u.x, expectedU.x * 1e-3f) // relative: u is huge near the cap
+        assertEquals(1f, rel.gUsed)
+        assertTrue(rel.tau > 0.9f)
     }
 
     @Test
@@ -125,7 +146,7 @@ class RelativitySettingsRuntimeTest {
         val settings = RelativitySettings(gammaMaxMassive = 5f)
         val physics = physics(settings)
         val ship = addShip(settings)
-        ship.rel.u.set(100f * settings.c, 0f)
+        ship.rel!!.u.set(100f * settings.c, 0f)
         physics.step()
         assertEquals(5f, gammaFromU(ship.rel.u.x, ship.rel.u.y, settings.c), 0.01f)
     }
@@ -147,6 +168,19 @@ class RelativitySettingsRuntimeTest {
         physics.step()
         assertTrue(out.body.position.x < 100f)
         assertTrue(out.body.linearVelocity.x < 0f)
+    }
+
+    @Test
+    fun fieldOnAcceleratesSameShipInwardAwayFromEastWall() {
+        // Control for fieldOffGivesNoFieldAccelerationButBackstopStillReflects: same position, field switched on.
+        val settings = RelativitySettings(
+            fieldEnabled = true,
+            fieldParams = BoundaryFieldParams(skin = 8f),
+        )
+        val physics = boundaryPhysics(settings)
+        val ship = addShip(settings, x = 96f)
+        physics.step()
+        assertTrue(ship.body.linearVelocity.x < 0f, "field should push the ship away from the wall at x = 100")
     }
 
     companion object {

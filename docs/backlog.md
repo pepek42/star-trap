@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-132**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-133**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -12,8 +12,8 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 0. ST-127 Web build: get the TeaVM bundle running and checked automatically (blocked)
 
 M3 Relativity MVP:
+23. ST-132 Read the field skin from runtime settings
 24. ST-131 Twin-stick follow-ups: pilot-frame input (needs-user)
-25. ST-064 RelativitySettings follow-ups
 28. ST-130 Balance sim follow-ups
 29. ST-049 Bring docs in line after M3
 
@@ -140,23 +140,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - note: (2026-11-03) ST-125 is the tactical-computer variant using the true state (`trueLeadDirection`). When this honest variant is unparked, share its drawing and target selection with `TacticalOverlaySystem` instead of a separate `LeadMarkerSystem`.
 - note: (2026-11-03, from ST-062) when unparked, also highlight the auto-aim target in the AUTO_AIM scheme; `leadDirection` already exists in `physics/PhotonAim.kt`.
 
-### ST-064 RelativitySettings follow-ups (review minors)
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-056
-- files: `core/src/test/kotlin/com/github/pepek42/asteroids/system/RelativitySettingsRuntimeTest.kt`, `provider/PlayerEntityProvider.kt`, provider tests, `docs/tech/architecture.md`
-- goal: Tidy the gaps the ST-056 review found.
-- spec:
-  - Relativity-off test: compare against a reference run with a Newtonian-only setup (an entity without `RelativisticComponent`), using tolerance 0.1 instead of 1 u/s against `MAIN_ENGINE_THRUST / mass`.
-  - Field-off test: add a control. In the same setup with `fieldEnabled = true`, the body does get accelerated.
-  - `PlayerEntityProvider`: comment that `projectileSpeed` is ignored for LASER (it fires at `settings.c`), or drop the assignment if nothing reads it.
-  - Tests: `WeaponProjectileProvider` gives a laser speed `settings.c` (e.g. `c = 40` gives |v| = 40). Player and asteroid providers always attach `RelativisticComponent`.
-  - (ST-058 review) Test that changing `ControlSettings.scheme` between `PlayerInputSystem` updates calls `onActivate` (thrusters zeroed). Sort imports in `WeaponProjectileProviderTest`.
-  - architecture.md: remove the stale "boundary field until ST-038" wording. Note that `FieldShimmerRenderer`, `MinimapSystem` and `CameraSystem` still read the `FIELD_SKIN` const, not `settings.fieldParams.skin`.
-- acceptance:
-  - [ ] The tests above exist, and `./gradlew core:test` passes
-
 ### ST-049 Bring docs in line after M3
 - status: ready
 - size: S
@@ -184,6 +167,23 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] `./gradlew tool:balanceSim` reports the `expert` bot
   - [ ] tagged smoke run exists and passes; `./gradlew core:test tool:test` passes without it
 - playtest: none (tooling)
+
+---
+
+### ST-132 Read the field skin from runtime settings
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: none
+- refs: `render/FieldShimmerRenderer.kt`, `system/MinimapSystem.kt`, `system/CameraSystem.kt`, `provider/AsteroidProvider.kt`, `docs/tech/architecture.md` (FIELD_SKIN known gap)
+- goal: Follow-up of ST-064. Runtime code reads the boundary field skin from `RelativitySettings.fieldParams.skin`, not the `FIELD_SKIN` const, so changing it at runtime stays consistent.
+- spec:
+  - Replace the direct `FIELD_SKIN` reads in `FieldShimmerRenderer`, `MinimapSystem`, `CameraSystem` and `AsteroidProvider` with the injected settings' `fieldParams.skin` (keep `FIELD_SKIN` as the default value only).
+  - Remove the known-gap note from architecture.md.
+- acceptance:
+  - [ ] `grep -rn FIELD_SKIN core/src/main` only shows the definition and the settings default
+  - [ ] `./gradlew core:test` passes
+- playtest: none (refactor)
 
 ---
 

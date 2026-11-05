@@ -95,6 +95,7 @@ class PlayerEntityProvider(
                     weaponType = WeaponType.LASER
                     weaponPosition = vec2(worldUnitsWidth / 2, 0f)
                     shotsPerSecond = 3f
+                    // Ignored for LASER: WeaponProjectileProvider always fires lasers at settings.c.
                     projectileSpeed = settings.c
                     projectileDamage = 50f
                     projectileRadius = 0.1f

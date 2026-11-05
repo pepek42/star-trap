@@ -18,21 +18,21 @@ import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.LifetimeClock
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
+import com.github.pepek42.asteroids.component.bodyCmp
+import com.github.pepek42.asteroids.component.lifetimeCmp
 import com.github.pepek42.asteroids.component.photonCmp
 import com.github.pepek42.asteroids.component.photonCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
-import com.github.pepek42.asteroids.physics.RelativitySettings
-import com.github.pepek42.asteroids.physics.aberratePhoton
-import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
-import com.github.pepek42.asteroids.component.bodyCmp
-import com.github.pepek42.asteroids.component.lifetimeCmp
 import com.github.pepek42.asteroids.faction.FactionEnum
+import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
+import com.github.pepek42.asteroids.physics.aberratePhoton
 import com.github.pepek42.asteroids.weapon.PHOTON_WORLD_LIFETIME
 import com.github.pepek42.asteroids.weapon.WeaponType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
@@ -188,6 +188,14 @@ class WeaponProjectileProviderTest {
         assertEquals(0f, v.x, 1e-3f)
         assertEquals(c, v.y, 1e-3f)
         assertEquals(90f, laser.transformCmp.prevRotationDeg, 1e-2f)
+    }
+
+    @Test
+    fun laserSpeedFollowsRuntimeC() {
+        val settings = RelativitySettings(c = 40f)
+        val laser = fireFrom(WeaponProjectileProvider(textureAtlas, engine, world, settings), 0f)
+
+        assertEquals(settings.c, laser.bodyCmp.body.linearVelocity.len(), 1e-3f)
     }
 
     companion object {

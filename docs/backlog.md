@@ -12,7 +12,6 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 0. ST-127 Web build: get the TeaVM bundle running and checked automatically (blocked)
 
 M3 Relativity MVP:
-18d. ST-126 Owner decision: tactical computer defaults (needs-user)
 21c. ST-129 Ram damage follow-ups: player ram damage and per-size asteroid health
 21b. ST-101 Balance pass: headless sim games, pick c, tune physics
 24. ST-061 Twin-stick control scheme
@@ -218,20 +217,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
 
 - note (2026-11-03, owner idea, game-design.md §12 "Tactical computer overlay"): realistic light-delayed drawing (pilot view) is hard to play, and the only thing that makes it playable is the Box2D debug renderer. So the ship gets a "tactical computer" (later a shop upgrade; no shop yet, so it's always installed, with a tier hook on the player) that draws a HUD-styled wireframe of the **true arena-frame state** (outlines at interpolated positions, velocity arrows) over the main view. ST-122 (pure geometry) → ST-123 (component + overlay system) → ST-124 (menu setting + key) → ST-126 (owner defaults). Tier 2 (true-state intercept markers) is ST-125 in M4. This extends the 2026-11-02 decision "the minimap stays a tactical computer with true arena positions" to the main view. It is a declared FAKE (instant knowledge, physics-lies.md row 34). `DebugSystem` (Box2D debug renderer, `IS_DEBUG`) stays as developer tooling and is not reused (it draws joints/AABBs, debug colours, no min size).
-
-### ST-126 Owner decision: tactical computer defaults
-- status: needs-user
-- size: S
-- agent: junior-dev
-- depends: ST-124
-- files: `settings/TacticalSettings.kt` (`TACTICAL_OVERLAY_DEFAULT_MODE`), `render/TacticalOverlay.kt` (if Q2 is (b)), `docs/design/game-design.md` §11 Decisions
-- refs: game-design.md §12 "Tactical computer overlay"
-- goal: Two feel decisions for the overlay. Everything is built around the recommendations, so nothing waits on this; applying the answer is a constant change plus a §11 Decisions line.
-- question: Q1. When is the tactical computer shown by default? (a) Always, in both perspectives (it doubles as clean outlines over Doppler-tinted, contracted sprites). (b) Only in Pilot view, where the main view is distorted; Outside view stays clean, and T shows it on demand. (c) Off; the player turns it on. **Recommendation: (a)** for now, because your playtests rely on the Box2D-debug look in both views; revisit to (b) when the shop sells the computer. Q2. Velocity arrows relative to what? (a) The arena (true arena-frame velocity, same as the minimap and Box2D debug). (b) Relative to your ship (shows closing speed directly, better for dodging; your own arrow disappears). **Recommendation: (a)**, simpler to read alongside the minimap; (b) can become a tier-2 option.
-- acceptance:
-  - [ ] `TACTICAL_OVERLAY_DEFAULT_MODE` matches the answer to Q1; if Q2 is (b), arrows use `v − v_player` (spec it on this card when answered) and the tests are updated
-  - [ ] game-design.md §11 Decisions has a 2026-11-xx line with both answers
-  - [ ] `./gradlew core:test` passes
 
 ### ST-129 Ram damage follow-ups: player ram damage and per-size asteroid health
 - status: ready

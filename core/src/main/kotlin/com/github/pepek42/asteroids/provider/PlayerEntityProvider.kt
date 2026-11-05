@@ -29,6 +29,18 @@ import ktx.box2d.body
 import ktx.box2d.box
 import ktx.math.vec2
 
+/** Box2D density of the player ship. */
+const val PLAYER_DENSITY = 20f
+
+/** Pixel size of the (square) player sprite `spaceship/disc_green` in the atlas. */
+const val PLAYER_SPRITE_SIZE_PX = 24f
+
+/** Rest mass of the player's box fixture: density times the sprite area in world units. */
+fun playerRestMass(): Float {
+    val side = PLAYER_SPRITE_SIZE_PX / UNIT_SCALE
+    return PLAYER_DENSITY * side * side
+}
+
 class PlayerEntityProvider(
     private val engine: PooledEngine,
     private val world: World,
@@ -54,7 +66,7 @@ class PlayerEntityProvider(
                             width = worldUnitsWidth,
                             height = worldUnitsHeight,
                         ) {
-                            density = 20f
+                            density = PLAYER_DENSITY
                             filter.categoryBits = playerFaction.ownCategoryBit
                             filter.maskBits = playerFaction.collidesWithMask
                         }

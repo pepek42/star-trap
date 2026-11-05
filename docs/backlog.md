@@ -12,7 +12,6 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 0. ST-127 Web build: get the TeaVM bundle running and checked automatically (blocked)
 
 M3 Relativity MVP:
-21c. ST-129 Ram damage follow-ups: player ram damage and per-size asteroid health
 21b. ST-101 Balance pass: headless sim games, pick c, tune physics
 24. ST-061 Twin-stick control scheme
 25. ST-064 RelativitySettings follow-ups
@@ -54,7 +53,7 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 
 ### ST-127 Web build: get the TeaVM bundle running and checked automatically
 - status: blocked
-- blocker: dev machine instability on 2026-11-04 (JVM SIGSEGVs in several processes, a Gradle-cache jar whose bytes changed at rest, VS Code/IntelliJ crashes, two full system crashes during TeaVM builds). Owner: check hardware (memtest86+) and the JDK before resuming.
+- blocker: dev machine instability on 2026-11-04 (JVM SIGSEGVs in several processes, a Gradle-cache jar whose bytes changed at rest, VS Code/IntelliJ crashes, two full system crashes during TeaVM builds). Owner: check hardware (memtest86+) and the JDK before resuming. 2026-11-05: no TeaVM/Gradle run that day, yet Steam, IntelliJ (JCEF), LM Studio, node, localedef and Claude Code itself all segfaulted (`coredumpctl`), no MCE logged; i7-10700K, microcode 0x100. Points at RAM/OC (XMP) instability, not the TeaVM config.
 - size: M
 - agent: kotlin-dev
 - layer: infra
@@ -217,25 +216,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - playtest: Level 1 is survivable for a careful pilot, and going fast is a gamble.
 
 - note (2026-11-03, owner idea, game-design.md §12 "Tactical computer overlay"): realistic light-delayed drawing (pilot view) is hard to play, and the only thing that makes it playable is the Box2D debug renderer. So the ship gets a "tactical computer" (later a shop upgrade; no shop yet, so it's always installed, with a tier hook on the player) that draws a HUD-styled wireframe of the **true arena-frame state** (outlines at interpolated positions, velocity arrows) over the main view. ST-122 (pure geometry) → ST-123 (component + overlay system) → ST-124 (menu setting + key) → ST-126 (owner defaults). Tier 2 (true-state intercept markers) is ST-125 in M4. This extends the 2026-11-02 decision "the minimap stays a tactical computer with true arena positions" to the main view. It is a declared FAKE (instant knowledge, physics-lies.md row 34). `DebugSystem` (Box2D debug renderer, `IS_DEBUG`) stays as developer tooling and is not reused (it draws joints/AABBs, debug colours, no min size).
-
-### ST-129 Ram damage follow-ups: player ram damage and per-size asteroid health
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-048, ST-084
-- files: `physics/PhysicsConstants.kt` (`PLAYER_RAM_DAMAGE_FACTOR`), `provider/AsteroidProvider.kt`; tests; `docs/design/physics-lies.md` row 35
-- refs: ST-048 commit; `ContactSystem.ramDamage` KDoc (calibration: ship μ ≈ 29 vs large asteroid, γrel = 3 → 175 damage)
-- goal: Follow-ups from ST-048. Ramming is a risk for the player once the run can end (ST-084), and small asteroids take ram damage, so they need their own health.
-- spec:
-  - `PLAYER_RAM_DAMAGE_FACTOR` 0 → a value at which a γrel ≈ 3 ram into a large asteroid costs the player a large share but not all of its health. Calibrate against the player's `HealthComponent` and put the numbers in the KDoc.
-  - `AsteroidProvider.spawnAsteroid`: health scales with the asteroid's rest mass (or size class) instead of a flat 150 for every size; large keeps 150. Derive it from the mass, not literals per size.
-  - Update physics-lies row 35 (no longer "no player damage").
-  - Playtest check from ST-048: fragments spawned inside the contact start with the parent's velocity and may be re-rammed at once. If a test shows a fragment dying in the same step it spawned, give fragments ram immunity for a short time (derived from `PHYSICS_UPDATE_INTERVAL`, e.g. a few steps).
-- acceptance:
-  - [ ] Test: γrel = 3 ram damages the player by a non-zero amount below its max health
-  - [ ] Test: small asteroid health < large asteroid health, both derived from mass
-  - [ ] `./gradlew core:test` passes
-- playtest: Ramming at near c smashes the rock but hurts you a lot. Slow bumps are still harmless. Small fragments break easier than big rocks.
 
 ## M4 Relativistic view
 

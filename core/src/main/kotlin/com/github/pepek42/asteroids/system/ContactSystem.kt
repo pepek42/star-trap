@@ -25,6 +25,10 @@ import com.github.pepek42.asteroids.physics.PLAYER_RAM_DAMAGE_FACTOR
 import com.github.pepek42.asteroids.physics.RAM_GAMMA_THRESHOLD
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaRel
+import com.github.pepek42.asteroids.physics.PhysicsStepListener
+import com.github.pepek42.asteroids.component.AsteroidComponent
+import com.github.pepek42.asteroids.component.asteroidMapper
+import ktx.ashley.allOf
 import ktx.ashley.has
 import ktx.log.logger
 
@@ -69,7 +73,9 @@ fun ramDamage(va: Vector2, vb: Vector2, restMassA: Float, restMassB: Float, c: F
 class ContactSystem(
     world: World,
     private val settings: RelativitySettings = RelativitySettings(),
-) : EntitySystem(), ContactListener {
+) : EntitySystem(), ContactListener, PhysicsStepListener {
+    private val asteroids = allOf(AsteroidComponent::class).get()
+
     // Scratch vectors: beginContact runs inside world.step and must not allocate (web perf).
     private val velocityA = Vector2()
     private val velocityB = Vector2()
@@ -99,6 +105,7 @@ class ContactSystem(
         val healthA = healthMapper.get(entityA)
         val healthB = healthMapper.get(entityB)
         if (healthA == null && healthB == null) return
+        if (isRamImmune(entityA) || isRamImmune(entityB)) return
         val relA = entityA.relativisticCmpOptional
         val relB = entityB.relativisticCmpOptional
         velocityA.set(relA?.vSet ?: bodyA.linearVelocity)
@@ -109,6 +116,19 @@ class ContactSystem(
         if (damage <= 0f) return
         if (healthA != null) healthA.health -= damage * ramFactor(entityA)
         if (healthB != null) healthB.health -= damage * ramFactor(entityB)
+    }
+
+    private fun isRamImmune(entity: Entity) = (asteroidMapper.get(entity)?.ramImmunity ?: 0f) > 0f
+
+    override fun beforeStep(dt: Float) = Unit
+
+    /** Counts down fragment ram immunity ([FRAGMENT_RAM_IMMUNITY]) in physics time. */
+    override fun afterStep(dt: Float) {
+        val entities = engine?.getEntitiesFor(asteroids) ?: return
+        for (i in 0 until entities.size()) {
+            val asteroid = asteroidMapper.get(entities[i])
+            if (asteroid.ramImmunity > 0f) asteroid.ramImmunity = maxOf(0f, asteroid.ramImmunity - dt)
+        }
     }
 
     private fun ramFactor(entity: Entity) = if (entity.playerCmpOptional != null) PLAYER_RAM_DAMAGE_FACTOR else 1f

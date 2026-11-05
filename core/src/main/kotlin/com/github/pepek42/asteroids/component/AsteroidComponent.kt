@@ -9,9 +9,12 @@ import ktx.ashley.propertyFor
 
 data class AsteroidComponent(
     var asteroidSize: AsteroidSize = AsteroidSize.LARGE,
+    /** Physics time left (s) in which collisions with this asteroid do no ram damage; see `FRAGMENT_RAM_IMMUNITY`. */
+    var ramImmunity: Float = 0f,
 ) : Component, Poolable {
     override fun reset() {
         asteroidSize = AsteroidSize.LARGE
+        ramImmunity = 0f
     }
 }
 

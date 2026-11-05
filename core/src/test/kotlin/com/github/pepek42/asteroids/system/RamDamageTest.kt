@@ -20,6 +20,20 @@ import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.DAMAGE_PER_REST_ENERGY
 import com.github.pepek42.asteroids.physics.PLAYER_RAM_DAMAGE_FACTOR
+import com.github.pepek42.asteroids.environment.ASTEROID_LARGE_HEALTH
+import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_BETA_MAX
+import com.github.pepek42.asteroids.environment.asteroidHealth
+import com.github.pepek42.asteroids.environment.asteroidRestMass
+import com.github.pepek42.asteroids.provider.playerRestMass
+import com.badlogic.gdx.graphics.g2d.Sprite
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
+import com.badlogic.gdx.math.RandomXS128
+import com.github.pepek42.asteroids.component.AsteroidComponent
+import com.github.pepek42.asteroids.component.RemoveComponent
+import com.github.pepek42.asteroids.provider.AsteroidProvider
+import org.mockito.kotlin.any
+import com.github.pepek42.asteroids.physics.FRAGMENT_RAM_IMMUNITY
+import com.github.pepek42.asteroids.physics.FRAGMENT_RAM_IMMUNITY_STEPS
 import com.github.pepek42.asteroids.physics.RAM_GAMMA_THRESHOLD
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaRel
@@ -89,11 +103,40 @@ class RamDamageTest {
     @Test
     fun calibrationShouldKillALargeAsteroidWithOneNearCRam() {
         // Ship (1.33 u box, density 20) and large asteroid (density 10), see DAMAGE_PER_REST_ENERGY.
-        val shipMass = 20f * (24f / 18f) * (24f / 18f)
+        val shipMass = playerRestMass()
         val asteroidMass = 10f * Math.PI.toFloat() * AsteroidSize.LARGE.radius * AsteroidSize.LARGE.radius
         // gamma_rel = 3: beta = sqrt(1 - 1/9)
         val beta = Math.sqrt(1.0 - 1.0 / 9.0).toFloat()
         assertTrue(ramDamage(v(beta), Vector2(), shipMass, asteroidMass, c) >= 150f)
+    }
+
+    @Test
+    fun gammaThreeRamShouldHurtPlayerButNotKillIt() {
+        val shipMass = playerRestMass()
+        val beta = Math.sqrt(1.0 - 1.0 / 9.0).toFloat()
+        val raw = ramDamage(v(beta), Vector2(), shipMass, asteroidRestMass(AsteroidSize.LARGE), c)
+        val playerDamage = raw * PLAYER_RAM_DAMAGE_FACTOR
+        assertTrue(playerDamage > 0f)
+        assertTrue(playerDamage < 100f, "player max health is 100, got $playerDamage")
+        assertTrue(playerDamage > 50f, "should be a large share, got $playerDamage")
+    }
+
+    @Test
+    fun spawnSpeedBumpShouldBeNegligibleForPlayer() {
+        val shipMass = playerRestMass()
+        val beta = ASTEROID_SPAWN_BETA_MAX * 2f
+        val raw = ramDamage(v(beta), Vector2(), shipMass, asteroidRestMass(AsteroidSize.LARGE), c)
+        assertTrue(raw * PLAYER_RAM_DAMAGE_FACTOR < 10f)
+    }
+
+    @Test
+    fun smallAsteroidShouldHaveLessHealthThanLarge() {
+        assertEquals(ASTEROID_LARGE_HEALTH, asteroidHealth(AsteroidSize.LARGE), 1e-3f)
+        assertTrue(asteroidHealth(AsteroidSize.SMALL) < asteroidHealth(AsteroidSize.LARGE))
+        assertEquals(
+            asteroidRestMass(AsteroidSize.SMALL) / asteroidRestMass(AsteroidSize.LARGE),
+            asteroidHealth(AsteroidSize.SMALL) / asteroidHealth(AsteroidSize.LARGE), 1e-4f,
+        )
     }
 
     // --- ContactSystem integration, real Box2D world ---
@@ -175,7 +218,10 @@ class RamDamageTest {
         val player = addBody(0f, 0.9f * c, 100f, EntityType.SHIP, player = true)
         val rock = addBody(1.5f, 0f, 150f)
         overlapStep()
-        assertEquals(100f - 0f * PLAYER_RAM_DAMAGE_FACTOR, health(player), 1e-3f)
+        val unitDiscMass = Math.PI.toFloat() // addBody: radius 1, density 1
+        val expected = ramDamage(Vector2(0.9f * c, 0f), Vector2(), unitDiscMass, unitDiscMass, c) * PLAYER_RAM_DAMAGE_FACTOR
+        assertTrue(expected > 0f)
+        assertEquals(100f - expected, health(player), 1e-2f)
         assertTrue(health(rock) < 150f)
     }
 
@@ -195,6 +241,72 @@ class RamDamageTest {
         addBody(1.5f, 0f, null, bodyType = BodyDef.BodyType.StaticBody)
         overlapStep()
         assertTrue(health(a) < 150f)
+    }
+
+    @Test
+    fun fragmentsShouldNotBeRammedByTheShipThatBrokeTheParent() {
+        val dt = PhysicsSystem.PHYSICS_UPDATE_INTERVAL
+        val atlas = mock<TextureAtlas> { on { createSprite(any<String>()) } doReturn Sprite() }
+        val provider = AsteroidProvider(atlas, engine, world, RandomXS128(1))
+        engine.addSystem(DeathSystem(engine, provider, RandomXS128(1)))
+        engine.addSystem(contactSystem)
+        world.setContactListener(contactSystem)
+        val parent = addBody(0f, 0f, 1f) // any hit breaks it
+        parent.add(AsteroidComponent().apply { asteroidSize = AsteroidSize.LARGE })
+        // Ship comes in from the side (+y) so one fragment spawns right in its path.
+        val beta = Math.sqrt(1.0 - 1.0 / 9.0).toFloat()
+        val ship = engine.entities.first().let {
+            val body = world.createBody(BodyDef().apply {
+                type = BodyDef.BodyType.DynamicBody
+                position.set(1f, 3.6f)
+                linearVelocity.set(0f, -beta * c)
+            })
+            val shape = CircleShape().apply { radius = 1f }
+            val fixture = body.createFixture(shape, 1f)
+            fixture.filterData = fixture.filterData.apply {
+                categoryBits = FactionEnum.NEUTRAL.ownCategoryBit
+                maskBits = FactionEnum.NEUTRAL.collidesWithMask
+            }
+            shape.dispose()
+            val e = engine.createEntity()
+            e.add(BodyComponent().apply { this.body = body })
+            e.add(BaseInfoComponent(faction = FactionEnum.NEUTRAL, entityType = EntityType.SHIP))
+            e.add(HealthComponent(1000f))
+            e.add(PlayerComponent())
+            e.add(RelativisticComponent().apply { captureRestMass(body); vSet.set(0f, -beta * c) })
+            body.userData = e
+            engine.addEntity(e)
+            e
+        }
+        var healthAfterBreak = Float.NaN
+        repeat(12) {
+            world.step(dt, 6, 2)
+            contactSystem.afterStep(dt)
+            engine.update(dt)
+            if (healthAfterBreak.isNaN() && parent.getComponent(RemoveComponent::class.java) != null) {
+                healthAfterBreak = health(ship)
+                parent.remove(HealthComponent::class.java) // no RemoveSystem here: stop DeathSystem splitting again
+            }
+        }
+        assertTrue(!healthAfterBreak.isNaN(), "parent should have broken")
+        val fragments = engine.entities.filter { it !== parent && it !== ship && it.getComponent(AsteroidComponent::class.java) != null }
+        assertEquals(2, fragments.size)
+        assertEquals(healthAfterBreak, health(ship), 1e-3f, "fragments re-rammed the ship")
+        fragments.forEach { assertEquals(asteroidHealth(AsteroidSize.SMALL), health(it), 1e-3f) }
+    }
+
+    @Test
+    fun fragmentRamImmunityShouldExpireAfterAFewSteps() {
+        engine.addSystem(contactSystem)
+        val rock = addBody(0f, 0f, 30f)
+        val cmp = AsteroidComponent().apply { ramImmunity = FRAGMENT_RAM_IMMUNITY }
+        rock.add(cmp)
+        val dt = PhysicsSystem.PHYSICS_UPDATE_INTERVAL
+        repeat(FRAGMENT_RAM_IMMUNITY_STEPS - 1) { contactSystem.afterStep(dt) }
+        assertTrue(cmp.ramImmunity > 0f)
+        contactSystem.afterStep(dt)
+        contactSystem.afterStep(dt)
+        assertEquals(0f, cmp.ramImmunity)
     }
 
     companion object {

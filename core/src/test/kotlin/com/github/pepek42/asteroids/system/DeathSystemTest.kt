@@ -60,7 +60,7 @@ class DeathSystemTest {
         engine.addEntity(asteroid)
         engine.update(0.016f)
         assertTrue(asteroid.has(removeMapper))
-        verify(provider, times(2)).spawnAsteroid(any(), any(), any(), any())
+        verify(provider, times(2)).spawnAsteroid(any(), any(), any(), any(), any())
         assertEquals(0, deaths)
     }
 

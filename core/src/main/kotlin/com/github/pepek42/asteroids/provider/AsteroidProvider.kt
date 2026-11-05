@@ -21,6 +21,7 @@ import com.github.pepek42.asteroids.environment.ASTEROID_DENSITY
 import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_MIN_RADIUS
 import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_BETA_MAX
 import com.github.pepek42.asteroids.environment.AsteroidSize
+import com.github.pepek42.asteroids.environment.asteroidHealth
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.FIELD_SKIN
 import com.github.pepek42.asteroids.physics.RelativitySettings
@@ -41,7 +42,13 @@ class AsteroidProvider(
     private val random: RandomXS128,
     private val settings: RelativitySettings = RelativitySettings(),
 ) {
-    fun spawnAsteroid(size: AsteroidSize, position: Vector2, velocity: Vector2, angularSpeed: Float) {
+    fun spawnAsteroid(
+        size: AsteroidSize,
+        position: Vector2,
+        velocity: Vector2,
+        angularSpeed: Float,
+        ramImmunity: Float = 0f,
+    ) {
         engine.entity {
             with<SpriteComponent> {
                 val sprite = textureAtlas.createSprite(size.textureRegionName)
@@ -70,8 +77,11 @@ class AsteroidProvider(
                 faction = FactionEnum.NEUTRAL
                 entityType = EntityType.ASTEROID
             }
-            with<HealthComponent> { health = 150f }
-            with<AsteroidComponent> { asteroidSize = size }
+            with<HealthComponent> { health = asteroidHealth(size) }
+            with<AsteroidComponent> {
+                asteroidSize = size
+                this.ramImmunity = ramImmunity
+            }
             with<RelativisticComponent> {
                 uFromV(velocity.x, velocity.y, settings.c, settings.betaMaxMassive, u)
                 captureRestMass(this@entity.entity.bodyCmp.body)

@@ -12,6 +12,7 @@ import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.healthCmp
 import com.github.pepek42.asteroids.component.playerMapper
 import com.github.pepek42.asteroids.environment.AsteroidSize
+import com.github.pepek42.asteroids.physics.FRAGMENT_RAM_IMMUNITY
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import ktx.ashley.addComponent
 import ktx.ashley.allOf
@@ -66,7 +67,8 @@ class DeathSystem(
             currentAsteroidSize.nextSize!!,
             firstPosition + position,
             currentVelocity.cpy().rotateDeg(random.nextFloat() * -MAX_SPEED_DIFF_DEG),
-            body.angularVelocity
+            body.angularVelocity,
+            FRAGMENT_RAM_IMMUNITY,
         )
 
         val secondPosition = vec2(0f, currentAsteroidSize.radius / 2).rotateDeg(speedAngle)
@@ -74,7 +76,8 @@ class DeathSystem(
             currentAsteroidSize.nextSize,
             secondPosition + position,
             currentVelocity.cpy().rotateDeg(random.nextFloat() * MAX_SPEED_DIFF_DEG),
-            body.angularVelocity
+            body.angularVelocity,
+            FRAGMENT_RAM_IMMUNITY,
         )
     }
 

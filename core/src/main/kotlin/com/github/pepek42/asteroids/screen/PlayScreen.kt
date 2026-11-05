@@ -108,13 +108,14 @@ class PlayScreen(
         // Must come after relativisticDynamics: it records the post-step state.
         lightHistory = LightHistorySystem()
         val pilotViewProjector = PilotViewProjector(lightHistory, observerState, clock, settings)
+        val contactSystem = ContactSystem(world, settings)
         engine.add {
             addSystem(TimeWarpSystem(clock, settings))
             addSystem(EndLevelSystem(game))
             addSystem(PlayerInputSystem(gameEventManager, camera, game.get<ControlSettings>(), observerState, settings, lightHistory, clock))
             addSystem(moveSystem)
             addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world, settings), clock))
-            addSystem(ContactSystem(world, settings))
+            addSystem(contactSystem)
             addSystem(boundaryFieldSystem)
             addSystem(projectileSweepSystem)
             addSystem(relativisticDynamics)
@@ -122,7 +123,7 @@ class PlayScreen(
             addSystem(
                 PhysicsSystem(
                     world, engine,
-                    listOf(moveSystem, boundaryFieldSystem, projectileSweepSystem, relativisticDynamics, lightHistory),
+                    listOf(moveSystem, boundaryFieldSystem, projectileSweepSystem, relativisticDynamics, lightHistory, contactSystem),
                     clock,
                 )
             )

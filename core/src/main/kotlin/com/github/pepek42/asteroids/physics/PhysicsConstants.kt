@@ -1,5 +1,6 @@
 package com.github.pepek42.asteroids.physics
 
+import com.github.pepek42.asteroids.system.PhysicsSystem
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_TICK_RATE
 
 /** Box2D `b2_maxTranslation`: the most a body may move in one step (u). Box2D clamps anything faster (research §1). */
@@ -94,8 +95,18 @@ const val DAMAGE_PER_REST_ENERGY = 3f
 /** Collisions with `γrel − 1` under this do no damage (about 0.2c relative speed). */
 const val RAM_GAMMA_THRESHOLD = 0.02f
 
-/** Share of the ram damage the player ship takes. 0 until there is a player-death flow. */
-const val PLAYER_RAM_DAMAGE_FACTOR = 0f
+/**
+ * Share of the ram damage the player ship takes (ST-129). A γrel = 3 ram into a large asteroid does 175 raw damage
+ * (μ = 29); the player has 100 health, so 0.4 costs 70 (a large share, survivable). A bump at the fastest spawn
+ * speeds (about 0.4c relative, γrel − 1 = 0.09) costs the ship about 3, slower than 0.2c relative costs nothing.
+ */
+const val PLAYER_RAM_DAMAGE_FACTOR = 0.4f
+
+/** Physics steps a freshly split fragment is immune to ram damage, so it cannot re-ram the ship that broke its parent. */
+const val FRAGMENT_RAM_IMMUNITY_STEPS = 5
+
+/** [FRAGMENT_RAM_IMMUNITY_STEPS] in seconds of physics time. */
+const val FRAGMENT_RAM_IMMUNITY = FRAGMENT_RAM_IMMUNITY_STEPS * PhysicsSystem.PHYSICS_UPDATE_INTERVAL
 
 /**
  * A post-step body velocity further than this fraction of c from the one we set means a contact changed it.

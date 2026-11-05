@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test
 class MenuSettingsTest {
     private class Fixture {
         val rel = RelativitySettings()
-        val dbg = DebugSettings(panelAllowed = false, panelVisible = false)
+        val dbg = DebugSettings(debugMode = false, panelVisible = false)
         val display = DisplaySettings()
         val applied = mutableListOf<Boolean>()
         val controls = ControlSettings()
@@ -120,7 +120,7 @@ class MenuSettingsTest {
     @Test
     fun fullscreenSpecIsOptional() {
         val specs = menuSettings(
-            RelativitySettings(), ControlSettings(), DebugSettings(panelAllowed = false, panelVisible = false),
+            RelativitySettings(), ControlSettings(), DebugSettings(debugMode = false, panelVisible = false),
             includeFullscreen = false,
         ).specs
         assertTrue(specs.none { it.key == "fullscreen" })
@@ -131,7 +131,7 @@ class MenuSettingsTest {
     fun tacticalOverlayChoiceIsPersistedAndResetsInverted() {
         val tactical = TacticalSettings()
         val specs = menuSettings(
-            RelativitySettings(), ControlSettings(), DebugSettings(panelAllowed = false, panelVisible = false),
+            RelativitySettings(), ControlSettings(), DebugSettings(debugMode = false, panelVisible = false),
             includeFullscreen = false, tactical = tactical,
         ).specs
         val choice = specs.first { it.key == "tactical_overlay" } as SettingSpec.Choice
@@ -147,7 +147,7 @@ class MenuSettingsTest {
         store.putString("tactical_overlay", "off")
         val fresh = TacticalSettings()
         loadSettings(store, menuSettings(
-            RelativitySettings(), ControlSettings(), DebugSettings(panelAllowed = false, panelVisible = false),
+            RelativitySettings(), ControlSettings(), DebugSettings(debugMode = false, panelVisible = false),
             includeFullscreen = false, tactical = fresh,
         ).specs)
         assertEquals(TacticalOverlayMode.OFF, fresh.mode)
@@ -179,5 +179,31 @@ class MenuSettingsTest {
         store.putString("aim_mode", ControlScheme.TWIN_STICK.flag)
         loadSettings(store, c.specs)
         assertEquals(ControlScheme.AUTO_AIM, c.controls.scheme)
+    }
+
+    @Test
+    fun debugModeDefaultsOffAndRoundTrips() {
+        val a = Fixture()
+        val spec = a.spec("debug_mode") as SettingSpec.Toggle
+        assertFalse(spec.default)
+        assertFalse(spec.get())
+        spec.set(true)
+        val store = MemoryKeyValueStore()
+        saveSettings(store, a.specs)
+        val b = Fixture()
+        loadSettings(store, b.specs)
+        assertTrue(b.dbg.debugMode)
+        assertTrue(b.dbg.panelAllowed)
+    }
+
+    @Test
+    fun panelAllowedFollowsDebugModeOrForcePanel() {
+        val d = DebugSettings()
+        assertFalse(d.panelAllowed)
+        d.debugMode = true
+        assertTrue(d.panelAllowed)
+        d.debugMode = false
+        d.forcePanel = true
+        assertTrue(d.panelAllowed)
     }
 }

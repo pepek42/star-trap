@@ -204,10 +204,12 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         fun rows(includeDebug: Boolean): List<Pair<String, String>> =
             controlsRows(InputBindings.DEFAULT, controls.scheme, includeDebug, tr)
         var shownScheme: ControlScheme? = null
+        var shownDebug: Boolean? = null
         // Rebuilt from syncAll() so the list follows the "Controls" setting.
         fun fill() {
-            if (shownScheme == controls.scheme) return
+            if (shownScheme == controls.scheme && shownDebug == debug.panelAllowed) return
             shownScheme = controls.scheme
+            shownDebug = debug.panelAllowed
             t.clearChildren()
             t.add(Label(i18n["menu_controls"], skin)).colspan(2).row()
             for (row in rows(false)) {

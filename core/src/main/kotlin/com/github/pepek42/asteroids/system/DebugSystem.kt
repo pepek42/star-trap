@@ -12,6 +12,7 @@ import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer
 import com.badlogic.gdx.physics.box2d.World
 import com.badlogic.gdx.utils.Disposable
 import com.github.pepek42.asteroids.component.SpriteComponent
+import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.component.spriteCmp
 import ktx.ashley.oneOf
 import ktx.graphics.use
@@ -20,6 +21,7 @@ class DebugSystem(
     private val world: World,
     private val engine: Engine,
     private val camera: Camera,
+    private val debugSettings: DebugSettings,
 ) : IteratingSystem(oneOf(SpriteComponent::class).get()), Disposable {
     private val shapeRenderer = ShapeRenderer()
     private val box2DDebugRenderer by lazy {
@@ -30,6 +32,7 @@ class DebugSystem(
     private val profiler by lazy { GLProfiler(Gdx.graphics).apply { enable() } }
 
     override fun update(deltaTime: Float) {
+        if (!debugSettings.debugMode) return
         shapeRenderer.use(ShapeRenderer.ShapeType.Line, camera) {
             super.update(deltaTime)
         }

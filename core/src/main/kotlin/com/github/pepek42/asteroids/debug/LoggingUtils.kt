@@ -1,22 +1,22 @@
 package com.github.pepek42.asteroids.debug
 
-import com.github.pepek42.asteroids.IS_DEBUG
-
 /**
  * Logging util for logging every X seconds.
  */
 class LoggingUtils(
     private val logTimeIntervalSeconds: Float = DEFAULT_LOG_INTERVAL_SECONDS
 ) {
-    private var logEnabled = true
+    /** Throttled logging runs only while this is true (set from the "Debug mode" setting). */
+    var enabled = false
+    private var logEnabled = false
     private var accumulatorSeconds = 0f
 
     /**
      * Should be only called at the beginning of the main render loop. After that call [tryLogging] with logg message.
      */
     fun onGameLoopTick(deltaSeconds: Float) {
-        if (IS_DEBUG) {
-            logEnabled = false
+        logEnabled = false
+        if (enabled) {
             accumulatorSeconds += deltaSeconds
             if (accumulatorSeconds > logTimeIntervalSeconds) {
                 logEnabled = true

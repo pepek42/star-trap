@@ -14,7 +14,6 @@ import com.badlogic.gdx.utils.ScreenUtils
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
-import com.github.pepek42.asteroids.IS_DEBUG
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.debug.SCREENSHOT_FRAME_DELTA
@@ -139,9 +138,7 @@ class PlayScreen(
             )
             addSystem(DebugVectorSystem(camera, settings, debugSettings))
             addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>(), gameEventManager))
-            if (IS_DEBUG) {
-                engine.addSystem(DebugSystem(world, engine, camera))
-            }
+            addSystem(DebugSystem(world, engine, camera, debugSettings))
             addSystem(DebugPanelSystem(debugPanel, observerState, clock))
             addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock, settings, pilotViewProjector))
             addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, panelWidthPx = { debugPanel.widthInScreenPx() }))

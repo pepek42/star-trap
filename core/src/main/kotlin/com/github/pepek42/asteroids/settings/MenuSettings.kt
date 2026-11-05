@@ -1,5 +1,6 @@
 package com.github.pepek42.asteroids.settings
 
+import com.github.pepek42.asteroids.debug.DEBUG_MODE_DEFAULT
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.input.ControlScheme
 import com.github.pepek42.asteroids.input.ControlSettings
@@ -68,6 +69,7 @@ fun menuSettings(
     includeFullscreen: Boolean = true,
     applyFullscreen: (Boolean) -> Unit = {},
     tactical: TacticalSettings = TacticalSettings(),
+    applyDebugMode: (Boolean) -> Unit = {},
 ): MenuSettings {
     val relativityOn = { relativity.relativityEnabled }
     return MenuSettings(
@@ -130,6 +132,14 @@ fun menuSettings(
                     },
                 )
             } else null,
+            SettingSpec.Toggle(
+                "debug_mode", DEBUG_MODE_DEFAULT,
+                { debug.debugMode },
+                {
+                    debug.debugMode = it
+                    applyDebugMode(it)
+                },
+            ),
         )
     )
 }

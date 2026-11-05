@@ -70,7 +70,7 @@ class DebugPanelTest {
     @Test
     fun resetRestoresTimeWarp() {
         val rel = RelativitySettings(timeWarpEnabled = false, timeWarpMax = 3f)
-        resetDebugDefaults(rel, DebugSettings(panelAllowed = true, panelVisible = true, timeScale = 1f, showVectors = false))
+        resetDebugDefaults(rel, DebugSettings(debugMode = true, panelVisible = true, timeScale = 1f, showVectors = false))
         assertTrue(rel.timeWarpEnabled)
         assertEquals(com.github.pepek42.asteroids.physics.TIME_WARP_MAX, rel.timeWarpMax)
     }
@@ -85,7 +85,7 @@ class DebugPanelTest {
     @Test
     fun resetRestoresDefaults() {
         val rel = RelativitySettings(c = 30f, engineAccelPerC = 1.5f, fieldEnabled = false)
-        val debug = DebugSettings(panelAllowed = true, panelVisible = true, timeScale = 0.25f, showVectors = true,
+        val debug = DebugSettings(debugMode = true, panelVisible = true, timeScale = 0.25f, showVectors = true,
             gridEnabled = false, targetPointersEnabled = false)
         resetDebugDefaults(rel, debug)
         assertTrue(debug.gridEnabled)
@@ -97,7 +97,7 @@ class DebugPanelTest {
 
     @Test
     fun togglingPanelTwiceRestoresVisibility() {
-        val debug = DebugSettings(panelAllowed = true, panelVisible = false)
+        val debug = DebugSettings(debugMode = true, panelVisible = false)
         assertTrue(flipPanelVisible(debug))
         assertTrue(debug.panelVisible)
         assertEquals(false, flipPanelVisible(debug))
@@ -125,14 +125,14 @@ class DebugPanelTest {
     @Test
     fun resetRestoresBrakeBoost() {
         val rel = RelativitySettings(brakeBoost = 0f)
-        resetDebugDefaults(rel, DebugSettings(panelAllowed = true, panelVisible = true, timeScale = 1f, showVectors = false))
+        resetDebugDefaults(rel, DebugSettings(debugMode = true, panelVisible = true, timeScale = 1f, showVectors = false))
         assertEquals(BRAKE_BOOST_K, rel.brakeBoost)
     }
 
     @Test
     fun resetRestoresPilotViewSwitches() {
         val rel = RelativitySettings().apply { pilotView = false; pilotAberration = false; pilotDelay = false }
-        resetDebugDefaults(rel, DebugSettings(panelAllowed = true, panelVisible = true, timeScale = 1f, showVectors = false))
+        resetDebugDefaults(rel, DebugSettings(debugMode = true, panelVisible = true, timeScale = 1f, showVectors = false))
         assertEquals(com.github.pepek42.asteroids.physics.PILOT_VIEW_DEFAULT, rel.pilotView)
         assertTrue(rel.pilotAberration)
         assertTrue(rel.pilotDelay)

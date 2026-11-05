@@ -35,7 +35,7 @@ Tags: **FAKE** is a deliberate departure. **APPROX** is a simplification that is
 | # | Lie | Tag | Why | Where | Exact alternative / revisit |
 |---|---|---|---|---|---|
 | 11 | The boundary field gives the same acceleration to any mass and grows with depth (∝ q²) | FAKE | Keeps everything inside the arena without a hard wall | `physics/BoundaryField.kt` | A charge in a static potential is exact only for charged bodies |
-| 12 | Backstop: bodies are clamped inside and their outward velocity is reflected at restitution 0.95 | FAKE | Safety net for fast bodies that the field can't stop in one step | `BoundaryFieldSystem`, ST-023 | — |
+| 12 | Backstop: bodies are clamped inside and their outward velocity is reflected at restitution 0.95. The field damping (4.5 1/s) also loses about 4.8 % of the normal speed per bounce (95.2 % kept) | FAKE | Safety net for fast bodies that the field can't stop in one step; the damping makes the bounce lossy so the game runs a little slower | `BoundaryFieldSystem`, `physics/BoundaryField.kt`, ST-023 | — |
 | 13 | The field ignores projectiles: shots fly out and the field only shows a ripple | FAKE | The owner wants shots to leave the arena | ST-067 | — |
 
 ## Gravity and black holes

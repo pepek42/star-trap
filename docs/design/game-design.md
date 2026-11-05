@@ -123,6 +123,7 @@ The planner and auto-dev put new questions here or on `needs-user` backlog cards
 - 2026-11-02 (ST-092): Source–source gravity is scaled to **0.1** (FAKE). Every deliberate physics departure is listed in [physics-lies.md](physics-lies.md).
 - 2026-11-02 (ST-020): c = 60 u/s for now. A headless balance pass (ST-101) picks the final c and a0 so that a careful pilot can survive.
 - 2026-11-02 (ST-023): The boundary field is nearly elastic: about 5 % normal-speed loss per bounce, backstop restitution 0.95. The field already stiffens with depth.
+- 2026-11-05 (ST-023): Field damping is tuned to **4.5 1/s**, so a bounce keeps 95.2 % of the normal speed (about 4.8 % lost), and the backstop restitution is 0.95. Owner: "field should reflect 100% of speed. We can try 95% also, to slow down game a little bit."
 - 2026-11-02: The backdrop should be calmer, with orientation aids (reference grid, pointer to the arena centre), ST-100. Code-generated planet sprites are fine as placeholders.
 
 ## 12. Ideas parking lot

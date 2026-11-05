@@ -20,8 +20,12 @@ import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.BoundaryFieldParams
+import com.github.pepek42.asteroids.physics.FIELD_ACCEL_MAX
 import com.github.pepek42.asteroids.physics.FIELD_BACKSTOP_RESTITUTION
+import com.github.pepek42.asteroids.physics.FIELD_DAMPING
+import com.github.pepek42.asteroids.physics.FIELD_SKIN
 import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.boundaryDepthQ
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.ShimmerImpacts
@@ -372,6 +376,55 @@ class BoundaryFieldSystemTest {
         assertEquals(5f, computeBoundingRadius(body), 1e-4f)
         circle.dispose()
         box.dispose()
+    }
+
+    /**
+     * ST-023: a body entering the field at 0.5 c straight at a wall leaves it with about 95 % of its normal speed.
+     * Uses the default constants (c = [SPEED_OF_LIGHT], skin [FIELD_SKIN], A [FIELD_ACCEL_MAX], [FIELD_DAMPING] 4.5,
+     * [FIELD_BACKSTOP_RESTITUTION] 0.95), a non-relativistic dynamic body (Box2D force path), radius 1 and
+     * dt = [PhysicsSystem.PHYSICS_UPDATE_INTERVAL]. The entry speed is 0.5 c, so the body stays inside the field
+     * and never reaches the backstop.
+     */
+    @Test
+    fun fieldReturnsAboutNinetyFivePercentOfNormalSpeedPerBounce() {
+        val settings = RelativitySettings()
+        val mapW = 100f
+        val radius = 1f
+        val testWorld = World(Vector2.Zero, true).apply { setAutoClearForces(false) }
+        val testEngine = Engine()
+        val testField = BoundaryFieldSystem(MapProvider(mock(), mapW, mapW), ShimmerImpacts(), settings)
+        testEngine.addSystem(testField)
+        val testPhysics = PhysicsSystem(testWorld, testEngine, listOf(testField))
+        try {
+            val entry = 0.5f * settings.c
+            // Start just outside the skin (edge distance skin + 2 u) and head for the right wall.
+            val startX = mapW - radius - settings.fieldParams.skin - 2f
+            val body = testWorld.createBody(BodyDef().apply {
+                type = BodyDef.BodyType.DynamicBody
+                position.set(startX, 50f)
+                linearVelocity.set(entry, 0f)
+            })
+            val shape = CircleShape().apply { this.radius = radius }
+            body.createFixture(shape, 1f)
+            shape.dispose()
+            testEngine.addEntity(Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent()))
+
+            var wasInside = false
+            var exitSpeed = -1f
+            var steps = 0
+            while (steps < 2000 && exitSpeed < 0f) {
+                testPhysics.update(PhysicsSystem.PHYSICS_UPDATE_INTERVAL + 1e-4f)
+                steps++
+                val depth = boundaryDepthQ(body.position.x, body.position.y, radius, mapW, mapW, settings.fieldParams)
+                if (depth > 0f) wasInside = true
+                // Leaving the field after turning around: the outward (+x) velocity is now negative.
+                if (wasInside && depth == 0f && body.linearVelocity.x < 0f) exitSpeed = -body.linearVelocity.x
+            }
+            val ratio = exitSpeed / entry
+            assertTrue(ratio in 0.93f..0.97f, "exit/entry normal speed=$ratio (exit=$exitSpeed, entry=$entry)")
+        } finally {
+            testWorld.dispose()
+        }
     }
 
     companion object {

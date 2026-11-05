@@ -12,9 +12,13 @@ const val FIELD_EXPONENT = 2f
 /** Peak field acceleration `A` in u/s^2. */
 const val FIELD_ACCEL_MAX = 3000f
 
-/** Outward-velocity damping `k_d` in 1/s. */
-const val FIELD_DAMPING = 1f
-const val FIELD_BACKSTOP_RESTITUTION = 0.9f
+/**
+ * Outward-velocity damping `k_d` in 1/s. Tuned (ST-023) so a body entering at 0.5 c with default c, skin, A and
+ * radius 1 leaves with 95.2 % of its normal speed (about 4.8 % lost per bounce, target 5 % +- 2 %).
+ */
+const val FIELD_DAMPING = 4.5f
+/** Backstop restitution on the outward velocity (ST-023): with the field damping, about 5 % loss per bounce. */
+const val FIELD_BACKSTOP_RESTITUTION = 0.95f
 const val FIELD_PHOTON_MIRROR_Q = 0.5f
 const val FIELD_USE_BODY_RADIUS = true
 

@@ -13,7 +13,6 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 
 M3 Relativity MVP:
 18d. ST-126 Owner decision: tactical computer defaults (needs-user)
-19a. ST-023 Boundary field: ~5 % loss per bounce, restitution 0.95
 20. ST-047 Relativistic mass in Box2D collisions
 21. ST-048 Impact damage from relativistic kinetic energy
 21a. ST-084 Player death ends the run (moved up from M5, needed by ST-101)
@@ -79,30 +78,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] canvas fills the browser window; URL query → `LaunchOptions` (at least seed and scene)
   - [ ] /auto-dev runs the web check every 3 committed cards, after web-risk cards, and at the end of a run; `CLAUDE.md` "Web first" updated to match
 - playtest: open the dev server in a browser, start a level, fly and shoot.
-
----
-
-## M2 Arena boundary field
-
-- note: Physics source is `docs/research/relativity-effects.md` §1, §3 and §7 (items 1–6). **Step-input rule, decided in ST-014:** every per-step physics input goes through `PhysicsStepListener.beforeStep(dt)`. That covers thrust force, field force or velocity kick, and (still inline in `PhysicsSystem`) the rotation impulse. `world.clearForces()` runs after **every** `world.step`. This replaces the old "thrust applied once per frame, persists across substeps, cleared after the loop" scheme. Per step the result is the same: each step still integrates the thrust exactly once. The shimmer uses `ARENA_BOUNDARY_COLOR` (orange, `ui/Colors.kt`) rather than the research doc's cyan, so it matches the minimap frame.
-- result: Colours shared, value label sized via GlyphLayout; the duplicate-alpha item was a false premise (label alpha is set once), no change.
-- result: game-design §4, architecture.md, CLAUDE.md and main-menu.md now name InputBindings as the key table and describe MenuSettings persistence in Preferences.
-
-### ST-023 Boundary field: ~5 % loss per bounce, backstop restitution 0.95
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-038
-- files: `physics/BoundaryField.kt`, `core/src/test/.../BoundaryFieldSystemTest.kt` (or the existing field test); `docs/design/game-design.md` §11; `docs/design/physics-lies.md` row 12
-- goal: Owner (2026-11-02): "field should reflect 100% of speed. We can try 95% also, to slow down game a little bit." The field already gets stronger the closer you get (acceleration ∝ q², up to `FIELD_ACCEL_MAX = 3000` at the wall), so no new mechanism is needed, only tuning. Target: about 5 % of the normal speed is lost per bounce.
-- spec:
-  - `FIELD_BACKSTOP_RESTITUTION = 0.95f`.
-  - Lower `FIELD_DAMPING` from 1 to a value giving 5 % ± 2 % normal-speed loss per bounce. Start at `0.3f` and adjust in steps of 0.05 until the test below passes. Put the measured loss in the KDoc.
-  - Add a decisions line to game-design.md §11, and update the value in physics-lies.md row 12.
-- acceptance:
-  - [ ] Test (real `World`, a ship body, default params): entering the field at 30 u/s (0.5 c) straight at a wall, it leaves the field with a normal speed 93–97 % of the entry speed
-  - [ ] `./gradlew core:test` passes
-- playtest: Bounces feel nearly elastic. Ping-ponging slowly loses energy.
 
 ---
 

@@ -140,6 +140,17 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
         setScreen<LevelClearedScreen>()
     }
 
+    /** Player died: back to the main menu with a message. Deferred so we never switch screens inside `engine.update`. */
+    fun endRun() {
+        ctx.inject<GameEventManager>().ignorePlayerInputs()
+        Gdx.app.postRunnable {
+            val gameState = ctx.inject<GameState>()
+            gameState.resetGame()
+            gameState.lastRunEnded = true
+            setScreen<MainMenuScreen>()
+        }
+    }
+
     inline fun <reified Type : Any> get(): Type = ctx.inject<Type>()
 
     override fun dispose() {

@@ -10,6 +10,7 @@ import com.github.pepek42.asteroids.component.asteroidCmp
 import com.github.pepek42.asteroids.component.asteroidMapper
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.healthCmp
+import com.github.pepek42.asteroids.component.playerMapper
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import ktx.ashley.addComponent
@@ -23,9 +24,25 @@ class DeathSystem(
     private val engine: Engine,
     private val asteroidProvider: AsteroidProvider,
     private val random: RandomXS128,
+    private val onPlayerDeath: () -> Unit = {},
 ) : IteratingSystem(allOf(HealthComponent::class).get()) {
+    private var playerDeathReported = false
+
+    override fun addedToEngine(engine: Engine) {
+        super.addedToEngine(engine)
+        playerDeathReported = false
+    }
+
     override fun processEntity(entity: Entity, deltaTime: Float) {
         if (entity.healthCmp.health > 0) {
+            return
+        }
+        if (entity.has(playerMapper)) {
+            // The run ends instead of removing the player; the screen switch cleans the level up.
+            if (!playerDeathReported) {
+                playerDeathReported = true
+                onPlayerDeath()
+            }
             return
         }
         if (entity.has(asteroidMapper)) {

@@ -14,7 +14,6 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 M3 Relativity MVP:
 18d. ST-126 Owner decision: tactical computer defaults (needs-user)
 21c. ST-129 Ram damage follow-ups: player ram damage and per-size asteroid health
-21a. ST-084 Player death ends the run (moved up from M5, needed by ST-101)
 21b. ST-101 Balance pass: headless sim games, pick c, tune physics
 24. ST-061 Twin-stick control scheme
 25. ST-064 RelativitySettings follow-ups
@@ -391,24 +390,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - [ ] Test: a source at rest 10 u from the player gains velocity toward the player of `playerGm/100·t` (± 5 % after 0.5 s); an asteroid next to the source doesn't move the source
   - [ ] Test: `gravityEnabled = false` → no velocity change on any body
   - [ ] `./gradlew core:test` passes
-
-### ST-084 Player death ends the run
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: —
-- files: `system/DeathSystem.kt`, `Game.kt`, `screen/PlayScreen.kt`, `screen/MainMenuScreen.kt`, `GameState.kt`, `assets/i18n/messages.properties`; tests
-- goal: Black-hole horizons kill (owner decision), and impact damage (ST-048) can kill too, but today a dead player is just tagged for removal, which breaks the level. Make death end the run cleanly.
-- spec:
-  - `DeathSystem` gets a last constructor param `onPlayerDeath: () -> Unit = {}`. For an entity with `PlayerComponent` and `health ≤ 0`: call `onPlayerDeath()` once (guard with a flag reset in `addedToEngine`) and **don't** add `RemoveComponent`.
-  - `Game.endRun()`: `gameState.resetGame()`, set a `gameState.lastRunEnded = true` flag, `setScreen<MainMenuScreen>()`. `PlayScreen` passes `{ game.endRun() }`. The screen switch must not happen in the middle of `engine.update`: post it with `Gdx.app.postRunnable`.
-  - `MainMenuScreen.show()`: if `gameState.lastRunEnded`, show a label `run_ended_message` above the buttons and clear the flag. i18n: `run_ended_message=Your ship was lost. Run over.` and `run_ended_message=Statek stracony. Koniec gry.` in both files.
-- acceptance:
-  - [ ] Test: `DeathSystem` with a player at health 0 calls the callback once over 3 updates and adds no `RemoveComponent`; an asteroid at health 0 is still split and removed as before
-  - [ ] Test: `GameState.resetGame()` puts the level back to its start value and `lastRunEnded` is settable
-  - [ ] The i18n key exists in both files
-  - [ ] `./gradlew core:test` passes
-- playtest: Die (debug: set health to 0, or fly into a black hole after ST-085): you land on the main menu with the message, and a new game starts at level 1.
 
 ### ST-085 Black holes in the arena: spawn, horizon, merge, shadow and rings
 - status: ready

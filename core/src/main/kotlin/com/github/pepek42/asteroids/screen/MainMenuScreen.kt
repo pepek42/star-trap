@@ -57,6 +57,7 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
     private val tooltips = hintTooltipManager()
     private val syncs = ArrayList<() -> Unit>()
     private var syncing = false
+    private val runEndedLabel = Label("", skin)
     private val menu: Actor = buildMenu()
 
     private fun buildMenu(): Actor {
@@ -82,7 +83,7 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
     private fun buildButtons(): Table {
         val t = Table()
         t.defaults().space(BUTTON_SPACE).fillX()
-        // Column 1 has room above for the ST-084 "run ended" label.
+        t.add(runEndedLabel).padBottom(BUTTON_SPACE).row()
         t.add(TextButton(i18n["menu_single_player"], skin).also { b ->
             b.onChange {
                 saveSettings(store, specs)
@@ -236,6 +237,8 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
     override fun show() {
         game.get<GameEventManager>().ignorePlayerInputs()
         syncAll()
+        runEndedLabel.setText(if (gameState.lastRunEnded) i18n["run_ended_message"] else "")
+        gameState.lastRunEnded = false
         stage.addActor(menu)
     }
 

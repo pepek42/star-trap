@@ -145,7 +145,7 @@ class PlayScreen(
             addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock, settings, pilotViewProjector))
             addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, panelWidthPx = { debugPanel.widthInScreenPx() }))
             addSystem(LifetimeSystem(clock))
-            addSystem(DeathSystem(engine, asteroidProvider, game.get<RandomXS128>()))
+            addSystem(DeathSystem(engine, asteroidProvider, game.get<RandomXS128>()) { game.endRun() })
             addSystem(RemoveSystem(world, mapProvider))
         }
     }

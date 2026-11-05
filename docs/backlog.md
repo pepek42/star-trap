@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-134**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-137**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -12,11 +12,16 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 0. ST-127 Web build: get the TeaVM bundle running and checked automatically (blocked)
 
 M3 Relativity MVP:
-24. ST-131 Twin-stick follow-ups: pilot-frame input (needs-user)
+24. ST-131 Twin-stick follow-ups: pilot-frame input
 
 M4 Relativistic view:
 32. ST-133 Assist: show the expected laser damage multiplier
 33. ST-125 Tactical computer tier 2: true-state intercept markers
+
+Audio (owner 2026-11-05):
+33. ST-134 Sound generator tool (procedural SFX -> assets/sounds)
+33. ST-135 Sound system + hull sounds (sim layer)
+33. ST-136 Assist: computer-synthesized sounds for remote events
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
 34. ST-082 Gravity math (pure)
@@ -140,15 +145,15 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 ---
 
 ### ST-131 Twin-stick follow-ups: pilot-frame input
-- status: needs-user
+- status: ready
 - size: S
 - agent: junior-dev
 - depends: none
 - refs: `input/TwinStickStrategy.kt`, `event/GameEventManager.kt`, `system/PlayerInputSystem.kt`
-- question: In pilot view (camera rotates with the hull), should twin-stick WASD mean screen directions (convert the axis with `pilotHullToWorld`, "W = up on screen") or stay world-frame as now? Recommendation: screen directions in pilot view; world frame in outside view. The turret already aims at the cursor's world position, which is correct in both views.
+- decision (owner 2026-11-05): screen directions in pilot view (W = up on screen); world frame in outside view. The turret keeps aiming at the cursor's world position.
 - goal: Make twin-stick usable in pilot view.
 - spec:
-  - If the owner picks screen directions: when pilot view is on, rotate `PlayerInputState.moveAxis` from the pilot/screen frame into the world frame (`pilotHullToWorld` or equivalent) before `TwinStickStrategy` uses it. No change in outside view.
+  - When pilot view is on, rotate `PlayerInputState.moveAxis` from the pilot/screen frame into the world frame (`pilotHullToWorld` or equivalent) before `TwinStickStrategy` uses it. No change in outside view.
   - Reset `PlayerInputState.moveAxis` to (0, 0) when the active control scheme changes (reviewer minor, ST-061).
 - acceptance:
   - [ ] Test: pilot view on, hull at π/2, axis (0, 1) → target angle = hull-relative "up" mapped to world as specified
@@ -235,6 +240,70 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] Test: with the player's tier = `TACTICAL_TIER_WIREFRAME` no marker circles are drawn; with 10 targets in range at most `TACTICAL_LEAD_MAX` markers are drawn
   - [ ] `./gradlew core:test` passes
 - playtest: In mouse-hull and pilot view at speed, put the cursor on a ring and fire: the shot hits even though the sprite is elsewhere. In auto-aim, check whether 6 rings clutter the view.
+
+---
+
+## Audio
+
+- note (owner 2026-11-05): the game has no sound yet. Two layers, following the Vision in `CLAUDE.md`. **Sim:** space is a vacuum, so the pilot only hears what travels through the ship itself: engine rumble, gun recoil, hits and scrapes on the own hull, structural creaks under acceleration, the computer's own alarms. **Assist:** the ship's computer synthesizes sounds for remote events it can see (asteroid break-ups, later enemy ships and their weapons), a toggle like the other assists. Sounds are generated procedurally by a tool task, so there are no third-party assets and they are reproducible. Web: WAV only (decodes in every browser and on desktop); verify in the browser once ST-127 is done.
+
+### ST-134 Sound generator tool (procedural SFX -> assets/sounds)
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: none
+- refs: `tool/` (see `tool:packTextures`, `tool:balanceSim` for the task pattern)
+- files: create `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/sound/*`, edit `tool/build.gradle.kts`; create `assets/sounds/*.wav`; `docs/tech/sound.md`
+- goal: A `./gradlew tool:generateSounds` task that synthesizes every SFX the game needs into `assets/sounds/` as 16-bit mono WAV (22 050 Hz), deterministic (fixed seeds), so sounds are tunable in code and committed like the texture atlas.
+- spec:
+  - Small DSP kit (pure Kotlin, JVM-only is fine in `tool`): oscillators (sine, saw, square), white/brown noise, ADSR and exponential envelopes, one-pole/biquad low-pass and band-pass filters with sweepable cutoff, pitch sweeps, simple distortion/saturation, mixing, normalisation to -1 dBFS with a short fade-in/out (no clicks), and a WAV writer.
+  - One recipe function per sound, named after the file. First set:
+    - Hull layer: `engine_loop.wav` (low brown-noise rumble + sub-bass hum, loopable: crossfade the ends), `laser_fire.wav` (dull hull-conducted thump + capacitor whine, not a "pew"), `hull_hit.wav` (metallic knock: noise burst through band-pass resonances), `hull_scrape.wav`, `alarm_proximity.wav` (two-tone computer beep), `alarm_hull_damage.wav`.
+    - Computer layer: `synth_asteroid_break_small/medium/large.wav` (filtered noise bursts with a low boom; larger = longer, lower), `synth_ui_lock.wav`.
+  - Each file stays under ~200 KB; document the recipes and how to tune/regenerate in `docs/tech/sound.md`.
+  - Unit test: the generator is deterministic (same bytes twice), output is valid WAV (header fields), loop file's first and last samples are near equal, peak <= 1.0.
+- acceptance:
+  - [ ] `./gradlew tool:generateSounds` writes the files above; re-running gives identical bytes
+  - [ ] `./gradlew tool:test` passes
+- playtest: Listen to the WAVs in `assets/sounds/` (any player). Judge whether they fit "heard through the hull" vs "computer synthesized".
+
+### ST-135 Sound system + hull sounds (sim layer)
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-134
+- refs: `docs/tech/sound.md`, `settings/MenuSettings.kt`, `Game.kt` (AssetManager), `system/MoveSystem.kt`, `system/WeaponSystem.kt`, `system/ContactSystem.kt`
+- files: create `audio/SoundBank.kt`, `system/HullSoundSystem.kt`; edit `Game.kt`, `ecs/GameplaySystems.kt` (presentation side only, the headless balance runner must not load audio), `settings/MenuSettings.kt`, `assets/i18n/messages.properties`; tests
+- goal: The pilot hears only what the ship itself makes.
+- spec:
+  - Load the WAVs through the existing `AssetManager` into a `SoundBank` DI singleton (libGDX `Sound`, web-safe; no `AudioDevice`, no threads). Settings: `master_volume` and `hull_sound_volume` sliders (0..1) in `MenuSettings`, persisted.
+  - `HullSoundSystem` (presentation system, after render): engine loop volume and pitch follow `MoveComponent.thrusters` (smoothed, no per-frame allocation; start/stop the loop instance, not a new one per frame); `laser_fire` when the player fires; `hull_hit`/`hull_scrape` from player contacts (route through an event or a small queue filled by `ContactSystem`, scaled by impact speed); alarms from existing HUD/proximity state if present, else leave a TODO in sound.md.
+  - Pitch is not Doppler-shifted (the sound is in the ship's own frame). Time warp doesn't change pitch either (the pilot's clock is the reference).
+  - Silence everything on pause/screen change.
+- acceptance:
+  - [ ] Test: the pure engine mix function maps thrusters 0 -> volume 0, 1 -> configured max, monotonic
+  - [ ] Test: settings round-trip and "Reset defaults" restore volumes
+  - [ ] `./gradlew core:test` passes; `tool:balanceSim` still runs headless
+- playtest: Thrust, shoot, ram an asteroid: rumble, thump and knock; nothing from asteroids breaking far away.
+
+### ST-136 Assist: computer-synthesized sounds for remote events
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-135
+- refs: `docs/tech/sound.md`, `system/LightHistorySystem.kt`, `physics/Relativity.kt` (`dopplerFactor`), tactical overlay settings
+- files: create `system/ComputerSoundSystem.kt`; edit `system/DeathSystem.kt` (or the asteroid break-up event source), `settings/MenuSettings.kt`, i18n; tests; `docs/design/physics-lies.md`
+- goal: The ship's computer turns what it sees into sound, so the player can hear the fight. A toggle (`computer_sounds`, default on) plus a volume slider; off = the realistic silent vacuum.
+- spec:
+  - Events (asteroid break-up by size now; enemy ships and their weapons later) are queued with their arena position and world time. The computer plays a sound when the event's **light reaches the pilot** (retarded time, same as the displayed sprite), never earlier: it only knows what it sees.
+  - Pitch = the Doppler factor of the source as seen by the pilot (clamped, e.g. 0.5..2), volume falls with distance (a design choice by the computer, not physics; e.g. 1/(1 + d/d0)), stereo pan from the bearing relative to the screen. Cap concurrent instances.
+  - Add a physics-lies row: these sounds are computer sonification, not acoustic (FAKE-by-design, toggleable); mention that no sound reaches the pilot through vacuum.
+- acceptance:
+  - [ ] Test: an event at distance d is played after d/c of world time (pilot at rest), not before
+  - [ ] Test: approaching source -> pitch > 1, receding -> < 1, clamped
+  - [ ] Test: toggle off -> nothing queued/played
+  - [ ] `./gradlew core:test` passes
+- playtest: Shoot a far asteroid: you hear the break-up only when you see it. With the toggle off, distant events are silent.
 
 ---
 

@@ -73,6 +73,8 @@ Options (parsed by `parseLaunchOptions` in `core/.../debug/ScreenshotHarness.kt`
 - `--thrust`: hold the thrusters during the run.
 - `--seed=<long>`: seeds all gameplay randomness (one `RandomXS128` in the DI context). Without it the seed comes from the clock. Screenshot runs also use a fixed 1/60 s frame delta, so the same args give byte-identical PNGs.
 - `--near-asteroids=<n>`: additionally places n large asteroids in a ring 8-15 u around the player (seeded RNG), so near-field effects such as the pilot view are visible on level 1.
+- `--controls=mouse|twin|auto`: picks the control scheme (`ControlScheme.fromFlag`); wins over the saved menu setting. Also works outside screenshot runs.
+- `--debug-panel`: allows the F1 debug panel even when the "Debug mode" setting is off. Also works outside screenshot runs.
 
 No player input is sent otherwise. After frame N the framebuffer is saved as PNG and the app exits by itself. Wrap the command in `timeout 120` to be safe. Unknown flags and invalid values are ignored.
 

@@ -28,24 +28,26 @@ A run ends on death. Meta progression is out of scope for the POC.
 
 | Input | Action |
 |---|---|
-| Mouse position | Aim. The ship rotates toward the cursor using thrusters/torque, not instantly |
-| RMB | Main thrusters |
-| LMB | Fire |
+| Mouse position | Steers the hull (auto-aim and mouse-hull schemes): the ship rotates toward the cursor using thrusters/torque, not instantly. In twin-stick the mouse aims an independent turret instead |
+| WASD / arrow keys | Twin-stick scheme only: world-frame move direction; the hull turns toward it and the engine fires as it lines up |
+| RMB | Main thrusters (not in twin-stick) |
+| LMB | Fire (in auto-aim the guns also fire on their own at the nearest target in the cone) |
 | Mouse wheel | Zoom (0.5–2×) |
 | Right Ctrl | Shield/block (placeholder) |
 | V | Toggle pilot view (Outside / Pilot, see [main-menu.md](main-menu.md)) |
+| T | Toggle the tactical computer overlay |
 | F1 | Debug panel (only in debug builds or with `--debug-panel`) |
 
 The source of truth is `input/InputBindings.kt`; the main menu lists it.
 
 The default control scheme is **auto-aim** (owner 2026-11-03, ST-063): the mouse steers the hull and RMB thrusts as above, and the guns pick the nearest target in a 90° wide forward cone and fire on their own (LMB still fires manually). Mouse-hull aiming is selectable in the main menu (Aim mode) or with `--controls=mouse`.
 
-Known problem: the rotation algorithm is wrong (it takes the long way round and feels sluggish). This is fixed in milestone M1. Target feel: responsive but with inertia. The ship turns at up to about 1 rev/s, with a slight settle and no visible overshoot.
+Rotation is a PD controller (`ShipRotationController`) that takes the shortest way round; it replaced the old long-way-round algorithm in M1. Target feel: responsive but with inertia. The ship turns at up to about 1 rev/s, with a slight settle and no visible overshoot.
 
 ## 5. The arena
 
-- 100×100 world units for now (`MapProvider`), with the camera clamped inside.
-- **Boundary force field** (replaces `WrapSystem`). A repulsive field gets stronger the closer an object is to the edge, so ships, asteroids and projectiles curve back like a soft bounce. The field is visible: a faint shimmer that brightens where something pushes against it. Projectiles bend back too, and self-destruct on their lifetime timer instead of at a map-exit check. The force law and how it interacts with relativistic momentum are specified by the research doc.
+- 200×200 world units (`MapProvider`, ST-030), with a 10 u field skin and the camera clamped inside.
+- **Boundary force field** (replaces `WrapSystem`). A repulsive field gets stronger the closer an object is to the edge, so ships and asteroids curve back like a soft bounce. The field is visible: a faint shimmer that brightens where something pushes against it. Shots are the exception: they leave the arena, and a ripple marks where they cross (decision 2026-11-02). The force law and how it interacts with relativistic momentum are specified by the research doc.
 - Later: the arena shape varies per level (circle, ring for race mode, multi-room).
 
 ## 6. Relativity: what the player experiences
@@ -59,7 +61,7 @@ The full catalogue, with formulas, costs and verdicts, is in [relativity-effects
 | Showcase | Black holes: gravity, gravitational time dilation, lensing shader, accretion disk with Doppler beaming, photon sphere as a danger zone | The visual "wow" and the end goal of the todo list |
 | Maybe | Terrell rotation, frame dragging, relativistic velocity addition for projectiles fired from moving ships | Depends on cost and readability |
 
-Tunables: the speed of light `c` (it has to fit Box2D's ~90 u/s speed cap at 45 Hz, see the architecture doc), engine power, and per-effect intensity sliders. The intensity sliders exist for accessibility and nausea.
+Tunables: the speed of light `c` (c = 20 u/s, see §11; it has to fit Box2D's ~90 u/s speed cap at 60 Hz, see the architecture doc), engine power, and per-effect intensity sliders. The intensity sliders exist for accessibility and nausea.
 
 ## 7. Entities
 
@@ -112,6 +114,7 @@ The planner and auto-dev put new questions here or on `needs-user` backlog cards
 - 2026-11-01 (ST-032): There's **no gameplay γ cap**: "it should be capped by relativity effects themselves". Only a numerical safety bound `GAMMA_MAX_MASSIVE = 50` remains, and it's tunable in the debug panel. In practice the arena and the boundary field limit γ.
 - 2026-11-01: The control scheme is **open**. Mouse-hull (today), twin-stick and auto-aim become switchable at runtime (`--controls=`, debug panel) so the owner can try them. The default is decided in ST-063 (recommendation: twin-stick).
 - 2026-11-03 (ST-063): The default control scheme is **auto-aim + auto-shoot**, with a 90° wide target cone (±45°). Mouse-hull stays selectable in the main menu (Aim mode) and via `--controls=`.
+- 2026-11-03 (perspective, owner): "one from player perspective and one from outside". **Outside is the default**; Pilot (light delay and aberration) is a main-menu option, and V switches it in game (see [main-menu.md](main-menu.md)).
 
 - 2026-11-02 (interview): **The game is perceived from the pilot's frame.** Owner: "In relativity there is no world clock... I want the game to be perceived from player time perspective." The game clock is the pilot's proper time τ (research E21): the arena advances γ·dt_real per frame, and guns and turning run normally in τ. Fast-forward is capped at about 10× (declared FAKE past the cap, shown on the HUD). The sim stays in the arena frame. The main screen becomes the pilot view (E8/E9, pulled forward from M4). The minimap stays a "tactical computer" with true arena positions. Aim help is a lead marker. This replaces ST-031.
 - 2026-11-02 (ST-033): Ramming: **yes**. Box2D mass = γ·m₀ (capped at 8), and impact damage comes from relativistic kinetic energy.

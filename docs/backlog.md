@@ -13,7 +13,6 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 
 M3 Relativity MVP:
 24. ST-131 Twin-stick follow-ups: pilot-frame input (needs-user)
-29. ST-049 Bring docs in line after M3
 
 M4 Relativistic view:
 32. ST-081 Doppler-scaled photon damage
@@ -137,16 +136,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - playtest: At speed, aim at the ring instead of the asteroid and the shots hit. Check whether 8 markers clutter the screen.
 - note: (2026-11-03) ST-125 is the tactical-computer variant using the true state (`trueLeadDirection`). When this honest variant is unparked, share its drawing and target selection with `TacticalOverlaySystem` instead of a separate `LeadMarkerSystem`.
 - note: (2026-11-03, from ST-062) when unparked, also highlight the auto-aim target in the AUTO_AIM scheme; `leadDirection` already exists in `physics/PhotonAim.kt`.
-
-### ST-049 Bring docs in line after M3
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-036, ST-037, ST-038, ST-039, ST-040, ST-041, ST-042, ST-043, ST-044, ST-045, ST-046, ST-047, ST-048, ST-055, ST-056, ST-057, ST-058, ST-059, ST-060, ST-061, ST-066, ST-067, ST-068, ST-069, ST-070, ST-071, ST-072, ST-073, ST-074, ST-076
-- files: `docs/tech/architecture.md`, `CLAUDE.md`, `docs/design/game-design.md` (§4 controls, §5 arena size, §6 tier table and §11, only to reflect the answered `needs-user` cards)
-- goal: Document the relativistic dynamics layer (step-listener order, `RelativisticComponent`, `RELATIVITY_ENABLED`), `ObserverState`, the projectile sweep and photons, the new constants, the M3 promotions listed in this milestone's note, the runtime `RelativitySettings`/`DebugSettings`/`ControlSettings` singletons, the debug panel (F1, `--debug-panel`), the `ControlScheme` strategies and `--controls=`, the UI-first input multiplexer order, and (2026-11-02) the pilot clock (`GameClock`, `TimeWarpSystem`, the 10-step cap), the braking boost, shots leaving the arena, and the pilot view with `LightHistorySystem`, aiming and lead markers.
-- acceptance:
-  - [ ] Every statement in the updated sections can be traced to the current code or to an answered owner decision
 
 ---
 

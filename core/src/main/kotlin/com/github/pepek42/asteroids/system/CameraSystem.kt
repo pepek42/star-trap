@@ -11,7 +11,6 @@ import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
-import com.github.pepek42.asteroids.physics.FIELD_SKIN
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -28,7 +27,6 @@ const val CAMERA_ZOOM_PER_BETA2 = 0.6f
 /** Camera zoom from the wheel zoom and the visual speed [beta] (fraction of c). */
 fun speedZoom(wheelZoom: Float, beta: Float, k: Float = CAMERA_ZOOM_PER_BETA2): Float =
     (wheelZoom * (1f + k * beta * beta)).coerceIn(ZOOM_MIN, ZOOM_MAX)
-private const val CAMERA_ARENA_MARGIN = FIELD_SKIN / 2
 
 /**
  * Clamps the camera centre on one axis so the view stays within the map, allowed to extend [margin] past each edge.
@@ -98,8 +96,9 @@ class CameraSystem(
         }
         val realCamWidthHalved = camera.viewportWidth / 2 * camera.zoom
         val realCamHeightHalved = camera.viewportHeight / 2 * camera.zoom
-        val camX = clampCameraAxis(interpolatedPosition.x, realCamWidthHalved, mapProvider.mapWidth, CAMERA_ARENA_MARGIN)
-        val camY = clampCameraAxis(interpolatedPosition.y, realCamHeightHalved, mapProvider.mapHeight, CAMERA_ARENA_MARGIN)
+        val margin = settings.fieldParams.skin / 2
+        val camX = clampCameraAxis(interpolatedPosition.x, realCamWidthHalved, mapProvider.mapWidth, margin)
+        val camY = clampCameraAxis(interpolatedPosition.y, realCamHeightHalved, mapProvider.mapHeight, margin)
         camera.position.set(camX, camY, camera.position.z)
     }
 

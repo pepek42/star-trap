@@ -126,7 +126,7 @@ class PlayScreen(
                 addSystem(DebugSystem(world, engine, camera, debugSettings))
                 addSystem(DebugPanelSystem(debugPanel, observerState, clock))
                 addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock, settings, pilotViewProjector))
-                addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, panelWidthPx = { debugPanel.widthInScreenPx() }))
+                addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, settings, panelWidthPx = { debugPanel.widthInScreenPx() }))
             }
         }
     }

@@ -12,7 +12,6 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 0. ST-127 Web build: get the TeaVM bundle running and checked automatically (blocked)
 
 M3 Relativity MVP:
-23. ST-132 Read the field skin from runtime settings
 24. ST-131 Twin-stick follow-ups: pilot-frame input (needs-user)
 28. ST-130 Balance sim follow-ups
 29. ST-049 Bring docs in line after M3
@@ -167,23 +166,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] `./gradlew tool:balanceSim` reports the `expert` bot
   - [ ] tagged smoke run exists and passes; `./gradlew core:test tool:test` passes without it
 - playtest: none (tooling)
-
----
-
-### ST-132 Read the field skin from runtime settings
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: none
-- refs: `render/FieldShimmerRenderer.kt`, `system/MinimapSystem.kt`, `system/CameraSystem.kt`, `provider/AsteroidProvider.kt`, `docs/tech/architecture.md` (FIELD_SKIN known gap)
-- goal: Follow-up of ST-064. Runtime code reads the boundary field skin from `RelativitySettings.fieldParams.skin`, not the `FIELD_SKIN` const, so changing it at runtime stays consistent.
-- spec:
-  - Replace the direct `FIELD_SKIN` reads in `FieldShimmerRenderer`, `MinimapSystem`, `CameraSystem` and `AsteroidProvider` with the injected settings' `fieldParams.skin` (keep `FIELD_SKIN` as the default value only).
-  - Remove the known-gap note from architecture.md.
-- acceptance:
-  - [ ] `grep -rn FIELD_SKIN core/src/main` only shows the definition and the settings default
-  - [ ] `./gradlew core:test` passes
-- playtest: none (refactor)
 
 ---
 

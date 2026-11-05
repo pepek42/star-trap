@@ -17,7 +17,7 @@ import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
-import com.github.pepek42.asteroids.physics.FIELD_SKIN
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.ui.ARENA_BOUNDARY_COLOR
 import com.github.pepek42.asteroids.ui.MinimapViewport
@@ -45,6 +45,7 @@ class MinimapSystem(
     private val mainCamera: OrthographicCamera,
     private val mapProvider: MapProvider,
     private val debugSettings: DebugSettings,
+    private val settings: RelativitySettings,
     private val panelWidthPx: () -> Float,
     private val shape: ShapeRenderer = ShapeRenderer(),
 ) : IteratingSystem(allOf(BaseInfoComponent::class, TransformComponent::class).get()),
@@ -86,7 +87,8 @@ class MinimapSystem(
         val insetY = mapH / minimapViewport.screenHeight * BORDER_INSET_PX
         shape.rect(insetX, insetY, mapW - 2 * insetX, mapH - 2 * insetY)
         shape.color = FIELD_SKIN_COLOR
-        shape.rect(FIELD_SKIN, FIELD_SKIN, mapW - 2 * FIELD_SKIN, mapH - 2 * FIELD_SKIN)
+        val skin = settings.fieldParams.skin
+        shape.rect(skin, skin, mapW - 2 * skin, mapH - 2 * skin)
         shape.end()
 
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)

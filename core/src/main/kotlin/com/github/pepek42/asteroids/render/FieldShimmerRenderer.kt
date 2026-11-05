@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.Disposable
-import com.github.pepek42.asteroids.physics.FIELD_SKIN
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.ui.ARENA_BOUNDARY_COLOR
@@ -19,8 +18,6 @@ const val SHIMMER_BASE_ALPHA = 0.08f
 /** sin(2 * t) has period PI, so wrapping the phase keeps float precision in long sessions. */
 private const val PULSE_PERIOD = kotlin.math.PI.toFloat()
 
-/** Strips reach this deep inside so ripples can fade out between FIELD_SKIN and 2 * FIELD_SKIN. */
-private const val RIPPLE_DEPTH = 2 * FIELD_SKIN
 private const val VERTEX_SHADER = "shaders/field_shimmer.vert"
 private const val FRAGMENT_SHADER = "shaders/field_shimmer.frag"
 private const val FLOATS_PER_IMPACT = 4
@@ -39,6 +36,8 @@ class FieldShimmerRenderer(
     private val settings: RelativitySettings = RelativitySettings(),
 ) : Disposable {
     private val texture: Texture = createWhiteTexture()
+    /** Strips reach this deep inside so ripples can fade out between skin and 2 * skin. */
+    private val rippleDepth: Float get() = 2 * settings.fieldParams.skin
     private val program: ShaderProgram
 
     init {
@@ -71,7 +70,7 @@ class FieldShimmerRenderer(
 
     private fun bindUniforms() {
         program.setUniformf("u_mapSize", mapProvider.mapWidth, mapProvider.mapHeight)
-        program.setUniformf("u_skin", FIELD_SKIN)
+        program.setUniformf("u_skin", settings.fieldParams.skin)
         program.setUniformf("u_time", impacts.time)
         program.setUniformf("u_pulsePhase", impacts.time % PULSE_PERIOD)
         program.setUniformf("u_baseColor", ARENA_BOUNDARY_COLOR.r, ARENA_BOUNDARY_COLOR.g, ARENA_BOUNDARY_COLOR.b)
@@ -85,14 +84,14 @@ class FieldShimmerRenderer(
     private fun drawStrips(batch: SpriteBatch) {
         val w = mapProvider.mapWidth
         val h = mapProvider.mapHeight
-        val outside = FIELD_SKIN / 2
+        val outside = settings.fieldParams.skin / 2
         val fullWidth = w + 2 * outside
-        val innerHeight = h - 2 * RIPPLE_DEPTH
-        val sideWidth = outside + RIPPLE_DEPTH
+        val innerHeight = h - 2 * rippleDepth
+        val sideWidth = outside + rippleDepth
         batch.draw(texture, -outside, -outside, fullWidth, sideWidth)
-        batch.draw(texture, -outside, h - RIPPLE_DEPTH, fullWidth, sideWidth)
-        batch.draw(texture, -outside, RIPPLE_DEPTH, sideWidth, innerHeight)
-        batch.draw(texture, w - RIPPLE_DEPTH, RIPPLE_DEPTH, sideWidth, innerHeight)
+        batch.draw(texture, -outside, h - rippleDepth, fullWidth, sideWidth)
+        batch.draw(texture, -outside, rippleDepth, sideWidth, innerHeight)
+        batch.draw(texture, w - rippleDepth, rippleDepth, sideWidth, innerHeight)
     }
 
     override fun dispose() {

@@ -7,6 +7,8 @@ import com.badlogic.gdx.physics.box2d.Contact
 import com.badlogic.gdx.physics.box2d.ContactImpulse
 import com.badlogic.gdx.physics.box2d.ContactListener
 import com.badlogic.gdx.physics.box2d.Manifold
+import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.physics.box2d.Body
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.LaserProjectile
@@ -15,7 +17,14 @@ import com.github.pepek42.asteroids.component.removeMapper
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.healthCmp
 import com.github.pepek42.asteroids.component.healthMapper
+import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.projectileCmp
+import com.github.pepek42.asteroids.component.relativisticCmpOptional
+import com.github.pepek42.asteroids.physics.DAMAGE_PER_REST_ENERGY
+import com.github.pepek42.asteroids.physics.PLAYER_RAM_DAMAGE_FACTOR
+import com.github.pepek42.asteroids.physics.RAM_GAMMA_THRESHOLD
+import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.gammaRel
 import ktx.ashley.has
 import ktx.log.logger
 
@@ -39,9 +48,32 @@ fun applyProjectileHit(engine: Engine, projectile: Entity, target: Entity) {
     }
 }
 
+/**
+ * Impact damage of a collision between two bodies with rest masses [restMassA]/[restMassB] and arena velocities
+ * [va]/[vb] (ST-048, research E7). Kinetic energy in the centre-of-momentum frame is `K = (γrel − 1)·μ·c²`, with
+ * `γrel` the exact relative Lorentz factor and `μ = mA·mB/(mA + mB)` the reduced rest mass (a static or massless
+ * partner leaves `μ` = the other mass; both massless gives 0). Damage is `K / c² · DAMAGE_PER_REST_ENERGY`, so `c`
+ * cancels and the damage does not change when c does. Below [RAM_GAMMA_THRESHOLD] (γrel − 1) it is 0.
+ */
+fun ramDamage(va: Vector2, vb: Vector2, restMassA: Float, restMassB: Float, c: Float): Float {
+    val excess = gammaRel(va, vb, c) - 1f
+    if (excess < RAM_GAMMA_THRESHOLD) return 0f
+    val mu = when {
+        restMassA <= 0f -> maxOf(restMassB, 0f)
+        restMassB <= 0f -> restMassA
+        else -> restMassA * restMassB / (restMassA + restMassB)
+    }
+    return excess * mu * DAMAGE_PER_REST_ENERGY
+}
+
 class ContactSystem(
     world: World,
+    private val settings: RelativitySettings = RelativitySettings(),
 ) : EntitySystem(), ContactListener {
+    // Scratch vectors: beginContact runs inside world.step and must not allocate (web perf).
+    private val velocityA = Vector2()
+    private val velocityB = Vector2()
+
     init {
         world.setContactListener(this)
     }
@@ -54,8 +86,32 @@ class ContactSystem(
             applyProjectileHit(engine, entityOne, entityTwo)
         } else if (entityTwo.baseInfoCmp.entityType == EntityType.PROJECTILE) {
             applyProjectileHit(engine, entityTwo, entityOne)
+        } else if (!contact.fixtureA.isSensor && !contact.fixtureB.isSensor) {
+            applyRamDamage(entityOne, contact.fixtureA.body, entityTwo, contact.fixtureB.body)
         }
     }
+
+    /**
+     * Damages each of the two colliding bodies that has health by [ramDamage] (the player's share is scaled by
+     * [PLAYER_RAM_DAMAGE_FACTOR]). Velocities are the ones set before the step ([vSet]), not the post-solve ones.
+     */
+    private fun applyRamDamage(entityA: Entity, bodyA: Body, entityB: Entity, bodyB: Body) {
+        val healthA = healthMapper.get(entityA)
+        val healthB = healthMapper.get(entityB)
+        if (healthA == null && healthB == null) return
+        val relA = entityA.relativisticCmpOptional
+        val relB = entityB.relativisticCmpOptional
+        velocityA.set(relA?.vSet ?: bodyA.linearVelocity)
+        velocityB.set(relB?.vSet ?: bodyB.linearVelocity)
+        val massA = relA?.restMass?.takeIf { it > 0f } ?: bodyA.mass
+        val massB = relB?.restMass?.takeIf { it > 0f } ?: bodyB.mass
+        val damage = ramDamage(velocityA, velocityB, massA, massB, settings.c)
+        if (damage <= 0f) return
+        if (healthA != null) healthA.health -= damage * ramFactor(entityA)
+        if (healthB != null) healthB.health -= damage * ramFactor(entityB)
+    }
+
+    private fun ramFactor(entity: Entity) = if (entity.playerCmpOptional != null) PLAYER_RAM_DAMAGE_FACTOR else 1f
 
     override fun endContact(contact: Contact) = Unit
 

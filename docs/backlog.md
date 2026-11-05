@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-129**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-130**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -13,7 +13,7 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 
 M3 Relativity MVP:
 18d. ST-126 Owner decision: tactical computer defaults (needs-user)
-21. ST-048 Impact damage from relativistic kinetic energy
+21c. ST-129 Ram damage follow-ups: player ram damage and per-size asteroid health
 21a. ST-084 Player death ends the run (moved up from M5, needed by ST-101)
 21b. ST-101 Balance pass: headless sim games, pick c, tune physics
 24. ST-061 Twin-stick control scheme
@@ -166,22 +166,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - note: (2026-11-03) ST-125 is the tactical-computer variant using the true state (`trueLeadDirection`). When this honest variant is unparked, share its drawing and target selection with `TacticalOverlaySystem` instead of a separate `LeadMarkerSystem`.
 - note: (2026-11-03, from ST-062) when unparked, also highlight the auto-aim target in the AUTO_AIM scheme; `leadDirection` already exists in `physics/PhotonAim.kt`.
 
-### ST-048 Impact damage from relativistic kinetic energy
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-047
-- files: `system/ContactSystem.kt`, `physics/PhysicsConstants.kt`; tests
-- goal: Collisions currently do no damage. Make ramming at relativistic speed a weapon and a risk, from the exact relative Lorentz factor (research E7).
-- spec:
-  - Constants: `DAMAGE_PER_ENERGY = 1e-3f`, `RAM_GAMMA_THRESHOLD = 0.02f` (≈ 0.2c relative), `PLAYER_RAM_DAMAGE_FACTOR = 0f`. The player damage factor is 0 because there's no player-death flow yet. Raise it once one exists (follow-up).
-  - Top-level `fun ramDamage(va, vb, restMassA, restMassB, c): Float`: `γ_rel = gammaRel(va, vb)`. If `γ_rel − 1 < RAM_GAMMA_THRESHOLD`, return 0. Otherwise `μ = mA·mB/(mA + mB)` (if one is 0 or static, μ = the other), `K = (γ_rel − 1)·μ·c²`, and return `K·DAMAGE_PER_ENERGY`.
-  - `ContactSystem.beginContact`: if neither entity is a projectile and neither fixture is a sensor, take each velocity from `relativisticCmpOptional?.vSet` (pre-step) or the body velocity, and the rest mass from `restMass` or `body.mass`. Apply `ramDamage` to each body that has a `HealthComponent`, scaled by `PLAYER_RAM_DAMAGE_FACTOR` for the player.
-- acceptance:
-  - [ ] Tests: 10 u/s vs rest gives 0. Head-on at ±0.5c gives more damage than overtaking at 0.9c vs 0.4c with the same masses. Damage grows with the masses
-  - [ ] `./gradlew core:test` passes
-- playtest: A near-c ram destroys a large asteroid in one hit, and a slow bump does nothing.
-
 ### ST-064 RelativitySettings follow-ups (review minors)
 - status: ready
 - size: S
@@ -249,6 +233,25 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] `TACTICAL_OVERLAY_DEFAULT_MODE` matches the answer to Q1; if Q2 is (b), arrows use `v − v_player` (spec it on this card when answered) and the tests are updated
   - [ ] game-design.md §11 Decisions has a 2026-11-xx line with both answers
   - [ ] `./gradlew core:test` passes
+
+### ST-129 Ram damage follow-ups: player ram damage and per-size asteroid health
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-048, ST-084
+- files: `physics/PhysicsConstants.kt` (`PLAYER_RAM_DAMAGE_FACTOR`), `provider/AsteroidProvider.kt`; tests; `docs/design/physics-lies.md` row 35
+- refs: ST-048 commit; `ContactSystem.ramDamage` KDoc (calibration: ship μ ≈ 29 vs large asteroid, γrel = 3 → 175 damage)
+- goal: Follow-ups from ST-048. Ramming is a risk for the player once the run can end (ST-084), and small asteroids take ram damage, so they need their own health.
+- spec:
+  - `PLAYER_RAM_DAMAGE_FACTOR` 0 → a value at which a γrel ≈ 3 ram into a large asteroid costs the player a large share but not all of its health. Calibrate against the player's `HealthComponent` and put the numbers in the KDoc.
+  - `AsteroidProvider.spawnAsteroid`: health scales with the asteroid's rest mass (or size class) instead of a flat 150 for every size; large keeps 150. Derive it from the mass, not literals per size.
+  - Update physics-lies row 35 (no longer "no player damage").
+  - Playtest check from ST-048: fragments spawned inside the contact start with the parent's velocity and may be re-rammed at once. If a test shows a fragment dying in the same step it spawned, give fragments ram immunity for a short time (derived from `PHYSICS_UPDATE_INTERVAL`, e.g. a few steps).
+- acceptance:
+  - [ ] Test: γrel = 3 ram damages the player by a non-zero amount below its max health
+  - [ ] Test: small asteroid health < large asteroid health, both derived from mass
+  - [ ] `./gradlew core:test` passes
+- playtest: Ramming at near c smashes the rock but hurts you a lot. Slow bumps are still harmless. Small fragments break easier than big rocks.
 
 ## M4 Relativistic view
 

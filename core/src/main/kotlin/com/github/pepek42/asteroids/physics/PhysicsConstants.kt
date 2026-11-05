@@ -83,6 +83,21 @@ const val REVERSE_THRUST_FRACTION = 0.5f
 const val BRAKE_BOOST_K = 2f
 
 /**
+ * Impact damage per unit of kinetic energy measured in units of the reduced rest energy μc² (ST-048): damage =
+ * (γrel − 1)·μ·this, c-independent. Calibrated against a large asteroid (r 2.25, density 10: m = 159, health 150)
+ * and the ship (1.33 u box, density 20: m = 35.6): μ = 29, so a γrel = 3 ram does 2·29·3 = 175 and kills the asteroid
+ * in one hit, γrel = 2.3 (about 0.9c) does 112 (two hits), and the threshold edge (γrel − 1 = 0.02) does under 2.
+ * Two large asteroids (μ = 80) at the fastest spawn speeds (about 0.4c relative, γrel − 1 = 0.09) lose about 20.
+ */
+const val DAMAGE_PER_REST_ENERGY = 3f
+
+/** Collisions with `γrel − 1` under this do no damage (about 0.2c relative speed). */
+const val RAM_GAMMA_THRESHOLD = 0.02f
+
+/** Share of the ram damage the player ship takes. 0 until there is a player-death flow. */
+const val PLAYER_RAM_DAMAGE_FACTOR = 0f
+
+/**
  * A post-step body velocity further than this fraction of c from the one we set means a contact changed it.
  * Use as `COLLISION_EPS_BETA * settings.c` (u/s). 0.05 u/s at the old c = 60.
  */

@@ -114,7 +114,7 @@ class PlayScreen(
             addSystem(PlayerInputSystem(gameEventManager, camera, game.get<ControlSettings>(), observerState, settings, lightHistory, clock))
             addSystem(moveSystem)
             addSystem(WeaponSystem(WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world, settings), clock))
-            addSystem(ContactSystem(world))
+            addSystem(ContactSystem(world, settings))
             addSystem(boundaryFieldSystem)
             addSystem(projectileSweepSystem)
             addSystem(relativisticDynamics)

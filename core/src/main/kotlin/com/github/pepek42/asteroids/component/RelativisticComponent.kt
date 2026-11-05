@@ -3,6 +3,7 @@ package com.github.pepek42.asteroids.component
 import com.badlogic.ashley.core.Component
 import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.physics.box2d.Body
 import com.badlogic.gdx.utils.Pool
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.GameClock
@@ -36,6 +37,22 @@ class RelativisticComponent : Component, Pool.Poolable {
     /** Lorentz factor cap enforced by clamping [u]. */
     var gammaMax = GAMMA_MAX_MASSIVE
 
+    /** Rest mass of the Box2D body (kg), captured by the providers; 0 until captured (the dynamics then captures it). */
+    var restMass = 0f
+
+    /** Rest rotational inertia of the Box2D body (about its centre of mass); see [restMass]. */
+    var restInertia = 0f
+
+    /** The γ currently baked into the Box2D mass and inertia (ST-047): 1 = rest mass, at most `GAMMA_MASS_CAP`. */
+    var massGamma = 1f
+
+    /** Stores the body's current mass and inertia as the rest values. Call once, while the body still has its rest mass. */
+    fun captureRestMass(body: Body) {
+        restMass = body.mass
+        restInertia = body.inertia
+        massGamma = 1f
+    }
+
     override fun reset() {
         u.setZero()
         accel.setZero()
@@ -44,6 +61,9 @@ class RelativisticComponent : Component, Pool.Poolable {
         gUsed = 1f
         vSet.setZero()
         gammaMax = GAMMA_MAX_MASSIVE
+        restMass = 0f
+        restInertia = 0f
+        massGamma = 1f
     }
 }
 

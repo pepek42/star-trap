@@ -35,6 +35,20 @@ val BETA_MAX_MASSIVE: Float = kotlin.math.sqrt(1f - 1f / (GAMMA_MAX_MASSIVE * GA
 /** Default for `RelativitySettings.relativityEnabled`, the runtime master switch. When false, ships use Newtonian thrust and bodies keep a synced `RelativisticComponent`. */
 const val RELATIVITY_ENABLED = true
 
+/**
+ * Default for `RelativitySettings.gammaMassEnabled` (ST-047, research E7). When true a relativistic body's Box2D mass
+ * (and inertia) is `γ·m₀`, so contact impulses conserve relativistic momentum `Σ γ m v` and a near-c ship hits like a
+ * freight train.
+ */
+const val GAMMA_MASS_ENABLED = true
+
+/**
+ * Cap on the γ used for the Box2D mass, so the mass is at most 8× the rest mass (APPROX, `physics-lies.md` row 8). Its
+ * own solver-stability limit: mass ratios much above ~10:1 make Box2D contacts mushy. It is independent of the γ safety
+ * bound [GAMMA_MAX_MASSIVE]; the kinematics stay exact above it because the collision readback uses the true γ.
+ */
+const val GAMMA_MASS_CAP = 8f
+
 /** Target time (arena time) for a straight run from rest to 0.9c under the default engine. */
 const val ENGINE_TIME_TO_09C = 5f
 

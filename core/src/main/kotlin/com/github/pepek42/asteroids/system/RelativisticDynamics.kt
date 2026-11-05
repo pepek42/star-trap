@@ -5,6 +5,8 @@ import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.core.EntitySystem
 import com.badlogic.ashley.utils.ImmutableArray
 import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.physics.box2d.Body
+import com.badlogic.gdx.physics.box2d.MassData
 import com.badlogic.gdx.utils.Array
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
@@ -13,6 +15,7 @@ import com.github.pepek42.asteroids.component.moveMapper
 import com.github.pepek42.asteroids.component.relativisticCmp
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.physics.COLLISION_EPS_BETA
+import com.github.pepek42.asteroids.physics.GAMMA_MASS_CAP
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.clampSpeed
@@ -22,6 +25,7 @@ import com.github.pepek42.asteroids.physics.uFromV
 import com.github.pepek42.asteroids.physics.velocityFromU
 import ktx.ashley.allOf
 import ktx.log.logger
+import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.sqrt
 
@@ -31,6 +35,9 @@ import kotlin.math.sqrt
  * It must be the LAST [PhysicsStepListener], so all contributors have already added to [RelativisticComponent.accel].
  * [beforeStep] advances u and writes v = u/γ into Box2D; Box2D then only handles collisions. [afterStep] detects a
  * contact-changed velocity and converts it back to u, then advances proper time.
+ *
+ * With `RelativitySettings.gammaMassEnabled` the Box2D mass and inertia follow `min(γ, GAMMA_MASS_CAP)·m₀` (ST-047), so
+ * contacts conserve `Σ γ m v`, and the readback is `u = γUsed·v` (momentum) instead of `u = γ(v)·v`.
  */
 class RelativisticDynamics(
     private val settings: RelativitySettings = RelativitySettings(),
@@ -38,6 +45,7 @@ class RelativisticDynamics(
     private var entities: ImmutableArray<Entity> = ImmutableArray(Array())
     private val velocity = Vector2()
     private val bodyVelocity = Vector2()
+    private val massData = MassData()
 
     override fun addedToEngine(engine: Engine) {
         super.addedToEngine(engine)
@@ -58,6 +66,7 @@ class RelativisticDynamics(
                 if (!isRotationDriven(entity)) entity.bodyCmp.body.angularVelocity *= rel.gUsed
                 rel.gUsed = 1f
                 rel.accel.setZero()
+                setMassGamma(entity.bodyCmp.body, rel, 1f)
                 continue
             }
             if (!isFinite(rel.u) || !isFinite(rel.accel)) {
@@ -68,6 +77,7 @@ class RelativisticDynamics(
             rel.u.mulAdd(rel.accel, dt)
             clampU(rel.u, min(rel.gammaMax, settings.gammaMaxMassive), c)
             val gamma = gammaFromU(rel.u.x, rel.u.y, c)
+            setMassGamma(entity.bodyCmp.body, rel, if (settings.gammaMassEnabled) min(gamma, GAMMA_MASS_CAP) else 1f)
             velocityFromU(rel.u.x, rel.u.y, c, velocity)
             entity.bodyCmp.body.setLinearVelocity(velocity)
             rel.vSet.set(velocity)
@@ -78,6 +88,24 @@ class RelativisticDynamics(
             }
             rel.gUsed = gamma
         }
+    }
+
+    /**
+     * Sets the Box2D mass and inertia to [target]·rest values, when [target] differs from [RelativisticComponent.massGamma]
+     * by more than [MASS_GAMMA_HYSTERESIS] (relative), so it does not call `setMassData` every step. Reuses one [MassData].
+     */
+    private fun setMassGamma(body: Body, rel: RelativisticComponent, target: Float) {
+        if (rel.restMass <= 0f) {
+            // Not captured by a provider: the mass has never been changed, so the body still has its rest mass.
+            if (target == 1f) return
+            rel.captureRestMass(body)
+        }
+        if (abs(target - rel.massGamma) / rel.massGamma <= MASS_GAMMA_HYSTERESIS) return
+        massData.mass = rel.restMass * target
+        massData.I = rel.restInertia * target
+        massData.center.set(body.localCenter)
+        body.massData = massData
+        rel.massGamma = target
     }
 
     /** True when the PD controller owns this body's rotation (non-null `targetAngleRad`). */
@@ -108,7 +136,13 @@ class RelativisticDynamics(
                 val gammaMax = min(rel.gammaMax, settings.gammaMaxMassive)
                 val betaMax = sqrt(1f - 1f / (gammaMax * gammaMax))
                 clampSpeed(bodyVelocity, betaMax * c)
-                uFromV(bodyVelocity.x, bodyVelocity.y, c, betaMax, rel.u)
+                if (settings.gammaMassEnabled) {
+                    // Box2D conserved Σ M v with M = massGamma·m₀, so v·γUsed is the proper momentum per rest mass.
+                    rel.u.set(bodyVelocity).scl(rel.gUsed)
+                    clampU(rel.u, gammaMax, c)
+                } else {
+                    uFromV(bodyVelocity.x, bodyVelocity.y, c, betaMax, rel.u)
+                }
             }
             rel.tau += dt / rel.gUsed
             rel.lastAccel.set(rel.accel)
@@ -120,5 +154,8 @@ class RelativisticDynamics(
 
     companion object {
         private val logger = logger<RelativisticDynamics>()
+
+        /** Relative change of the mass γ below which the Box2D mass is left alone (ST-047). */
+        const val MASS_GAMMA_HYSTERESIS = 0.01f
     }
 }

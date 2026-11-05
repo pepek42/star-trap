@@ -12,6 +12,7 @@ import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
+import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.ShipHandlingComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TACTICAL_COMPUTER_DEFAULT_TIER
@@ -71,7 +72,9 @@ class PlayerEntityProvider(
                     )
                 }
                 with<MoveComponent>()
-                with<RelativisticComponent>() // starts at rest: u = 0
+                with<RelativisticComponent> { // starts at rest: u = 0
+                    captureRestMass(this@entity.entity.bodyCmp.body)
+                }
                 with<ShipHandlingComponent>()
                 with<PlayerComponent>()
                 with<TacticalComputerComponent> { tier = TACTICAL_COMPUTER_DEFAULT_TIER }

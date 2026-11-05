@@ -13,6 +13,7 @@ import com.badlogic.gdx.physics.box2d.World
 import com.badlogic.gdx.utils.GdxNativesLoader
 import com.github.pepek42.asteroids.component.AsteroidComponent
 import com.github.pepek42.asteroids.component.BodyComponent
+import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_MIN_RADIUS
 import com.github.pepek42.asteroids.environment.ASTEROID_SPAWN_BETA_MAX
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
@@ -83,6 +84,18 @@ class AsteroidProviderTest {
             val d = hypot(p.x - around.x, p.y - around.y)
             assertTrue(d >= AsteroidProvider.NEAR_ASTEROID_MIN_DIST - 1e-3f && d <= AsteroidProvider.NEAR_ASTEROID_MAX_DIST + 1e-3f)
         }
+    }
+
+    @Test
+    fun asteroidCapturesItsRestMassAndInertia() {
+        provider.spawnNearAsteroids(1, Vector2(100f, 100f))
+        val asteroid = engine.entities.first { it.getComponent(AsteroidComponent::class.java) != null }
+        val body = asteroid.getComponent(BodyComponent::class.java).body
+        val rel = asteroid.getComponent(RelativisticComponent::class.java)
+        assertTrue(rel.restMass > 0f)
+        assertEquals(body.mass, rel.restMass)
+        assertEquals(body.inertia, rel.restInertia)
+        assertEquals(1f, rel.massGamma)
     }
 
     companion object {

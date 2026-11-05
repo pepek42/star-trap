@@ -13,6 +13,7 @@ import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
+import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.environment.ASTEROID_COUNT_PER_LEVEL_SQ
@@ -73,6 +74,7 @@ class AsteroidProvider(
             with<AsteroidComponent> { asteroidSize = size }
             with<RelativisticComponent> {
                 uFromV(velocity.x, velocity.y, settings.c, settings.betaMaxMassive, u)
+                captureRestMass(this@entity.entity.bodyCmp.body)
             }
         }
     }

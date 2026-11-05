@@ -22,6 +22,7 @@ class RelativitySettings(
     brakeBoost: Float = BRAKE_BOOST_K,
     timeWarpEnabled: Boolean = TIME_WARP_ENABLED,
     timeWarpMax: Float = TIME_WARP_MAX,
+    var gammaMassEnabled: Boolean = GAMMA_MASS_ENABLED,
 ) {
     var relativityEnabled: Boolean = relativityEnabled
 
@@ -51,6 +52,8 @@ class RelativitySettings(
         }
 
     var timeWarpEnabled: Boolean = timeWarpEnabled
+
+    // gammaMassEnabled (constructor property, ST-047): Box2D mass = min(γ, GAMMA_MASS_CAP)·m₀ while relativity is on.
 
     /** Upper bound of the pilot clock's time warp (ST-068). */
     var timeWarpMax: Float = timeWarpMax.coerceIn(1f, TIME_WARP_MAX_LIMIT)

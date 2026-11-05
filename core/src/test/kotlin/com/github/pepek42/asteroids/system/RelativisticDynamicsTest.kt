@@ -21,6 +21,7 @@ import com.github.pepek42.asteroids.physics.BETA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.BoundaryFieldParams
 import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
 import com.github.pepek42.asteroids.physics.ENGINE_TIME_TO_09C
+import com.github.pepek42.asteroids.physics.GAMMA_MASS_CAP
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.REVERSE_THRUST_FRACTION
 import com.github.pepek42.asteroids.physics.RelativitySettings
@@ -73,8 +74,10 @@ class RelativisticDynamicsTest {
         thrusters: Float = 0f,
         radius: Float = 0.5f,
         restitution: Float = 0f,
+        w: World = world,
+        e: Engine = engine,
     ): Ship {
-        val body = world.createBody(BodyDef().apply {
+        val body = w.createBody(BodyDef().apply {
             type = BodyDef.BodyType.DynamicBody
             position.set(x, y)
             this.angle = angle
@@ -85,9 +88,10 @@ class RelativisticDynamicsTest {
         shape.dispose()
         body.setLinearVelocity(vx, vy)
         val rel = RelativisticComponent()
+        rel.captureRestMass(body)
         com.github.pepek42.asteroids.physics.uFromV(vx, vy, c, BETA_MAX_MASSIVE, rel.u)
         val moveCmp = MoveComponent(thrusters = thrusters)
-        engine.addEntity(
+        e.addEntity(
             Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent()).add(rel).add(moveCmp)
         )
         return Ship(body, rel, moveCmp)
@@ -257,6 +261,9 @@ class RelativisticDynamicsTest {
         rel.gUsed = 2f
         rel.vSet.set(6f, 7f)
         rel.gammaMax = 3f
+        rel.restMass = 4f
+        rel.restInertia = 5f
+        rel.massGamma = 6f
         pool.free(rel)
 
         val reused = pool.obtain()
@@ -267,6 +274,81 @@ class RelativisticDynamicsTest {
         assertEquals(1f, reused.gUsed)
         assertEquals(0f, reused.vSet.len())
         assertEquals(GAMMA_MAX_MASSIVE, reused.gammaMax)
+        assertEquals(0f, reused.restMass)
+        assertEquals(0f, reused.restInertia)
+        assertEquals(1f, reused.massGamma)
+    }
+
+    private class Collision(val aU: Float, val bU: Float, val bSpeed: Float, val restMass: Float, val uBefore: Float)
+
+    /** Head-on: A at 0.9c into B at rest, equal rest mass, no bounce, in a world of its own. */
+    private fun ramAtNinetyPercentC(gammaMass: Boolean): Collision {
+        val w = World(Vector2.Zero, true).apply { setAutoClearForces(false) }
+        try {
+            val e = Engine()
+            val mv = MoveSystem()
+            val d = RelativisticDynamics(RelativitySettings(gammaMassEnabled = gammaMass))
+            e.addSystem(mv)
+            e.addSystem(d)
+            val ph = PhysicsSystem(w, e, listOf(mv, d))
+            val a = addShip(x = -2f, vx = 0.9f * c, w = w, e = e)
+            val b = addShip(x = 0f, w = w, e = e)
+            val before = a.rel.u.x
+            repeat(30) { ph.update(PhysicsSystem.PHYSICS_UPDATE_INTERVAL + 1e-4f) }
+            return Collision(a.rel.u.x, b.rel.u.x, b.body.linearVelocity.len(), a.rel.restMass, before)
+        } finally {
+            w.dispose()
+        }
+    }
+
+    @Test
+    fun gammaMassCollisionConservesRelativisticMomentum() {
+        val on = ramAtNinetyPercentC(gammaMass = true)
+        val off = ramAtNinetyPercentC(gammaMass = false)
+        // Both bodies have the same rest mass, so Σ restMass·u is proportional to the sum of the u components.
+        assertEquals(on.uBefore, on.aU + on.bU, 0.02f * on.uBefore)
+        assertTrue(on.bSpeed > off.bSpeed, "B speed with γ mass ${on.bSpeed}, without ${off.bSpeed}")
+    }
+
+    @Test
+    fun massGammaIsCappedAtBox2dStabilityLimit() {
+        setup()
+        val ship = addShip()
+        ship.rel.u.set(sqrt(20f * 20f - 1f) * c, 0f) // γ = 20
+        step()
+        assertEquals(GAMMA_MASS_CAP * ship.rel.restMass, ship.body.mass, 1e-4f)
+        assertEquals(GAMMA_MASS_CAP, ship.rel.massGamma)
+        assertEquals(GAMMA_MASS_CAP * ship.rel.restInertia, ship.body.inertia, 1e-4f)
+        // The kinematics stay exact above the cap.
+        assertEquals(20f, gammaFromU(ship.rel.u.x, ship.rel.u.y, c), 0.05f)
+    }
+
+    @Test
+    fun massStaysRestMassWhenSlowOrRelativityIsOff() {
+        val settings = RelativitySettings()
+        val d = RelativisticDynamics(settings)
+        engine.addSystem(d) // setup() only registers the default instance
+        setup { m, _ -> listOf(m, d) }
+        val slow = addShip(vx = 0.1f * c)
+        step()
+        assertEquals(slow.rel.restMass, slow.body.mass, 1e-5f) // γ = 1.005 is within the hysteresis
+        val fast = addShip(y = 20f, vx = 0.9f * c)
+        step()
+        assertTrue(fast.body.mass > 2f * fast.rel.restMass)
+        settings.relativityEnabled = false
+        step()
+        assertEquals(fast.rel.restMass, fast.body.mass, 1e-5f)
+        assertEquals(1f, fast.rel.massGamma)
+    }
+
+    @Test
+    fun massIsNotTouchedWhenGammaMassIsDisabled() {
+        val d = RelativisticDynamics(RelativitySettings(gammaMassEnabled = false))
+        engine.addSystem(d)
+        setup { m, _ -> listOf(m, d) }
+        val ship = addShip(vx = 0.9f * c)
+        repeat(3) { step() }
+        assertEquals(ship.rel.restMass, ship.body.mass, 1e-5f)
     }
 
     @Test

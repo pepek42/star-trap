@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-128**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-129**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -13,7 +13,7 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 
 M3 Relativity MVP:
 18d. ST-126 Owner decision: tactical computer defaults (needs-user)
-20. ST-047 Relativistic mass in Box2D collisions
+20a. ST-128 γ-mass follow-ups: debug toggle and overshoot check
 21. ST-048 Impact damage from relativistic kinetic energy
 21a. ST-084 Player death ends the run (moved up from M5, needed by ST-101)
 21b. ST-101 Balance pass: headless sim games, pick c, tune physics
@@ -167,25 +167,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - note: (2026-11-03) ST-125 is the tactical-computer variant using the true state (`trueLeadDirection`). When this honest variant is unparked, share its drawing and target selection with `TacticalOverlaySystem` instead of a separate `LeadMarkerSystem`.
 - note: (2026-11-03, from ST-062) when unparked, also highlight the auto-aim target in the AUTO_AIM scheme; `leadDirection` already exists in `physics/PhotonAim.kt`.
 
-### ST-047 Relativistic mass in Box2D collisions
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-038
-- files: `component/RelativisticComponent.kt`, `system/RelativisticDynamics.kt`, `physics/PhysicsConstants.kt`; tests
-- goal: Box2D contact impulses conserve `Σ M v`. With `M = γm₀` they conserve relativistic momentum, so a near-c ship hits like a freight train (research E7, owner's "mass going to infinite"). This follows the ST-033 recommendation.
-- spec:
-  - Constants: `GAMMA_MASS_ENABLED = true`, `GAMMA_MASS_CAP = 8f`. This is its own Box2D solver-stability cap (mass ratios much above ~10:1 make contacts mushy). It doesn't depend on the γ safety bound `GAMMA_MAX_MASSIVE` (50 since ST-055), so keep "up to 8×". The kinematics stay exact above it: the readback `u = gUsed·vb` uses the true γ.
-  - `RelativisticComponent`: add `restMass`, `restInertia` (captured from the body when the component is attached in the providers) and `massGamma = 1f`.
-  - `RelativisticDynamics.beforeStep`, if enabled: `g' = min(g, GAMMA_MASS_CAP)`. If `|g' − massGamma| / massGamma > 0.01`: reuse one `MassData` (`mass = restMass·g'`, `I = restInertia·g'`, `center = body.localCenter`), call `body.setMassData(md)`, and set `massGamma = g'`.
-  - The `afterStep` collision readback when enabled: `u = gUsed·vb`, then `clampU`. This is momentum-consistent. The old `uFromV` path stays for when the flag is off.
-  - Thrust, field and rotation are acceleration-based or scale with inertia, so they're unaffected.
-- acceptance:
-  - [ ] Test: two equal rest-mass circles, A at β = 0.9 head-on into B at rest. `Σ restMass·u` is conserved within 2 % across the collision, and B's final speed exceeds its speed in the same test with the flag off
-  - [ ] Test: γ = 20 is capped to a Box2D mass of 8·m₀
-  - [ ] `./gradlew core:test` passes
-- playtest: Ramming asteroids at speed sends them flying. A slow nudge feels the same as before.
-
 ### ST-048 Impact damage from relativistic kinetic energy
 - status: ready
 - size: S
@@ -269,6 +250,23 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] `TACTICAL_OVERLAY_DEFAULT_MODE` matches the answer to Q1; if Q2 is (b), arrows use `v − v_player` (spec it on this card when answered) and the tests are updated
   - [ ] game-design.md §11 Decisions has a 2026-11-xx line with both answers
   - [ ] `./gradlew core:test` passes
+
+### ST-128 γ-mass follow-ups: debug toggle and overshoot check
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-047
+- files: `ui/DebugPanel.kt`, `assets/i18n/messages.properties`, `core/src/test/.../RelativisticDynamicsTest.kt`
+- refs: ST-047 commit; `RelativitySettings.gammaMassEnabled`; architecture.md "Relativistic mass in collisions (ST-047)"
+- goal: Review follow-ups from ST-047. Let the owner A/B the γ-mass effect in play, and pin the elastic-overshoot safety.
+- spec:
+  - Debug panel: add a checkbox bound to `settings.gammaMassEnabled`, next to the existing relativity on/off checkbox, same pattern. Label via i18n.
+  - Test: restitution-1 head-on collision, A at γ = 5 into B at rest (equal rest mass). After each of the next 5 steps, both bodies' Box2D speed is < `settings.c` and |u| stays finite.
+- acceptance:
+  - [ ] Debug panel shows a working "γ-mass" checkbox (toggling it restores rest mass, see `massStaysRestMassWhenSlowOrRelativityIsOff`)
+  - [ ] Overshoot test passes
+  - [ ] `./gradlew core:test` passes
+- playtest: In the debug panel, toggle γ-mass and ram an asteroid at high speed: with it on, the asteroid flies off much faster.
 
 ## M4 Relativistic view
 

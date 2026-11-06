@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-144**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-145**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -9,7 +9,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 Web build (owner 2026-11-04: web is the primary target):
-0. ST-143 Web build follow-ups: menu label clipping and browser playtest
+0. ST-144 Web: game view leaves a black strip at the canvas edge
 
 M3 Relativity MVP:
 
@@ -42,20 +42,20 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 
 - note (2026-11-02, owner interview, game-design.md §11): **The game is perceived from the pilot's frame.** The game clock is the pilot's proper time (research E21): the arena advances `γ·dt_real` per frame, capped at about 10× (declared FAKE past the cap, shown on the HUD), and the player's guns and turning run on real time (ST-068, ST-069, ST-040). **Pilot view is the main rendering** and is pulled forward from M4 into this milestone (E8 light delay + E9 aberration: ST-070 … ST-078, default on). The minimap stays true arena positions ("tactical computer"). Aim help is a lead marker (ST-078). Also decided: braking boost (ST-066), shots leave the arena instead of bouncing (ST-067, reworks ST-039), ramming yes (ST-033), photon laser default (ST-034). The alternative control modes (auto-aim + auto-shoot, targeting trance) are **parked** at the end of the backlog.
 
-### ST-143 Web build follow-ups: menu label clipping and browser playtest
+### ST-144 Web: game view leaves a black strip at the canvas edge
 - status: ready
 - size: S
 - agent: kotlin-dev
 - layer: infra
-- depends: —
-- files: `core/src/main/kotlin/com/github/pepek42/asteroids/screen/MainMenuScreen.kt` (settings/controls tables), `teavm/src/main/kotlin/com/github/pepek42/asteroids/teavm/TeaVMLauncher.kt`
-- refs: `docs/tech/dev-workflow.md` "Web check"; ST-127 (closed 2026-11-06: web bundle builds in ~25 s, a level runs in headless Firefox with 0 errors)
-- goal: Polish what the first working web build showed. In the main menu on web (`scripts/web-check.sh`, no `--play`) the left part of every label in the Settings and Controls columns is cut off ("ngs", "mode", "ontrols"); check whether desktop at the same window size shows it too, then fix the table layout (likely a scroll pane or column narrower than its labels). Also check the accretion-disk particles: on web they look larger and blobbier than on desktop (point size / `gl_PointSize` vs. canvas pixel ratio).
+- depends: ST-143
+- files: `core/src/main/kotlin/com/github/pepek42/asteroids/screen/PlayScreen.kt` (viewport resize), HUD/minimap viewport, `teavm/src/main/kotlin/com/github/pepek42/asteroids/teavm/TeaVMLauncher.kt`
+- refs: `docs/tech/dev-workflow.md` "Web check"; ST-143 report (2026-11-06)
+- goal: In the web build (headless Firefox, canvas 1366x682) the game world stops about 75 px before the right edge of the canvas: a black strip is left, and the minimap (HUD stage) is drawn across the boundary, half over the world and half over the black strip. Reproduce with `node scripts/web-smoke.mjs --wait=6 --query="seed=42&play&hole-near"`. It is probably the `FitViewport` (48x27) letterboxing at a non-16:9 canvas while the HUD uses a different viewport, or a resize that isn't forwarded on web. Decide whether the world should fill the whole canvas (e.g. `ExtendViewport` with min 48x27) or the HUD should be letterboxed to the same area; filling the canvas is preferred. Check desktop at a non-16:9 window (800x600) too.
 - acceptance:
-  - [x] menu labels fully visible on web and desktop at 1280x800 (fixed 2026-11-06: ScrollPane cells pinned to content width; at 800x600 desktop the "Single Player" button still clips a few px on the left)
-  - [ ] accretion disk looks the same on web as on desktop, or the difference is explained in the report
+  - [ ] on web at 1366x682 the world fills the canvas (or the letterbox is symmetric and the HUD/minimap sits inside the world area)
+  - [ ] desktop at 800x600 and 1280x720 still looks right
   - [ ] `scripts/web-check.sh --play` PASS
-- playtest: open http://localhost:8080 (`./gradlew teavm:javaScriptDevServer`), read the menu, start a level, fly and shoot.
+- playtest: open the web build in a window that isn't 16:9 and resize it; the minimap should stay in the corner of the game area.
 
 ### ST-075 Pilot view: per-corner retarded time (Terrell rotation)
 - status: parked

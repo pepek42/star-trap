@@ -39,9 +39,11 @@ import ktx.app.clearScreen
 import ktx.log.logger
 
 private const val MENU_PAD = 24f
-private const val COLUMN_SPACE = 40f
+private const val COLUMN_SPACE = 20f
 private const val ROW_SPACE = 8f
 private const val BUTTON_SPACE = 16f
+/** Room for the vertical scroll bar next to a pane's content. */
+private const val SCROLLBAR_ALLOWANCE = 28f
 private const val SLIDER_WIDTH = 160f
 
 class MainMenuScreen(private val game: Game) : KtxScreen {
@@ -69,8 +71,12 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         val columns = Table()
         columns.defaults().top().padLeft(COLUMN_SPACE / 2).padRight(COLUMN_SPACE / 2)
         columns.add(buildButtons())
-        columns.add(scrolled(buildSettings()))
-        columns.add(scrolled(buildControls()))
+        // A ScrollPane cell may be shrunk below its content's width; the content table then
+        // shrinks around its centre and clips labels on the left. Pin each pane to its content width.
+        for (content in listOf(buildSettings(), buildControls())) {
+            val pane = scrolled(content)
+            columns.add(pane).width(content.prefWidth + SCROLLBAR_ALLOWANCE).minWidth(content.prefWidth + SCROLLBAR_ALLOWANCE)
+        }
         root.add(columns)
         return root
     }

@@ -54,7 +54,7 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - refs: `docs/tech/dev-workflow.md` "Web check"; ST-127 (closed 2026-11-06: web bundle builds in ~25 s, a level runs in headless Firefox with 0 errors)
 - goal: Polish what the first working web build showed. In the main menu on web (`scripts/web-check.sh`, no `--play`) the left part of every label in the Settings and Controls columns is cut off ("ngs", "mode", "ontrols"); check whether desktop at the same window size shows it too, then fix the table layout (likely a scroll pane or column narrower than its labels). Also check the accretion-disk particles: on web they look larger and blobbier than on desktop (point size / `gl_PointSize` vs. canvas pixel ratio).
 - acceptance:
-  - [ ] menu labels fully visible on web and desktop at 1280x800 (screenshots attached to the report)
+  - [x] menu labels fully visible on web and desktop at 1280x800 (fixed 2026-11-06: ScrollPane cells pinned to content width; at 800x600 desktop the "Single Player" button still clips a few px on the left)
   - [ ] accretion disk looks the same on web as on desktop, or the difference is explained in the report
   - [ ] `scripts/web-check.sh --play` PASS
 - playtest: open http://localhost:8080 (`./gradlew teavm:javaScriptDevServer`), read the menu, start a level, fly and shoot.

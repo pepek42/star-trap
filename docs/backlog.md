@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-137**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-138**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -14,7 +14,7 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 M3 Relativity MVP:
 
 M4 Relativistic view:
-33. ST-125 Tactical computer tier 2: true-state intercept markers
+33. ST-137 Intercept markers: muzzle offset and tier toggle
 
 Audio (owner 2026-11-05):
 33. ST-134 Sound generator tool (procedural SFX -> assets/sounds)
@@ -183,27 +183,21 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew core:test` passes
 - playtest: At speed the view ahead is bright, and asteroids behind you are dim but outlined. Check whether the outline is too strong.
 
-### ST-125 Tactical computer tier 2: true-state intercept markers
+### ST-137 Intercept markers: muzzle offset and tier toggle
 - status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-123
-- files: `physics/PhotonAim.kt`, `system/TacticalOverlaySystem.kt`, `component/TacticalComputerComponent.kt`, `render/TacticalOverlay.kt`; `docs/design/physics-lies.md` (extend row 34); tests in `physics/PhotonAimTest.kt`, `system/TacticalOverlaySystemTest.kt`
-- refs: `relativity-effects.md` E11 (photon aiming) only if needed; ST-078 card spec (screen-direction rules; `scripts/backlog.py show ST-078`)
-- goal: The owner's "later it can add shot leads". The tactical computer marks, for the nearest targets, where to point so a photon laser hits. Unlike the parked honest ST-078 (retarded state only), this tier uses the **true** arena state, which is the supercomputer cheat. With the default auto-aim scheme it also shows where the guns are going.
+- size: S
+- agent: junior-dev
+- depends: ST-125
+- refs: `system/TacticalOverlaySystem.kt` (`drawInterceptMarkers`), `physics/PhotonAim.kt` (`trueLeadDirection`), `component/WeaponComponent.kt` (`weaponPosition`), `settings/TacticalSettings.kt`, `settings/MenuSettings.kt`
+- goal: Follow-ups of ST-125 (assist layer).
 - spec:
-  - `PhotonAim.kt`: `fun trueLeadDirection(sx, sy, betaX, betaY, tx, ty, tvx, tvy, c: Float, out: Vector2): Float`: `t = photonInterceptDir(tx − sx, ty − sy, tvx, tvy, c, out)` (world direction n̂_W into `out`); if `t` is NaN return NaN; else `muzzleDirForWorldDir(betaX, betaY, out.x, out.y, out)` (shooter-frame n̂') and return `t` (arena seconds to impact).
-  - Tiers: `TACTICAL_COMPUTER_DEFAULT_TIER` becomes `TACTICAL_TIER_INTERCEPT` (no shop yet). Markers draw only when the player's tier `≥ TACTICAL_TIER_INTERCEPT` and the overlay is visible.
-  - In `TacticalOverlaySystem.update`, after the outlines: from non-player entities with `HealthComponent` (no `RemoveComponent`), pick the nearest `TACTICAL_LEAD_MAX = 6` within `TACTICAL_LEAD_RANGE = 2f * settings.c` u (KDoc: ~2 s of light travel, c-relative) by true distance, without allocating (reuse the insertion-sort pattern of `selectPointerTargets` in `render/TargetPointers.kt` over a reused `FloatArray`). Shooter `s` = player interpolated position, `β` = player `vSet / c` (true velocity; not the smoothed `betaVisual`), target = interpolated position and `vSet ?: linearVelocity`.
-  - Marker direction on screen (same rule as ST-078): `dir = n̂'` if `relativity.pilotHullTransform` is on or the scheme aims a turret (`ControlScheme.AUTO_AIM`, `TWIN_STICK`); otherwise (outside view + mouse-hull) `dir` = the W hull angle `pilotHullToWorld(atan2(n̂'), β)` as a unit vector, because that scheme fires along `worldHullToPilot(hull)`. Marker point `m = s + dir · |p_hit − s|` with `p_hit = target + v_target · t`. Draw a circle of radius `TACTICAL_LEAD_RING_PX · wpp` (`= 6f` px) at `m` and a line from the target's centre to `m`, in the target's faction colour at `TACTICAL_ALPHA`. Inject `ControlSettings` into the system for the scheme.
-  - physics-lies row 34: add "tier 2 intercept markers use the true state" to the same row (Where: ST-123, ST-125).
+  - Use the muzzle world position (hull centre + `weaponPosition` rotated by the hull angle) as the shooter point `s` for `trueLeadDirection`, so close targets have no parallax error. No per-frame allocation.
+  - Add `TacticalSettings.showInterceptMarkers` (default on) as a menu Toggle next to the other tactical settings (i18n label + hint); markers draw only when it is on and the tier allows.
 - acceptance:
-  - [ ] Test: `trueLeadDirection` with shooter and target at rest returns the unit vector toward the target and `t = dist / c`
-  - [ ] Test: shooter at rest, target 20 u away along +y moving (0.5·c, 0): the photon fired along the returned direction hits: `|s + c·t·n̂_W − (target + v·t)| < 1e-3` (check via the world direction before the muzzle conversion; at β = 0 the two are equal)
-  - [ ] Integration test (real `World`, `PhysicsSystem`, `RelativisticDynamics`, `ProjectileSweepSystem`): ship moving at β = 0.6 along +x, asteroid 15 u away along +y moving (0.3·c, 0); set `aimAngleRad = atan2(trueLeadDirection(...))`, fire; the sweep hits the asteroid within 1 s
-  - [ ] Test: with the player's tier = `TACTICAL_TIER_WIREFRAME` no marker circles are drawn; with 10 targets in range at most `TACTICAL_LEAD_MAX` markers are drawn
+  - [ ] Test: with a non-zero `weaponPosition`, the marker ring for a static target lies on the muzzle-to-target line
+  - [ ] Test: toggle off draws no marker circles
   - [ ] `./gradlew core:test` passes
-- playtest: In mouse-hull and pilot view at speed, put the cursor on a ring and fire: the shot hits even though the sprite is elsewhere. In auto-aim, check whether 6 rings clutter the view.
+- playtest: Toggle "intercept markers" in settings; at close range the ring sits where the shot actually hits.
 
 ---
 

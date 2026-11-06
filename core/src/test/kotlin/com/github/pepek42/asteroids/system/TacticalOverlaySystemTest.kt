@@ -21,16 +21,24 @@ import com.github.pepek42.asteroids.component.TACTICAL_COMPUTER_DEFAULT_TIER
 import com.github.pepek42.asteroids.component.TacticalComputerComponent
 import com.github.pepek42.asteroids.component.asteroidMapper
 import com.github.pepek42.asteroids.component.playerCmpOptional
+import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.relativisticCmp
+import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.component.tacticalComputerCmp
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.event.GameEventManager
+import com.github.pepek42.asteroids.input.ControlScheme
+import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.render.TACTICAL_CIRCLE_SEGMENTS
+import com.github.pepek42.asteroids.render.TACTICAL_LEAD_MAX
 import com.github.pepek42.asteroids.render.TACTICAL_MIN_ARROW_BETA
+import com.github.pepek42.asteroids.render.TACTICAL_TIER_WIREFRAME
+import com.github.pepek42.asteroids.render.tacticalLeadRange
+import com.github.pepek42.asteroids.render.TACTICAL_TIER_INTERCEPT
 import com.github.pepek42.asteroids.render.TACTICAL_TIER_NONE
 import com.github.pepek42.asteroids.render.TacticalOverlayMode
 import com.github.pepek42.asteroids.settings.TacticalSettings
@@ -53,6 +61,7 @@ class TacticalOverlaySystemTest {
     private val settings = RelativitySettings()
     private val tactical = TacticalSettings()
     private val shape = mock<ShapeRenderer>()
+    private val controls = ControlSettings()
     private val viewport = mock<Viewport> { on { screenWidth } doReturn 1280 }
     private val map = MapProvider(mock<GameEventManager>(), 200f, 200f)
     private val texture = mock<Texture> {
@@ -64,7 +73,7 @@ class TacticalOverlaySystemTest {
         on { createSprite(AsteroidSize.LARGE.textureRegionName) } doReturn sprite
         on { createSprite("spaceship/disc_green") } doReturn sprite
     }
-    private val system = TacticalOverlaySystem(OrthographicCamera(48f, 27f), viewport, map, settings, tactical, GameEventManager(), shape)
+    private val system = TacticalOverlaySystem(OrthographicCamera(48f, 27f), viewport, map, settings, tactical, GameEventManager(), controls, shape)
 
     init {
         PlayerEntityProvider(engine, world, map, atlas, settings).spawnPlayerEntity()
@@ -135,6 +144,64 @@ class TacticalOverlaySystemTest {
         org.mockito.Mockito.clearInvocations(shape)
         system.update(0.016f)
         assertEquals(before - TACTICAL_CIRCLE_SEGMENTS, lineCalls())
+    }
+
+    private fun circleCalls(): Int =
+        org.mockito.Mockito.mockingDetails(shape).invocations.count { it.method.name == "circle" }
+
+    private fun moveAsteroidNearPlayer() {
+        val p = player().transformCmp.interpolatedPosition
+        asteroid().transformCmp.interpolatedPosition.set(p.x + 10f, p.y)
+    }
+
+    @Test
+    fun wireframeTierDrawsNoMarkersAndInterceptTierDoes() {
+        moveAsteroidNearPlayer()
+        player().tacticalComputerCmp.tier = TACTICAL_TIER_WIREFRAME
+        org.mockito.Mockito.clearInvocations(shape)
+        system.update(0.016f)
+        assertEquals(0, circleCalls())
+        player().tacticalComputerCmp.tier = TACTICAL_TIER_INTERCEPT
+        org.mockito.Mockito.clearInvocations(shape)
+        system.update(0.016f)
+        assertEquals(1, circleCalls())
+    }
+
+    @Test
+    fun markerRingSitsOnTheLineToAStaticTarget() {
+        // Shooter and target at rest: n' points at the target, so the ring is at the target (outside view, mouse-hull too).
+        moveAsteroidNearPlayer()
+        controls.scheme = ControlScheme.MOUSE_HULL
+        org.mockito.Mockito.clearInvocations(shape)
+        system.update(0.016f)
+        val circle = org.mockito.Mockito.mockingDetails(shape).invocations.first { it.method.name == "circle" }
+        assertEquals(asteroid().transformCmp.interpolatedPosition.x, circle.arguments[0] as Float, 1e-3f)
+        assertEquals(asteroid().transformCmp.interpolatedPosition.y, circle.arguments[1] as Float, 1e-3f)
+    }
+
+    @Test
+    fun atMostLeadMaxMarkersAndOnlyWithinRange() {
+        val p = player().transformCmp.interpolatedPosition
+        repeat(9) { i ->
+            AsteroidProvider(atlas, engine, world, RandomXS128(2L + i), settings)
+                .spawnAsteroid(AsteroidSize.LARGE, Vector2(p.x + 5f + i, p.y + 3f), Vector2.Zero, 0f)
+        }
+        engine.entities.filter { asteroidMapper.get(it) != null }.forEach {
+            val pos = it.bodyCmp.body.position
+            it.transformCmp.interpolatedPosition.set(pos)
+        }
+        player().transformCmp.interpolatedPosition.set(p)
+        org.mockito.Mockito.clearInvocations(shape)
+        system.update(0.016f)
+        assertEquals(TACTICAL_LEAD_MAX, circleCalls())
+
+        // Far targets get no marker.
+        engine.entities.filter { asteroidMapper.get(it) != null }.forEach {
+            it.transformCmp.interpolatedPosition.set(p.x + tacticalLeadRange(settings.c) * 1.5f, p.y)
+        }
+        org.mockito.Mockito.clearInvocations(shape)
+        system.update(0.016f)
+        assertEquals(0, circleCalls())
     }
 
     companion object {

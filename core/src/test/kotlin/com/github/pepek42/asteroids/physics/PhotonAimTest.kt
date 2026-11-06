@@ -120,4 +120,41 @@ class PhotonAimTest {
         assertEquals(7f, out.x)
         assertEquals(7f, out.y)
     }
+
+    @Test
+    fun trueLeadAtRestAimsAtTargetWithLightTime() {
+        val out = Vector2()
+        val t = trueLeadDirection(1f, 2f, 0f, 0f, 1f + 30f, 2f + 40f, 0f, 0f, c, out)
+        assertEquals(50f / c, t, 1e-5f)
+        assertEquals(0.6f, out.x, 1e-5f)
+        assertEquals(0.8f, out.y, 1e-5f)
+    }
+
+    @Test
+    fun trueLeadPhotonHitsCrossingTarget() {
+        // Shooter at rest, so the muzzle direction equals the world direction.
+        val out = Vector2()
+        val vx = 0.5f * c
+        val t = trueLeadDirection(0f, 0f, 0f, 0f, 0f, 20f, vx, 0f, c, out)
+        assertTrue(t.isFinite() && t > 0f)
+        assertTrue(hypot(c * t * out.x - vx * t, c * t * out.y - 20f) < 1e-3f)
+    }
+
+    @Test
+    fun trueLeadConvertsToMuzzleFrameWhenShooterMoves() {
+        val world = Vector2()
+        val t = photonInterceptDir(0f, 20f, 0.3f * c, 0f, c, world)
+        val muzzle = Vector2()
+        assertEquals(t, trueLeadDirection(0f, 0f, 0.6f, 0f, 0f, 20f, 0.3f * c, 0f, c, muzzle), 1e-6f)
+        val back = aberratePhoton(0.6f, 0f, muzzle.x, muzzle.y, Vector2())
+        assertEquals(world.x, back.x, 1e-5f)
+        assertEquals(world.y, back.y, 1e-5f)
+    }
+
+    @Test
+    fun trueLeadNoInterceptReturnsNaN() {
+        val out = Vector2(5f, 6f)
+        assertTrue(trueLeadDirection(0f, 0f, 0f, 0f, 0f, 0f, 1f, 1f, c, out).isNaN())
+        assertEquals(5f, out.x)
+    }
 }

@@ -34,16 +34,25 @@ import com.github.pepek42.asteroids.component.removeMapper
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
+import com.github.pepek42.asteroids.input.ControlScheme
+import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.pilotHullToWorld
+import com.github.pepek42.asteroids.physics.trueLeadDirection
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.LASER_DAMAGE_LABEL_MIN_FACTOR
 import com.github.pepek42.asteroids.render.displayedPhotonFactor
 import com.github.pepek42.asteroids.render.formatDamageFactor
 import com.github.pepek42.asteroids.render.TACTICAL_ARROW_HEAD_PX
+import com.github.pepek42.asteroids.render.TACTICAL_LEAD_MAX
+import com.github.pepek42.asteroids.render.TACTICAL_LEAD_RING_PX
 import com.github.pepek42.asteroids.render.TACTICAL_MIN_ARROW_BETA
 import com.github.pepek42.asteroids.render.TACTICAL_MIN_RADIUS_PX
 import com.github.pepek42.asteroids.render.TACTICAL_OUTLINE_MAX_VERTS
+import com.github.pepek42.asteroids.render.TACTICAL_TIER_INTERCEPT
 import com.github.pepek42.asteroids.render.TACTICAL_TIER_NONE
+import com.github.pepek42.asteroids.render.insertNearest
+import com.github.pepek42.asteroids.render.tacticalLeadRange
 import com.github.pepek42.asteroids.render.outlineVertices
 import com.github.pepek42.asteroids.render.tacticalArrowScale
 import com.github.pepek42.asteroids.render.tacticalOverlayVisible
@@ -57,11 +66,16 @@ import com.github.pepek42.asteroids.ui.DAMAGE_UP_COLOR
 import com.github.pepek42.asteroids.ui.DAMAGE_DOWN_COLOR
 import ktx.ashley.allOf
 import ktx.ashley.exclude
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.sin
 
 /**
  * Tactical computer overlay (ST-123): thin outlines of every body at its true interpolated arena position, with
  * arena-frame velocity arrows and the arena border, drawn over the (possibly light-delayed) main view.
+ * Tier 2 (ST-125) adds intercept markers: for the nearest targets, a ring where to point so a photon laser hits, computed
+ * from the true arena state (the supercomputer cheat, physics-lies row 34).
  */
 class TacticalOverlaySystem(
     private val camera: OrthographicCamera,
@@ -70,6 +84,7 @@ class TacticalOverlaySystem(
     private val relativity: RelativitySettings,
     private val tactical: TacticalSettings,
     private val gameEventManager: GameEventManager,
+    private val controls: ControlSettings,
     private val shape: ShapeRenderer = ShapeRenderer(),
     private val batch: SpriteBatch? = null,
     private val font: BitmapFont? = null,
@@ -92,6 +107,9 @@ class TacticalOverlaySystem(
     private val screenProjection = Matrix4()
     private val labelPos = Vector3()
     private val aimDir = Vector2()
+    private val leadDist2 = FloatArray(TACTICAL_LEAD_MAX)
+    private val leadIndex = IntArray(TACTICAL_LEAD_MAX)
+    private val leadDir = Vector2()
 
     override fun addedToEngine(engine: Engine) {
         super.addedToEngine(engine)
@@ -122,6 +140,7 @@ class TacticalOverlaySystem(
         shape.projectionMatrix = camera.combined
         shape.begin(ShapeRenderer.ShapeType.Line)
         super.update(deltaTime)
+        if (tier >= TACTICAL_TIER_INTERCEPT) drawInterceptMarkers()
         color.set(ARENA_BOUNDARY_COLOR).a = TACTICAL_BORDER_ALPHA
         shape.color = color
         shape.rect(0f, 0f, mapProvider.mapWidth, mapProvider.mapHeight)
@@ -129,6 +148,64 @@ class TacticalOverlaySystem(
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         Gdx.gl.glDisable(GL20.GL_BLEND)
         drawLaserDamageLabel()
+    }
+
+    /**
+     * Intercept markers (ST-125): ring at the point to aim at so a photon hits each of the nearest [TACTICAL_LEAD_MAX]
+     * targets, with a line from the target. Uses the true state of shooter and targets. Must run inside the shape `Line` batch.
+     */
+    private fun drawInterceptMarkers() {
+        val player = players?.let { if (it.size() > 0) it[0] else null } ?: return
+        val list = candidates ?: return
+        val c = relativity.c
+        val range2 = tacticalLeadRange(c).let { it * it }
+        val sPos = player.transformCmp.interpolatedPosition
+        val sx = sPos.x
+        val sy = sPos.y
+        var n = 0
+        for (i in 0 until list.size()) {
+            val e = list[i]
+            if (e === player || removeMapper.has(e)) continue
+            val tPos = e.transformCmp.interpolatedPosition
+            val dx = tPos.x - sx
+            val dy = tPos.y - sy
+            val d2 = dx * dx + dy * dy
+            if (d2 > range2) continue
+            n = insertNearest(leadDist2, leadIndex, n, d2, i)
+        }
+        if (n == 0) return
+
+        val relOn = relativity.relativityEnabled
+        val pv = player.relativisticCmpOptional?.vSet ?: player.bodyCmp.body.linearVelocity
+        val bx = if (relOn) pv.x / c else 0f
+        val by = if (relOn) pv.y / c else 0f
+        val aimsTurret = relativity.pilotHullTransform || controls.scheme == ControlScheme.AUTO_AIM ||
+            controls.scheme == ControlScheme.TWIN_STICK
+        val ringRadius = TACTICAL_LEAD_RING_PX * wpp
+        for (k in 0 until n) {
+            val target = list[leadIndex[k]]
+            val tPos = target.transformCmp.interpolatedPosition
+            val tv = target.relativisticCmpOptional?.vSet ?: target.bodyCmp.body.linearVelocity
+            val t = trueLeadDirection(sx, sy, bx, by, tPos.x, tPos.y, tv.x, tv.y, c, leadDir)
+            if (t.isNaN()) continue
+            val hitX = tPos.x + tv.x * t
+            val hitY = tPos.y + tv.y * t
+            val range = hypot(hitX - sx, hitY - sy)
+            var dirX = leadDir.x
+            var dirY = leadDir.y
+            if (!aimsTurret) {
+                // Outside view + mouse-hull fires along worldHullToPilot(hull), so the cursor must sit on the W hull angle.
+                val hull = pilotHullToWorld(atan2(dirY, dirX), bx, by)
+                dirX = cos(hull)
+                dirY = sin(hull)
+            }
+            val mx = sx + dirX * range
+            val my = sy + dirY * range
+            color.set(target.baseInfoCmp.faction.color).a = TACTICAL_ALPHA
+            shape.color = color
+            shape.circle(mx, my, ringRadius)
+            shape.line(tPos.x, tPos.y, mx, my)
+        }
     }
 
     /**

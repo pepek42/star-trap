@@ -32,6 +32,39 @@ const val TACTICAL_TIER_NONE = 0
 const val TACTICAL_TIER_WIREFRAME = 1
 const val TACTICAL_TIER_INTERCEPT = 2
 
+/** Most intercept markers (tier 2) drawn at once. */
+const val TACTICAL_LEAD_MAX = 6
+
+/** Reach of the intercept markers in seconds of light travel (arena time): about 2 s. */
+const val TACTICAL_LEAD_RANGE_SECONDS = 2f
+
+/** Radius of an intercept marker ring in screen pixels. */
+const val TACTICAL_LEAD_RING_PX = 6f
+
+/** Intercept marker range in world units: [TACTICAL_LEAD_RANGE_SECONDS] of light travel. Pass the runtime `settings.c`. */
+fun tacticalLeadRange(c: Float): Float = TACTICAL_LEAD_RANGE_SECONDS * c
+
+/**
+ * Inserts ([key], [id]) into the ascending, size-[n] prefix of [keys]/[ids] (capacity `keys.size`, also bounded by
+ * `ids.size`), dropping the largest key when full. Returns the new size. Does not allocate.
+ */
+fun insertNearest(keys: FloatArray, ids: IntArray, n: Int, key: Float, id: Int): Int {
+    val cap = minOf(keys.size, ids.size)
+    var pos = n
+    while (pos > 0 && keys[pos - 1] > key) pos--
+    if (pos >= cap) return n
+    val newN = minOf(n + 1, cap)
+    var j = newN - 1
+    while (j > pos) {
+        keys[j] = keys[j - 1]
+        ids[j] = ids[j - 1]
+        j--
+    }
+    keys[pos] = key
+    ids[pos] = id
+    return newN
+}
+
 enum class TacticalOverlayMode(val flag: String) {
     OFF("off"),
     PILOT("pilot"),

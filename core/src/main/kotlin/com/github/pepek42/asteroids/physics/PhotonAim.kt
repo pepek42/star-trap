@@ -54,3 +54,20 @@ fun leadDirection(
     muzzleDirForWorldDir(betaX, betaY, out.x, out.y, out)
     return true
 }
+
+/**
+ * True-state fire control (ST-125, tactical computer tier 2): the shooter-frame direction n̂' that makes a photon hit a
+ * target at its true arena position ([tx], [ty]) with velocity ([tvx], [tvy]), from a shooter at ([sx], [sy]) with velocity
+ * over c ([betaX], [betaY]). This is the supercomputer cheat (the pilot never sees the true state, see physics-lies row 34).
+ * Solves the intercept in W with [photonInterceptDir], then converts the world direction to the muzzle direction with
+ * [muzzleDirForWorldDir]; writes the unit direction n̂' into [out]. Returns the arena seconds to impact, or NaN (leaving
+ * [out] untouched) when there is no intercept.
+ */
+fun trueLeadDirection(
+    sx: Float, sy: Float, betaX: Float, betaY: Float, tx: Float, ty: Float, tvx: Float, tvy: Float, c: Float, out: Vector2,
+): Float {
+    val t = photonInterceptDir(tx - sx, ty - sy, tvx, tvy, c, out)
+    if (t.isNaN()) return Float.NaN
+    muzzleDirForWorldDir(betaX, betaY, out.x, out.y, out)
+    return t
+}

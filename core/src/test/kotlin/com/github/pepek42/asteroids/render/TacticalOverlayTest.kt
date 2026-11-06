@@ -94,4 +94,20 @@ class TacticalOverlayTest {
         val c = RelativitySettings().c
         assertEquals(TACTICAL_ARROW_LENGTH_AT_C, tacticalArrowScale(c) * c, 1e-4f)
     }
+
+    @Test
+    fun leadRangeIsTwoLightSeconds() {
+        assertEquals(2f * 30f, tacticalLeadRange(30f), 1e-5f)
+    }
+
+    @Test
+    fun insertNearestKeepsSortedBoundedPrefix() {
+        val keys = FloatArray(3)
+        val ids = IntArray(3)
+        var n = 0
+        listOf(5f, 1f, 4f, 3f, 9f, 2f).forEachIndexed { id, k -> n = insertNearest(keys, ids, n, k, id) }
+        assertEquals(3, n)
+        assertEquals(listOf(1f, 2f, 3f), keys.toList())
+        assertEquals(listOf(1, 5, 3), ids.toList())
+    }
 }

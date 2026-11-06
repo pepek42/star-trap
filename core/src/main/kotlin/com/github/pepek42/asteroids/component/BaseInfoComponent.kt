@@ -13,6 +13,7 @@ enum class EntityType {
     PROJECTILE,
     BLACK_HOLE,
     PLANET,
+    DEBRIS,
     UNKNOWN,
 }
 

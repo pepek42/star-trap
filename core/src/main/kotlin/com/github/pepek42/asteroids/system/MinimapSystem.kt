@@ -117,7 +117,7 @@ class MinimapSystem(
                 drawDot(entity, PLANET_MINIMAP_COLOR, entity.gravitySourceCmp.radius)
                 return
             }
-            EntityType.UNKNOWN -> return
+            EntityType.DEBRIS, EntityType.UNKNOWN -> return
         }
         if (entity.playerCmpOptional != null) {
             playerEntity = entity

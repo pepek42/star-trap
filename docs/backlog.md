@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-139**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-140**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -18,7 +18,7 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-39. ST-094 Level decoration: drifting debris
+39a. ST-139 Debris follow-ups: minimap dot and auto-aim priority
 40. ST-086 Gravitational time dilation
 41. ST-087 Accretion disk
 43. ST-095 Lighting math (pure)
@@ -184,22 +184,21 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 - note (2026-11-02, owner follow-up, game-design §11 Q1 answered): black holes, planets and decoration **start static** (placed at level start, zero velocity) but are **dynamic and feel gravity**: n-body among the sources, plus the player's pull. **Decision (planner):** sources are Box2D dynamic bodies on the **Newtonian path** (no `RelativisticComponent`): they are heavy and stay far below 0.1 c, so γ ≈ 1 and they need neither `RelativisticDynamics`, nor the γ-mass of ST-047, nor the ship clocks of ST-040. Black holes get a sensor body (no contacts, ignored by the projectile sweep, which already skips sensors); planets get a solid body. Because they have bodies, `BoundaryFieldSystem` (which acts on every `BodyComponent`) keeps them in the arena with no extra code, and `LightHistorySystem` records them for the pilot view. With the physical pull, two holes 60 u apart would collide in about 6 s, so source–source gravity is scaled by `sourceCoupling = 0.1` (declared FAKE, about 19 s), pending ST-092. Holes that touch merge. Counts stay low for performance: at most 2 holes, 2 planets and 6 debris pieces per level.
 - note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
 
-### ST-094 Level decoration: drifting debris
+### ST-139 Debris follow-ups: minimap dot and auto-aim priority
 - status: ready
 - size: S
-- agent: kotlin-dev
-- depends: ST-083, ST-085
-- files: create `provider/DecorationProvider.kt`; edit `component/BaseInfoComponent.kt`, `physics/RelativitySettings.kt`, `screen/PlayScreen.kt`; tests
-- goal: A little light set dressing (owner 2026-11-02): a few small debris pieces that start at rest and then drift under gravity, which makes the pull of holes and planets visible even when nothing else is nearby. Moons on orbits are left out: a moon that starts at rest just falls into its planet.
+- agent: junior-dev
+- depends: ST-094
+- refs: ST-094 commit; `system/MinimapSystem.kt`, `system/PlayerInputSystem.kt` (target family ~line 73), `input/AutoAimStrategy.kt`
+- files: edit `system/MinimapSystem.kt`, `input/AutoAimStrategy.kt` (or wherever auto-aim scores targets); tests
+- goal: Assist layer. Debris (ST-094) is not on the minimap, and auto-aim targets anything with `HealthComponent`, so it may waste shots on decoration.
 - spec:
-  - `EntityType.DEBRIS`. `DEBRIS_COUNT = 6` per level (pure `fun debrisCount(level: Int) = 6`; keep it a function so it can grow). Each piece: `BaseInfoComponent(NEUTRAL, DEBRIS)`, `TransformComponent`, `SpriteComponent` with the existing atlas region `debris`, size `random.range(0.8f, 1.6f)` u, random rotation, `HealthComponent(10f)` so one or two shots destroy it, a dynamic body with a circle fixture of radius `0.4·size`, density 0.5, zero velocity, the NEUTRAL faction filter. No `RelativisticComponent` and no `AsteroidComponent`: debris isn't counted by `EndLevelSystem` and isn't split by `DeathSystem` (check the death path removes it without spawning children).
-  - Placement with `validSourcePosition` (ST-085): wall margin 15, at least 20 u from the centre, at least 12 u from every source, at least 8 u apart. Spawned after asteroids. Setting `decorationEnabled = true` (last param, debug checkbox).
-  - Gravity, the boundary field and light history all apply through the existing families (they're ordinary bodies).
+  - Minimap: draw `EntityType.DEBRIS` as a small dim grey dot (use the existing `drawDot`).
+  - Auto-aim: rank `DEBRIS` below every other target type; pick debris only when no other valid target is in range. No change to physics.
 - acceptance:
-  - [ ] Test (seed 42, level 2): 6 debris entities, all at rest, satisfying the placement rules
-  - [ ] Test: a level with only debris left (no asteroids) counts as cleared; a debris piece at health 0 is removed without spawning anything
+  - [ ] Test: with an asteroid and a closer debris piece both in range, auto-aim picks the asteroid; with only debris, it picks the debris
   - [ ] `./gradlew core:test` passes
-- playtest: Debris drifts toward the nearest hole or planet and gets swallowed or settles on the surface. Is 6 pieces the right amount?
+- playtest: Debris shows as faint dots on the minimap; auto-aim prefers asteroids.
 
 ### ST-086 Gravitational time dilation in ship clocks and the time warp
 - status: ready

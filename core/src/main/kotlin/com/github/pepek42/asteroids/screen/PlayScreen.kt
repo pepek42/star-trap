@@ -32,6 +32,7 @@ import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.BlackHoleProvider
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.provider.DecorationProvider
 import com.github.pepek42.asteroids.provider.PlanetProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
@@ -78,6 +79,7 @@ class PlayScreen(
     private val playerEntityProvider = PlayerEntityProvider(engine, world, mapProvider, game.get<TextureAtlas>(), settings)
     private val asteroidProvider = AsteroidProvider(game.get<TextureAtlas>(), engine, world, game.get<RandomXS128>(), settings)
     private val blackHoleProvider = BlackHoleProvider(engine, world, mapProvider)
+    private val decorationProvider = DecorationProvider(engine, world, mapProvider) { game.get<TextureAtlas>().createSprite("debris") }
     private val planetProvider = PlanetProvider(engine, world, mapProvider, settings, game.get<PlanetTextures>()::createSprite)
     private val gameState = game.get<GameState>()
     private val minimapViewport = MinimapViewport()
@@ -164,10 +166,16 @@ class PlayScreen(
         mapProvider.loadMap()
         playerEntityProvider.spawnPlayerEntity()
         val holes = if (settings.blackHolesEnabled) blackHoleProvider.spawn(gameState.level, game.get<RandomXS128>()) else FloatArray(0)
-        if (settings.planetsEnabled) planetProvider.spawn(gameState.level, game.get<RandomXS128>(), holes, holes.size / 2)
+        val planets = if (settings.planetsEnabled) {
+            planetProvider.spawn(gameState.level, game.get<RandomXS128>(), holes, holes.size / 2)
+        } else FloatArray(0)
         asteroidProvider.spawnAsteroids(gameState.level, mapProvider)
         if (game.options.nearAsteroids > 0) {
             asteroidProvider.spawnNearAsteroids(game.options.nearAsteroids, mapProvider.playerSpawnLocation())
+        }
+        if (settings.decorationEnabled) {
+            val sources = holes + planets
+            decorationProvider.spawn(gameState.level, game.get<RandomXS128>(), sources, sources.size / 2)
         }
         hud.toggleHud(show = true)
         hud.updateLevel(gameState.level)

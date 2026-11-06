@@ -20,11 +20,11 @@ enum class EntityType {
 /**
  * Every Entity should have it
  */
-data class BaseInfoComponent(
-    var id: Int = ++globalCounter,
-    var faction: FactionEnum = FactionEnum.NEUTRAL,
-    var entityType: EntityType = EntityType.UNKNOWN,
-) : Component, Pool.Poolable {
+class BaseInfoComponent : Component, Pool.Poolable {
+    var id: Int = ++globalCounter
+    var faction: FactionEnum = FactionEnum.NEUTRAL
+    var entityType: EntityType = EntityType.UNKNOWN
+
     override fun reset() {
         id = ++globalCounter
         faction = FactionEnum.NEUTRAL

@@ -35,8 +35,9 @@ Development is agent-driven (see `docs/tech/dev-workflow.md`). Subagents live in
 ./gradlew tool:packTextures  # repack raw_assets/*.png -> assets/textures/textures.atlas/.png
 ./gradlew tool:balanceSim    # headless balance sweep (ST-101) -> tool/build/balance/{runs.csv,summary.md}; -PbalanceArgs="--seeds=8 --levels=1,2" narrows it; ~2 min, see docs/tech/balance.md
 ./gradlew tool:balanceSmoke  # tagged "balance" smoke test (ST-130): few seeds, c = 20, levels 1 and 5; not part of `test`
-./gradlew teavm:generateJavaScript   # web bundle -> teavm/build/dist/js/webapp (owner only for now, see ST-127)
-./gradlew teavm:javaScriptDevServer  # web dev server at http://localhost:8080 (owner only for now, see ST-127)
+./gradlew teavm:generateJavaScript   # web bundle -> teavm/build/dist/js/webapp (~25 s)
+./gradlew teavm:javaScriptDevServer  # web dev server at http://localhost:8080 (URL query = launch flags, e.g. ?seed=42&play)
+scripts/web-check.sh --play          # build web + headless Firefox smoke test of a level; prints RESULT and a screenshot path
 ```
 
 - There is no linter. Formatting follows `.editorconfig`: 4-space indent for Kotlin, 2 for Gradle scripts.
@@ -45,12 +46,12 @@ Development is agent-driven (see `docs/tech/dev-workflow.md`). Subagents live in
 
 ## Web first
 
-`teavm:compileKotlin` passing does **not** mean the web build works: TeaVM finds problems only in `generateJavaScript` or at runtime in the browser. Automated web verification is pending **ST-127**. Until that card is done, agents don't run TeaVM builds (`generateJavaScript`, the dev server); `teavm:compileKotlin` in the normal verify step is still fine. Write code so it stays web-safe. Web-risk areas:
-- **Reflection.** TeaVM keeps reflection metadata only for classes registered in `teavm/build.gradle.kts` (`reflection(...)`). Ashley's `PooledEngine` creates components reflectively, so a component outside `com.github.pepek42.asteroids.component` needs registering.
+`teavm:compileKotlin` passing does **not** mean the web build works: TeaVM finds problems only in `generateJavaScript` or at runtime in the browser. `scripts/web-check.sh --play` builds the bundle and runs a level in headless Firefox (details: `docs/tech/dev-workflow.md` "Web check"); /auto-dev runs it after web-risk cards and every few cards. Web-risk areas:
+- **Reflection.** TeaVM keeps reflection metadata only for classes registered in `teavm/build.gradle.kts` (`reflection(...)`, glob patterns, a package needs `.**`). Ashley's `PooledEngine` creates components reflectively, so a component outside `com.github.pepek42.asteroids.component` needs registering. Components must have exactly one public no-arg constructor (no constructor parameters, no `data class`): gdx-teavm picks `getConstructors()[0]`. `ComponentConstructorTest` enforces this.
 - **JVM-only APIs.** No threads, `java.io.File`, `System.getenv`, `String.format` with locale tricks, `java.util.concurrent` beyond the basics, or JNI libraries other than gdx/box2d/freetype. Use libGDX abstractions (`Gdx.files`, `Preferences`, `TimeUtils`).
 - **GLSL.** ES 1.00 / WebGL 1 only (`#ifdef GL_ES precision mediump float; #endif`); no `glLineWidth` > 1 or desktop-only GL calls.
 - **Performance.** JS is slower than the JVM: no per-frame allocation, and watch Box2D body counts.
-- **Launch options.** The web launcher has no command line, so any new `LaunchOptions` flag needs a URL-query equivalent once the web harness supports it.
+- **Launch options.** The web launcher maps the URL query to the same flags (`?seed=42&play` = `--seed=42 --play`, see `queryToLaunchArgs`), so a new flag works on web automatically; `screenshot` is desktop-only.
 
 ## Architecture
 

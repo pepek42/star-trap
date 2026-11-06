@@ -6,9 +6,8 @@ import com.badlogic.gdx.utils.Pool
 import ktx.ashley.mapperFor
 import ktx.ashley.propertyFor
 
-data class HealthComponent(
+class HealthComponent : Component, Pool.Poolable {
     var health: Float = 0f
-) : Component, Pool.Poolable {
 
     override fun reset() {
         health = 0f

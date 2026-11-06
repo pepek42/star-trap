@@ -102,7 +102,7 @@ class AutoAimStrategyTest {
         val entity = engine.createEntity()
         entity.add(BodyComponent().apply { this.body = body })
         entity.add(TransformComponent())
-        entity.add(BaseInfoComponent(faction = faction, entityType = entityType))
+        entity.add(BaseInfoComponent().apply { this.faction = faction; this.entityType = entityType })
         body.userData = entity
         engine.addEntity(entity)
         return entity
@@ -122,14 +122,14 @@ class AutoAimStrategyTest {
         val ship = addBody(BodyDef.BodyType.DynamicBody, -vShip, 0f, vShip, 0f, FactionEnum.PLAYER, EntityType.SHIP)
         ship.add(RelativisticComponent().apply { u.set(gamma * vShip, 0f) })
         ship.bodyOf().setTransform(ship.bodyOf().position, HALF_PI)
-        val weapon = WeaponComponent(projectileRadius = 0.1f, shotsPerSecond = 1f)
+        val weapon = WeaponComponent().apply { this.projectileRadius = 0.1f; this.shotsPerSecond = 1f }
         ship.add(weapon)
         val asteroidY = if (asteroidAhead) 20f else -20f
         val asteroid = addBody(BodyDef.BodyType.DynamicBody, -5f, asteroidY, 5f, 0f, FactionEnum.NEUTRAL, EntityType.ASTEROID)
-        asteroid.add(HealthComponent(100f))
+        asteroid.add(HealthComponent().apply { this.health = 100f })
         if (withDebris) {
             val debris = addBody(BodyDef.BodyType.DynamicBody, 0f, 10f, 0f, 0f, FactionEnum.NEUTRAL, EntityType.DEBRIS)
-            debris.add(HealthComponent(10f))
+            debris.add(HealthComponent().apply { this.health = 10f })
         }
         val targets = engine.getEntitiesFor(
             allOf(HealthComponent::class, BodyComponent::class, BaseInfoComponent::class).get(),

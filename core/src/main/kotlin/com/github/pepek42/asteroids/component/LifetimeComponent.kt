@@ -9,11 +9,11 @@ import ktx.ashley.propertyFor
 
 enum class LifetimeClock { WORLD, PROPER }
 
-class LifetimeComponent(
-    var remaining: Float = 0f,
-    var total: Float = 0f,
-    var clock: LifetimeClock = LifetimeClock.WORLD,
-) : Component, Pool.Poolable {
+class LifetimeComponent : Component, Pool.Poolable {
+    var remaining: Float = 0f
+    var total: Float = 0f
+    var clock: LifetimeClock = LifetimeClock.WORLD
+
     override fun reset() {
         remaining = 0f
         total = 0f

@@ -121,7 +121,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
 
         Gdx.graphics.setTitle(TITLE)
         logger.info { "Finished setup" }
-        if (options.screenshotPath != null && options.scene == ScreenshotScene.PLAY) {
+        if (options.play || (options.screenshotPath != null && options.scene == ScreenshotScene.PLAY)) {
             setScreen<PlayScreen>()
             if (options.thrust) ctx.inject<GameEventManager>().thrusters(1f)
         } else {

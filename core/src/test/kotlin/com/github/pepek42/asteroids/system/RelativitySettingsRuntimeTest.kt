@@ -61,7 +61,7 @@ class RelativitySettingsRuntimeTest {
         shape.dispose()
         body.setLinearVelocity(vx, 0f)
         val entity = Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent())
-            .add(MoveComponent(thrusters = thrusters))
+            .add(MoveComponent().apply { this.thrusters = thrusters })
         val rel = if (relativistic) {
             RelativisticComponent().also { uFromV(vx, 0f, settings.c, settings.betaMaxMassive, it.u) }
         } else {

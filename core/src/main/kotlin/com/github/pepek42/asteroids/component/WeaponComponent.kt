@@ -10,22 +10,22 @@ import ktx.ashley.optionalPropertyFor
 import ktx.ashley.propertyFor
 import ktx.math.vec2
 
-class WeaponComponent(
-    var doAttack: Boolean = false,
+class WeaponComponent : Component, Pool.Poolable {
+    var doAttack: Boolean = false
     /**
      * Position in entity local coordinate system (Box2D body)
      */
-    var weaponPosition: Vector2 = vec2(0f, 0f),
-    var weaponType: WeaponType = WeaponType.LASER,
-    var ready: Boolean = true,
-    var shotsPerSecond: Float = 0f,
-    var cooldown: Float = 0f,
-    var projectileSpeed: Float = 0f,
-    var projectileDamage: Float = 0f,
-    var projectileRadius: Float = 0f,
+    var weaponPosition: Vector2 = vec2(0f, 0f)
+    var weaponType: WeaponType = WeaponType.LASER
+    var ready: Boolean = true
+    var shotsPerSecond: Float = 0f
+    var cooldown: Float = 0f
+    var projectileSpeed: Float = 0f
+    var projectileDamage: Float = 0f
+    var projectileRadius: Float = 0f
     /** Shooter-frame (muzzle) fire direction, before aberration to the world frame by `WeaponProjectileProvider`; null means fire along the hull. */
-    var aimAngleRad: Float? = null,
-) : Component, Pool.Poolable {
+    var aimAngleRad: Float? = null
+
     override fun reset() {
         doAttack = false
         weaponPosition.x = 0f

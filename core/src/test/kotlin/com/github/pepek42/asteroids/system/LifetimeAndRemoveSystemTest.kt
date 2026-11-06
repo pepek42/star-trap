@@ -30,7 +30,7 @@ class LifetimeAndRemoveSystemTest {
         val engine = PooledEngine()
         engine.addSystem(LifetimeSystem())
         val entity = engine.createEntity().apply {
-            add(LifetimeComponent(remaining = 0.5f, total = 0.5f))
+            add(LifetimeComponent().apply { this.remaining = 0.5f; this.total = 0.5f })
         }
         engine.addEntity(entity)
 
@@ -46,7 +46,7 @@ class LifetimeAndRemoveSystemTest {
         val clock = com.github.pepek42.asteroids.physics.GameClock().apply { worldDt = 0.4f }
         engine.addSystem(LifetimeSystem(clock))
         val entity = engine.createEntity().apply {
-            add(LifetimeComponent(remaining = 0.5f, total = 0.5f))
+            add(LifetimeComponent().apply { this.remaining = 0.5f; this.total = 0.5f })
         }
         engine.addEntity(entity)
         engine.update(0.01f)

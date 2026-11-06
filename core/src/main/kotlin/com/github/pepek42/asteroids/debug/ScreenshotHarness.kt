@@ -27,13 +27,15 @@ data class LaunchOptions(
     val nearAsteroids: Int = 0,
     /** Places the first black hole [HOLE_NEAR_DISTANCE] u from the player spawn (`--hole-near`), for visual checks. */
     val holeNear: Boolean = false,
+    /** Skips the main menu and starts a level at launch (`--play`; web: `?play`). */
+    val play: Boolean = false,
 )
 
 /** Distance (u) from the player spawn to the first black hole under `--hole-near`. */
 const val HOLE_NEAR_DISTANCE = 25f
 
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near` and `--debug-panel`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near`, `--debug-panel` and `--play`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -52,9 +54,41 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
             "--near-asteroids" -> value?.toIntOrNull()?.takeIf { it > 0 }?.let { options = options.copy(nearAsteroids = it) }
             "--hole-near" -> options = options.copy(holeNear = true)
             "--debug-panel" -> options = options.copy(debugPanel = true)
+            "--play" -> options = options.copy(play = true)
         }
     }
     return options
+}
+
+/**
+ * Turns a web URL query (`?seed=42&play&controls=twin`) into command-line style flags for [parseLaunchOptions]:
+ * each `key=value` becomes `--key=value`, a bare `key` becomes `--key`. `screenshot` is dropped because the
+ * browser can't write files. Values are URL-decoded only for `%XX` and `+`; that's enough for the flags we have.
+ */
+fun queryToLaunchArgs(query: String): Array<String> =
+    query.removePrefix("?").split('&')
+        .filter { it.isNotBlank() }
+        .map { part ->
+            val key = part.substringBefore('=')
+            if (part.contains('=')) "--$key=${decodeQueryValue(part.substringAfter('='))}" else "--$key"
+        }
+        .filterNot { it.substringBefore('=') == "--screenshot" }
+        .toTypedArray()
+
+private fun decodeQueryValue(v: String): String {
+    val sb = StringBuilder()
+    var i = 0
+    while (i < v.length) {
+        val c = v[i]
+        when {
+            c == '+' -> sb.append(' ')
+            c == '%' && i + 2 < v.length ->
+                v.substring(i + 1, i + 3).toIntOrNull(16)?.let { sb.append(it.toChar()); i += 2 } ?: sb.append(c)
+            else -> sb.append(c)
+        }
+        i++
+    }
+    return sb.toString()
 }
 
 /** Counts rendered frames and, after the last one, saves the framebuffer to a PNG and exits. */

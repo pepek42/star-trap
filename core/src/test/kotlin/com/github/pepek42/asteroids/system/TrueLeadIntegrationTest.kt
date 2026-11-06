@@ -85,7 +85,7 @@ class TrueLeadIntegrationTest {
         entity.add(BodyComponent().apply { this.body = body })
         entity.add(TransformComponent())
         entity.add(rel)
-        entity.add(BaseInfoComponent(faction = faction, entityType = type))
+        entity.add(BaseInfoComponent().apply { this.faction = faction; this.entityType = type })
         body.userData = entity
         engine.addEntity(entity)
         return entity
@@ -95,12 +95,12 @@ class TrueLeadIntegrationTest {
     fun shotAlongTrueLeadHitsMovingAsteroidFromFastShip() {
         val ship = addBody(0f, 0f, 0.6f * c, 0f, FactionEnum.PLAYER, EntityType.SHIP)
         val asteroid = addBody(0f, 15f, 0.3f * c, 0f, FactionEnum.NEUTRAL, EntityType.ASTEROID)
-        asteroid.add(HealthComponent().apply { health = 100f })
+        asteroid.add(HealthComponent().apply { this.health = 100f })
 
         val out = Vector2()
         val t = trueLeadDirection(0f, 0f, 0.6f, 0f, 0f, 15f, 0.3f * c, 0f, c, out)
         assertTrue(t.isFinite())
-        val weapon = WeaponComponent(projectileRadius = 0.1f, aimAngleRad = atan2(out.y, out.x))
+        val weapon = WeaponComponent().apply { this.projectileRadius = 0.1f; this.aimAngleRad = atan2(out.y, out.x) }
         WeaponProjectileProvider(atlas, engine, world, settings).spawnProjectile(weapon, ship)
 
         repeat((1f / PhysicsSystem.PHYSICS_UPDATE_INTERVAL).toInt()) {

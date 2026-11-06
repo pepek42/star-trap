@@ -90,7 +90,7 @@ class RelativisticDynamicsTest {
         val rel = RelativisticComponent()
         rel.captureRestMass(body)
         com.github.pepek42.asteroids.physics.uFromV(vx, vy, c, BETA_MAX_MASSIVE, rel.u)
-        val moveCmp = MoveComponent(thrusters = thrusters)
+        val moveCmp = MoveComponent().apply { this.thrusters = thrusters }
         e.addEntity(
             Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent()).add(rel).add(moveCmp)
         )
@@ -387,7 +387,7 @@ class RelativisticDynamicsTest {
         shape.dispose()
         engine.addEntity(
             Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent())
-                .add(MoveComponent(thrusters = 1f))
+                .add(MoveComponent().apply { this.thrusters = 1f })
         )
         repeat(PhysicsSystem.PHYSICS_TICK_RATE.toInt()) { step() }
         assertEquals(MoveSystem.MAIN_ENGINE_THRUST / body.mass, body.linearVelocity.len(), 1f)

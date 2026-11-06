@@ -103,7 +103,7 @@ class BoundaryFieldSystemTest {
         engine.addEntity(Entity()
             .add(BodyComponent().apply { this.body = body })
             .add(TransformComponent())
-            .add(BaseInfoComponent(faction = FactionEnum.PLAYER))
+            .add(BaseInfoComponent().apply { this.faction = FactionEnum.PLAYER })
             .add(ProjectileComponent()))
         return body
     }

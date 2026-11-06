@@ -7,11 +7,11 @@ import com.github.pepek42.asteroids.environment.AsteroidSize
 import ktx.ashley.mapperFor
 import ktx.ashley.propertyFor
 
-data class AsteroidComponent(
-    var asteroidSize: AsteroidSize = AsteroidSize.LARGE,
+class AsteroidComponent : Component, Poolable {
+    var asteroidSize: AsteroidSize = AsteroidSize.LARGE
     /** Physics time left (s) in which collisions with this asteroid do no ram damage; see `FRAGMENT_RAM_IMMUNITY`. */
-    var ramImmunity: Float = 0f,
-) : Component, Poolable {
+    var ramImmunity: Float = 0f
+
     override fun reset() {
         asteroidSize = AsteroidSize.LARGE
         ramImmunity = 0f

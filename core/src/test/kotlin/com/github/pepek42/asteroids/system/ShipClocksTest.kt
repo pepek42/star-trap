@@ -96,7 +96,7 @@ class ShipClocksTest {
         engine.addSystem(WeaponSystem(provider, clock))
         val entity = engine.createEntity().apply {
             add(BodyComponent())
-            add(WeaponComponent(doAttack = true, shotsPerSecond = 4f))
+            add(WeaponComponent().apply { this.doAttack = true; this.shotsPerSecond = 4f })
             add(RelativisticComponent().apply { this.gUsed = gUsed })
             if (player) add(PlayerComponent())
         }
@@ -137,7 +137,7 @@ class ShipClocksTest {
         val engine = PooledEngine()
         engine.addSystem(LifetimeSystem(clock))
         val entity = engine.createEntity().apply {
-            add(LifetimeComponent(remaining = 1.2f, total = 1.2f, clock = LifetimeClock.PROPER))
+            add(LifetimeComponent().apply { this.remaining = 1.2f; this.total = 1.2f; this.clock = LifetimeClock.PROPER })
             add(RelativisticComponent().apply { gUsed = 3.2f })
         }
         engine.addEntity(entity)
@@ -157,7 +157,7 @@ class ShipClocksTest {
         val engine = PooledEngine()
         engine.addSystem(LifetimeSystem(clock))
         val entity = engine.createEntity().apply {
-            add(LifetimeComponent(remaining = 0.5f, total = 0.5f, clock = LifetimeClock.WORLD))
+            add(LifetimeComponent().apply { this.remaining = 0.5f; this.total = 0.5f; this.clock = LifetimeClock.WORLD })
             add(RelativisticComponent().apply { gUsed = 3.2f })
         }
         engine.addEntity(entity)
@@ -180,7 +180,7 @@ class ShipClocksTest {
         shape.dispose()
         engine.addEntity(
             Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent())
-                .add(MoveComponent(targetAngleRad = target)).add(RelativisticComponent().apply { this.gUsed = gUsed })
+                .add(MoveComponent().apply { this.targetAngleRad = target }).add(RelativisticComponent().apply { this.gUsed = gUsed })
                 .also { if (player) it.add(PlayerComponent()) }
         )
         return Rotor(body)
@@ -290,7 +290,7 @@ class ShipClocksTest {
         val rel = RelativisticComponent().apply { u.set(sqrt(3f) * c, 0f) }
         engine.addEntity(
             Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent()).add(rel)
-                .add(MoveComponent(targetAngleRad = 0f))
+                .add(MoveComponent().apply { this.targetAngleRad = 0f })
         )
         body.angularVelocity = 2f
         physics.update(step + 1e-4f)

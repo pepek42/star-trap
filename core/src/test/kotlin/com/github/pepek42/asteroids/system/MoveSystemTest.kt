@@ -128,7 +128,7 @@ class MoveSystemTest {
         val ship = Entity()
             .add(BodyComponent().apply { this.body = body })
             .add(TransformComponent())
-            .add(MoveComponent(thrusters = 1f))
+            .add(MoveComponent().apply { this.thrusters = 1f })
         engine.addEntity(ship)
         val move = MoveSystem()
         engine.addSystem(move)
@@ -149,7 +149,7 @@ class MoveSystemTest {
         `when`(body.angle).doReturn(angle)
         val entity = Entity()
             .add(BodyComponent().apply { this.body = body })
-            .add(MoveComponent(thrusters = thrusters))
+            .add(MoveComponent().apply { this.thrusters = thrusters })
             .add(rel)
         val engine = mock<Engine> {
             on { getEntitiesFor(allOf(MoveComponent::class, BodyComponent::class).get()) } doReturn ImmutableArray(
@@ -205,7 +205,7 @@ class MoveSystemTest {
         val ship = Entity()
             .add(BodyComponent().apply { this.body = body })
             .add(TransformComponent())
-            .add(MoveComponent(targetAngleRad = targetAngle))
+            .add(MoveComponent().apply { this.targetAngleRad = targetAngle })
         if (handling != null) ship.add(handling)
         engine.addEntity(ship)
         val physics = PhysicsSystem(world, engine)

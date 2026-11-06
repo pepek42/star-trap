@@ -41,7 +41,7 @@ class DeathSystemTest {
         engine.addSystem(DeathSystem(engine, provider, RandomXS128(1)) { deaths++ })
         val player = engine.createEntity().apply {
             add(PlayerComponent())
-            add(HealthComponent(0f))
+            add(HealthComponent().apply { this.health = 0f })
         }
         engine.addEntity(player)
         repeat(3) { engine.update(0.016f) }
@@ -54,7 +54,7 @@ class DeathSystemTest {
         engine.addSystem(DeathSystem(engine, provider, RandomXS128(1)) { deaths++ })
         val asteroid = engine.createEntity().apply {
             add(AsteroidComponent())
-            add(HealthComponent(0f))
+            add(HealthComponent().apply { this.health = 0f })
             add(BodyComponent().apply { body = body() })
         }
         engine.addEntity(asteroid)

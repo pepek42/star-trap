@@ -8,14 +8,11 @@ import ktx.ashley.mapperFor
 import ktx.ashley.propertyFor
 import ktx.math.vec2
 
-class TransformComponent(
-    val prevPosition: Vector2 = vec2(0f, 0f),
-    val interpolatedPosition: Vector2 = vec2(0f, 0f),
-    var prevRotationDeg: Float = 0f,
-    var interpolatedRotationDeg: Float = 0f,
-) : Component, Pool.Poolable {
-
-
+class TransformComponent : Component, Pool.Poolable {
+    val prevPosition: Vector2 = vec2(0f, 0f)
+    val interpolatedPosition: Vector2 = vec2(0f, 0f)
+    var prevRotationDeg: Float = 0f
+    var interpolatedRotationDeg: Float = 0f
 
     override fun reset() {
         prevPosition.set(0f, 0f)

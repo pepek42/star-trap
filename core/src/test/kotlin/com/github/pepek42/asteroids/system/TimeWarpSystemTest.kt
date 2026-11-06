@@ -126,7 +126,7 @@ class TimeWarpSystemTest {
     fun worldLifetimeExpiresFasterAtWarp() {
         setup(4f)
         engine.addSystem(LifetimeSystem(clock))
-        val timed = Entity().add(LifetimeComponent(remaining = 2f, total = 2f))
+        val timed = Entity().add(LifetimeComponent().apply { this.remaining = 2f; this.total = 2f })
         engine.addEntity(timed)
         var t = 0f
         val dt = dt1

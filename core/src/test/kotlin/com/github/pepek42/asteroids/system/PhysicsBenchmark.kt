@@ -99,7 +99,7 @@ class PhysicsBenchmark {
         shape.dispose()
         engine.addEntity(
             Entity().add(BodyComponent().apply { this.body = body }).add(TransformComponent())
-                .add(RelativisticComponent()).add(MoveComponent(thrusters = 1f)).add(PlayerComponent())
+                .add(RelativisticComponent()).add(MoveComponent().apply { this.thrusters = 1f }).add(PlayerComponent())
         )
     }
 

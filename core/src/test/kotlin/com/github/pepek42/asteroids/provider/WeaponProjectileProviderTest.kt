@@ -62,12 +62,8 @@ class WeaponProjectileProviderTest {
         val shipBody = world.createBody(BodyDef().apply { type = BodyDef.BodyType.DynamicBody })
         val ship = Entity()
             .add(BodyComponent().apply { body = shipBody })
-            .add(BaseInfoComponent(faction = FactionEnum.PLAYER))
-        val weapon = WeaponComponent(
-            weaponType = WeaponType.LASER,
-            projectileSpeed = 10f,
-            projectileRadius = 0.1f,
-        )
+            .add(BaseInfoComponent().apply { this.faction = FactionEnum.PLAYER })
+        val weapon = WeaponComponent().apply { this.weaponType = WeaponType.LASER; this.projectileSpeed = 10f; this.projectileRadius = 0.1f }
 
         // when
         provider.spawnProjectile(weapon, ship)
@@ -85,8 +81,8 @@ class WeaponProjectileProviderTest {
         val shipBody = world.createBody(BodyDef().apply { type = BodyDef.BodyType.DynamicBody })
         val ship = Entity()
             .add(BodyComponent().apply { body = shipBody })
-            .add(BaseInfoComponent(faction = FactionEnum.PLAYER))
-        val weapon = WeaponComponent(projectileRadius = 0.1f, aimAngleRad = Math.PI.toFloat() / 2f)
+            .add(BaseInfoComponent().apply { this.faction = FactionEnum.PLAYER })
+        val weapon = WeaponComponent().apply { this.projectileRadius = 0.1f; this.aimAngleRad = Math.PI.toFloat() / 2f }
 
         provider.spawnProjectile(weapon, ship)
 
@@ -101,8 +97,8 @@ class WeaponProjectileProviderTest {
         val shipBody = world.createBody(BodyDef().apply { type = BodyDef.BodyType.DynamicBody })
         val ship = Entity()
             .add(BodyComponent().apply { body = shipBody })
-            .add(BaseInfoComponent(faction = FactionEnum.PLAYER))
-        provider.spawnProjectile(WeaponComponent(projectileRadius = 0.1f), ship)
+            .add(BaseInfoComponent().apply { this.faction = FactionEnum.PLAYER })
+        provider.spawnProjectile(WeaponComponent().apply { this.projectileRadius = 0.1f }, ship)
 
         val body = engine.entities.first().bodyCmp.body
         assertTrue(body.linearVelocity.x > 0f)
@@ -117,11 +113,11 @@ class WeaponProjectileProviderTest {
         val shipBody = world.createBody(BodyDef().apply { type = BodyDef.BodyType.DynamicBody })
         val ship = Entity()
             .add(BodyComponent().apply { body = shipBody })
-            .add(BaseInfoComponent(faction = FactionEnum.PLAYER))
+            .add(BaseInfoComponent().apply { this.faction = FactionEnum.PLAYER })
         if (shipVelocity != null) {
             ship.add(RelativisticComponent().apply { vSet.set(shipVelocity) })
         }
-        provider.spawnProjectile(WeaponComponent(projectileRadius = 0.1f, aimAngleRad = aimRad), ship)
+        provider.spawnProjectile(WeaponComponent().apply { this.projectileRadius = 0.1f; this.aimAngleRad = aimRad }, ship)
         return engine.entities.first { it.bodyCmp.body !== shipBody && it.photonCmpOptional != null }
     }
 
@@ -166,9 +162,9 @@ class WeaponProjectileProviderTest {
         })
         val ship = Entity()
             .add(BodyComponent().apply { body = shipBody })
-            .add(BaseInfoComponent(faction = FactionEnum.PLAYER))
+            .add(BaseInfoComponent().apply { this.faction = FactionEnum.PLAYER })
             .add(RelativisticComponent().apply { vSet.set(beta * c, 0f) })
-        provider.spawnProjectile(WeaponComponent(projectileRadius = 0.1f), ship)
+        provider.spawnProjectile(WeaponComponent().apply { this.projectileRadius = 0.1f }, ship)
 
         val laser = engine.entities.first { it.bodyCmp.body !== shipBody && it.photonCmpOptional != null }
         val expected = aberratePhoton(beta, 0f, MathUtils.cosDeg(45f), MathUtils.sinDeg(45f), Vector2())

@@ -76,7 +76,7 @@ class ProjectileSweepSystemTest {
         val entity = engine.createEntity()
         entity.add(BodyComponent().apply { this.body = body })
         entity.add(TransformComponent())
-        entity.add(BaseInfoComponent(faction = faction, entityType = entityType))
+        entity.add(BaseInfoComponent().apply { this.faction = faction; this.entityType = entityType })
         body.userData = entity
         engine.addEntity(entity)
         return entity
@@ -94,7 +94,7 @@ class ProjectileSweepSystemTest {
         faction: FactionEnum = FactionEnum.NEUTRAL,
     ): Entity {
         val e = addCircle(type, x, 0f, 0f, 0.3f, false, faction, EntityType.ASTEROID)
-        e.add(HealthComponent().apply { health = 100f })
+        e.add(HealthComponent().apply { this.health = 100f })
         return e
     }
 

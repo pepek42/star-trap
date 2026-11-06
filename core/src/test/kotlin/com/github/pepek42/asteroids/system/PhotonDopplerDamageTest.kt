@@ -45,7 +45,7 @@ class PhotonDopplerDamageTest {
         shape.dispose()
         val entity = engine.createEntity()
         entity.add(BodyComponent().apply { this.body = body })
-        entity.add(HealthComponent().apply { health = 300f })
+        entity.add(HealthComponent().apply { this.health = 300f })
         entity.add(RelativisticComponent().apply { vSet.set(vx, 0f) })
         body.userData = entity
         engine.addEntity(entity)
@@ -55,7 +55,7 @@ class PhotonDopplerDamageTest {
     /** A photon flying along +x with damage 50, fired from a shooter with velocity [shooterBetaX]·c. */
     private fun photon(shooterBetaX: Float = 0f, withPhoton: Boolean = true): Entity {
         val entity = engine.createEntity()
-        entity.add(BaseInfoComponent(faction = FactionEnum.PLAYER, entityType = EntityType.PROJECTILE))
+        entity.add(BaseInfoComponent().apply { this.faction = FactionEnum.PLAYER; this.entityType = EntityType.PROJECTILE })
         entity.add(ProjectileComponent().apply {
             projectile = LaserProjectile().apply { damage = 50f }
             this.shooterBetaX = shooterBetaX

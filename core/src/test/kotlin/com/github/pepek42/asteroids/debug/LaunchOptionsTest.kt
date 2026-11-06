@@ -52,4 +52,26 @@ class LaunchOptionsTest {
         assertEquals(4, parseLaunchOptions(arrayOf("--near-asteroids=4")).nearAsteroids)
         assertEquals(0, parseLaunchOptions(arrayOf("--near-asteroids=x")).nearAsteroids)
     }
+
+    @Test
+    fun parsesPlay() {
+        assertEquals(true, parseLaunchOptions(arrayOf("--play")).play)
+        assertEquals(false, LaunchOptions().play)
+    }
+
+    @Test
+    fun webQueryBecomesFlags() {
+        val o = parseLaunchOptions(queryToLaunchArgs("?seed=42&play&scene=menu&controls=twin&screenshot=/x.png"))
+        assertEquals(42L, o.seed)
+        assertEquals(true, o.play)
+        assertEquals(ScreenshotScene.MENU, o.scene)
+        assertEquals(null, o.screenshotPath)
+    }
+
+    @Test
+    fun webQueryEdgeCases() {
+        assertEquals(0, queryToLaunchArgs("").size)
+        assertEquals(0, queryToLaunchArgs("?").size)
+        assertEquals(listOf("--a=b c", "--d=%"), queryToLaunchArgs("a=b%20c&&d=%").toList())
+    }
 }

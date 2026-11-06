@@ -13,6 +13,8 @@ dependencies {
 gdxTeaVM {
     assets(rootProject.file("assets"))
     reflection("com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator")
+    // Ashley PooledEngine creates components reflectively. Patterns are globs: a package needs ".**".
+    reflection("com.github.pepek42.asteroids.component.**")
 
     webDefaults {
         mainClass.set("com.github.pepek42.asteroids.teavm.TeaVMLauncher")

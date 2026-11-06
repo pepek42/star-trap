@@ -6,12 +6,12 @@ import com.badlogic.gdx.utils.Pool
 import ktx.ashley.mapperFor
 import ktx.ashley.propertyFor
 
-class MoveComponent(
+class MoveComponent : Component, Pool.Poolable {
     /** From -1 (opposite direction thruster) to 1 (max main thrusters). */
-    var thrusters: Float = 0f,
+    var thrusters: Float = 0f
     /** World angle (rad) the ship should face, or null when no rotation is requested. */
-    var targetAngleRad: Float? = null,
-) : Component, Pool.Poolable {
+    var targetAngleRad: Float? = null
+
     override fun reset() {
         thrusters = 0f
         targetAngleRad = null

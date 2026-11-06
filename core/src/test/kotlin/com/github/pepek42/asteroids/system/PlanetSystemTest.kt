@@ -90,7 +90,7 @@ class PlanetSystemTest {
         val ship = Entity()
             .add(BodyComponent().apply { body = body(100f, 100f + 3f * PLANET_RADIUS, shipRadius, sensor = false) })
             .add(TransformComponent())
-            .add(BaseInfoComponent(entityType = EntityType.SHIP))
+            .add(BaseInfoComponent().apply { this.entityType = EntityType.SHIP })
         engine.addEntity(ship)
         val shipBody = ship.getComponent(BodyComponent::class.java).body
         val planetBody = planet.getComponent(BodyComponent::class.java).body
@@ -107,7 +107,7 @@ class PlanetSystemTest {
         val hole = Entity()
             .add(BodyComponent().apply { body = body(100f, 100f, BH_RS, sensor = true) })
             .add(TransformComponent())
-            .add(BaseInfoComponent(entityType = EntityType.BLACK_HOLE))
+            .add(BaseInfoComponent().apply { this.entityType = EntityType.BLACK_HOLE })
             .add(GravitySourceComponent())
         engine.addEntity(hole)
         val planet = planets.spawnPlanet(100f + 5f * BH_RS, 100f, 0)

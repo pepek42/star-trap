@@ -172,8 +172,8 @@ class RamDamageTest {
         shape.dispose()
         val entity = engine.createEntity()
         entity.add(BodyComponent().apply { this.body = body })
-        entity.add(BaseInfoComponent(faction = FactionEnum.NEUTRAL, entityType = type))
-        if (health != null) entity.add(HealthComponent(health))
+        entity.add(BaseInfoComponent().apply { this.faction = FactionEnum.NEUTRAL; this.entityType = type })
+        if (health != null) entity.add(HealthComponent().apply { this.health = health })
         if (player) entity.add(PlayerComponent())
         entity.add(RelativisticComponent().apply {
             captureRestMass(body)
@@ -252,7 +252,7 @@ class RamDamageTest {
         engine.addSystem(contactSystem)
         world.setContactListener(contactSystem)
         val parent = addBody(0f, 0f, 1f) // any hit breaks it
-        parent.add(AsteroidComponent().apply { asteroidSize = AsteroidSize.LARGE })
+        parent.add(AsteroidComponent().apply { this.asteroidSize = AsteroidSize.LARGE })
         // Ship comes in from the side (+y) so one fragment spawns right in its path.
         val beta = Math.sqrt(1.0 - 1.0 / 9.0).toFloat()
         val ship = engine.entities.first().let {
@@ -270,8 +270,8 @@ class RamDamageTest {
             shape.dispose()
             val e = engine.createEntity()
             e.add(BodyComponent().apply { this.body = body })
-            e.add(BaseInfoComponent(faction = FactionEnum.NEUTRAL, entityType = EntityType.SHIP))
-            e.add(HealthComponent(1000f))
+            e.add(BaseInfoComponent().apply { this.faction = FactionEnum.NEUTRAL; this.entityType = EntityType.SHIP })
+            e.add(HealthComponent().apply { this.health = 1000f })
             e.add(PlayerComponent())
             e.add(RelativisticComponent().apply { captureRestMass(body); vSet.set(0f, -beta * c) })
             body.userData = e
@@ -299,7 +299,7 @@ class RamDamageTest {
     fun fragmentRamImmunityShouldExpireAfterAFewSteps() {
         engine.addSystem(contactSystem)
         val rock = addBody(0f, 0f, 30f)
-        val cmp = AsteroidComponent().apply { ramImmunity = FRAGMENT_RAM_IMMUNITY }
+        val cmp = AsteroidComponent().apply { this.ramImmunity = FRAGMENT_RAM_IMMUNITY }
         rock.add(cmp)
         val dt = PhysicsSystem.PHYSICS_UPDATE_INTERVAL
         repeat(FRAGMENT_RAM_IMMUNITY_STEPS - 1) { contactSystem.afterStep(dt) }

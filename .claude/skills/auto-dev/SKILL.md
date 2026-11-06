@@ -39,6 +39,7 @@ If the agent reports `blocked` with a question:
 ## 3. Verify
 Run the build yourself (skip this for docs-only cards):
 `./gradlew core:test lwjgl3:compileKotlin teavm:compileKotlin --console=plain -q 2>&1 | tail -60` (timeout 10 min). No output plus exit code 0 means PASS. Also check `git status --short` for stray files (build output, `*.log`, scratch files).
+- **Web check** (`scripts/web-check.sh --play`, ~1 min; see `docs/tech/dev-workflow.md` "Web check"): run it after a card that touches a web-risk area (CLAUDE.md "Web first": components, reflection, new JVM APIs, shaders, launch options), after every 3rd committed card, and once at the end of the run. Look at the screenshot. A FAIL is treated like a test failure of the card that caused it.
 - Spawn **verifier** only when the failure output doesn't show the cause clearly.
 - `FAIL`: SendMessage the failure lines to the same implementer. Allow 2 fix rounds.
 - Still failing: escalate once to `kotlin-dev` with `effort: "higher"` (for a junior-dev card, kotlin-dev at normal effort). Then mark the card `blocked`, add a `blocker:` line, revert the work, and continue with the next card.

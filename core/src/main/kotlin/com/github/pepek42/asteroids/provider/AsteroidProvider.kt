@@ -12,6 +12,8 @@ import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.GravitySourceComponent
+import com.github.pepek42.asteroids.component.GravitySourceKind
+import com.github.pepek42.asteroids.component.gravitySourceCmp
 import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.bodyCmp
@@ -101,7 +103,7 @@ class AsteroidProvider(
                 val angle = step * i * random.nextDouble().toFloat().let { 0.9f + it * 0.2f }
                 val r = ASTEROID_SPAWN_MIN_RADIUS + random.nextFloat() * (maxRadius - ASTEROID_SPAWN_MIN_RADIUS)
                 positionShift = vec2(r, 0f).rotateRad(angle)
-            } while (nearBlackHole(center.x + positionShift.x, center.y + positionShift.y) && ++attempts < MAX_SPAWN_ATTEMPTS)
+            } while (nearSource(center.x + positionShift.x, center.y + positionShift.y) && ++attempts < MAX_SPAWN_ATTEMPTS)
             if (attempts >= MAX_SPAWN_ATTEMPTS) continue
             val speedMax = ASTEROID_SPAWN_BETA_MAX * settings.c
             val vx = random.nextFloat() * 2f * speedMax - speedMax
@@ -115,14 +117,16 @@ class AsteroidProvider(
         }
     }
 
-    /** True within [BH_ASTEROID_CLEARANCE] of any black hole in the engine. */
-    private fun nearBlackHole(x: Float, y: Float): Boolean {
-        val holes = engine.getEntitiesFor(holeFamily)
-        for (k in 0 until holes.size()) {
-            val p = holes[k].bodyCmp.body.position
+    /** True within [BH_ASTEROID_CLEARANCE] of a black hole or [PLANET_ASTEROID_CLEARANCE] of a planet in the engine. */
+    private fun nearSource(x: Float, y: Float): Boolean {
+        val sources = engine.getEntitiesFor(sourceFamily)
+        for (k in 0 until sources.size()) {
+            val p = sources[k].bodyCmp.body.position
+            val clearance =
+                if (sources[k].gravitySourceCmp.kind == GravitySourceKind.PLANET) PLANET_ASTEROID_CLEARANCE else BH_ASTEROID_CLEARANCE
             val dx = x - p.x
             val dy = y - p.y
-            if (dx * dx + dy * dy < BH_ASTEROID_CLEARANCE * BH_ASTEROID_CLEARANCE) return true
+            if (dx * dx + dy * dy < clearance * clearance) return true
         }
         return false
     }
@@ -146,8 +150,8 @@ class AsteroidProvider(
         const val NEAR_ASTEROID_MIN_DIST = 8f
         const val NEAR_ASTEROID_MAX_DIST = 15f
 
-        /** Resamples of a spawn point rejected by a black hole before the asteroid is skipped. */
+        /** Resamples of a spawn point rejected by a gravity source before the asteroid is skipped. */
         private const val MAX_SPAWN_ATTEMPTS = 50
-        private val holeFamily = allOf(GravitySourceComponent::class, BodyComponent::class).get()
+        private val sourceFamily = allOf(GravitySourceComponent::class, BodyComponent::class).get()
     }
 }

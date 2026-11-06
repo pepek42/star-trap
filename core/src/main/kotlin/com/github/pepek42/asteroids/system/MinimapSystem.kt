@@ -14,6 +14,7 @@ import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.asteroidMapper
 import com.github.pepek42.asteroids.component.baseInfoCmp
+import com.github.pepek42.asteroids.component.gravitySourceCmp
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
@@ -33,6 +34,8 @@ private const val HOLE_OUTLINE = 0.5f
 private const val BACKGROUND_ALPHA = 0.55f
 private const val BORDER_INSET_PX = 0.5f
 
+/** Planets are drawn as grey discs at their true radius. */
+private val PLANET_MINIMAP_COLOR = Color(0.55f, 0.55f, 0.55f, 1f)
 private val BACKGROUND_COLOR = Color(0.02f, 0.02f, 0.06f, BACKGROUND_ALPHA)
 private val VIEW_RECT_COLOR = Color(1f, 1f, 1f, 0.8f)
 private val FIELD_SKIN_COLOR = ARENA_BOUNDARY_COLOR.cpy().apply { a = 0.35f }
@@ -108,6 +111,10 @@ class MinimapSystem(
             EntityType.PROJECTILE -> PROJECTILE_DOT_RADIUS
             EntityType.BLACK_HOLE -> {
                 drawHole(entity)
+                return
+            }
+            EntityType.PLANET -> {
+                drawDot(entity, PLANET_MINIMAP_COLOR, entity.gravitySourceCmp.radius)
                 return
             }
             EntityType.UNKNOWN -> return

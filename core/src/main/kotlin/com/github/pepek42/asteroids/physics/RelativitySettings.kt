@@ -28,6 +28,7 @@ class RelativitySettings(
     sourceCoupling: Float = SOURCE_COUPLING_DEFAULT,
     playerGm: Float = PLAYER_GM,
     var blackHolesEnabled: Boolean = true,
+    var planetsEnabled: Boolean = true,
 ) {
     var relativityEnabled: Boolean = relativityEnabled
 

@@ -49,6 +49,8 @@ Tags: **FAKE** is a deliberate departure. **APPROX** is a simplification that is
 | 17 | Black-hole merges are instant and keep momentum, with no gravitational waves or ringdown | FAKE | Simplicity | ST-085 | — |
 | 18 | The accretion disk has no inward drift of matter | APPROX | Visual only | ST-087 | — |
 | 19 | Lensing is applied to the backdrop only, fades at the edge of the lens area, and overlapping lens areas don't lens each other | FAKE | Cost, and to hide seams | ST-088 | Per-object lensing (research: L, skip) |
+| 19b | A black hole that swallows a planet doesn't grow (rs unchanged, planet momentum lost); the planet is removed once its centre is within `rs + 0.5·R` | FAKE | Planet mass ≪ hole mass | ST-093 | Merge via `mergeSources` with the planet's gm as mass |
+| 19c | Planet gm is tuned so surface gravity is half the engine's proper acceleration (`PLANET_SURFACE_GRAVITY_FRACTION · engineProperAccel · R²`), read at spawn | FAKE | Ships must be able to take off; follows runtime c | ST-093 | — |
 
 ## Rendering and light
 

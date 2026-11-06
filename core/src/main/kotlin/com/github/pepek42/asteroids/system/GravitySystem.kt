@@ -54,7 +54,7 @@ import kotlin.math.max
  *   flies the chord of that path (the last direction would overshoot the bend by about 8 % at b = 3 `r_s`).
  *
  * [afterStep] also runs the black-hole horizon (bodies inside `rs` are removed, the player's health goes to 0) and merges
- * holes that touch (ST-085); these run even with `gravityEnabled` off.
+ * holes that touch (ST-085) and eats planets whose centre is within `rs + 0.5 radius` of a hole (ST-093); these run even with `gravityEnabled` off.
  *
  * Pull does nothing with `gravityEnabled` off or without sources. Must be registered before `RelativisticDynamics`.
  */
@@ -92,6 +92,7 @@ class GravitySystem(
         if (sources.size() == 0) return
         mergeHoles()
         absorbBodies()
+        eatPlanets()
     }
 
     /**
@@ -151,6 +152,25 @@ class GravitySystem(
         transformMapper.get(e)?.let {
             it.prevPosition.set(p)
             it.interpolatedPosition.set(p)
+        }
+    }
+
+    /** A planet whose centre is within `rs + 0.5 * radius` of a live hole is removed; the hole's rs stays (planet mass is negligible, declared omission). */
+    private fun eatPlanets() {
+        for (i in 0 until sources.size()) {
+            val hole = sources[i]
+            if (!isLiveHole(hole)) continue
+            val hp = hole.bodyCmp.body.position
+            for (k in 0 until sources.size()) {
+                val planet = sources[k]
+                val src = planet.gravitySourceCmp
+                if (src.kind != GravitySourceKind.PLANET || removeMapper.has(planet)) continue
+                val pp = planet.bodyCmp.body.position
+                val reach = hole.gravitySourceCmp.rs + PLANET_EATEN_RADIUS_FRACTION * src.radius
+                val dx = pp.x - hp.x
+                val dy = pp.y - hp.y
+                if (dx * dx + dy * dy < reach * reach) planet.addComponent<RemoveComponent>(engine!!)
+            }
         }
     }
 
@@ -302,5 +322,8 @@ class GravitySystem(
     private companion object {
         /** Size of the `[m, x, y, vx, vy]` result of [mergeSources]. */
         const val MERGE_OUT_SIZE = 5
+
+        /** A planet is eaten once its centre is within `rs` plus this fraction of its radius of a hole. */
+        const val PLANET_EATEN_RADIUS_FRACTION = 0.5f
     }
 }

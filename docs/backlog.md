@@ -18,7 +18,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-38. ST-093 Planets: solid gravity sources
 39. ST-094 Level decoration: drifting debris
 40. ST-086 Gravitational time dilation
 41. ST-087 Accretion disk
@@ -184,27 +183,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 
 - note (2026-11-02, owner follow-up, game-design §11 Q1 answered): black holes, planets and decoration **start static** (placed at level start, zero velocity) but are **dynamic and feel gravity**: n-body among the sources, plus the player's pull. **Decision (planner):** sources are Box2D dynamic bodies on the **Newtonian path** (no `RelativisticComponent`): they are heavy and stay far below 0.1 c, so γ ≈ 1 and they need neither `RelativisticDynamics`, nor the γ-mass of ST-047, nor the ship clocks of ST-040. Black holes get a sensor body (no contacts, ignored by the projectile sweep, which already skips sensors); planets get a solid body. Because they have bodies, `BoundaryFieldSystem` (which acts on every `BodyComponent`) keeps them in the arena with no extra code, and `LightHistorySystem` records them for the pilot view. With the physical pull, two holes 60 u apart would collide in about 6 s, so source–source gravity is scaled by `sourceCoupling = 0.1` (declared FAKE, about 19 s), pending ST-092. Holes that touch merge. Counts stay low for performance: at most 2 holes, 2 planets and 6 debris pieces per level.
 - note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
-
-### ST-093 Planets: solid gravity sources and obstacles
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-083, ST-085
-- files: create `provider/PlanetProvider.kt`, `render/PlanetTextures.kt`; edit `component/BaseInfoComponent.kt`, `system/GravitySystem.kt`, `provider/AsteroidProvider.kt`, `system/MinimapSystem.kt`, `physics/RelativitySettings.kt`, `ui/DebugPanel.kt`, `screen/PlayScreen.kt`, `Game.kt`; tests
-- goal: Planets (owner 2026-11-02): smaller gravity sources with a solid surface instead of a horizon. They start at rest, feel the other sources and the player (ST-083), bend paths gently, and are obstacles you can crash into.
-- spec:
-  - Constants (`provider/PlanetProvider.kt`): `PLANET_RADIUS = 5f`, `PLANET_GM = 300f` (surface gravity 12 u/s², half of `ENGINE_PROPER_ACCEL = 25`, so ships can take off), `PLANET_DENSITY = 20f` (heavy relative to ships and asteroids, so ramming barely moves it), `PLANET_ASTEROID_CLEARANCE = PLANET_RADIUS + 6f`. Count: `planetCount(level) = if (level >= 4) 2 else 1` (pure). With ST-085 that's at most 4 sources per level.
-  - `EntityType.PLANET`. `PlanetProvider.spawn(level, random, occupied: FloatArray, n: Int)`: entities with `BaseInfoComponent(NEUTRAL, PLANET)`, `TransformComponent`, `SpriteComponent` (a `PlanetTextures` region, size `2·PLANET_RADIUS`), `BodyComponent` and `GravitySourceComponent(kind = PLANET, gm = PLANET_GM, radius = PLANET_RADIUS, softening = PLANET_RADIUS)`. No `HealthComponent` (indestructible; photons are consumed on hit by the sweep because NEUTRAL collides with every faction) and no `RelativisticComponent`. Body: `DynamicBody`, zero velocity, a solid circle fixture of radius `PLANET_RADIUS`, density `PLANET_DENSITY`, friction 0.3, restitution 0.2, the NEUTRAL faction filter. Placement: `validSourcePosition` (ST-085) with wall margin 25, at least 30 u from the centre and from every hole and planet already placed. Spawn order in `PlayScreen.show()`: holes, planets, then asteroids (`AsteroidProvider` also rejects points within `PLANET_ASTEROID_CLEARANCE` of a planet). Setting `planetsEnabled = true` (last param, debug checkbox).
-  - Black hole eats a planet: in the ST-085 `afterStep` pass, a planet whose centre is within `rs + 0.5·PLANET_RADIUS` of a hole gets a `RemoveComponent` (the hole's rs doesn't change: declared omission, planet mass ≪ hole).
-  - Crashes need no code: Box2D resolves the contact, and impact damage (ST-048) applies to ships hitting the surface.
-  - `PlanetTextures` (DI singleton, created in `Game` after the atlas, disposed in `Game.dispose`): 4 variants built once with the seeded random, each a 96×96 `Pixmap` disc. Pull the colour rule into a pure `fun planetTexel(variant: Int, seed: Long, u: Float, v: Float): Int` (RGBA8888; transparent outside the unit disc; inside, 3–5 horizontal bands from a 1D value-noise in `v` with a palette per variant, plus a darker 1-texel rim). Nearest filtering, matching the pixel-art atlas.
-  - Minimap: a filled circle at true scale and position, grey.
-- acceptance:
-  - [ ] Tests: `planetCount(1) == 1`, `planetCount(4) == 2`; `planetTexel` is transparent at (0.99, 0.99) and opaque at (0.5, 0.5), and is deterministic for the same seed
-  - [ ] Test (seed 42, level 4): 2 planets, each at least 30 u from every hole and from the centre, all at rest; no asteroid within 11 u of a planet
-  - [ ] Test (real `World`): a ship dropped 15 u above a planet with no velocity falls, collides and comes to rest on the surface (centre distance `PLANET_RADIUS + ship radius ± 0.3` after 5 s); a planet placed 10 u from a hole is removed within 3 s
-  - [ ] `./gradlew core:test` passes
-- playtest: A banded planet sits in the arena and drifts slowly toward the hole. Orbit it, slingshot around it, try landing gently. Hitting it fast should hurt. Are the generated planet sprites good enough as placeholders?
 
 ### ST-094 Level decoration: drifting debris
 - status: ready

@@ -27,6 +27,7 @@ import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.BackgroundProvider
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.render.PlanetTextures
 import com.github.pepek42.asteroids.screen.LevelClearedScreen
 import com.github.pepek42.asteroids.screen.MainMenuScreen
 import com.github.pepek42.asteroids.screen.PlayScreen
@@ -92,6 +93,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             bindSingleton(GameEventManager())
             bindSingleton(SpriteBatch())
             bindSingleton(assetManager.get<TextureAtlas>("textures/textures.atlas"))
+            bindSingleton(PlanetTextures(inject<RandomXS128>()))
             bindSingleton(Skin(Gdx.files.internal("ui/uiskin.json"), assetManager["ui/uiskin.atlas"]))
             Scene2DSkin.defaultSkin = ctx.inject<Skin>()
             bindSingleton(assetManager.get<I18NBundle>("i18n/messages"))

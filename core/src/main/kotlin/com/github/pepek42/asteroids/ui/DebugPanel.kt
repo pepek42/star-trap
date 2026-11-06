@@ -129,6 +129,7 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     relativity.sourceCoupling = SOURCE_COUPLING_DEFAULT
     relativity.playerGm = PLAYER_GM
     relativity.blackHolesEnabled = true
+    relativity.planetsEnabled = true
     debug.timeScale = 1f
     debug.showVectors = false
     debug.gridEnabled = GRID_ENABLED
@@ -203,6 +204,7 @@ class DebugPanel(
         checkBox("light delay", { relativitySettings.pilotDelay }) { relativitySettings.pilotDelay = it }
         checkBox("gravity", { relativitySettings.gravityEnabled }) { relativitySettings.gravityEnabled = it }
         checkBox("black holes (next level)", { relativitySettings.blackHolesEnabled }) { relativitySettings.blackHolesEnabled = it }
+        checkBox("planets (next level)", { relativitySettings.planetsEnabled }) { relativitySettings.planetsEnabled = it }
         checkBox("grid", { debugSettings.gridEnabled }) { debugSettings.gridEnabled = it }
         checkBox("target pointers", { debugSettings.targetPointersEnabled }) { debugSettings.targetPointersEnabled = it }
         checkBox("show vectors", { debugSettings.showVectors }) { debugSettings.showVectors = it }

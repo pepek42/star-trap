@@ -57,3 +57,12 @@ tasks.register<JavaExec>("balanceSim") {
     // Never up to date: the sweep is the point of running it.
     outputs.upToDateWhen { false }
 }
+
+tasks.register<JavaExec>("generateSounds") {
+    group = rootProject.name
+    description = "Synthesizes all SFX into assets/sounds/*.wav (ST-134), deterministic"
+
+    mainClass.set("com.github.pepek42.asteroids.tool.sound.SoundGeneratorKt")
+    classpath = sourceSets.main.get().runtimeClasspath
+    workingDir = rootProject.projectDir
+}

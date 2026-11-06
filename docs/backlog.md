@@ -16,7 +16,6 @@ M3 Relativity MVP:
 M4 Relativistic view:
 
 Audio (owner 2026-11-05):
-33. ST-134 Sound generator tool (procedural SFX -> assets/sounds)
 33. ST-135 Sound system + hull sounds (sim layer)
 33. ST-136 Assist: computer-synthesized sounds for remote events
 
@@ -187,26 +186,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 ## Audio
 
 - note (owner 2026-11-05): the game has no sound yet. Two layers, following the Vision in `CLAUDE.md`. **Sim:** space is a vacuum, so the pilot only hears what travels through the ship itself: engine rumble, gun recoil, hits and scrapes on the own hull, structural creaks under acceleration, the computer's own alarms. **Assist:** the ship's computer synthesizes sounds for remote events it can see (asteroid break-ups, later enemy ships and their weapons), a toggle like the other assists. Sounds are generated procedurally by a tool task, so there are no third-party assets and they are reproducible. Web: WAV only (decodes in every browser and on desktop); verify in the browser once ST-127 is done.
-
-### ST-134 Sound generator tool (procedural SFX -> assets/sounds)
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: none
-- refs: `tool/` (see `tool:packTextures`, `tool:balanceSim` for the task pattern)
-- files: create `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/sound/*`, edit `tool/build.gradle.kts`; create `assets/sounds/*.wav`; `docs/tech/sound.md`
-- goal: A `./gradlew tool:generateSounds` task that synthesizes every SFX the game needs into `assets/sounds/` as 16-bit mono WAV (22 050 Hz), deterministic (fixed seeds), so sounds are tunable in code and committed like the texture atlas.
-- spec:
-  - Small DSP kit (pure Kotlin, JVM-only is fine in `tool`): oscillators (sine, saw, square), white/brown noise, ADSR and exponential envelopes, one-pole/biquad low-pass and band-pass filters with sweepable cutoff, pitch sweeps, simple distortion/saturation, mixing, normalisation to -1 dBFS with a short fade-in/out (no clicks), and a WAV writer.
-  - One recipe function per sound, named after the file. First set:
-    - Hull layer: `engine_loop.wav` (low brown-noise rumble + sub-bass hum, loopable: crossfade the ends), `laser_fire.wav` (dull hull-conducted thump + capacitor whine, not a "pew"), `hull_hit.wav` (metallic knock: noise burst through band-pass resonances), `hull_scrape.wav`, `alarm_proximity.wav` (two-tone computer beep), `alarm_hull_damage.wav`.
-    - Computer layer: `synth_asteroid_break_small/medium/large.wav` (filtered noise bursts with a low boom; larger = longer, lower), `synth_ui_lock.wav`.
-  - Each file stays under ~200 KB; document the recipes and how to tune/regenerate in `docs/tech/sound.md`.
-  - Unit test: the generator is deterministic (same bytes twice), output is valid WAV (header fields), loop file's first and last samples are near equal, peak <= 1.0.
-- acceptance:
-  - [ ] `./gradlew tool:generateSounds` writes the files above; re-running gives identical bytes
-  - [ ] `./gradlew tool:test` passes
-- playtest: Listen to the WAVs in `assets/sounds/` (any player). Judge whether they fit "heard through the hull" vs "computer synthesized".
 
 ### ST-135 Sound system + hull sounds (sim layer)
 - status: ready

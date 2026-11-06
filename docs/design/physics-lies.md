@@ -43,7 +43,7 @@ Tags: **FAKE** is a deliberate departure. **APPROX** is a simplification that is
 
 | # | Lie | Tag | Why | Where | Exact alternative / revisit |
 |---|---|---|---|---|---|
-| 14 | Source–source gravity (black holes, planets) is scaled by `sourceCoupling = 0.1` | FAKE | At physical strength two holes 60 u apart merge in ~17 s at the default c = 20 (gm = r_s c²/2; ~55 s at coupling 0.1); the time scales as 1/c | ST-092, ST-083 | **Owner's preferred future fix:** start the whole system with initial velocities (bound orbits, enough spacing) so it's gravitationally balanced at coupling 1 |
+| 14 | Source–source gravity (black holes, planets) is scaled by `sourceCoupling = 0.1` | FAKE | At physical strength two holes 60 u apart merge in ~26 s at the default c = 20 (gm = r_s c²/2 with `BH_RS` = 1; ~80 s at coupling 0.1); the time scales as 1/c | ST-092, ST-083 | **Owner's preferred future fix:** start the whole system with initial velocities (bound orbits, enough spacing) so it's gravitationally balanced at coupling 1 |
 | 15 | Sources (holes, planets, debris) move on Newtonian paths, with no relativistic dynamics | APPROX | They stay far below 0.1 c | ST-083 | — |
 | 16 | The player's pull on sources uses a tunable `playerGm` | FAKE | Gameplay tuning | ST-083 | — |
 | 17 | Black-hole merges are instant and keep momentum, with no gravitational waves or ringdown | FAKE | Simplicity | ST-085 | — |

@@ -28,7 +28,7 @@ const val BH_CENTER_CLEARANCE = 40f
 /** Black holes spawn at least this far (u) from each other. */
 const val BH_MIN_SEPARATION = 60f
 
-/** Asteroids don't spawn within this distance of a black hole: `8 r_s` (16 u for `BH_RS`). */
+/** Asteroids don't spawn within this distance of a black hole: `8 r_s` (8 u for `BH_RS` = 1). */
 const val BH_ASTEROID_CLEARANCE = 8f * BH_RS
 
 /** First level with two black holes. */

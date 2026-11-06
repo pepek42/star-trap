@@ -97,7 +97,7 @@ class BlackHoleProviderTest {
             val p = a.bodyCmp.body.position
             for (h in 0 until positions.size / 2) {
                 val d = hypot(p.x - positions[2 * h], p.y - positions[2 * h + 1])
-                assertTrue(d >= 16f, "asteroid $d u from a hole")
+                assertTrue(d >= BH_ASTEROID_CLEARANCE, "asteroid $d u from a hole")
             }
         }
     }

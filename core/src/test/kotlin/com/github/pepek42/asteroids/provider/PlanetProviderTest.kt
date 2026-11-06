@@ -92,7 +92,7 @@ class PlanetProviderTest {
         for (a in asteroids) {
             val p = a.bodyCmp.body.position
             for (i in 0 until 2) {
-                assertTrue(hypot(p.x - planetPos[2 * i], p.y - planetPos[2 * i + 1]) >= 11f)
+                assertTrue(hypot(p.x - planetPos[2 * i], p.y - planetPos[2 * i + 1]) >= PLANET_ASTEROID_CLEARANCE)
             }
         }
     }

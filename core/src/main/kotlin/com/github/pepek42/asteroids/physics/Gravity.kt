@@ -8,10 +8,10 @@ import kotlin.math.sqrt
  * Default Schwarzschild radius `r_s` of a black hole, in world units (research E14). Derived radii, all in units of
  * `r_s`: photon sphere 1.5 `r_s`, shadow (critical impact parameter) `b_c` = (3 sqrt(3) / 2) `r_s` = 2.598 `r_s`,
  * ISCO 3 `r_s`, marginally bound orbit 2 `r_s`. The engine can hold a ship still at radius r only while
- * `GM / r^2 <= ENGINE_PROPER_ACCEL`, i.e. outside `r = sqrt(GM / ENGINE_PROPER_ACCEL)` (about 7 u, 3.5 `r_s`, at the
+ * `GM / r^2 <= ENGINE_PROPER_ACCEL`, i.e. outside `r = sqrt(GM / ENGINE_PROPER_ACCEL)` (about 5 u, 5 `r_s`, at the
  * default c); closer in, the hole wins.
  */
-const val BH_RS = 2f
+const val BH_RS = 1f
 
 /**
  * Scale of the source-to-source pull between dynamic gravity sources (owner 2026-11-02): each source feels
@@ -49,7 +49,7 @@ const val PLAYER_PULL_SOFTENING = 2f
 /** Floor of the source-to-source softening (ST-083); the actual value is `max(radius_i + radius_j, this)`. */
 const val SOURCE_PULL_MIN_SOFTENING = 1f
 
-/** `GM` of a hole with Schwarzschild radius [rs]: `r_s = 2 GM / c^2`, so `GM = r_s c^2 / 2` (400 for `BH_RS` at c = 20). */
+/** `GM` of a hole with Schwarzschild radius [rs]: `r_s = 2 GM / c^2`, so `GM = r_s c^2 / 2` (200 for `BH_RS` = 1 at c = 20). */
 fun gmFromRs(rs: Float, c: Float): Float = rs * c * c / 2f
 
 /** Inverse of [gmFromRs]: `r_s = 2 GM / c^2` (planets, ST-086). */

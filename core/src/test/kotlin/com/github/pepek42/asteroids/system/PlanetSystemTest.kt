@@ -80,7 +80,7 @@ class PlanetSystemTest {
         return b
     }
 
-    /** Fall time from 15 u at the derived surface gravity (half the default engine acceleration) plus settling; the card's 5 s assumed GM = 300. */
+    /** Fall time from 3 planet radii at the derived surface gravity (half the default engine acceleration) plus settling; the card's 5 s assumed GM = 300. */
     private val LANDING_SECONDS = 8f
 
     @Test
@@ -88,7 +88,7 @@ class PlanetSystemTest {
         val planet = planets.spawnPlanet(100f, 100f, 0)
         val shipRadius = 0.5f
         val ship = Entity()
-            .add(BodyComponent().apply { body = body(100f, 115f, shipRadius, sensor = false) })
+            .add(BodyComponent().apply { body = body(100f, 100f + 3f * PLANET_RADIUS, shipRadius, sensor = false) })
             .add(TransformComponent())
             .add(BaseInfoComponent(entityType = EntityType.SHIP))
         engine.addEntity(ship)
@@ -103,14 +103,14 @@ class PlanetSystemTest {
     }
 
     @Test
-    fun planetTenUnitsFromAHoleIsEatenWithinThreeSeconds() {
+    fun planetFiveRsFromAHoleIsEatenWithinThreeSeconds() {
         val hole = Entity()
             .add(BodyComponent().apply { body = body(100f, 100f, BH_RS, sensor = true) })
             .add(TransformComponent())
             .add(BaseInfoComponent(entityType = EntityType.BLACK_HOLE))
             .add(GravitySourceComponent())
         engine.addEntity(hole)
-        val planet = planets.spawnPlanet(110f, 100f, 0)
+        val planet = planets.spawnPlanet(100f + 5f * BH_RS, 100f, 0)
 
         steps(3f)
 

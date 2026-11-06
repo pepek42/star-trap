@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-141**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-143**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -19,6 +19,7 @@ Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
 41a. ST-140 Accretion disk follow-ups: colour gradient and a hole-in-view harness flag
+41c. ST-142 Auto-aim: asteroids only, with a lock-on crosshair (owner 2026-11-06)
 43. ST-095 Lighting math (pure)
 44. ST-096 Normal maps from alpha in the texture packer
 45. ST-097 Lit sprites: accretion disks light ships, asteroids and planets
@@ -183,20 +184,36 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 - note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
 
 ### ST-140 Accretion disk follow-ups: colour gradient and a hole-in-view harness flag
-- status: needs-user
+- status: ready
 - size: S
 - agent: kotlin-dev
 - depends: ST-087
 - refs: ST-087 commit; `render/AccretionDisk.kt`, `docs/tech/dev-workflow.md` (screenshot harness), `LaunchOptions`
-- question: With the physical constants (T peak 12000 K, outer rim ~7000 K, g⁴ dimming at the ISCO) the disk renders almost white: "whiter inside, redder outside" is barely visible. Options: (a) keep it physical (recommended: matches the realism vision; colour readability can come from the ST-089 Doppler beaming); (b) lower `DISK_T_PEAK` to ~8000 K, which is still physical for a hotter/cooler disk choice; (c) add a saturation boost in the shader (FAKE, needs a physics-lies row).
+- decision: owner 2026-11-06 chose (b): lower `DISK_T_PEAK` so the disk is more colourful (stays physical: a cooler disk).
 - goal: Make the disk's temperature gradient readable, and make black-hole visuals screenshot-testable.
 - spec:
-  - Apply the owner's choice above (for (b)/(c), tune and re-screenshot).
+  - Lower `DISK_T_PEAK` (start at ~8000 K; go lower, e.g. 6000 K, if the outer rim still isn't clearly orange-red) and re-screenshot with `--hole-near`. Keep the physics functions unchanged; only the constant moves. Update the doc that quotes the peak.
   - Harness: add a `--hole-near` launch flag (and note the URL-query equivalent for the web harness) that places the first black hole ~25 u from the player spawn, so screenshots show the hole without a temporary patch. Debug/harness only; doesn't change normal spawning.
 - acceptance:
   - [ ] Screenshot with `--seed=42 --hole-near` shows the hole and disk in view
   - [ ] `./gradlew core:test` passes
-- playtest: The disk shows a visible warm-to-white gradient (if (b)/(c) chosen).
+- playtest: The disk is clearly colourful: whiter/yellow inside, orange-red outside.
+
+### ST-142 Auto-aim: asteroids only, with a lock-on crosshair (owner 2026-11-06)
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-139
+- files: `input/AutoAimStrategy.kt`, `system/TacticalOverlaySystem.kt` (or a small new `render/` helper), `render/` constants; tests
+- goal: Assist. Owner: aim assist should be for asteroids only, and show a crosshair on the locked target. Today auto-aim targets anything with health (debris, ranked last since ST-139) and nothing shows the lock.
+- spec:
+  - `AutoAimStrategy` candidates: only `EntityType.ASTEROID` (drop the ST-139 two-pass debris ranking; `pickTargetIndex`'s `from` param can stay or go). Target picking otherwise unchanged (cone ahead of the hull, range, light-delayed positions).
+  - Lock-on reticle: when `PlayerInputSystem.autoAimTarget` is non-null (auto-aim scheme only), draw a crosshair on it: a circle plus four short ticks (gap in the middle), constant screen size (px constant × world-per-pixel, like the tactical overlay's markers), drawn at the target's **displayed** (light-delayed) position in pilot view and the interpolated position in world view, matching where the sprite is drawn. Colour: a distinct assist colour (e.g. red-orange), alpha ~0.9. Draw it regardless of the tactical-overlay toggle (it's part of auto-aim), but after sprites. No per-frame allocation.
+- acceptance:
+  - [ ] Test: with a debris piece (or planet) and no asteroid in the cone, auto-aim has no target; with an asteroid, it targets the asteroid
+  - [ ] Existing AutoAimStrategy tests pass (update the ST-139 debris tests accordingly)
+  - [ ] `./gradlew core:test` passes
+- playtest: In the default auto-aim scheme, a crosshair sits on the asteroid the guns are firing at and jumps when the lock changes; debris and planets are never locked.
 
 ### ST-088 Gravitational lensing of the backdrop
 - status: ready

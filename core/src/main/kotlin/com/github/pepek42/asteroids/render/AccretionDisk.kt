@@ -17,10 +17,10 @@ import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-/** Inner edge of the disk (the ISCO) as a multiple of `r_s`; the world radius is `DISK_INNER_PER_RS * rs` (`3 * BH_RS` = 6 u). */
+/** Inner edge of the disk (the ISCO) as a multiple of `r_s`; the world radius is `DISK_INNER_PER_RS * rs` (`3 * BH_RS` = 3 u). */
 const val DISK_INNER_PER_RS = 3f
 
-/** Outer edge of the disk as a multiple of `r_s`; `12 * BH_RS` = 24 u. */
+/** Outer edge of the disk as a multiple of `r_s`; `12 * BH_RS` = 12 u. */
 const val DISK_OUTER_PER_RS = 12f
 
 /** Inner edge of the default disk (a hole with `r_s` = [BH_RS]). */

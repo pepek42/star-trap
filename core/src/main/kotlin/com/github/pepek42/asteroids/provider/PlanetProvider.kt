@@ -22,7 +22,7 @@ import ktx.box2d.body
 import ktx.box2d.circle
 
 /** Surface radius of a planet (u). */
-const val PLANET_RADIUS = 5f
+const val PLANET_RADIUS = 2.5f
 
 /** Surface gravity as a fraction of the engine's proper acceleration, so ships can take off from a planet. */
 const val PLANET_SURFACE_GRAVITY_FRACTION = 0.5f

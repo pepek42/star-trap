@@ -101,9 +101,9 @@ class BlackHoleSystemTest {
     }
 
     @Test
-    fun asteroidAtRestTenUnitsAwayIsAbsorbedWithinThreeSeconds() {
+    fun asteroidAtRestFiveRsAwayIsAbsorbedWithinThreeSeconds() {
         hole(100f, 100f)
-        val asteroid = massive(110f, 100f, player = false)
+        val asteroid = massive(100f + 5f * BH_RS, 100f, player = false)
 
         steps(3f)
 
@@ -111,9 +111,9 @@ class BlackHoleSystemTest {
     }
 
     @Test
-    fun playerAtRestTenUnitsAwayDiesInTheHole() {
+    fun playerAtRestFiveRsAwayDiesInTheHole() {
         hole(100f, 100f)
-        val player = massive(110f, 100f, player = true)
+        val player = massive(100f + 5f * BH_RS, 100f, player = true)
         settings.playerGm = 0f
 
         steps(3f)
@@ -123,10 +123,11 @@ class BlackHoleSystemTest {
     }
 
     @Test
-    fun holesThreeUnitsApartMergeIntoOneAtTheMidpointKeepingMomentum() {
+    fun holesOnePointFiveRsApartMergeIntoOneAtTheMidpointKeepingMomentum() {
         settings.gravityEnabled = false
-        val a = hole(98.5f, 100f, 2f, 0f)
-        val b = hole(101.5f, 100f, -1f, 3f)
+        val half = 0.75f * BH_RS
+        val a = hole(100f - half, 100f, 2f, 0f)
+        val b = hole(100f + half, 100f, -1f, 3f)
         val lower = if (a.getComponent(BaseInfoComponent::class.java).id < b.getComponent(BaseInfoComponent::class.java).id) a else b
         val other = if (lower === a) b else a
 

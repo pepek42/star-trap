@@ -26,8 +26,6 @@ Development is agent-driven (see `docs/tech/dev-workflow.md`). Subagents live in
 
 ## Commands
 
-Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, convention plugin `build-logic/src/main/kotlin/kotlin-jvm.gradle.kts`. JVM toolchain 25, auto-downloaded via foojay.
-
 ```bash
 ./gradlew lwjgl3:run          # run desktop game (working dir = assets/)
 ./gradlew test                # all unit tests (CI runs: ./gradlew clean test)
@@ -44,13 +42,6 @@ Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, conventio
 - There is no linter. Formatting follows `.editorconfig`: 4-space indent for Kotlin, 2 for Gradle scripts.
 - After adding or changing a sprite in `raw_assets/`, run `tool:packTextures` and commit the regenerated atlas. Code looks sprites up by region name in `textures/textures.atlas`.
 - Tests use JUnit (Jupiter) + mockito-kotlin. The test classpath includes `assets/` and desktop natives, so tests can touch real Box2D/libGDX classes.
-
-## Modules
-
-- `core`: all game logic.
-- `lwjgl3`: desktop launcher (`Lwjgl3Launcher.kt`).
-- `teavm`: browser launcher (TeaVM → JS). **Primary release target.**
-- `tool`: texture packer (`packTextures`).
 
 ## Web first
 
@@ -76,8 +67,6 @@ Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, conventio
 **Collision filtering.** `FactionEnum` (PLAYER/NEUTRAL/ENEMY) holds the Box2D category/mask bits, which providers assign to fixture filters.
 
 **Entity removal.** Never call `engine.removeEntity` directly for entities that have bodies. Add a `RemoveComponent` instead. `RemoveSystem` (last in the order) destroys the Box2D body, nulls `userData`, and removes the entity. `BodyComponent.reset()` asserts that `userData` is null. `LifetimeSystem` adds `RemoveComponent` when a `LifetimeComponent` runs out. `RemoveSystem` is also a safety net: bodies that leave the map bounds plus a 20% margin get tagged, but the player is clamped back inside and never removed. `BoundaryFieldSystem` keeps bodies inside the arena instead: it is a `PhysicsStepListener` that applies the mass-independent repulsive field from `physics/BoundaryField.kt` before each step (force on dynamic bodies, projectiles are ignored: they leave the arena, leaving one ripple where they cross the wall) and a hard backstop after each step (clamp inside, reflect outward velocity). It fills `BodyComponent.boundingRadius` lazily.
-
-**Rendering.** `RenderSystem` draws the nebula and starfield, then sprites from interpolated transforms, then the boundary band via `render/FieldShimmerRenderer` (GLSL in `assets/shaders/field_shimmer.*`, impact data from `ShimmerImpacts`).
 
 **Input & events.** `GameEventManager` is the libGDX `InputProcessor`, multiplexed with the UI `Stage`. It dispatches keys and mouse buttons through the `InputBindings` table (`input/InputBindings.kt`; add new keys there, never as literals) into `PlayerInputListener` callbacks (aim, thrusters, fire, zoom, block, pilot view) and the debug panel listeners, and broadcasts `MapEventListener.onNewMap`. Systems subscribe as listeners rather than polling `Gdx.input`. `ignorePlayerInputs()`/`enablePlayerInputs()` gate input between screens.
 

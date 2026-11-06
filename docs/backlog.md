@@ -18,7 +18,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-39a. ST-139 Debris follow-ups: minimap dot and auto-aim priority
 40. ST-086 Gravitational time dilation
 41. ST-087 Accretion disk
 43. ST-095 Lighting math (pure)
@@ -183,22 +182,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 
 - note (2026-11-02, owner follow-up, game-design §11 Q1 answered): black holes, planets and decoration **start static** (placed at level start, zero velocity) but are **dynamic and feel gravity**: n-body among the sources, plus the player's pull. **Decision (planner):** sources are Box2D dynamic bodies on the **Newtonian path** (no `RelativisticComponent`): they are heavy and stay far below 0.1 c, so γ ≈ 1 and they need neither `RelativisticDynamics`, nor the γ-mass of ST-047, nor the ship clocks of ST-040. Black holes get a sensor body (no contacts, ignored by the projectile sweep, which already skips sensors); planets get a solid body. Because they have bodies, `BoundaryFieldSystem` (which acts on every `BodyComponent`) keeps them in the arena with no extra code, and `LightHistorySystem` records them for the pilot view. With the physical pull, two holes 60 u apart would collide in about 6 s, so source–source gravity is scaled by `sourceCoupling = 0.1` (declared FAKE, about 19 s), pending ST-092. Holes that touch merge. Counts stay low for performance: at most 2 holes, 2 planets and 6 debris pieces per level.
 - note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
-
-### ST-139 Debris follow-ups: minimap dot and auto-aim priority
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-094
-- refs: ST-094 commit; `system/MinimapSystem.kt`, `system/PlayerInputSystem.kt` (target family ~line 73), `input/AutoAimStrategy.kt`
-- files: edit `system/MinimapSystem.kt`, `input/AutoAimStrategy.kt` (or wherever auto-aim scores targets); tests
-- goal: Assist layer. Debris (ST-094) is not on the minimap, and auto-aim targets anything with `HealthComponent`, so it may waste shots on decoration.
-- spec:
-  - Minimap: draw `EntityType.DEBRIS` as a small dim grey dot (use the existing `drawDot`).
-  - Auto-aim: rank `DEBRIS` below every other target type; pick debris only when no other valid target is in range. No change to physics.
-- acceptance:
-  - [ ] Test: with an asteroid and a closer debris piece both in range, auto-aim picks the asteroid; with only debris, it picks the debris
-  - [ ] `./gradlew core:test` passes
-- playtest: Debris shows as faint dots on the minimap; auto-aim prefers asteroids.
 
 ### ST-086 Gravitational time dilation in ship clocks and the time warp
 - status: ready

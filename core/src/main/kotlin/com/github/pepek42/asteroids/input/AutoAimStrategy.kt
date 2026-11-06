@@ -3,6 +3,7 @@ package com.github.pepek42.asteroids.input
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.utils.ImmutableArray
 import com.badlogic.gdx.math.Vector2
+import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.component.baseInfoCmp
@@ -63,19 +64,26 @@ class AutoAimStrategy(
         val now = clock.worldTime
         val c = settings.c
         var n = 0
-        for (k in 0 until targets.size()) {
-            val entity = targets[k]
-            if (entity.baseInfoCmp.faction == FactionEnum.PLAYER || removeMapper.get(entity) != null) continue
-            val history = lightHistory.historyOf(entity.baseInfoCmp.id) ?: continue
-            if (!history.retarded(shipPos.x, shipPos.y, now, c, scratch)) continue
-            if (n == xs.size) grow()
-            xs[n] = scratch.x
-            ys[n] = scratch.y
-            states[n].copyFrom(scratch)
-            entities[n] = entity
-            n++
+        var nonDebris = 0
+        // Pass 0 collects real targets, pass 1 debris (ST-139), so debris is only picked when nothing else is in reach.
+        for (pass in 0..1) {
+            for (k in 0 until targets.size()) {
+                val entity = targets[k]
+                if ((entity.baseInfoCmp.entityType == EntityType.DEBRIS) != (pass == 1)) continue
+                if (entity.baseInfoCmp.faction == FactionEnum.PLAYER || removeMapper.get(entity) != null) continue
+                val history = lightHistory.historyOf(entity.baseInfoCmp.id) ?: continue
+                if (!history.retarded(shipPos.x, shipPos.y, now, c, scratch)) continue
+                if (n == xs.size) grow()
+                xs[n] = scratch.x
+                ys[n] = scratch.y
+                states[n].copyFrom(scratch)
+                entities[n] = entity
+                n++
+            }
+            if (pass == 0) nonDebris = n
         }
-        val i = pickTargetIndex(shipPos.x, shipPos.y, shipAngleRad, coneHalfRad, range, xs, ys, n)
+        var i = pickTargetIndex(shipPos.x, shipPos.y, shipAngleRad, coneHalfRad, range, xs, ys, nonDebris)
+        if (i < 0) i = pickTargetIndex(shipPos.x, shipPos.y, shipAngleRad, coneHalfRad, range, xs, ys, n, nonDebris)
         if (i < 0) return
         val betaX = if (settings.relativityEnabled) observer.betaRaw.x else 0f
         val betaY = if (settings.relativityEnabled) observer.betaRaw.y else 0f

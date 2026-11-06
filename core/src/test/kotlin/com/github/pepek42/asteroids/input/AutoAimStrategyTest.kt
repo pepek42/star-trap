@@ -22,6 +22,7 @@ import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
+import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
@@ -109,8 +110,13 @@ class AutoAimStrategyTest {
 
     private class Scenario(val ship: Entity, val asteroid: Entity, val weapon: WeaponComponent, val move: MoveComponent, val strategy: AutoAimStrategy)
 
-    /** Ship at β = 0.8 along +x, facing +y, asteroid 20 u ahead of the hull moving (5, 0); histories warmed up for 1 s. */
-    private fun scenario(): Scenario {
+    /**
+     * Ship at β = 0.8 along +x, facing +y, asteroid 20 u ahead of the hull moving (5, 0) (or 20 u behind it when
+     * [asteroidAhead] is false, out of the cone); optional debris piece 10 u dead ahead, closer than the asteroid.
+     * The ship drifts from x = -16 to about x = 0 during warmup, so the debris sits at x = 0 to stay in the cone.
+     * Histories warmed up for 1 s.
+     */
+    private fun scenario(asteroidAhead: Boolean = true, withDebris: Boolean = false): Scenario {
         val vShip = beta * c
         val gamma = gammaFromV(vShip, 0f, c)
         val ship = addBody(BodyDef.BodyType.DynamicBody, -vShip, 0f, vShip, 0f, FactionEnum.PLAYER, EntityType.SHIP)
@@ -118,14 +124,35 @@ class AutoAimStrategyTest {
         ship.bodyOf().setTransform(ship.bodyOf().position, HALF_PI)
         val weapon = WeaponComponent(projectileRadius = 0.1f, shotsPerSecond = 1f)
         ship.add(weapon)
-        val asteroid = addBody(BodyDef.BodyType.DynamicBody, -5f, 20f, 5f, 0f, FactionEnum.NEUTRAL, EntityType.ASTEROID)
+        val asteroidY = if (asteroidAhead) 20f else -20f
+        val asteroid = addBody(BodyDef.BodyType.DynamicBody, -5f, asteroidY, 5f, 0f, FactionEnum.NEUTRAL, EntityType.ASTEROID)
         asteroid.add(HealthComponent(100f))
+        if (withDebris) {
+            val debris = addBody(BodyDef.BodyType.DynamicBody, 0f, 10f, 0f, 0f, FactionEnum.NEUTRAL, EntityType.DEBRIS)
+            debris.add(HealthComponent(10f))
+        }
         val targets = engine.getEntitiesFor(
             allOf(HealthComponent::class, BodyComponent::class, BaseInfoComponent::class).get(),
         )
         step(PHYSICS_WARMUP_STEPS)
         observer.betaRaw.set(ship.bodyOf().linearVelocity).scl(1f / c)
         return Scenario(ship, asteroid, weapon, MoveComponent(), AutoAimStrategy(targets, history, observer, clock, settings))
+    }
+
+    @Test
+    fun prefersAsteroidOverCloserDebris() {
+        val s = scenario(withDebris = true)
+        runStrategy(s)
+        assertTrue(s.weapon.doAttack)
+        assertEquals(s.asteroid, s.strategy.target)
+    }
+
+    @Test
+    fun picksDebrisWhenNothingElseIsInCone() {
+        val s = scenario(asteroidAhead = false, withDebris = true)
+        runStrategy(s)
+        assertTrue(s.weapon.doAttack)
+        assertEquals(EntityType.DEBRIS, s.strategy.target?.baseInfoCmp?.entityType)
     }
 
     private fun Entity.bodyOf(): Body = getComponent(BodyComponent::class.java).body

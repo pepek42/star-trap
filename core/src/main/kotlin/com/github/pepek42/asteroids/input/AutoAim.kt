@@ -20,14 +20,15 @@ const val AUTO_AIM_RANGE = 40f
 
 /**
  * Index of the nearest candidate within [range] of ([sx], [sy]) whose bearing is within [coneHalfRad] of [facingRad], or -1.
- * Candidates are the first [n] entries of [xs] and [ys]. Ties go to the lower index. Pure and allocation-free.
+ * Candidates are entries [from] until [n] of [xs] and [ys]. Ties go to the lower index. Pure and allocation-free.
  */
 fun pickTargetIndex(
     sx: Float, sy: Float, facingRad: Float, coneHalfRad: Float, range: Float, xs: FloatArray, ys: FloatArray, n: Int,
+    from: Int = 0,
 ): Int {
     var best = -1
     var bestDist2 = range * range
-    for (i in 0 until n) {
+    for (i in from until n) {
         val dx = xs[i] - sx
         val dy = ys[i] - sy
         val d2 = dx * dx + dy * dy

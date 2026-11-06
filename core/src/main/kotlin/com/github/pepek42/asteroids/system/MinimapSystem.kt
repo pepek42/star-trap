@@ -34,8 +34,12 @@ private const val HOLE_OUTLINE = 0.5f
 private const val BACKGROUND_ALPHA = 0.55f
 private const val BORDER_INSET_PX = 0.5f
 
+private const val DEBRIS_DOT_RADIUS = 0.5f
+
 /** Planets are drawn as grey discs at their true radius. */
 private val PLANET_MINIMAP_COLOR = Color(0.55f, 0.55f, 0.55f, 1f)
+/** Debris is a small dim grey dot (ST-139). */
+private val DEBRIS_MINIMAP_COLOR = Color(0.3f, 0.3f, 0.3f, 1f)
 private val BACKGROUND_COLOR = Color(0.02f, 0.02f, 0.06f, BACKGROUND_ALPHA)
 private val VIEW_RECT_COLOR = Color(1f, 1f, 1f, 0.8f)
 private val FIELD_SKIN_COLOR = ARENA_BOUNDARY_COLOR.cpy().apply { a = 0.35f }
@@ -117,7 +121,11 @@ class MinimapSystem(
                 drawDot(entity, PLANET_MINIMAP_COLOR, entity.gravitySourceCmp.radius)
                 return
             }
-            EntityType.DEBRIS, EntityType.UNKNOWN -> return
+            EntityType.DEBRIS -> {
+                drawDot(entity, DEBRIS_MINIMAP_COLOR, DEBRIS_DOT_RADIUS)
+                return
+            }
+            EntityType.UNKNOWN -> return
         }
         if (entity.playerCmpOptional != null) {
             playerEntity = entity

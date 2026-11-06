@@ -14,6 +14,7 @@ import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.removeMapper
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import ktx.ashley.has
+import com.github.pepek42.asteroids.provider.PLAYER_START_HEALTH
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -35,6 +36,19 @@ class DeathSystemTest {
     fun tearDown() = world.dispose()
 
     private fun body() = world.createBody(BodyDef().apply { type = BodyDef.BodyType.DynamicBody })
+
+    @Test
+    fun invulnerablePlayerIsHealedAndNeverReported() {
+        engine.addSystem(DeathSystem(engine, provider, RandomXS128(1), invulnerablePlayer = true) { deaths++ })
+        val player = engine.createEntity().apply {
+            add(PlayerComponent())
+            add(HealthComponent().apply { this.health = 0f })
+        }
+        engine.addEntity(player)
+        repeat(3) { engine.update(0.016f) }
+        assertEquals(0, deaths)
+        assertEquals(PLAYER_START_HEALTH, player.getComponent(HealthComponent::class.java).health)
+    }
 
     @Test
     fun deadPlayerReportsOnceAndIsNotRemoved() {

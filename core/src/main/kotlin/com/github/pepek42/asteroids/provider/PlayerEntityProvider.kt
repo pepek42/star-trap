@@ -30,6 +30,9 @@ import ktx.box2d.box
 import ktx.math.vec2
 
 /** Box2D density of the player ship. */
+/** Player health at spawn (also what `--invulnerable` restores). */
+const val PLAYER_START_HEALTH = 100f
+
 const val PLAYER_DENSITY = 20f
 
 /** Pixel size of the (square) player sprite `spaceship/disc_green` in the atlas. */
@@ -104,7 +107,7 @@ class PlayerEntityProvider(
                     faction = FactionEnum.PLAYER
                     entityType = EntityType.SHIP
                 }
-                with<HealthComponent> { health = 100f }
+                with<HealthComponent> { health = PLAYER_START_HEALTH }
             }
         }
     }

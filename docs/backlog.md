@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-148**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-149**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -17,7 +17,7 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-45. ST-147 Harness hole-distance flag and lit-side contrast on asteroids
+45. ST-148 Lit-side contrast on asteroids near a disk
 46. ST-098 Shadows from planets and large asteroids
 47. ST-099 A distant star as a directional light
 48. ST-088 Gravitational lensing of the backdrop
@@ -41,22 +41,20 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 
 - note (2026-11-02, owner interview, game-design.md §11): **The game is perceived from the pilot's frame.** The game clock is the pilot's proper time (research E21): the arena advances `γ·dt_real` per frame, capped at about 10× (declared FAKE past the cap, shown on the HUD), and the player's guns and turning run on real time (ST-068, ST-069, ST-040). **Pilot view is the main rendering** and is pulled forward from M4 into this milestone (E8 light delay + E9 aberration: ST-070 … ST-078, default on). The minimap stays true arena positions ("tactical computer"). Aim help is a lead marker (ST-078). Also decided: braking boost (ST-066), shots leave the arena instead of bouncing (ST-067, reworks ST-039), ramming yes (ST-033), photon laser default (ST-034). The alternative control modes (auto-aim + auto-shoot, targeting trance) are **parked** at the end of the backlog.
 
-### ST-147 Harness hole-distance flag and lit-side contrast on asteroids
+### ST-148 Lit-side contrast on asteroids near a disk
 - status: ready
 - size: S
 - agent: kotlin-dev
-- layer: infra (harness) + sim visuals
+- layer: sim visuals
 - depends: —
-- files: `core/src/main/kotlin/com/github/pepek42/asteroids/debug/ScreenshotHarness.kt`, `render/Lighting.kt`, `render/LitSpriteRenderer.kt`
-- refs: ST-146 report (2026-11-07)
-- goal:
-  1. `--hole-near` puts the hole at a fixed `HOLE_NEAR_DISTANCE` (25 u): the disk glow is invisible on asteroids that far, and in a 20 s web smoke run the player falls in and dies. Add `--hole-near=<u>` (distance) and a `--invulnerable` (or "no-death") harness flag so web screenshots near a hole stay useful.
-  2. The wrapped-diffuse term is fairly flat across an asteroid face, so the disk light reads as a tint, not as a lit side vs. dark side. Try a smaller wrap (e.g. scale `lightWrap`), or treat asteroids as spheres (mode 2) blended with their normal map; keep only if screenshots clearly show a lit side.
+- files: `render/Lighting.kt`, `render/LitSpriteRenderer.kt`, `assets/shaders/lit_sprite.frag`, `tool/.../NormalMaps.kt`
+- refs: ST-147 report (2026-11-07)
+- goal: Near a disk, asteroids read as tinted, not as lit on one side. Wrap is not the lever (ST-147 tried wrap x0.25: no visible change): the disk light sits only `LIGHT_HEIGHT` = 2 u above the plane, so L is nearly horizontal, while normal-map normals are mostly +z, so N·L stays small. Try a larger normal-map tilt (strength factor), a sphere normal blended with the normal map for asteroids, or a higher disk light; judge with `--pilot-view --hole-near=12 --invulnerable` and in world view. Also check two things ST-147 reported: (a) world-view before/after screenshots were pixel-identical, although `RenderSystem` lights both views (lines ~146 and ~183), so confirm lighting really runs in world view; (b) in pilot view at 120 frames the disk itself wasn't visible (light-history warm-up?).
 - acceptance:
-  - [ ] flags work on desktop and as web query; tests in `LaunchOptionsTest`
-  - [ ] before/after screenshots of asteroid lit-side contrast in the report
-  - [ ] tests pass, `scripts/web-check.sh --play` PASS
-- playtest: near a black hole, asteroids should be visibly brighter on the side facing the disk.
+  - [ ] before/after screenshots (world view and pilot view) show a clearly brighter side facing the disk, or the report explains why not
+  - [ ] (a) and (b) answered
+  - [ ] CPU `shadeSpriteTexel` and GLSL stay in sync, tests pass, `scripts/web-check.sh --play` PASS
+- playtest: near a black hole, asteroids are visibly brighter on the side facing the disk.
 
 ### ST-075 Pilot view: per-corner retarded time (Terrell rotation)
 - status: parked

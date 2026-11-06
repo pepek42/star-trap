@@ -15,7 +15,6 @@ import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.debug.DebugSettings
-import com.github.pepek42.asteroids.debug.HOLE_NEAR_DISTANCE
 import com.badlogic.gdx.math.Vector2
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.debug.SCREENSHOT_FRAME_DELTA
@@ -127,6 +126,7 @@ class PlayScreen(
             onPlayerDeath = { game.endRun() },
             hullSounds = hullSounds,
             computerSounds = computerSounds,
+            invulnerablePlayer = game.options.invulnerable,
         )
         // Execution order lives in buildGameplaySystems (shared with the headless balance runner); the presentation
         // systems below are inserted between the observer and the lifetime system.
@@ -160,9 +160,9 @@ class PlayScreen(
         }
     }
 
-    /** `--hole-near`: where the first black hole goes ([HOLE_NEAR_DISTANCE] u right of the player spawn), else null. */
+    /** `--hole-near`: where the first black hole goes (`--hole-near=<u>` right of the player spawn), else null. */
     private fun holeNearSpawn(): Vector2? =
-        if (game.options.holeNear) mapProvider.playerSpawnLocation().add(HOLE_NEAR_DISTANCE, 0f) else null
+        game.options.holeNear?.let { mapProvider.playerSpawnLocation().add(it, 0f) }
 
     override fun show() {
         super.show()

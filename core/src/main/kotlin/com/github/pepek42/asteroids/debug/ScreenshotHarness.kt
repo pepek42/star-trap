@@ -25,19 +25,21 @@ data class LaunchOptions(
     val controls: ControlScheme? = null,
     /** Extra asteroids placed in a ring around the player at level spawn (`--near-asteroids=<n>`), for visual checks. */
     val nearAsteroids: Int = 0,
-    /** Places the first black hole [HOLE_NEAR_DISTANCE] u from the player spawn (`--hole-near`), for visual checks. */
-    val holeNear: Boolean = false,
+    /** Places the first black hole this many u from the player spawn (`--hole-near[=<u>]`, bare = [HOLE_NEAR_DISTANCE]), for visual checks. */
+    val holeNear: Float? = null,
+    /** The player cannot die (`--invulnerable`; web: `?invulnerable`), so long screenshot runs near a hole survive. Harness only. */
+    val invulnerable: Boolean = false,
     /** Skips the main menu and starts a level at launch (`--play`; web: `?play`). */
     val play: Boolean = false,
     /** Forces the pilot view at launch (`--pilot-view`; web: `?pilot-view`); wins over the saved perspective setting. */
     val pilotView: Boolean = false,
 )
 
-/** Distance (u) from the player spawn to the first black hole under `--hole-near`. */
+/** Distance (u) from the player spawn to the first black hole under a bare `--hole-near`. */
 const val HOLE_NEAR_DISTANCE = 25f
 
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near`, `--debug-panel`, `--play` and `--pilot-view`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play` and `--pilot-view`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -54,7 +56,8 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
             "--thrust" -> options = options.copy(thrust = true)
             "--controls" -> ControlScheme.fromFlag(value)?.let { options = options.copy(controls = it) }
             "--near-asteroids" -> value?.toIntOrNull()?.takeIf { it > 0 }?.let { options = options.copy(nearAsteroids = it) }
-            "--hole-near" -> options = options.copy(holeNear = true)
+            "--hole-near" -> options = options.copy(holeNear = if (value == null) HOLE_NEAR_DISTANCE else value.toFloatOrNull()?.takeIf { it > 0f } ?: options.holeNear)
+            "--invulnerable" -> options = options.copy(invulnerable = true)
             "--debug-panel" -> options = options.copy(debugPanel = true)
             "--play" -> options = options.copy(play = true)
             "--pilot-view" -> options = options.copy(pilotView = true)

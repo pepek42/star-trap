@@ -54,6 +54,8 @@ class GameplayDeps(
     val hullSounds: HullSoundQueue? = null,
     /** Events for the ship's computer to sonify when their light arrives (ST-136); null in the headless balance runner. */
     val computerSounds: ComputerSoundQueue? = null,
+    /** Harness flag `--invulnerable`: the player never dies. */
+    val invulnerablePlayer: Boolean = false,
 )
 
 /** Systems the presentation layer needs a handle on. */
@@ -106,7 +108,7 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
         addSystem(ObserverSystem(deps.observerState, deps.settings, deps.clock))
         presentation(systems)
         addSystem(LifetimeSystem(deps.clock))
-        addSystem(DeathSystem(this, deps.asteroidProvider, deps.random, deps.computerSounds, deps.clock, deps.onPlayerDeath))
+        addSystem(DeathSystem(this, deps.asteroidProvider, deps.random, deps.computerSounds, deps.clock, deps.invulnerablePlayer, deps.onPlayerDeath))
         addSystem(RemoveSystem(deps.world, deps.mapProvider))
     }
     return systems

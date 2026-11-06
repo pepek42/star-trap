@@ -23,6 +23,7 @@ import ktx.ashley.has
 import ktx.math.plus
 import ktx.math.vec2
 import com.badlogic.gdx.math.RandomXS128
+import com.github.pepek42.asteroids.provider.PLAYER_START_HEALTH
 
 class DeathSystem(
     private val engine: Engine,
@@ -31,6 +32,8 @@ class DeathSystem(
     /** Break-up events for the ship's computer (ST-136); null in headless runs. Needs [clock] for the event time. */
     private val computerSounds: ComputerSoundQueue? = null,
     private val clock: GameClock? = null,
+    /** Harness only (`--invulnerable`): the player is healed back to full instead of ending the run (black hole horizon included). */
+    private val invulnerablePlayer: Boolean = false,
     private val onPlayerDeath: () -> Unit = {},
 ) : IteratingSystem(allOf(HealthComponent::class).get()) {
     private var playerDeathReported = false
@@ -45,6 +48,10 @@ class DeathSystem(
             return
         }
         if (entity.has(playerMapper)) {
+            if (invulnerablePlayer) {
+                entity.healthCmp.health = PLAYER_START_HEALTH
+                return
+            }
             // The run ends instead of removing the player; the screen switch cleans the level up.
             if (!playerDeathReported) {
                 playerDeathReported = true

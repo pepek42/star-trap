@@ -43,8 +43,15 @@ class LaunchOptionsTest {
 
     @Test
     fun parsesHoleNear() {
-        assertEquals(true, parseLaunchOptions(arrayOf("--hole-near")).holeNear)
-        assertEquals(false, parseLaunchOptions(arrayOf()).holeNear)
+        assertEquals(HOLE_NEAR_DISTANCE, parseLaunchOptions(arrayOf("--hole-near")).holeNear)
+        assertEquals(18f, parseLaunchOptions(arrayOf("--hole-near=18")).holeNear)
+        assertEquals(null, parseLaunchOptions(arrayOf("--hole-near=x")).holeNear)
+        assertEquals(null, parseLaunchOptions(arrayOf()).holeNear)
+        assertEquals(true, parseLaunchOptions(arrayOf("--invulnerable")).invulnerable)
+        assertEquals(false, parseLaunchOptions(arrayOf()).invulnerable)
+        val web = parseLaunchOptions(queryToLaunchArgs("?play&hole-near=18&invulnerable"))
+        assertEquals(18f, web.holeNear)
+        assertEquals(true, web.invulnerable)
         assertEquals(true, parseLaunchOptions(arrayOf("--pilot-view")).pilotView)
         assertEquals(false, parseLaunchOptions(arrayOf()).pilotView)
         assertEquals(true, parseLaunchOptions(queryToLaunchArgs("?play&pilot-view")).pilotView)

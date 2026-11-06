@@ -18,7 +18,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-43. ST-095 Lighting math (pure)
 44. ST-096 Normal maps from alpha in the texture packer
 45. ST-097 Lit sprites: accretion disks light ships, asteroids and planets
 46. ST-098 Shadows from planets and large asteroids
@@ -37,8 +36,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 57. ST-089 Accretion disk in pilot view
 
 ---
-
-## Web build
 
 ## M3 Relativity MVP
 
@@ -206,27 +203,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - [ ] Screenshot (pilot view, near a hole) viewed by the agent: one side of the disk is brighter and bluer
   - [ ] `./gradlew core:test` passes
 - playtest: Orbit a hole in pilot view: the approaching half of the disk glows blue-white and the other half dims red.
-
-### ST-095 Lighting math: falloff, wrapped diffuse and light picking (pure)
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-043
-- files: create `render/Lighting.kt`; create `core/src/test/kotlin/com/github/pepek42/asteroids/render/LightingTest.kt`
-- goal: First slice of lighting (owner 2026-11-02: "lighting should work as expected"). Pure functions that the lit-sprite shader (ST-097) mirrors, so falloff and direction can be proven in tests.
-- spec (no allocation; arena units; lights live in the arena plane at a small height):
-  - `class LightSource { var x = 0f; var y = 0f; var z = LIGHT_HEIGHT; var r = 1f; var g = 1f; var b = 1f; var intensity = 1f; var size = 1f; var range = 100f; var directional = false }`. `directional = true` means `(x, y)` is a unit direction toward the light (a light at infinity, ST-099).
-  - Constants: `LIGHT_HEIGHT = 2f`, `LIGHT_AMBIENT = 0.35f` (keeps the unlit side readable, like ST-080's brightness floor), `MAX_LIGHTS_PER_SPRITE = 4`. Accretion-disk light: `DISK_LIGHT_INTENSITY = 3f`, `DISK_LIGHT_SIZE = DISK_OUTER` (24 u), `DISK_LIGHT_RANGE = 120f`, colour `BlackbodyLut` at `0.85·DISK_T_PEAK`. The hole itself emits nothing; the disk is approximated as one soft point light at the hole centre (declared FAKE: an annulus as a point light of size `DISK_OUTER`).
-  - `fun falloff(d: Float, size: Float, range: Float): Float = (1/(1 + (d/size)²))·(1 − smoothstep(0.75·range, range, d))`: inverse square, softened at the emitter size, faded to 0 at the range so lights can be culled.
-  - `fun wrapDiffuse(nDotL: Float, wrap: Float): Float = max(0, (nDotL + wrap)/(1 + wrap))`, with `wrap = clamp(size/d, 0, 1)` for point lights (an extended source seen from close lights more than a hemisphere; inside the disk radius the object is lit from all around), and `wrap = 0` for directional lights.
-  - `fun lightDir(px, py, light, out: Vector3): Float`: unit vector from the point to the light (`(lx − px, ly − py, z)` normalised; for directional `(x, y, LIGHT_HEIGHT/10)` normalised) and returns the in-plane distance (∞ for directional).
-  - `fun shade(nx, ny, nz, px, py, lights: Array<LightSource>, idx: IntArray, n: Int, ambient: Float, out: FloatArray)`: `out(rgb) = ambient + Σ colour·intensity·falloff·wrapDiffuse(N·L)` (falloff 1 for directional).
-  - `fun pickLights(px, py, lights, count, max, outIdx: IntArray): Int`: the indices of up to `max` lights with the largest `intensity·falloff(d)`, skipping those with 0. Insertion into a small sorted array, no allocation.
-- acceptance:
-  - [ ] Tests: `falloff(0, 4, 100) == 1`, `falloff(4, 4, 100) == 0.5`, `falloff(100, 4, 100) == 0`, monotonic in d
-  - [ ] Tests: a normal facing the light gets `ambient + intensity`; facing away with `wrap = 0` gets `ambient` only; with `wrap = 1` the back side still gets half the front side's diffuse
-  - [ ] Test: `pickLights` with 6 lights returns the 4 strongest at the point, in descending order, and skips one beyond its range
-  - [ ] `./gradlew core:test` passes
 
 ### ST-096 Normal maps from sprite alpha in the texture packer
 - status: ready

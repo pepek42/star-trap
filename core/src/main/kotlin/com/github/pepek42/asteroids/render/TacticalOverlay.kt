@@ -41,6 +41,15 @@ const val TACTICAL_LEAD_RANGE_SECONDS = 2f
 /** Radius of an intercept marker ring in screen pixels. */
 const val TACTICAL_LEAD_RING_PX = 6f
 
+/** Radius of the auto-aim lock-on reticle circle in screen pixels (ST-142). */
+const val LOCK_RETICLE_RADIUS_PX = 14f
+
+/** Gap between the reticle circle and the inner end of each tick, in screen pixels. */
+const val LOCK_RETICLE_TICK_GAP_PX = 4f
+
+/** Length of each reticle tick in screen pixels. */
+const val LOCK_RETICLE_TICK_LEN_PX = 8f
+
 /** Intercept marker range in world units: [TACTICAL_LEAD_RANGE_SECONDS] of light travel. Pass the runtime `settings.c`. */
 fun tacticalLeadRange(c: Float): Float = TACTICAL_LEAD_RANGE_SECONDS * c
 

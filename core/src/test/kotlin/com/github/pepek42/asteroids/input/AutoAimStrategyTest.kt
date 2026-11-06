@@ -140,7 +140,7 @@ class AutoAimStrategyTest {
     }
 
     @Test
-    fun prefersAsteroidOverCloserDebris() {
+    fun ignoresCloserDebrisAndTargetsAsteroid() {
         val s = scenario(withDebris = true)
         runStrategy(s)
         assertTrue(s.weapon.doAttack)
@@ -148,11 +148,11 @@ class AutoAimStrategyTest {
     }
 
     @Test
-    fun picksDebrisWhenNothingElseIsInCone() {
+    fun debrisAloneIsNeverTargeted() {
         val s = scenario(asteroidAhead = false, withDebris = true)
         runStrategy(s)
-        assertTrue(s.weapon.doAttack)
-        assertEquals(EntityType.DEBRIS, s.strategy.target?.baseInfoCmp?.entityType)
+        assertFalse(s.weapon.doAttack)
+        assertNull(s.strategy.target)
     }
 
     private fun Entity.bodyOf(): Body = getComponent(BodyComponent::class.java).body

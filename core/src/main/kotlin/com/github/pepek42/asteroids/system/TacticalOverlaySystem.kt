@@ -44,6 +44,10 @@ import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.LASER_DAMAGE_LABEL_MIN_FACTOR
 import com.github.pepek42.asteroids.render.displayedPhotonFactor
 import com.github.pepek42.asteroids.render.formatDamageFactor
+import com.github.pepek42.asteroids.render.LOCK_RETICLE_RADIUS_PX
+import com.github.pepek42.asteroids.render.LOCK_RETICLE_TICK_GAP_PX
+import com.github.pepek42.asteroids.render.LOCK_RETICLE_TICK_LEN_PX
+import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.TACTICAL_ARROW_HEAD_PX
 import com.github.pepek42.asteroids.render.TACTICAL_LEAD_MAX
 import com.github.pepek42.asteroids.render.TACTICAL_LEAD_RING_PX
@@ -60,6 +64,8 @@ import com.github.pepek42.asteroids.render.tacticalOverlayVisible
 import com.github.pepek42.asteroids.render.worldPerPixel
 import com.github.pepek42.asteroids.settings.TacticalSettings
 import com.github.pepek42.asteroids.ui.ARENA_BOUNDARY_COLOR
+import com.github.pepek42.asteroids.ui.LOCK_RETICLE_ALPHA
+import com.github.pepek42.asteroids.ui.LOCK_RETICLE_COLOR
 import com.github.pepek42.asteroids.ui.PLAYER_MARKER_COLOR
 import com.github.pepek42.asteroids.ui.TACTICAL_ALPHA
 import com.github.pepek42.asteroids.ui.TACTICAL_BORDER_ALPHA
@@ -89,6 +95,7 @@ class TacticalOverlaySystem(
     private val shape: ShapeRenderer = ShapeRenderer(),
     private val batch: SpriteBatch? = null,
     private val font: BitmapFont? = null,
+    private val pilotView: PilotViewProjector? = null,
 ) : IteratingSystem(
     allOf(BaseInfoComponent::class, BodyComponent::class, TransformComponent::class)
         .exclude(RemoveComponent::class).get()
@@ -112,6 +119,7 @@ class TacticalOverlaySystem(
     private val leadIndex = IntArray(TACTICAL_LEAD_MAX)
     private val leadDir = Vector2()
     private val muzzle = Vector2()
+    private val reticlePos = Vector2()
 
     override fun addedToEngine(engine: Engine) {
         super.addedToEngine(engine)
@@ -132,6 +140,7 @@ class TacticalOverlaySystem(
 
     override fun update(deltaTime: Float) {
         val tier = players?.let { if (it.size() > 0) it[0] else null }?.tacticalComputerCmpOptional?.tier ?: TACTICAL_TIER_NONE
+        drawLockReticle()
         if (!tacticalOverlayVisible(tactical.mode, relativity.pilotView, tier, tactical.inverted)) return
 
         viewport.apply()
@@ -150,6 +159,46 @@ class TacticalOverlaySystem(
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         Gdx.gl.glDisable(GL20.GL_BLEND)
         drawLaserDamageLabel()
+    }
+
+    /**
+     * Auto-aim lock-on reticle (ST-142): circle plus four ticks on the locked target, constant screen size, at the position
+     * its sprite is drawn (apparent, light-delayed centre in pilot view, interpolated position in world view). Part of
+     * auto-aim, so independent of the overlay toggle. Runs after the render system, so it is drawn over the sprites.
+     */
+    private fun drawLockReticle() {
+        val target = playerInput?.autoAimTarget ?: return
+        if (removeMapper.has(target)) return
+        val player = players?.let { if (it.size() > 0) it[0] else null } ?: return
+        val view = pilotView
+        if (relativity.pilotView && view != null) {
+            val p = player.transformCmp.interpolatedPosition
+            view.begin(p.x, p.y)
+            if (!view.apparentCentre(target, reticlePos)) return
+        } else {
+            reticlePos.set(target.transformCmp.interpolatedPosition)
+        }
+        viewport.apply()
+        wpp = worldPerPixel(camera.viewportWidth, camera.zoom, viewport.screenWidth)
+        val radius = LOCK_RETICLE_RADIUS_PX * wpp
+        val inner = radius + LOCK_RETICLE_TICK_GAP_PX * wpp
+        val outer = inner + LOCK_RETICLE_TICK_LEN_PX * wpp
+        val x = reticlePos.x
+        val y = reticlePos.y
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_ZERO, GL20.GL_ONE)
+        shape.projectionMatrix = camera.combined
+        shape.begin(ShapeRenderer.ShapeType.Line)
+        color.set(LOCK_RETICLE_COLOR).a = LOCK_RETICLE_ALPHA
+        shape.color = color
+        shape.circle(x, y, radius)
+        shape.line(x - outer, y, x - inner, y)
+        shape.line(x + inner, y, x + outer, y)
+        shape.line(x, y - outer, x, y - inner)
+        shape.line(x, y + inner, x, y + outer)
+        shape.end()
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+        Gdx.gl.glDisable(GL20.GL_BLEND)
     }
 
     /**

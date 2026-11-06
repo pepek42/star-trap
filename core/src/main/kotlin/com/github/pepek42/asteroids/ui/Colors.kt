@@ -19,3 +19,9 @@ val DAMAGE_UP_COLOR: Color = Color(0.3f, 1f, 0.3f, 1f)
 
 /** Laser damage multiplier label colour below x1 (tactical overlay). */
 val DAMAGE_DOWN_COLOR: Color = Color(1f, 0.3f, 0.3f, 1f)
+
+/** Colour of the auto-aim lock-on reticle (assist, ST-142). */
+val LOCK_RETICLE_COLOR: Color = Color(1f, 0.35f, 0.15f, 1f)
+
+/** Alpha of the auto-aim lock-on reticle. */
+const val LOCK_RETICLE_ALPHA = 0.9f

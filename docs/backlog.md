@@ -19,7 +19,6 @@ Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
 41a. ST-140 Accretion disk follow-ups: colour gradient and a hole-in-view harness flag
-41c. ST-142 Auto-aim: asteroids only, with a lock-on crosshair (owner 2026-11-06)
 43. ST-095 Lighting math (pure)
 44. ST-096 Normal maps from alpha in the texture packer
 45. ST-097 Lit sprites: accretion disks light ships, asteroids and planets
@@ -198,22 +197,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - [ ] Screenshot with `--seed=42 --hole-near` shows the hole and disk in view
   - [ ] `./gradlew core:test` passes
 - playtest: The disk is clearly colourful: whiter/yellow inside, orange-red outside.
-
-### ST-142 Auto-aim: asteroids only, with a lock-on crosshair (owner 2026-11-06)
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-139
-- files: `input/AutoAimStrategy.kt`, `system/TacticalOverlaySystem.kt` (or a small new `render/` helper), `render/` constants; tests
-- goal: Assist. Owner: aim assist should be for asteroids only, and show a crosshair on the locked target. Today auto-aim targets anything with health (debris, ranked last since ST-139) and nothing shows the lock.
-- spec:
-  - `AutoAimStrategy` candidates: only `EntityType.ASTEROID` (drop the ST-139 two-pass debris ranking; `pickTargetIndex`'s `from` param can stay or go). Target picking otherwise unchanged (cone ahead of the hull, range, light-delayed positions).
-  - Lock-on reticle: when `PlayerInputSystem.autoAimTarget` is non-null (auto-aim scheme only), draw a crosshair on it: a circle plus four short ticks (gap in the middle), constant screen size (px constant × world-per-pixel, like the tactical overlay's markers), drawn at the target's **displayed** (light-delayed) position in pilot view and the interpolated position in world view, matching where the sprite is drawn. Colour: a distinct assist colour (e.g. red-orange), alpha ~0.9. Draw it regardless of the tactical-overlay toggle (it's part of auto-aim), but after sprites. No per-frame allocation.
-- acceptance:
-  - [ ] Test: with a debris piece (or planet) and no asteroid in the cone, auto-aim has no target; with an asteroid, it targets the asteroid
-  - [ ] Existing AutoAimStrategy tests pass (update the ST-139 debris tests accordingly)
-  - [ ] `./gradlew core:test` passes
-- playtest: In the default auto-aim scheme, a crosshair sits on the asteroid the guns are firing at and jumps when the lock changes; debris and planets are never locked.
 
 ### ST-088 Gravitational lensing of the backdrop
 - status: ready

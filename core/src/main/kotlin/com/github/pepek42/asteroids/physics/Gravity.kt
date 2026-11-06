@@ -26,6 +26,29 @@ const val SOURCE_COUPLING_DEFAULT = 0.1f
  */
 const val PLAYER_GM = 30f
 
+/** Default of `RelativitySettings.gravityEnabled`: gravity sources act (ST-083). Without sources the system does nothing. */
+const val GRAVITY_ENABLED = true
+
+/** Upper bound of `RelativitySettings.playerGm`, the debug slider range (ST-083). */
+const val PLAYER_GM_MAX = 200f
+
+/**
+ * A photon closer than `PHOTON_SUBSTEP_RADIUS_PER_RS * r_s` to a black hole bends in [PHOTON_SUBSTEPS] substeps per game
+ * step. At c = 20 and 60 Hz a photon moves about 0.33 u per step against `r_s` = 2, which is too coarse near the photon
+ * sphere (critical impact parameter `b_c` = 2.6 `r_s`). 6 `r_s` is over twice `b_c`: every photon that can still be
+ * captured or strongly bent gets the fine integration, and far photons stay at one cheap step.
+ */
+const val PHOTON_SUBSTEP_RADIUS_PER_RS = 6f
+
+/** Substeps per game step for photons near a hole (a tenth of the step, as `GravityTest`'s fine step). */
+const val PHOTON_SUBSTEPS = 10
+
+/** Softening of the player's pull on sources (ST-083): the player is not a point mass. */
+const val PLAYER_PULL_SOFTENING = 2f
+
+/** Floor of the source-to-source softening (ST-083); the actual value is `max(radius_i + radius_j, this)`. */
+const val SOURCE_PULL_MIN_SOFTENING = 1f
+
 /** `GM` of a hole with Schwarzschild radius [rs]: `r_s = 2 GM / c^2`, so `GM = r_s c^2 / 2` (400 for `BH_RS` at c = 20). */
 fun gmFromRs(rs: Float, c: Float): Float = rs * c * c / 2f
 

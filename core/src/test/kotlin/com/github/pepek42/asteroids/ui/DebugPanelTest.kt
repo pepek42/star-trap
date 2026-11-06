@@ -145,4 +145,24 @@ class DebugPanelTest {
         assertTrue(rel.photonDopplerDamage)
         assertTrue(rel.gammaMassEnabled)
     }
+
+    @Test
+    fun resetRestoresGravitySettings() {
+        val rel = RelativitySettings(gravityEnabled = false, sourceCoupling = 0.9f, playerGm = 150f)
+        resetDebugDefaults(rel, DebugSettings(debugMode = true, panelVisible = true, timeScale = 1f, showVectors = false))
+        assertTrue(rel.gravityEnabled)
+        assertEquals(com.github.pepek42.asteroids.physics.SOURCE_COUPLING_DEFAULT, rel.sourceCoupling)
+        assertEquals(com.github.pepek42.asteroids.physics.PLAYER_GM, rel.playerGm)
+    }
+
+    @Test
+    fun gravitySettingsClamp() {
+        val rel = RelativitySettings(sourceCoupling = 5f, playerGm = -1f)
+        assertEquals(1f, rel.sourceCoupling)
+        assertEquals(0f, rel.playerGm)
+        rel.sourceCoupling = -2f
+        rel.playerGm = 1000f
+        assertEquals(0f, rel.sourceCoupling)
+        assertEquals(com.github.pepek42.asteroids.physics.PLAYER_GM_MAX, rel.playerGm)
+    }
 }

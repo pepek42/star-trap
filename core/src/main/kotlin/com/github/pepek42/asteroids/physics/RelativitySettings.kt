@@ -24,6 +24,9 @@ class RelativitySettings(
     timeWarpMax: Float = TIME_WARP_MAX,
     var gammaMassEnabled: Boolean = GAMMA_MASS_ENABLED,
     photonDopplerDamage: Boolean = true,
+    gravityEnabled: Boolean = GRAVITY_ENABLED,
+    sourceCoupling: Float = SOURCE_COUPLING_DEFAULT,
+    playerGm: Float = PLAYER_GM,
 ) {
     var relativityEnabled: Boolean = relativityEnabled
 
@@ -59,6 +62,21 @@ class RelativitySettings(
      * (ST-081, research E12). Only applies while [relativityEnabled].
      */
     var photonDopplerDamage: Boolean = photonDopplerDamage
+
+    /** Gravity sources act on bodies and photons (ST-083). Off: no body or photon feels any pull. */
+    var gravityEnabled: Boolean = gravityEnabled
+
+    /** Scale of the source-to-source pull, 0..1 (ST-083); 0 leaves the sources at rest. FAKE, see [SOURCE_COUPLING_DEFAULT]. */
+    var sourceCoupling: Float = sourceCoupling.coerceIn(0f, 1f)
+        set(value) {
+            field = value.coerceIn(0f, 1f)
+        }
+
+    /** `GM` of the player as a source, pulling only gravity sources (ST-083), clamped to 0..[PLAYER_GM_MAX]. */
+    var playerGm: Float = playerGm.coerceIn(0f, PLAYER_GM_MAX)
+        set(value) {
+            field = value.coerceIn(0f, PLAYER_GM_MAX)
+        }
 
     // gammaMassEnabled (constructor property, ST-047): Box2D mass = min(γ, GAMMA_MASS_CAP)·m₀ while relativity is on.
 

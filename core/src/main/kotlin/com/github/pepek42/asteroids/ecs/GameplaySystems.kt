@@ -19,6 +19,7 @@ import com.github.pepek42.asteroids.system.BoundaryFieldSystem
 import com.github.pepek42.asteroids.system.ContactSystem
 import com.github.pepek42.asteroids.system.DeathSystem
 import com.github.pepek42.asteroids.system.EndLevelSystem
+import com.github.pepek42.asteroids.system.GravitySystem
 import com.github.pepek42.asteroids.system.LifetimeSystem
 import com.github.pepek42.asteroids.system.LightHistorySystem
 import com.github.pepek42.asteroids.system.MoveSystem
@@ -60,7 +61,7 @@ class GameplaySystems(val lightHistory: LightHistorySystem)
 
 /**
  * Registers the gameplay systems on `deps.engine` in the one true execution order (CLAUDE.md): time warp, end level,
- * input, move, weapons, contact, boundary field, projectile sweep, relativistic dynamics, light history, physics, observer,
+ * input, move, weapons, contact, boundary field, gravity, projectile sweep, relativistic dynamics, light history, physics, observer,
  * [presentation], lifetime, death, remove. Registration order is execution order.
  *
  * [presentation] runs after the observer system and registers camera, render, debug, HUD and minimap systems (needs GL, so
@@ -69,6 +70,8 @@ class GameplaySystems(val lightHistory: LightHistorySystem)
 fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> Unit = {}): GameplaySystems {
     val moveSystem = MoveSystem(deps.settings)
     val boundaryFieldSystem = BoundaryFieldSystem(deps.mapProvider, deps.shimmerImpacts, deps.settings)
+    // After the boundary field and before the sweep and relativisticDynamics: it adds to accel / applies forces.
+    val gravitySystem = GravitySystem(deps.settings)
     val projectileSweepSystem = ProjectileSweepSystem(deps.world, deps.settings)
     // Must be the last step listener: it integrates the accelerations the others added.
     val relativisticDynamics = RelativisticDynamics(deps.settings)
@@ -89,13 +92,14 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
         addSystem(WeaponSystem(deps.weaponProjectileProvider, deps.clock, deps.hullSounds))
         addSystem(contactSystem)
         addSystem(boundaryFieldSystem)
+        addSystem(gravitySystem)
         addSystem(projectileSweepSystem)
         addSystem(relativisticDynamics)
         addSystem(lightHistory)
         addSystem(
             PhysicsSystem(
                 deps.world, this,
-                listOf(moveSystem, boundaryFieldSystem, projectileSweepSystem, relativisticDynamics, lightHistory, contactSystem),
+                listOf(moveSystem, boundaryFieldSystem, gravitySystem, projectileSweepSystem, relativisticDynamics, lightHistory, contactSystem),
                 deps.clock,
             )
         )

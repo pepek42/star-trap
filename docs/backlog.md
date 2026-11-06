@@ -18,7 +18,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-35. ST-083 GravitySystem: n-body sources, bodies and photons
 37. ST-085 Black holes: spawn, horizon, merge, shadow, rings
 38. ST-093 Planets: solid gravity sources
 39. ST-094 Level decoration: drifting debris
@@ -186,32 +185,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 
 - note (2026-11-02, owner follow-up, game-design §11 Q1 answered): black holes, planets and decoration **start static** (placed at level start, zero velocity) but are **dynamic and feel gravity**: n-body among the sources, plus the player's pull. **Decision (planner):** sources are Box2D dynamic bodies on the **Newtonian path** (no `RelativisticComponent`): they are heavy and stay far below 0.1 c, so γ ≈ 1 and they need neither `RelativisticDynamics`, nor the γ-mass of ST-047, nor the ship clocks of ST-040. Black holes get a sensor body (no contacts, ignored by the projectile sweep, which already skips sensors); planets get a solid body. Because they have bodies, `BoundaryFieldSystem` (which acts on every `BodyComponent`) keeps them in the arena with no extra code, and `LightHistorySystem` records them for the pilot view. With the physical pull, two holes 60 u apart would collide in about 6 s, so source–source gravity is scaled by `sourceCoupling = 0.1` (declared FAKE, about 19 s), pending ST-092. Holes that touch merge. Counts stay low for performance: at most 2 holes, 2 planets and 6 debris pieces per level.
 - note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
-
-### ST-083 GravitySystem: n-body sources, bodies and photons
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-039, ST-082
-- files: create `component/GravitySourceComponent.kt`, `system/GravitySystem.kt`; edit `physics/RelativitySettings.kt`, `screen/PlayScreen.kt`, `ui/DebugPanel.kt`; create `system/GravitySystemTest.kt`
-- goal: Put gravity into the per-step physics (research E14). Ships and asteroids orbit and slingshot, lasers curve around holes, and the sources themselves move: they start at rest and pull each other, and the player pulls them (owner 2026-11-02).
-- spec:
-  - `enum class GravitySourceKind { BLACK_HOLE, PLANET }`. `GravitySourceComponent { var kind = BLACK_HOLE; var rs = BH_RS; var gm = 0f; var softening = 0.5f; var radius = 0f }` (Poolable, mapper and `gravitySourceCmp`/`gravitySourceCmpOptional`, per the convention). For `BLACK_HOLE` the effective `gm = gmFromRs(rs, settings.c)` is computed each step (c is a setting); for `PLANET` `gm` is used as stored and `radius` is the surface radius. **Every source has a Box2D dynamic body** (ST-085, ST-093) and its position and velocity come from the body. Sources have **no** `RelativisticComponent` (the Newtonian path, see the M5 note).
-  - `GravitySystem(settings) : EntitySystem(), PhysicsStepListener`, families: sources `allOf(GravitySourceComponent, BodyComponent)`, bodies `allOf(BodyComponent, BaseInfoComponent).exclude(GravitySourceComponent)`, player `allOf(PlayerComponent, BodyComponent)`. Register it in the step-listener list after `boundaryFieldSystem` and before `projectileSweepSystem` (so before `relativisticDynamics`). `beforeStep(dt)`, skipped if `!settings.gravityEnabled` or there are no sources:
-    - **Sources (n-body).** For each source i: `a = Σ_{j≠i} settings.sourceCoupling·newtonAccel(r⃗_ij, gm_j, softening = max(radius_i + radius_j, 1f))` + `newtonAccel(r⃗_i,player, settings.playerGm, softening = 2f)` (only if a player exists). Apply `body.applyForceToCenter(a·mass)`. O(n²) with n ≤ 4, so negligible. Asteroids, debris and photons don't pull sources.
-    - **Relativistic bodies** (`RelativisticComponent`, relativity on): for each source, `rel.accel += gravityAccelTau(r⃗, rel.u, gm, c, softening) / rel.gUsed` for black holes, and `newtonAccel(r⃗, gm, softening = radius)/rel.gUsed` for planets (planets are weak, no strong-field term).
-    - **Other dynamic bodies** (or relativity off): `body.applyForceToCenter(newtonAccel·mass)` per source.
-    - **Photons** (`PhotonComponent`): `dir = bendPhoton(r⃗, dir, gm, c, dt)` per source (holes and planets; the player doesn't bend light), `body.linearVelocity = c·dir`, and the body angle follows `dir`.
-    - **Substep near holes** (ST-082 finding): at c = 20 a photon moves about 0.33 u per game step against r_s = 2, so bending is inaccurate near the photon sphere (b ≈ 2.6–2.9 r_s). Substep `bendPhoton` (e.g. 10×, as GravityTest`'s `FINE_DT`) when r < ~6 r_s; derive the threshold from `BH_RS`.
-    - Other kinematic projectiles: `v += newtonAccel·dt`.
-  - `RelativitySettings`: append `gravityEnabled: Boolean = GRAVITY_ENABLED` (`const val GRAVITY_ENABLED = true`), `sourceCoupling: Float = SOURCE_COUPLING_DEFAULT` (clamped to [0, 1]) and `playerGm: Float = PLAYER_GM` (clamped to [0, 200]), restored by `resetDebugDefaults`. Debug panel: checkbox "gravity", sliders "source coupling" and "player GM".
-  - The system does nothing when there are no sources, so all levels play as before until ST-085.
-- acceptance:
-  - [ ] Test (real `World`, a black-hole source on a dynamic sensor body at the origin, player-like relativistic body): released at rest at r = 30, it falls inward, and after 0.5 s its radial speed matches the integrated `gravityAccelTau/γ` within 5 %
-  - [ ] Test: a photon passing at b = 40 is deflected 0.1 rad ± 15 % (the sweep through the real system)
-  - [ ] Test: two black-hole sources at rest 60 u apart move toward each other with equal and opposite velocities (within 1 %), and with `sourceCoupling = 0` they stay at rest
-  - [ ] Test: a source at rest 10 u from the player gains velocity toward the player of `playerGm/100·t` (± 5 % after 0.5 s); an asteroid next to the source doesn't move the source
-  - [ ] Test: `gravityEnabled = false` → no velocity change on any body
-  - [ ] `./gradlew core:test` passes
 
 ### ST-085 Black holes in the arena: spawn, horizon, merge, shadow and rings
 - status: ready

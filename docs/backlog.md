@@ -14,7 +14,6 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 M3 Relativity MVP:
 
 M4 Relativistic view:
-33. ST-137 Intercept markers: muzzle offset and tier toggle
 
 Audio (owner 2026-11-05):
 33. ST-134 Sound generator tool (procedural SFX -> assets/sounds)
@@ -182,22 +181,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] Tests: `beamBrightness(2f, true) == 3f` (clamped from 4); `beamBrightness(0.3f, true) == 0.25f` (floor); `beamBrightness(0.6f, false) == 0.6f`; `beamBrightness(1f, true) == 1f`
   - [ ] `./gradlew core:test` passes
 - playtest: At speed the view ahead is bright, and asteroids behind you are dim but outlined. Check whether the outline is too strong.
-
-### ST-137 Intercept markers: muzzle offset and tier toggle
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-125
-- refs: `system/TacticalOverlaySystem.kt` (`drawInterceptMarkers`), `physics/PhotonAim.kt` (`trueLeadDirection`), `component/WeaponComponent.kt` (`weaponPosition`), `settings/TacticalSettings.kt`, `settings/MenuSettings.kt`
-- goal: Follow-ups of ST-125 (assist layer).
-- spec:
-  - Use the muzzle world position (hull centre + `weaponPosition` rotated by the hull angle) as the shooter point `s` for `trueLeadDirection`, so close targets have no parallax error. No per-frame allocation.
-  - Add `TacticalSettings.showInterceptMarkers` (default on) as a menu Toggle next to the other tactical settings (i18n label + hint); markers draw only when it is on and the tier allows.
-- acceptance:
-  - [ ] Test: with a non-zero `weaponPosition`, the marker ring for a static target lies on the muzzle-to-target line
-  - [ ] Test: toggle off draws no marker circles
-  - [ ] `./gradlew core:test` passes
-- playtest: Toggle "intercept markers" in settings; at close range the ring sits where the shot actually hits.
 
 ---
 

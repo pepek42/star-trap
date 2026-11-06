@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.RandomXS128
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.Box2D
@@ -25,6 +26,7 @@ import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.relativisticCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.component.tacticalComputerCmp
+import com.github.pepek42.asteroids.component.weaponCmp
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.input.ControlScheme
@@ -139,6 +141,8 @@ class TacticalOverlaySystemTest {
 
     @Test
     fun removedEntityIsNotDrawn() {
+        // Wireframe tier: no intercept marker lines, so only the outline segments of the asteroid count.
+        player().tacticalComputerCmp.tier = TACTICAL_TIER_WIREFRAME
         val before = linesWithAsteroidVelocity(0f)
         asteroid().add(engine.createComponent(RemoveComponent::class.java))
         org.mockito.Mockito.clearInvocations(shape)
@@ -177,6 +181,49 @@ class TacticalOverlaySystemTest {
         val circle = org.mockito.Mockito.mockingDetails(shape).invocations.first { it.method.name == "circle" }
         assertEquals(asteroid().transformCmp.interpolatedPosition.x, circle.arguments[0] as Float, 1e-3f)
         assertEquals(asteroid().transformCmp.interpolatedPosition.y, circle.arguments[1] as Float, 1e-3f)
+    }
+
+    @Test
+    fun markerRingSitsOnTheMuzzleToTargetLine() {
+        // ST-137: the shooter point is the muzzle (hull centre + weaponPosition), not the hull centre.
+        moveAsteroidNearPlayer()
+        controls.scheme = ControlScheme.MOUSE_HULL
+        val weaponOffset = Vector2(0f, 2f)
+        player().weaponCmp.weaponPosition.set(weaponOffset)
+        val playerTr = player().transformCmp
+        val angle = playerTr.interpolatedRotationDeg * MathUtils.degreesToRadians
+        val muzzleX = playerTr.interpolatedPosition.x + weaponOffset.x * MathUtils.cos(angle) - weaponOffset.y * MathUtils.sin(angle)
+        val muzzleY = playerTr.interpolatedPosition.y + weaponOffset.x * MathUtils.sin(angle) + weaponOffset.y * MathUtils.cos(angle)
+        org.mockito.Mockito.clearInvocations(shape)
+        system.update(0.016f)
+        val circle = org.mockito.Mockito.mockingDetails(shape).invocations.first { it.method.name == "circle" }
+        val ringX = circle.arguments[0] as Float
+        val ringY = circle.arguments[1] as Float
+        val targetX = asteroid().transformCmp.interpolatedPosition.x
+        val targetY = asteroid().transformCmp.interpolatedPosition.y
+        // Static target: the ring sits on the target, which lies on the muzzle-to-target line (zero cross product, same side).
+        assertEquals(targetX, ringX, 1e-3f)
+        assertEquals(targetY, ringY, 1e-3f)
+        val ax = ringX - muzzleX
+        val ay = ringY - muzzleY
+        val bx = targetX - muzzleX
+        val by = targetY - muzzleY
+        assertEquals(0f, ax * by - ay * bx, 1e-2f)
+        assertTrue(ax * bx + ay * by > 0f)
+    }
+
+    @Test
+    fun interceptMarkersToggleOffDrawsNoMarkers() {
+        moveAsteroidNearPlayer()
+        player().tacticalComputerCmp.tier = TACTICAL_TIER_INTERCEPT
+        tactical.showInterceptMarkers = false
+        org.mockito.Mockito.clearInvocations(shape)
+        system.update(0.016f)
+        assertEquals(0, circleCalls())
+        tactical.showInterceptMarkers = true
+        org.mockito.Mockito.clearInvocations(shape)
+        system.update(0.016f)
+        assertEquals(1, circleCalls())
     }
 
     @Test

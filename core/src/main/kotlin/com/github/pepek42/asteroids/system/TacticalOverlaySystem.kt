@@ -29,6 +29,7 @@ import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.component.tacticalComputerCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
+import com.github.pepek42.asteroids.component.weaponCmpOptional
 import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.removeMapper
 import com.github.pepek42.asteroids.faction.FactionEnum
@@ -110,6 +111,7 @@ class TacticalOverlaySystem(
     private val leadDist2 = FloatArray(TACTICAL_LEAD_MAX)
     private val leadIndex = IntArray(TACTICAL_LEAD_MAX)
     private val leadDir = Vector2()
+    private val muzzle = Vector2()
 
     override fun addedToEngine(engine: Engine) {
         super.addedToEngine(engine)
@@ -140,7 +142,7 @@ class TacticalOverlaySystem(
         shape.projectionMatrix = camera.combined
         shape.begin(ShapeRenderer.ShapeType.Line)
         super.update(deltaTime)
-        if (tier >= TACTICAL_TIER_INTERCEPT) drawInterceptMarkers()
+        if (tier >= TACTICAL_TIER_INTERCEPT && tactical.showInterceptMarkers) drawInterceptMarkers()
         color.set(ARENA_BOUNDARY_COLOR).a = TACTICAL_BORDER_ALPHA
         shape.color = color
         shape.rect(0f, 0f, mapProvider.mapWidth, mapProvider.mapHeight)
@@ -159,7 +161,8 @@ class TacticalOverlaySystem(
         val list = candidates ?: return
         val c = relativity.c
         val range2 = tacticalLeadRange(c).let { it * it }
-        val sPos = player.transformCmp.interpolatedPosition
+        // The shooter point is the muzzle (ST-137), so close targets have no parallax error against the hull centre.
+        val sPos = muzzleWorld(player, muzzle)
         val sx = sPos.x
         val sy = sPos.y
         var n = 0
@@ -206,6 +209,23 @@ class TacticalOverlaySystem(
             shape.circle(mx, my, ringRadius)
             shape.line(tPos.x, tPos.y, mx, my)
         }
+    }
+
+    /**
+     * Muzzle world position (ST-137) into [out], as `WeaponProjectileProvider` spawns it: the interpolated hull centre plus
+     * `weaponPosition` rotated by the interpolated hull angle. Allocation-free.
+     */
+    private fun muzzleWorld(player: Entity, out: Vector2): Vector2 {
+        val tr = player.transformCmp
+        val pos = tr.interpolatedPosition
+        out.set(pos.x, pos.y)
+        val w = player.weaponCmpOptional?.weaponPosition ?: return out
+        val angle = tr.interpolatedRotationDeg * MathUtils.degreesToRadians
+        val cosA = cos(angle)
+        val sinA = sin(angle)
+        out.x = pos.x + w.x * cosA - w.y * sinA
+        out.y = pos.y + w.x * sinA + w.y * cosA
+        return out
     }
 
     /**

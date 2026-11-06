@@ -110,6 +110,10 @@ fun menuSettings(
                 { tactical.showLaserDamage }, { tactical.showLaserDamage = it }, relativityOn,
             ),
             SettingSpec.Toggle(
+                "tactical_intercept_markers", TACTICAL_INTERCEPT_MARKERS_DEFAULT,
+                { tactical.showInterceptMarkers }, { tactical.showInterceptMarkers = it },
+            ),
+            SettingSpec.Toggle(
                 "relativity", RELATIVITY_ENABLED,
                 { relativity.relativityEnabled }, { relativity.relativityEnabled = it },
             ),

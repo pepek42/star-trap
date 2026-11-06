@@ -45,6 +45,9 @@ class LaunchOptionsTest {
     fun parsesHoleNear() {
         assertEquals(true, parseLaunchOptions(arrayOf("--hole-near")).holeNear)
         assertEquals(false, parseLaunchOptions(arrayOf()).holeNear)
+        assertEquals(true, parseLaunchOptions(arrayOf("--pilot-view")).pilotView)
+        assertEquals(false, parseLaunchOptions(arrayOf()).pilotView)
+        assertEquals(true, parseLaunchOptions(queryToLaunchArgs("?play&pilot-view")).pilotView)
     }
 
     @Test

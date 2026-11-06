@@ -29,13 +29,15 @@ data class LaunchOptions(
     val holeNear: Boolean = false,
     /** Skips the main menu and starts a level at launch (`--play`; web: `?play`). */
     val play: Boolean = false,
+    /** Forces the pilot view at launch (`--pilot-view`; web: `?pilot-view`); wins over the saved perspective setting. */
+    val pilotView: Boolean = false,
 )
 
 /** Distance (u) from the player spawn to the first black hole under `--hole-near`. */
 const val HOLE_NEAR_DISTANCE = 25f
 
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near`, `--debug-panel` and `--play`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near`, `--debug-panel`, `--play` and `--pilot-view`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -55,6 +57,7 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
             "--hole-near" -> options = options.copy(holeNear = true)
             "--debug-panel" -> options = options.copy(debugPanel = true)
             "--play" -> options = options.copy(play = true)
+            "--pilot-view" -> options = options.copy(pilotView = true)
         }
     }
     return options

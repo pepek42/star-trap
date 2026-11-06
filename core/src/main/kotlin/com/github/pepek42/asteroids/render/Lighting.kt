@@ -26,12 +26,15 @@ const val LIGHT_AMBIENT_NO_STAR = 1f
 const val MAX_LIGHTS_PER_SPRITE = 4
 
 /** Accretion-disk light (FAKE: the disk annulus is one soft point light of size [DISK_LIGHT_SIZE] at the hole centre). */
-const val DISK_LIGHT_INTENSITY = 3f
+const val DISK_LIGHT_INTENSITY = 5f
 const val DISK_LIGHT_SIZE = DISK_OUTER
 const val DISK_LIGHT_RANGE = 120f
 
-/** Colour temperature of the disk light: 0.85 of the disk's peak temperature (most of the disk is cooler than the peak). */
-const val DISK_LIGHT_KELVIN = 0.85f * DISK_T_PEAK
+/**
+ * Colour temperature of the disk light. FAKE (physics-lies.md): the disk's own colour (about 0.85 of [DISK_T_PEAK]) is
+ * near white, which on the blue-grey asteroid albedo barely shows (ST-146), so the light is a fixed warm orange instead.
+ */
+const val DISK_LIGHT_KELVIN = 3000f
 
 /** One light. With [directional] true, ([x], [y]) is a unit direction toward a light at infinity (ST-099). */
 class LightSource {

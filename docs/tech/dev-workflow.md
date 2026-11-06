@@ -77,6 +77,7 @@ Options (parsed by `parseLaunchOptions` in `core/.../debug/ScreenshotHarness.kt`
 - `--controls=mouse|twin|auto`: picks the control scheme (`ControlScheme.fromFlag`); wins over the saved menu setting. Also works outside screenshot runs.
 - `--debug-panel`: allows the F1 debug panel even when the "Debug mode" setting is off. Also works outside screenshot runs.
 - `--play`: skips the main menu and starts a level, also outside screenshot runs.
+- `--pilot-view`: starts in the Pilot view (light-delayed, lit sprites) instead of the saved or default perspective. Web: `?pilot-view`.
 
 **Web equivalent.** The web launcher maps the URL query to the same flags (`queryToLaunchArgs`): `index.html?seed=42&play&controls=twin&hole-near`. `screenshot` is ignored on web.
 
@@ -88,7 +89,7 @@ No player input is sent otherwise. After frame N the framebuffer is saved as PNG
 
 ## Web check
 
-`scripts/web-check.sh [--play] [--out=/abs/path.png]` builds the TeaVM bundle (`teavm:generateJavaScript`, about 25 s) and opens it in headless Firefox (`scripts/web-smoke.mjs`: Node >= 22, WebDriver BiDi, no npm deps). `--play` loads `index.html?seed=42&play`, so a level starts without clicking. It prints the console log, the canvas size and `RESULT: PASS|FAIL`, and saves a screenshot to inspect with the image tool. TeaVM logs uncaught Java exceptions at info level ("Fatal Error", "Exception N:"); the script matches on that text. `node scripts/web-smoke.mjs --query=...` reruns the browser part on an already built bundle.
+`scripts/web-check.sh [--play] [--query="seed=42&play&hole-near"] [--out=/abs/path.png]` builds the TeaVM bundle (`teavm:generateJavaScript`, about 25 s) and opens it in headless Firefox (`scripts/web-smoke.mjs`: Node >= 22, WebDriver BiDi, no npm deps). `--play` loads `index.html?seed=42&play`, so a level starts without clicking; `--query=...` replaces that query (implies `--play`-style waiting). It prints the console log, the canvas size and `RESULT: PASS|FAIL`, and saves a screenshot to inspect with the image tool. TeaVM logs uncaught Java exceptions at info level ("Fatal Error", "Exception N:"); the script matches on that text. `node scripts/web-smoke.mjs --query=...` reruns the browser part on an already built bundle.
 
 Web gotchas found so far:
 - **Component constructors.** gdx-teavm's `ClassReflection.getConstructor(c)` returns `getConstructors()[0]`, not the no-arg constructor. Components must have exactly one public, parameterless constructor (no Kotlin constructor parameters with defaults, no `data class`); `ComponentConstructorTest` enforces it.

@@ -39,6 +39,7 @@ import com.github.pepek42.asteroids.provider.PlanetProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
+import com.github.pepek42.asteroids.render.LitSpriteRenderer
 import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.PlanetTextures
 import com.github.pepek42.asteroids.render.ReferenceGridRenderer
@@ -140,6 +141,7 @@ class PlayScreen(
                         FieldShimmerRenderer(shimmerImpacts, mapProvider, settings),
                         gridRenderer, mapProvider, debugSettings, settings,
                         pilotViewProjector, observerState,
+                        litSprites = LitSpriteRenderer(game.get<TextureAtlas>()),
                     )
                 )
                 hullSoundSystem = HullSoundSystem(game.get<SoundBank>(), hullSounds, game.get<SoundSettings>(), settings)

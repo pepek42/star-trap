@@ -70,6 +70,14 @@ class PilotViewProjector(
     var sourceVy = 0f
         private set
 
+    /** Arena-frame angle (rad) of the source drawn by the last [project] call (retarded when the history is used; the player's is its true hull angle). */
+    var sourceAngleRad = 0f
+        private set
+
+    /** Seconds between the interpolated arena time and the emission time of the last [project] call (0 without the history). Used for lighting (ST-097). */
+    var sourceLag = 0f
+        private set
+
     /** Latches the observer for this frame: [playerX]/[playerY] is the player's interpolated position. */
     fun begin(playerX: Float, playerY: Float) {
         ox = playerX
@@ -129,6 +137,8 @@ class PilotViewProjector(
         val angleDeg: Float
         var vx = 0f
         var vy = 0f
+        var lag = 0f
+        var arenaAngleDeg = transform.interpolatedRotationDeg
         if (playerMapper.has(entity)) {
             x = ox
             y = oy
@@ -147,6 +157,8 @@ class PilotViewProjector(
                 angleDeg = state.angle * MathUtils.radiansToDegrees
                 vx = state.vx
                 vy = state.vy
+                lag = now - state.t
+                arenaAngleDeg = angleDeg
             } else {
                 x = transform.interpolatedPosition.x
                 y = transform.interpolatedPosition.y
@@ -161,6 +173,8 @@ class PilotViewProjector(
         sourceY = y
         sourceVx = vx
         sourceVy = vy
+        sourceAngleRad = arenaAngleDeg * MathUtils.degreesToRadians
+        sourceLag = lag
         sprite.rotation = angleDeg
         sprite.setPosition(x - sprite.width / 2, y - sprite.height / 2)
         System.arraycopy(sprite.vertices, 0, out, 0, SPRITE_VERTEX_FLOATS)

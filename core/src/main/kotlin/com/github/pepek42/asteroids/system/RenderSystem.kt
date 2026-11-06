@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.Viewport
@@ -37,6 +38,8 @@ import com.github.pepek42.asteroids.render.BlackHoleRenderer
 import com.github.pepek42.asteroids.render.BlackbodyLut
 import com.github.pepek42.asteroids.render.DOPPLER_MIN_BETA
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
+import com.github.pepek42.asteroids.render.LightSources
+import com.github.pepek42.asteroids.render.LitSpriteRenderer
 import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.ReferenceGridRenderer
 import com.github.pepek42.asteroids.render.MIN_CONTRACTION_SPEED
@@ -64,11 +67,19 @@ class RenderSystem(
     private val pilotView: PilotViewProjector,
     private val observer: ObserverState,
     private val blackHoleRenderer: BlackHoleRenderer = BlackHoleRenderer(),
+    private val litSprites: LitSpriteRenderer? = null,
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()), Disposable {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
     private var players: ImmutableArray<Entity>? = null
     private var holes: ImmutableArray<Entity>? = null
     private var pilotViewActive = false
+    private val lightSources = LightSources()
+
+    /** True for the frame when lit sprites are drawn: lighting on, the shader compiled and at least one light exists. */
+    private var lightingActive = false
+
+    /** True while the quad being drawn goes through the lit shader (it is flushed right after, see [endLit]). */
+    private var litNow = false
 
     init {
         logger.info { "Init finished" }
@@ -98,9 +109,15 @@ class RenderSystem(
             pilotView.begin(p.x, p.y)
         }
         holes?.let { blackHoleRenderer.render(camera, it, if (pilotViewActive) pilotView else null, observer.worldTime, settings.c) }
+        lightingActive = false
+        if (settings.lightingEnabled && litSprites?.ready == true) {
+            holes?.let { lightSources.rebuild(it) }
+            lightingActive = lightSources.count > 0
+        }
         batch.use(camera) {
             additive.clear()
             super.update(deltaTime)
+            litSprites?.release(batch)
             drawAdditive()
             fieldShimmerRenderer.render(batch)
         }
@@ -110,6 +127,7 @@ class RenderSystem(
         fieldShimmerRenderer.dispose()
         gridRenderer.dispose()
         blackHoleRenderer.dispose()
+        litSprites?.dispose()
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
@@ -125,7 +143,11 @@ class RenderSystem(
             if (!isPlayer) {
                 tintAndQueue(sprite, type, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy)
             }
+            beginLit(
+                entity, sprite, pilotView.sourceX, pilotView.sourceY, pilotView.sourceAngleRad, pilotView.sourceLag,
+            )
             batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
+            endLit()
             return
         }
         val transformComp = entity.transformCmp
@@ -158,8 +180,10 @@ class RenderSystem(
         val cx = transformComp.interpolatedPosition.x
         val cy = transformComp.interpolatedPosition.y
         val tinted = !isPlayer && observerBlueShiftActive(vx, vy)
+        beginLit(entity, sprite, cx, cy, transformComp.interpolatedRotationDeg * MathUtils.degreesToRadians, 0f)
         if (!contract && !tinted) {
             sprite.draw(batch)
+            endLit()
             return
         }
         System.arraycopy(sprite.vertices, 0, scratch, 0, VERTEX_FLOATS)
@@ -176,6 +200,23 @@ class RenderSystem(
         }
         if (tinted) tintAndQueue(sprite, type, cx, cy, vx, vy)
         batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
+        endLit()
+    }
+
+    /**
+     * Switches to the lit shader for the quad about to be drawn when lighting is active and [entity] has normals (ST-097),
+     * else to the default shader. ([ax], [ay], [angleRad]) is the sprite's arena-frame state, [lag] its retarded-time lag.
+     */
+    private fun beginLit(entity: Entity, sprite: Sprite, ax: Float, ay: Float, angleRad: Float, lag: Float) {
+        val lit = litSprites
+        litNow = lightingActive && lit != null && lit.prepare(batch, entity, sprite, lightSources, ax, ay, angleRad, lag)
+        if (!litNow) lit?.release(batch)
+    }
+
+    /** Draws the lit quad now: the uniforms of the next sprite differ, so lit sprites are not batched. */
+    private fun endLit() {
+        if (litNow) batch.flush()
+        litNow = false
     }
 
     /**

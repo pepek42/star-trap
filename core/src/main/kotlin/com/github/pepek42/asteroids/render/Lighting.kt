@@ -13,8 +13,14 @@ import kotlin.math.sqrt
 /** Height (u) of point lights above the arena plane. */
 const val LIGHT_HEIGHT = 2f
 
-/** Ambient floor that keeps the unlit side readable (like ST-080's brightness floor). */
+/** Ambient floor that keeps the unlit side readable (like ST-080's brightness floor). Used while a directional light (the star, ST-099) exists. */
 const val LIGHT_AMBIENT = 0.35f
+
+/**
+ * Ambient while the light set has no directional light: stands in for general starlight until ST-099 adds the star, so
+ * sprites away from a disk look as before and the disk only adds a warm glow on top. FAKE (physics-lies.md).
+ */
+const val LIGHT_AMBIENT_NO_STAR = 1f
 
 /** Lights a single sprite takes into account; the shader has this many slots. */
 const val MAX_LIGHTS_PER_SPRITE = 4

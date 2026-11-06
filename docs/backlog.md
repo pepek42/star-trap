@@ -18,7 +18,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-44. ST-096 Normal maps from alpha in the texture packer
 45. ST-097 Lit sprites: accretion disks light ships, asteroids and planets
 46. ST-098 Shadows from planets and large asteroids
 47. ST-099 A distant star as a directional light
@@ -202,24 +201,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - [ ] Screenshot (pilot view, near a hole) viewed by the agent: one side of the disk is brighter and bluer
   - [ ] `./gradlew core:test` passes
 - playtest: Orbit a hole in pilot view: the approaching half of the disk glows blue-white and the other half dims red.
-
-### ST-096 Normal maps from sprite alpha in the texture packer
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: —
-- files: `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/TexturePacker.kt`, create `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/NormalMaps.kt`, `tool/build.gradle.kts`, create `tool/src/test/kotlin/com/github/pepek42/asteroids/tool/NormalMapsTest.kt`; regenerated `assets/textures/textures.atlas` and `.png`
-- goal: Lit sprites need a per-texel normal so light comes from the right side. Generate a bevelled "pillow" normal map from each sprite's alpha at pack time, so no hand-drawn normal art is needed (the owner has no art pipeline for it).
-- spec:
-  - Pure `fun normalMapFromAlpha(w: Int, h: Int, alpha: FloatArray, bevelPx: Int = 3, strength: Float = 2f): FloatArray` (returns `w·h·4` floats rgba). Inside = `alpha > 0.5`. Height `hgt = min(dist, bevelPx)/bevelPx`, where `dist` is the chamfer (3-4) distance to the nearest outside texel in texels, from a two-pass distance transform. Smooth `hgt` with a 3×3 box filter. Normal `n = normalize(−dhdx·strength, +dhdy·strength, 1)` with central differences, and `+dhdy` because image rows go down while world y goes up. Encode `rgb = n·0.5 + 0.5`, `a = alpha` (so the packer trims both images identically).
-  - `main()`: for every PNG under `raw_assets` whose name starts with `asteroid_`, `debris` or lives in `spaceship/`, write `<name>_n.png` to `tool/build/normals/` (mirroring subdirectories). Copy `raw_assets` (with `pack.json`) and the generated files into `tool/build/packinput/`, then `TexturePacker.process("tool/build/packinput", "assets/textures", "textures")`. Lasers, thrusters, explosions, blast and backgrounds stay without normals (they're unlit or emissive). Read and write PNGs with `javax.imageio` (the tool is JVM-only).
-  - Add JUnit test dependencies to `tool/build.gradle.kts` the same way `core` has them, if missing.
-  - Run `./gradlew tool:packTextures` and commit the regenerated atlas. Region lookups by name in `core` are unchanged (new regions are only added).
-- acceptance:
-  - [ ] Test: for a 32×32 filled disc of radius 12, the centre normal is (0, 0, 1) ± 0.05, a texel at the right rim has `nx > 0.5`, at the top rim (row 4) `ny > 0.5`
-  - [ ] Test: a fully transparent image gives all-transparent output; a fully opaque 8×8 square has flat normals in its inner 2×2
-  - [ ] After packing, `textures.atlas` contains `asteroid_big_n`, `debris_n` and `spaceship/triangle_blue_n` (or the path form the packer uses), with the same width and height as their colour regions
-  - [ ] `./gradlew core:test` and `./gradlew tool:test` pass
 
 ### ST-097 Lit sprites: accretion disks light ships, asteroids and planets
 - status: ready

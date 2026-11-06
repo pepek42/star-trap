@@ -45,6 +45,16 @@ class PlayerInputSystem(
     private val screenAimPoint = Vector2()
     private val unprojected = Vector3()
     private var lastScheme: ControlScheme? = null
+    private var autoAim: AutoAimStrategy? = null
+
+    /** Cursor position in world coordinates. */
+    val aimWorld: Vector2 get() = input.aimWorld
+
+    /** The auto-aim target when the auto-aim scheme is active and has one (ST-133), else null. */
+    val autoAimTarget: Entity? get() = if (controlSettings.scheme == ControlScheme.AUTO_AIM) autoAim?.target else null
+
+    /** Arena direction of the auto-aim shot; valid while [autoAimTarget] is not null. */
+    val autoAimDir: Vector2 get() = autoAim?.aimDir ?: input.aimWorld
 
     private val mouseHull = MouseHullStrategy()
 
@@ -62,7 +72,9 @@ class PlayerInputSystem(
             val targets = engine.getEntitiesFor(
                 allOf(HealthComponent::class, BodyComponent::class, BaseInfoComponent::class).get(),
             )
-            strategies[ControlScheme.AUTO_AIM] = AutoAimStrategy(targets, lightHistory, observer, clock, settings)
+            val strategy = AutoAimStrategy(targets, lightHistory, observer, clock, settings)
+            autoAim = strategy
+            strategies[ControlScheme.AUTO_AIM] = strategy
         }
         gameEventManager.addInputListener(this)
     }

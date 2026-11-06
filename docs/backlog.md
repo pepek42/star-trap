@@ -14,7 +14,6 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 M3 Relativity MVP:
 
 M4 Relativistic view:
-32. ST-133 Assist: show the expected laser damage multiplier
 33. ST-125 Tactical computer tier 2: true-state intercept markers
 
 Audio (owner 2026-11-05):
@@ -183,21 +182,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] Tests: `beamBrightness(2f, true) == 3f` (clamped from 4); `beamBrightness(0.3f, true) == 0.25f` (floor); `beamBrightness(0.6f, false) == 0.6f`; `beamBrightness(1f, true) == 1f`
   - [ ] `./gradlew core:test` passes
 - playtest: At speed the view ahead is bright, and asteroids behind you are dim but outlined. Check whether the outline is too strong.
-
-### ST-133 Assist: show the expected laser damage multiplier
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: none
-- refs: `physics/Relativity.kt` (`photonEnergyFactor`), `system/ContactSystem.kt`, tactical overlay / auto-aim target code, `docs/design/physics-lies.md` row 36
-- goal: Follow-up of ST-081 (assist layer). Doppler-scaled photon damage is invisible except through the Doppler tint; the ship computer should show what a shot would do.
-- spec:
-  - For the current aim target (auto-aim target, or the asteroid nearest the cursor in other schemes), compute `photonEnergyFactor` with the player's β, the target's true-state β and the aim direction, clamped like `applyProjectileHit`.
-  - Draw it next to the target marker as `×1.8` (green above 1, red below 1), only when `settings.photonDopplerDamage` and relativity are on. Make it a toggle in the tactical overlay settings (default on). No per-frame allocation (reuse a `StringBuilder`/cached strings).
-- acceptance:
-  - [ ] Test: the pure helper that picks the displayed factor matches `photonEnergyFactor` clamped, and returns null when the setting is off
-  - [ ] `./gradlew core:test` passes
-- playtest: Charge an asteroid head-on: the marker shows ×2-ish; chase a fleeing one: below ×1.
 
 ### ST-125 Tactical computer tier 2: true-state intercept markers
 - status: ready

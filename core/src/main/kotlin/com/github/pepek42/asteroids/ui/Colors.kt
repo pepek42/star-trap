@@ -13,3 +13,9 @@ const val TACTICAL_ALPHA = 0.65f
 
 /** Alpha of the arena border drawn by the tactical overlay. */
 const val TACTICAL_BORDER_ALPHA = 0.5f
+
+/** Laser damage multiplier label colour at or above x1 (tactical overlay). */
+val DAMAGE_UP_COLOR: Color = Color(0.3f, 1f, 0.3f, 1f)
+
+/** Laser damage multiplier label colour below x1 (tactical overlay). */
+val DAMAGE_DOWN_COLOR: Color = Color(1f, 0.3f, 0.3f, 1f)

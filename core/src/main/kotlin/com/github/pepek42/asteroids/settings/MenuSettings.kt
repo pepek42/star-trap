@@ -106,6 +106,10 @@ fun menuSettings(
                 },
             ),
             SettingSpec.Toggle(
+                "tactical_laser_damage", TACTICAL_LASER_DAMAGE_DEFAULT,
+                { tactical.showLaserDamage }, { tactical.showLaserDamage = it }, relativityOn,
+            ),
+            SettingSpec.Toggle(
                 "relativity", RELATIVITY_ENABLED,
                 { relativity.relativityEnabled }, { relativity.relativityEnabled = it },
             ),

@@ -4,6 +4,9 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.CircleShape
 import com.badlogic.gdx.physics.box2d.PolygonShape
 import com.badlogic.gdx.physics.box2d.Shape
+import com.github.pepek42.asteroids.physics.PHOTON_DAMAGE_D_MAX
+import com.github.pepek42.asteroids.physics.PHOTON_DAMAGE_D_MIN
+import com.github.pepek42.asteroids.physics.photonEnergyFactor
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
@@ -106,3 +109,26 @@ fun tacticalOverlayVisible(mode: TacticalOverlayMode, pilotView: Boolean, tier: 
 
 /** Arrow head length in screen pixels. */
 const val TACTICAL_ARROW_HEAD_PX = 8f
+
+/** Text colour of the laser damage label at or above x1 (ST-133). */
+const val LASER_DAMAGE_LABEL_MIN_FACTOR = 1f
+
+/**
+ * Laser damage multiplier the ship computer shows for the aimed target (ST-133): [photonEnergyFactor] of a shot from a
+ * shooter with velocity over c ([bsx], [bsy]) at a target with ([btx], [bty]) along ([nx], [ny]), clamped like
+ * `applyProjectileHit` to [PHOTON_DAMAGE_D_MIN]..[PHOTON_DAMAGE_D_MAX]. Null when the setting or relativity is off.
+ */
+fun displayedPhotonFactor(
+    enabled: Boolean, relativityOn: Boolean,
+    bsx: Float, bsy: Float, btx: Float, bty: Float, nx: Float, ny: Float,
+): Float? {
+    if (!enabled || !relativityOn) return null
+    return photonEnergyFactor(bsx, bsy, btx, bty, nx, ny).coerceIn(PHOTON_DAMAGE_D_MIN, PHOTON_DAMAGE_D_MAX)
+}
+
+/** Replaces the contents of [out] with `×1.8` (one decimal, no allocation, no `String.format`). */
+fun formatDamageFactor(factor: Float, out: StringBuilder) {
+    out.setLength(0)
+    val tenths = (factor * 10f + 0.5f).toInt()
+    out.append('\u00d7').append(tenths / 10).append('.').append(tenths % 10)
+}

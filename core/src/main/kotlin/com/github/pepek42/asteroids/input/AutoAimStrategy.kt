@@ -40,6 +40,14 @@ class AutoAimStrategy(
     private var states = Array(INITIAL_CAPACITY) { RetardedState() }
     private val scratch = RetardedState()
     private val lead = Vector2()
+    private var entities = arrayOfNulls<Entity>(INITIAL_CAPACITY)
+
+    /** The entity the guns currently aim at, or null (ST-133). Valid for the frame; do not keep it. */
+    var target: Entity? = null
+        private set
+
+    /** Arena direction of the last lead shot, valid while [target] is not null. */
+    val aimDir = Vector2()
 
     override fun apply(
         input: PlayerInputState,
@@ -50,6 +58,7 @@ class AutoAimStrategy(
         dt: Float,
     ) {
         movement.apply(input, shipPos, shipAngleRad, move, weapon, dt)
+        target = null
         if (weapon == null) return
         val now = clock.worldTime
         val c = settings.c
@@ -63,6 +72,7 @@ class AutoAimStrategy(
             xs[n] = scratch.x
             ys[n] = scratch.y
             states[n].copyFrom(scratch)
+            entities[n] = entity
             n++
         }
         val i = pickTargetIndex(shipPos.x, shipPos.y, shipAngleRad, coneHalfRad, range, xs, ys, n)
@@ -70,6 +80,8 @@ class AutoAimStrategy(
         val betaX = if (settings.relativityEnabled) observer.betaRaw.x else 0f
         val betaY = if (settings.relativityEnabled) observer.betaRaw.y else 0f
         if (!leadDirection(shipPos.x, shipPos.y, betaX, betaY, states[i], now, c, lead)) return
+        target = entities[i]
+        aimDir.set(lead)
         weapon.aimAngleRad = atan2(lead.y, lead.x)
         weapon.doAttack = true
     }
@@ -78,6 +90,7 @@ class AutoAimStrategy(
         val newSize = xs.size * 2
         xs = xs.copyOf(newSize)
         ys = ys.copyOf(newSize)
+        entities = entities.copyOf(newSize)
         states = Array(newSize) { if (it < states.size) states[it] else RetardedState() }
     }
 

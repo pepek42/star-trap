@@ -12,6 +12,10 @@ import com.github.pepek42.asteroids.audio.HullSoundQueue
 import com.github.pepek42.asteroids.audio.SoundBank
 import com.github.pepek42.asteroids.audio.SoundId
 import com.github.pepek42.asteroids.audio.engineVolume
+import com.github.pepek42.asteroids.audio.scrapeVolume
+import com.github.pepek42.asteroids.audio.tangentialSpeed
+import com.github.pepek42.asteroids.component.bodyCmpOptional
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.audio.enginePitch
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
@@ -31,11 +35,26 @@ class HullSoundSystem(
     private val bank: SoundBank,
     private val queue: HullSoundQueue,
     private val settings: SoundSettings,
+    private val relativity: RelativitySettings = RelativitySettings(),
 ) : EntitySystem() {
     private var players: ImmutableArray<Entity>? = null
     private var loopId = -1L
     private var volume = 0f
     private var pitch = enginePitch(0f)
+    private var scrapeId = -1L
+
+    // Cached handles: no per-frame AssetManager lookup by string.
+    private val engineSound = bank[SoundId.ENGINE_LOOP]
+    private val laserSound = bank[SoundId.LASER_FIRE]
+    private val hitSound = bank[SoundId.HULL_HIT]
+    private val scrapeSound = bank[SoundId.HULL_SCRAPE]
+
+    /** While true (focus lost / paused) the system makes no sound and drops queued events. */
+    var paused = false
+        set(value) {
+            if (value) silence()
+            field = value
+        }
 
     override fun addedToEngine(engine: Engine) {
         super.addedToEngine(engine)
@@ -43,13 +62,17 @@ class HullSoundSystem(
     }
 
     override fun update(deltaTime: Float) {
+        if (paused) {
+            queue.clear()
+            return
+        }
         val gain = settings.hullGain
         val player = players?.let { if (it.size() > 0) it[0] else null }
         val thrusters = player?.moveCmp?.thrusters ?: 0f
         val dt = deltaTime
         volume = smoothToward(volume, engineVolume(thrusters, gain), dt, ENGINE_SMOOTHING_TIME)
         pitch = smoothToward(pitch, enginePitch(thrusters), dt, ENGINE_SMOOTHING_TIME)
-        val engine = bank[SoundId.ENGINE_LOOP]
+        val engine = engineSound
         if (volume < ENGINE_STOP_VOLUME) {
             stopLoop(engine)
         } else {
@@ -62,12 +85,43 @@ class HullSoundSystem(
         for (i in 0 until queue.size) {
             val v = queue.volumeAt(i) * gain
             when (queue.kindAt(i)) {
-                HullSoundKind.LASER_FIRE -> bank[SoundId.LASER_FIRE].play(v)
-                HullSoundKind.HULL_HIT -> bank[SoundId.HULL_HIT].play(v)
-                HullSoundKind.HULL_SCRAPE -> bank[SoundId.HULL_SCRAPE].play(v)
+                HullSoundKind.LASER_FIRE -> laserSound.play(v)
+                HullSoundKind.HULL_HIT -> hitSound.play(v)
+                HullSoundKind.HULL_SCRAPE -> scrapeSound.play(v)
             }
         }
         queue.clear()
+        updateScrape(player, gain)
+    }
+
+    /** Keeps one scrape loop playing while the player touches something with a tangential speed above the threshold. */
+    private fun updateScrape(player: Entity?, gain: Float) {
+        val playerBody = player?.bodyCmpOptional?.body
+        var best = 0f
+        if (playerBody != null) {
+            val pv = playerBody.linearVelocity
+            val pp = playerBody.position
+            for (i in 0 until queue.touchingCount) {
+                val other = queue.touchingAt(i)
+                val ov = other.linearVelocity
+                val op = other.position
+                best = maxOf(
+                    best,
+                    tangentialSpeed(pv.x - ov.x, pv.y - ov.y, pp.x - op.x, pp.y - op.y),
+                )
+            }
+        }
+        val v = scrapeVolume(best, relativity.c) * gain
+        if (queue.touchingCount == 0 || v <= 0f) {
+            if (scrapeId != -1L) {
+                scrapeSound.stop(scrapeId)
+                scrapeId = -1L
+            }
+        } else if (scrapeId == -1L) {
+            scrapeId = scrapeSound.loop(v)
+        } else {
+            scrapeSound.setVolume(scrapeId, v)
+        }
     }
 
     private fun stopLoop(sound: Sound) {
@@ -81,6 +135,8 @@ class HullSoundSystem(
     fun silence() {
         for (id in SoundId.entries) bank[id].stop()
         loopId = -1L
+        scrapeId = -1L
+        queue.clearTouching()
         volume = 0f
         pitch = enginePitch(0f)
         queue.clear()

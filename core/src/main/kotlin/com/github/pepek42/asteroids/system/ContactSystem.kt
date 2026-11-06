@@ -139,10 +139,9 @@ class ContactSystem(
         velocityA.set(entityA.relativisticCmpOptional?.vSet ?: bodyA.linearVelocity)
         velocityB.set(entityB.relativisticCmpOptional?.vSet ?: bodyB.linearVelocity)
         val speed = velocityA.sub(velocityB).len()
-        queue.push(
-            if (isScrape(speed, settings.c)) HullSoundKind.HULL_SCRAPE else HullSoundKind.HULL_HIT,
-            impactVolume(speed, settings.c),
-        )
+        // Slow rubs are the sustained scrape loop (HullSoundSystem), not a one-shot.
+        queue.beginTouch(if (entityA.playerCmpOptional != null) bodyB else bodyA)
+        if (!isScrape(speed, settings.c)) queue.push(HullSoundKind.HULL_HIT, impactVolume(speed, settings.c))
     }
 
     /**
@@ -181,7 +180,11 @@ class ContactSystem(
 
     private fun ramFactor(entity: Entity) = if (entity.playerCmpOptional != null) PLAYER_RAM_DAMAGE_FACTOR else 1f
 
-    override fun endContact(contact: Contact) = Unit
+    override fun endContact(contact: Contact) {
+        val queue = hullSounds ?: return
+        queue.endTouch(contact.fixtureA.body)
+        queue.endTouch(contact.fixtureB.body)
+    }
 
     override fun preSolve(contact: Contact, oldManifold: Manifold) = Unit
 

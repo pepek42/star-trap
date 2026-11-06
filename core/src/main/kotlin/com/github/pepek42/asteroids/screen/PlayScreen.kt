@@ -128,7 +128,7 @@ class PlayScreen(
                         pilotViewProjector, observerState,
                     )
                 )
-                hullSoundSystem = HullSoundSystem(game.get<SoundBank>(), hullSounds, game.get<SoundSettings>())
+                hullSoundSystem = HullSoundSystem(game.get<SoundBank>(), hullSounds, game.get<SoundSettings>(), settings)
                 addSystem(hullSoundSystem)
                 addSystem(DebugVectorSystem(camera, settings, debugSettings))
                 addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>(), gameEventManager, game.get<ControlSettings>(), batch = spriteBatch, font = game.get<Skin>().getFont("font")))
@@ -180,7 +180,11 @@ class PlayScreen(
     }
 
     override fun pause() {
-        hullSoundSystem.silence()
+        hullSoundSystem.paused = true
+    }
+
+    override fun resume() {
+        hullSoundSystem.paused = false
     }
 
     override fun hide() {
@@ -194,6 +198,7 @@ class PlayScreen(
     }
 
     override fun dispose() {
+        if (::hullSoundSystem.isInitialized) hullSoundSystem.silence()
         engine.systems.forEach { if (it is Disposable) it.disposeSafely() }
         world.disposeSafely()
         super.dispose()

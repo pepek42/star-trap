@@ -16,7 +16,6 @@ M3 Relativity MVP:
 M4 Relativistic view:
 
 Audio (owner 2026-11-05):
-33. ST-138 Hull sound follow-ups: sustained scrape, pause, cached lookups
 33. ST-136 Assist: computer-synthesized sounds for remote events
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
@@ -206,22 +205,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew core:test` passes
 - playtest: Shoot a far asteroid: you hear the break-up only when you see it. With the toggle off, distant events are silent.
 
-### ST-138 Hull sound follow-ups: sustained scrape, pause, cached lookups
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-135
-- refs: `system/HullSoundSystem.kt`, `audio/SoundBank.kt`, `audio/HullSoundQueue.kt`, `system/ContactSystem.kt`, `screen/PlayScreen.kt`, `docs/tech/sound.md`
-- goal: Follow-ups of ST-135 (sim layer).
-- spec:
-  - Sustained scrape: track player contacts that stay touching (begin/end contact); while a contact lasts and the tangential speed is above a small fraction of c, keep one `hull_scrape` loop instance playing, volume scaled by that speed; stop it when the last contact ends. No per-frame allocation.
-  - Pause: make sure the engine loop and queued one-shots are silent while the pause overlay is up (check whether `PlayScreen` keeps updating the engine on pause; if so, gate `HullSoundSystem` on the paused state). Also call `silence()` from `dispose()`.
-  - Cache the `Sound` handles in `HullSoundSystem` fields (no per-frame `AssetManager.get` by string).
-  - Alarms stay a TODO in sound.md until a proximity / low-hull state exists.
-- acceptance:
-  - [ ] Test: a pure helper maps tangential speed to scrape volume (0 below threshold, monotonic, capped at 1)
-  - [ ] `./gradlew core:test` passes
-- playtest: Rub the hull along an asteroid: a continuous scrape that stops when you pull away. Pause mid-thrust: silence.
 ---
 
 ## M5 Gravity & black holes

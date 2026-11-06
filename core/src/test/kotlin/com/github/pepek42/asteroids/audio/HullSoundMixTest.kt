@@ -51,4 +51,27 @@ class HullSoundMixTest {
         q.clear()
         assertEquals(0, q.size)
     }
+
+    @Test
+    fun scrapeVolumeIsZeroBelowThresholdMonotonicAndCapped() {
+        val c = 20f
+        assertEquals(0f, scrapeVolume(0f, c))
+        assertEquals(0f, scrapeVolume(SCRAPE_MIN_C_FRACTION * c * 0.99f, c))
+        assertTrue(scrapeVolume(SCRAPE_MIN_C_FRACTION * c, c) > 0f)
+        var prev = 0f
+        for (i in 0..100) {
+            val v = scrapeVolume(i * c / 50f, c)
+            assertTrue(v >= prev)
+            assertTrue(v <= 1f)
+            prev = v
+        }
+        assertEquals(1f, scrapeVolume(1000f, c))
+    }
+
+    @Test
+    fun tangentialSpeedDropsTheNormalComponent() {
+        assertEquals(3f, tangentialSpeed(3f, 5f, 0f, 2f), 1e-5f)
+        assertEquals(0f, tangentialSpeed(0f, 5f, 0f, 2f), 1e-5f)
+        assertEquals(5f, tangentialSpeed(3f, 4f, 0f, 0f), 1e-5f)
+    }
 }

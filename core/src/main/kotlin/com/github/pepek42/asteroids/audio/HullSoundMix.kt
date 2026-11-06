@@ -1,6 +1,7 @@
 package com.github.pepek42.asteroids.audio
 
 import kotlin.math.abs
+import kotlin.math.sqrt
 
 /** Engine loop pitch at idle thrust (pitch 1 is the file's own pitch). */
 const val ENGINE_PITCH_MIN = 0.8f
@@ -39,3 +40,27 @@ fun impactVolume(relativeSpeed: Float, c: Float): Float {
 
 /** True when a contact at [relativeSpeed] is a slow rub (scrape) rather than a hit. */
 fun isScrape(relativeSpeed: Float, c: Float): Boolean = relativeSpeed < SCRAPE_SPEED_FRACTION * HIT_FULL_VOLUME_C_FRACTION * c
+
+/** Tangential speed (as a fraction of c) below which a touching contact makes no scrape sound. */
+const val SCRAPE_MIN_C_FRACTION = 0.01f
+
+/** Tangential speed (as a fraction of c) at which the scrape loop is at full volume. */
+const val SCRAPE_FULL_C_FRACTION = 0.1f
+
+/**
+ * Speed of the relative velocity ([relVx], [relVy]) along the contact tangent, given the (not necessarily unit)
+ * contact normal ([nx], [ny]). A zero normal counts the whole relative speed as tangential.
+ */
+fun tangentialSpeed(relVx: Float, relVy: Float, nx: Float, ny: Float): Float {
+    val nLen = sqrt(nx * nx + ny * ny)
+    if (nLen <= 1e-6f) return sqrt(relVx * relVx + relVy * relVy)
+    val along = (relVx * nx + relVy * ny) / nLen
+    val total2 = relVx * relVx + relVy * relVy
+    return sqrt(maxOf(0f, total2 - along * along))
+}
+
+/** Scrape loop volume (0..1) for [tangentialSpeed]: 0 below [SCRAPE_MIN_C_FRACTION] of [c], then rising (min [IMPACT_MIN_VOLUME]) to 1 at [SCRAPE_FULL_C_FRACTION]. */
+fun scrapeVolume(tangentialSpeed: Float, c: Float): Float {
+    if (c <= 0f || tangentialSpeed < SCRAPE_MIN_C_FRACTION * c) return 0f
+    return (tangentialSpeed / (SCRAPE_FULL_C_FRACTION * c)).coerceIn(IMPACT_MIN_VOLUME, 1f)
+}

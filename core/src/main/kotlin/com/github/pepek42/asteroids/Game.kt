@@ -13,7 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.I18NBundle
 import com.badlogic.gdx.utils.Logger
-import com.badlogic.gdx.utils.viewport.FitViewport
+import com.badlogic.gdx.utils.viewport.ExtendViewport
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.audio.SoundBank
@@ -98,7 +98,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             Scene2DSkin.defaultSkin = ctx.inject<Skin>()
             bindSingleton(assetManager.get<I18NBundle>("i18n/messages"))
             bindSingleton(this@Game)
-            bindSingleton<Viewport>(FitViewport(16f * 3, 9f * 3, inject<OrthographicCamera>()))
+            bindSingleton<Viewport>(ExtendViewport(16f * 3, 9f * 3, inject<OrthographicCamera>()))
             bindSingleton(Stage(ScreenViewport()))
             bindSingleton(MainMenuScreen(inject<Game>()))
             bindSingleton(assetManager)

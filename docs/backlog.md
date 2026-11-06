@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-145**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-146**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -9,7 +9,7 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 Web build (owner 2026-11-04: web is the primary target):
-0. ST-144 Web: game view leaves a black strip at the canvas edge
+0. ST-145 Exception in Game.dispose: sound asset already unloaded
 
 M3 Relativity MVP:
 
@@ -42,20 +42,19 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 
 - note (2026-11-02, owner interview, game-design.md §11): **The game is perceived from the pilot's frame.** The game clock is the pilot's proper time (research E21): the arena advances `γ·dt_real` per frame, capped at about 10× (declared FAKE past the cap, shown on the HUD), and the player's guns and turning run on real time (ST-068, ST-069, ST-040). **Pilot view is the main rendering** and is pulled forward from M4 into this milestone (E8 light delay + E9 aberration: ST-070 … ST-078, default on). The minimap stays true arena positions ("tactical computer"). Aim help is a lead marker (ST-078). Also decided: braking boost (ST-066), shots leave the arena instead of bouncing (ST-067, reworks ST-039), ramming yes (ST-033), photon laser default (ST-034). The alternative control modes (auto-aim + auto-shoot, targeting trance) are **parked** at the end of the backlog.
 
-### ST-144 Web: game view leaves a black strip at the canvas edge
+### ST-145 Exception in Game.dispose: sound asset already unloaded
 - status: ready
 - size: S
-- agent: kotlin-dev
+- agent: junior-dev
 - layer: infra
-- depends: ST-143
-- files: `core/src/main/kotlin/com/github/pepek42/asteroids/screen/PlayScreen.kt` (viewport resize), HUD/minimap viewport, `teavm/src/main/kotlin/com/github/pepek42/asteroids/teavm/TeaVMLauncher.kt`
-- refs: `docs/tech/dev-workflow.md` "Web check"; ST-143 report (2026-11-06)
-- goal: In the web build (headless Firefox, canvas 1366x682) the game world stops about 75 px before the right edge of the canvas: a black strip is left, and the minimap (HUD stage) is drawn across the boundary, half over the world and half over the black strip. Reproduce with `node scripts/web-smoke.mjs --wait=6 --query="seed=42&play&hole-near"`. It is probably the `FitViewport` (48x27) letterboxing at a non-16:9 canvas while the HUD uses a different viewport, or a resize that isn't forwarded on web. Decide whether the world should fill the whole canvas (e.g. `ExtendViewport` with min 48x27) or the HUD should be letterboxed to the same area; filling the canvas is preferred. Check desktop at a non-16:9 window (800x600) too.
+- depends: —
+- files: `core/src/main/kotlin/com/github/pepek42/asteroids/Game.kt` (`dispose`), `core/src/main/kotlin/com/github/pepek42/asteroids/audio/SoundBank.kt`
+- refs: ST-144 report (2026-11-06)
+- goal: Every desktop exit (e.g. a `--screenshot` run) prints `GdxRuntimeException: Asset not loaded: sounds/engine_loop.wav` from `SoundBank.get` (SoundBank.kt:22), called during `Game.dispose` (Game.kt ~171). Something asks the SoundBank for a sound after the `AssetManager` was disposed or unloaded (likely a screen's `dispose`/`hide` stopping the engine loop after `ctx.disposeSafely()`, or the AssetManager disposed before the screens). Fix the order or make the stop path not look the sound up again (keep the `Sound` reference, or guard with `assetManager.isLoaded`).
 - acceptance:
-  - [ ] on web at 1366x682 the world fills the canvas (or the letterbox is symmetric and the HUD/minimap sits inside the world area)
-  - [ ] desktop at 800x600 and 1280x720 still looks right
-  - [ ] `scripts/web-check.sh --play` PASS
-- playtest: open the web build in a window that isn't 16:9 and resize it; the minimap should stay in the corner of the game area.
+  - [ ] `./gradlew lwjgl3:run --args="--screenshot=<scratch>/x.png --frames=60 --seed=42"` exits without a stack trace
+  - [ ] tests pass
+- playtest: start a level, quit the game; no error in the console.
 
 ### ST-075 Pilot view: per-corner retarded time (Terrell rotation)
 - status: parked

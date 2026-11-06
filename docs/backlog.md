@@ -23,7 +23,6 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 46. ST-098 Shadows from planets and large asteroids
 47. ST-099 A distant star as a directional light
 48. ST-088 Gravitational lensing of the backdrop
-49. ST-090 Bring docs in line after M4/M5
 
 Parked:
 51. ST-091 Targeting-trance scheme
@@ -284,16 +283,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - [ ] Test: with only the star light, a sphere-mode texel facing the star direction is brighter than one facing away, and the result doesn't depend on distance
   - [ ] `./gradlew core:test` passes
 - playtest: Each level has a sun direction: everything is lit from one side. Does it read well with the disk glow on top? Does the owner want visible in-arena stars instead (later card)?
-
-### ST-090 Bring docs in line after M4/M5
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-081, ST-082, ST-083, ST-084, ST-085, ST-086, ST-087, ST-088, ST-093, ST-094, ST-095, ST-096, ST-097, ST-098, ST-099
-- files: `docs/tech/architecture.md`, `CLAUDE.md`, `docs/design/game-design.md` (§6, §7 entities, §9 visuals, §11 decisions only)
-- goal: Document the pilot view render path and its flags (V key), `LightHistorySystem` and ghosts, the step-listener order including `GravitySystem` and `LightHistorySystem`, `GravitySourceComponent` and the n-body source path (Newtonian, sensor bodies for holes, `sourceCoupling`, `playerGm`), black holes (`EntityType.BLACK_HOLE`, horizon kill, merging), planets and debris, the player death flow, the accretion disk, lighting (lit-sprite shader, normal maps from the packer, shadows, star light, the pilot-view exact/FAKE list) and lensing passes, and the new constants and settings.
-- acceptance:
-  - [ ] Every statement in the updated sections can be traced to the current code or to an answered owner decision
 
 ---
 

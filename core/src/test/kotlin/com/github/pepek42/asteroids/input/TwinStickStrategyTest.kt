@@ -53,6 +53,39 @@ class TwinStickStrategyTest {
     }
 
     @Test
+    fun pilotViewMapsScreenAxisToWorldFrame() {
+        val s = TwinStickStrategy()
+        val move = MoveComponent()
+        val input = PlayerInputState().apply {
+            pilotView = true
+            betaShip.set(0.6f, 0f)
+            moveAxis.set(0f, 1f)
+        }
+        // Boost along x leaves a screen-up axis (perpendicular to β) unchanged.
+        run(s, input, 0f, move)
+        assertEquals(halfPi, move.targetAngleRad!!, 1e-5f)
+
+        // A diagonal axis is rescaled by the pilot-frame transform, not left at its screen angle.
+        input.moveAxis.set(1f, 1f)
+        run(s, input, 0f, move)
+        val expected = com.github.pepek42.asteroids.physics.pilotHullToWorld(halfPi / 2f, 0.6f, 0f)
+        assertEquals(expected, move.targetAngleRad!!, 1e-5f)
+        assertTrue(move.targetAngleRad!! > halfPi / 2f)
+    }
+
+    @Test
+    fun outsidePilotViewUsesWorldAxisDirectly() {
+        val s = TwinStickStrategy()
+        val move = MoveComponent()
+        val input = PlayerInputState().apply {
+            betaShip.set(0.6f, 0f)
+            moveAxis.set(1f, 1f)
+        }
+        run(s, input, 0f, move)
+        assertEquals(halfPi / 2f, move.targetAngleRad!!, 1e-5f)
+    }
+
+    @Test
     fun onActivateHoldsShipHeading() {
         val s = TwinStickStrategy()
         val move = MoveComponent()

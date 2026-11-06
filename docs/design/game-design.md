@@ -29,7 +29,7 @@ A run ends on death. Meta progression is out of scope for the POC.
 | Input | Action |
 |---|---|
 | Mouse position | Steers the hull (auto-aim and mouse-hull schemes): the ship rotates toward the cursor using thrusters/torque, not instantly. In twin-stick the mouse aims an independent turret instead |
-| WASD / arrow keys | Twin-stick scheme only: world-frame move direction; the hull turns toward it and the engine fires as it lines up |
+| WASD / arrow keys | Twin-stick scheme only: move direction (world frame in outside view, screen frame in pilot view); the hull turns toward it and the engine fires as it lines up |
 | RMB | Main thrusters (not in twin-stick) |
 | LMB | Fire (in auto-aim the guns also fire on their own at the nearest target in the cone) |
 | Mouse wheel | Zoom (0.5–2×) |

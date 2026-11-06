@@ -92,6 +92,7 @@ class PlayerInputSystem(
                 logger.info { "Control scheme $scheme is not implemented yet, falling back to mouse-hull" }
             }
             strategy.onActivate(move, weapon, body.angle)
+            input.moveAxis.set(0f, 0f)
             lastScheme = scheme
         }
         strategy.apply(input, body.position, body.angle, move, weapon, deltaTime)

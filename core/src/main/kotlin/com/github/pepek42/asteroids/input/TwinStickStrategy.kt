@@ -4,6 +4,7 @@ import com.badlogic.gdx.math.Vector2
 import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.math.shortestAngleDiffRad
+import com.github.pepek42.asteroids.physics.pilotHullToWorld
 
 /** Exponent on cos(hull error) for the engine throttle: the engine fires only as the hull lines up. */
 const val TWIN_STICK_ALIGN_EXPONENT = 2f
@@ -37,7 +38,9 @@ class TwinStickStrategy : ControlStrategy {
     ) {
         val len = input.moveAxis.len()
         if (len > TWIN_STICK_DEADZONE) {
-            val target = Math.atan2(input.moveAxis.y.toDouble(), input.moveAxis.x.toDouble()).toFloat()
+            var target = Math.atan2(input.moveAxis.y.toDouble(), input.moveAxis.x.toDouble()).toFloat()
+            // In pilot view the axis is in the screen (pilot) frame; map its direction into the world frame.
+            if (input.pilotView) target = pilotHullToWorld(target, input.betaShip.x, input.betaShip.y)
             lastTarget = target
             move.targetAngleRad = target
             move.thrusters = twinStickThrottle(len, shortestAngleDiffRad(shipAngleRad, target))

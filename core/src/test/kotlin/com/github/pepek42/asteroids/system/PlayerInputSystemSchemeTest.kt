@@ -58,6 +58,28 @@ class PlayerInputSystemSchemeTest {
         assertEquals(shipAngle, move.targetAngleRad!!, 1e-5f)
     }
 
+    @Test
+    fun schemeChangeClearsMoveAxis() {
+        val shipAngle = 0.7f
+        val body = world.createBody(BodyDef().apply {
+            type = BodyDef.BodyType.DynamicBody
+            angle = shipAngle
+        })
+        val move = MoveComponent()
+        engine.addSystem(system)
+        engine.addEntity(
+            Entity().add(PlayerComponent()).add(move).add(BodyComponent().apply { this.body = body })
+        )
+        engine.update(0.016f)
+
+        // Axis pressed in MOUSE_HULL, then the scheme switches: the stale axis must not steer TWIN_STICK.
+        system.moveAxis(0f, 1f)
+        controls.scheme = ControlScheme.TWIN_STICK
+        engine.update(0.016f)
+        assertEquals(0f, move.thrusters, 1e-6f)
+        assertEquals(shipAngle, move.targetAngleRad!!, 1e-5f)
+    }
+
     companion object {
         @JvmStatic
         @BeforeAll

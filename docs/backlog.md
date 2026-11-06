@@ -12,7 +12,6 @@ Web build (owner 2026-11-04: web is the primary target; blocked until the dev ma
 0. ST-127 Web build: get the TeaVM bundle running and checked automatically (blocked)
 
 M3 Relativity MVP:
-24. ST-131 Twin-stick follow-ups: pilot-frame input
 
 M4 Relativistic view:
 32. ST-133 Assist: show the expected laser damage multiplier
@@ -141,25 +140,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - playtest: At speed, aim at the ring instead of the asteroid and the shots hit. Check whether 8 markers clutter the screen.
 - note: (2026-11-03) ST-125 is the tactical-computer variant using the true state (`trueLeadDirection`). When this honest variant is unparked, share its drawing and target selection with `TacticalOverlaySystem` instead of a separate `LeadMarkerSystem`.
 - note: (2026-11-03, from ST-062) when unparked, also highlight the auto-aim target in the AUTO_AIM scheme; `leadDirection` already exists in `physics/PhotonAim.kt`.
-
----
-
-### ST-131 Twin-stick follow-ups: pilot-frame input
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: none
-- refs: `input/TwinStickStrategy.kt`, `event/GameEventManager.kt`, `system/PlayerInputSystem.kt`
-- decision (owner 2026-11-05): screen directions in pilot view (W = up on screen); world frame in outside view. The turret keeps aiming at the cursor's world position.
-- goal: Make twin-stick usable in pilot view.
-- spec:
-  - When pilot view is on, rotate `PlayerInputState.moveAxis` from the pilot/screen frame into the world frame (`pilotHullToWorld` or equivalent) before `TwinStickStrategy` uses it. No change in outside view.
-  - Reset `PlayerInputState.moveAxis` to (0, 0) when the active control scheme changes (reviewer minor, ST-061).
-- acceptance:
-  - [ ] Test: pilot view on, hull at π/2, axis (0, 1) → target angle = hull-relative "up" mapped to world as specified
-  - [ ] Test: scheme change clears `moveAxis`
-  - [ ] `./gradlew core:test` passes
-- playtest: `--controls=twin`, toggle pilot view, press W: the ship heads toward the top of the screen.
 
 ---
 

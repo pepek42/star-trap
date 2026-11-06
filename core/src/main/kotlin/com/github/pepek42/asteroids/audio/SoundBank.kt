@@ -11,6 +11,10 @@ enum class SoundId(val path: String) {
     HULL_SCRAPE("sounds/hull_scrape.wav"),
     ALARM_PROXIMITY("sounds/alarm_proximity.wav"),
     ALARM_HULL_DAMAGE("sounds/alarm_hull_damage.wav"),
+    SYNTH_ASTEROID_BREAK_SMALL("sounds/synth_asteroid_break_small.wav"),
+    SYNTH_ASTEROID_BREAK_MEDIUM("sounds/synth_asteroid_break_medium.wav"),
+    SYNTH_ASTEROID_BREAK_LARGE("sounds/synth_asteroid_break_large.wav"),
+    SYNTH_UI_LOCK("sounds/synth_ui_lock.wav"),
 }
 
 /** DI singleton holding the libGDX [Sound]s the [AssetManager] loaded. Create after `finishLoading()`. */

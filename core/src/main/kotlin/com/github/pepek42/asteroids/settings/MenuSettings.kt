@@ -139,6 +139,15 @@ fun menuSettings(
                 "hull_sound_volume", 0f, 1f, 0.05f, 2, HULL_SOUND_VOLUME_DEFAULT,
                 { sound.hullSoundVolume }, { sound.hullSoundVolume = it },
             ),
+            SettingSpec.Toggle(
+                "computer_sounds", COMPUTER_SOUNDS_DEFAULT,
+                { sound.computerSounds }, { sound.computerSounds = it },
+            ),
+            SettingSpec.Slider(
+                "computer_sound_volume", 0f, 1f, 0.05f, 2, COMPUTER_SOUND_VOLUME_DEFAULT,
+                { sound.computerSoundVolume }, { sound.computerSoundVolume = it },
+                { sound.computerSounds },
+            ),
             if (includeFullscreen) {
                 SettingSpec.Toggle(
                     "fullscreen", false,

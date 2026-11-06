@@ -16,7 +16,6 @@ M3 Relativity MVP:
 M4 Relativistic view:
 
 Audio (owner 2026-11-05):
-33. ST-136 Assist: computer-synthesized sounds for remote events
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
 34. ST-082 Gravity math (pure)
@@ -179,31 +178,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] Tests: `beamBrightness(2f, true) == 3f` (clamped from 4); `beamBrightness(0.3f, true) == 0.25f` (floor); `beamBrightness(0.6f, false) == 0.6f`; `beamBrightness(1f, true) == 1f`
   - [ ] `./gradlew core:test` passes
 - playtest: At speed the view ahead is bright, and asteroids behind you are dim but outlined. Check whether the outline is too strong.
-
----
-
-## Audio
-
-- note (owner 2026-11-05): the game has no sound yet. Two layers, following the Vision in `CLAUDE.md`. **Sim:** space is a vacuum, so the pilot only hears what travels through the ship itself: engine rumble, gun recoil, hits and scrapes on the own hull, structural creaks under acceleration, the computer's own alarms. **Assist:** the ship's computer synthesizes sounds for remote events it can see (asteroid break-ups, later enemy ships and their weapons), a toggle like the other assists. Sounds are generated procedurally by a tool task, so there are no third-party assets and they are reproducible. Web: WAV only (decodes in every browser and on desktop); verify in the browser once ST-127 is done.
-
-### ST-136 Assist: computer-synthesized sounds for remote events
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-135
-- refs: `docs/tech/sound.md`, `system/LightHistorySystem.kt`, `physics/Relativity.kt` (`dopplerFactor`), tactical overlay settings
-- files: create `system/ComputerSoundSystem.kt`; edit `system/DeathSystem.kt` (or the asteroid break-up event source), `settings/MenuSettings.kt`, i18n; tests; `docs/design/physics-lies.md`
-- goal: The ship's computer turns what it sees into sound, so the player can hear the fight. A toggle (`computer_sounds`, default on) plus a volume slider; off = the realistic silent vacuum.
-- spec:
-  - Events (asteroid break-up by size now; enemy ships and their weapons later) are queued with their arena position and world time. The computer plays a sound when the event's **light reaches the pilot** (retarded time, same as the displayed sprite), never earlier: it only knows what it sees.
-  - Pitch = the Doppler factor of the source as seen by the pilot (clamped, e.g. 0.5..2), volume falls with distance (a design choice by the computer, not physics; e.g. 1/(1 + d/d0)), stereo pan from the bearing relative to the screen. Cap concurrent instances.
-  - Add a physics-lies row: these sounds are computer sonification, not acoustic (FAKE-by-design, toggleable); mention that no sound reaches the pilot through vacuum.
-- acceptance:
-  - [ ] Test: an event at distance d is played after d/c of world time (pilot at rest), not before
-  - [ ] Test: approaching source -> pitch > 1, receding -> < 1, clamped
-  - [ ] Test: toggle off -> nothing queued/played
-  - [ ] `./gradlew core:test` passes
-- playtest: Shoot a far asteroid: you hear the break-up only when you see it. With the toggle off, distant events are silent.
 
 ---
 

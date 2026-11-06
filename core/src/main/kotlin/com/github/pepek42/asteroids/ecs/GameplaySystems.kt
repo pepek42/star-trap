@@ -4,6 +4,7 @@ import com.badlogic.ashley.core.Engine
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.math.RandomXS128
 import com.badlogic.gdx.physics.box2d.World
+import com.github.pepek42.asteroids.audio.ComputerSoundQueue
 import com.github.pepek42.asteroids.audio.HullSoundQueue
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.input.ControlSettings
@@ -50,6 +51,8 @@ class GameplayDeps(
     val onPlayerDeath: () -> Unit,
     /** Hull sound events (ST-135); null in the headless balance runner, which must not touch audio. */
     val hullSounds: HullSoundQueue? = null,
+    /** Events for the ship's computer to sonify when their light arrives (ST-136); null in the headless balance runner. */
+    val computerSounds: ComputerSoundQueue? = null,
 )
 
 /** Systems the presentation layer needs a handle on. */
@@ -99,7 +102,7 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
         addSystem(ObserverSystem(deps.observerState, deps.settings, deps.clock))
         presentation(systems)
         addSystem(LifetimeSystem(deps.clock))
-        addSystem(DeathSystem(this, deps.asteroidProvider, deps.random, deps.onPlayerDeath))
+        addSystem(DeathSystem(this, deps.asteroidProvider, deps.random, deps.computerSounds, deps.clock, deps.onPlayerDeath))
         addSystem(RemoveSystem(deps.world, deps.mapProvider))
     }
     return systems

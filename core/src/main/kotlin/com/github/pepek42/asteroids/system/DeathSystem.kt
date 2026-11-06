@@ -4,6 +4,8 @@ import com.badlogic.ashley.core.Engine
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.physics.box2d.Body
+import com.github.pepek42.asteroids.audio.ComputerSoundKind
+import com.github.pepek42.asteroids.audio.ComputerSoundQueue
 import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.RemoveComponent
 import com.github.pepek42.asteroids.component.asteroidCmp
@@ -13,6 +15,7 @@ import com.github.pepek42.asteroids.component.healthCmp
 import com.github.pepek42.asteroids.component.playerMapper
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.physics.FRAGMENT_RAM_IMMUNITY
+import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import ktx.ashley.addComponent
 import ktx.ashley.allOf
@@ -25,6 +28,9 @@ class DeathSystem(
     private val engine: Engine,
     private val asteroidProvider: AsteroidProvider,
     private val random: RandomXS128,
+    /** Break-up events for the ship's computer (ST-136); null in headless runs. Needs [clock] for the event time. */
+    private val computerSounds: ComputerSoundQueue? = null,
+    private val clock: GameClock? = null,
     private val onPlayerDeath: () -> Unit = {},
 ) : IteratingSystem(allOf(HealthComponent::class).get()) {
     private var playerDeathReported = false
@@ -50,11 +56,23 @@ class DeathSystem(
             val body = entity.bodyCmp.body
             body.fixtureList.forEach { it.isSensor = true }
             val currentAsteroidSize = entity.asteroidCmp.asteroidSize
+            pushBreakUp(body, currentAsteroidSize)
             if (currentAsteroidSize.nextSize != null) {
                 spawnSmallerAsteroids(body, currentAsteroidSize)
             }
         }
         entity.addComponent<RemoveComponent>(engine)
+    }
+
+    private fun pushBreakUp(body: Body, size: AsteroidSize) {
+        val queue = computerSounds ?: return
+        val kind = when (size) {
+            AsteroidSize.SMALL -> ComputerSoundKind.ASTEROID_BREAK_SMALL
+            AsteroidSize.LARGE -> ComputerSoundKind.ASTEROID_BREAK_LARGE
+        }
+        val p = body.position
+        val v = body.linearVelocity
+        queue.push(kind, p.x, p.y, v.x, v.y, clock?.worldTime ?: 0f)
     }
 
     private fun spawnSmallerAsteroids(body: Body, currentAsteroidSize: AsteroidSize) {

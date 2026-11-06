@@ -17,9 +17,11 @@ import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.debug.SCREENSHOT_FRAME_DELTA
+import com.github.pepek42.asteroids.audio.ComputerSoundQueue
 import com.github.pepek42.asteroids.audio.HullSoundQueue
 import com.github.pepek42.asteroids.audio.SoundBank
 import com.github.pepek42.asteroids.settings.SoundSettings
+import com.github.pepek42.asteroids.system.ComputerSoundSystem
 import com.github.pepek42.asteroids.system.HullSoundSystem
 import com.github.pepek42.asteroids.ecs.clearLevel
 import com.github.pepek42.asteroids.ecs.GameplayDeps
@@ -81,6 +83,8 @@ class PlayScreen(
 
     private val hullSounds = HullSoundQueue()
     private lateinit var hullSoundSystem: HullSoundSystem
+    private val computerSounds = ComputerSoundQueue(game.get<SoundSettings>())
+    private lateinit var computerSoundSystem: ComputerSoundSystem
     private lateinit var lightHistory: LightHistorySystem
 
     init {
@@ -112,6 +116,7 @@ class PlayScreen(
             },
             onPlayerDeath = { game.endRun() },
             hullSounds = hullSounds,
+            computerSounds = computerSounds,
         )
         // Execution order lives in buildGameplaySystems (shared with the headless balance runner); the presentation
         // systems below are inserted between the observer and the lifetime system.
@@ -130,6 +135,10 @@ class PlayScreen(
                 )
                 hullSoundSystem = HullSoundSystem(game.get<SoundBank>(), hullSounds, game.get<SoundSettings>(), settings)
                 addSystem(hullSoundSystem)
+                computerSoundSystem = ComputerSoundSystem(
+                    game.get<SoundBank>(), computerSounds, game.get<SoundSettings>(), settings, observerState, clock,
+                )
+                addSystem(computerSoundSystem)
                 addSystem(DebugVectorSystem(camera, settings, debugSettings))
                 addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>(), gameEventManager, game.get<ControlSettings>(), batch = spriteBatch, font = game.get<Skin>().getFont("font")))
                 addSystem(DebugSystem(world, engine, camera, debugSettings))
@@ -145,6 +154,7 @@ class PlayScreen(
         observerState.reset()
         clock.reset()
         lightHistory.clear()
+        computerSounds.clear()
         gameState.nextLevel()
         mapProvider.loadMap()
         playerEntityProvider.spawnPlayerEntity()
@@ -181,14 +191,17 @@ class PlayScreen(
 
     override fun pause() {
         hullSoundSystem.paused = true
+        computerSoundSystem.paused = true
     }
 
     override fun resume() {
         hullSoundSystem.paused = false
+        computerSoundSystem.paused = false
     }
 
     override fun hide() {
         hullSoundSystem.silence()
+        computerSoundSystem.silence()
         Gdx.graphics.setSystemCursor(SystemCursor.Arrow)
         hud.toggleHud(show = false)
         debugPanel.hide()
@@ -199,6 +212,7 @@ class PlayScreen(
 
     override fun dispose() {
         if (::hullSoundSystem.isInitialized) hullSoundSystem.silence()
+        if (::computerSoundSystem.isInitialized) computerSoundSystem.silence()
         engine.systems.forEach { if (it is Disposable) it.disposeSafely() }
         world.disposeSafely()
         super.dispose()

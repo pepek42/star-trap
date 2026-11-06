@@ -9,7 +9,6 @@ Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `bl
 Owner 2026-11-02. /auto-dev works down this list and takes the first `ready` card whose `depends` are all `done`. `needs-user` cards are skipped by /auto-dev (ask the owner, batched); nothing below is blocked by them, because every card is planned around the recommended answer.
 
 Web build (owner 2026-11-04: web is the primary target):
-0. ST-145 Exception in Game.dispose: sound asset already unloaded
 
 M3 Relativity MVP:
 
@@ -41,20 +40,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - note (2026-11-01, owner playtest after M2 + ST-037): "Feels a bit chaotic, maybe the arena should be bigger" → ST-030 answered (c), and ST-046 now also calms a0 and the asteroid spawn. "Relativity debug options on the side" → ST-056 (runtime `RelativitySettings`), ST-057 (plumbing), ST-059 (panel), ST-060 (vector overlay). Controls are undecided → ST-058/ST-061/ST-062 make schemes (a)/(b)/(c) switchable at runtime, and ST-063 asks for the default. γ: no gameplay cap (ST-032), safety bound 50 (ST-055). **From ST-056 on**, runtime code reads c, a0, the γ cap, field params and relativity/field on/off from the DI singleton `RelativitySettings`, not the consts (the consts are its defaults). Cards written earlier (ST-038 … ST-048) that say `SPEED_OF_LIGHT`, `ENGINE_PROPER_ACCEL`, `BETA_MAX_MASSIVE` or `RELATIVITY_ENABLED` mean the corresponding setting once ST-056 is done.
 
 - note (2026-11-02, owner interview, game-design.md §11): **The game is perceived from the pilot's frame.** The game clock is the pilot's proper time (research E21): the arena advances `γ·dt_real` per frame, capped at about 10× (declared FAKE past the cap, shown on the HUD), and the player's guns and turning run on real time (ST-068, ST-069, ST-040). **Pilot view is the main rendering** and is pulled forward from M4 into this milestone (E8 light delay + E9 aberration: ST-070 … ST-078, default on). The minimap stays true arena positions ("tactical computer"). Aim help is a lead marker (ST-078). Also decided: braking boost (ST-066), shots leave the arena instead of bouncing (ST-067, reworks ST-039), ramming yes (ST-033), photon laser default (ST-034). The alternative control modes (auto-aim + auto-shoot, targeting trance) are **parked** at the end of the backlog.
-
-### ST-145 Exception in Game.dispose: sound asset already unloaded
-- status: ready
-- size: S
-- agent: junior-dev
-- layer: infra
-- depends: —
-- files: `core/src/main/kotlin/com/github/pepek42/asteroids/Game.kt` (`dispose`), `core/src/main/kotlin/com/github/pepek42/asteroids/audio/SoundBank.kt`
-- refs: ST-144 report (2026-11-06)
-- goal: Every desktop exit (e.g. a `--screenshot` run) prints `GdxRuntimeException: Asset not loaded: sounds/engine_loop.wav` from `SoundBank.get` (SoundBank.kt:22), called during `Game.dispose` (Game.kt ~171). Something asks the SoundBank for a sound after the `AssetManager` was disposed or unloaded (likely a screen's `dispose`/`hide` stopping the engine loop after `ctx.disposeSafely()`, or the AssetManager disposed before the screens). Fix the order or make the stop path not look the sound up again (keep the `Sound` reference, or guard with `assetManager.isLoaded`).
-- acceptance:
-  - [ ] `./gradlew lwjgl3:run --args="--screenshot=<scratch>/x.png --frames=60 --seed=42"` exits without a stack trace
-  - [ ] tests pass
-- playtest: start a level, quit the game; no error in the console.
 
 ### ST-075 Pilot view: per-corner retarded time (Terrell rotation)
 - status: parked

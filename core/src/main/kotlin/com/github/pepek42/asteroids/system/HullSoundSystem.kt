@@ -48,6 +48,8 @@ class HullSoundSystem(
     private val laserSound = bank[SoundId.LASER_FIRE]
     private val hitSound = bank[SoundId.HULL_HIT]
     private val scrapeSound = bank[SoundId.HULL_SCRAPE]
+    // Cached too: silence() runs from PlayScreen.dispose, which can happen after the AssetManager is disposed.
+    private val allSounds: List<Sound> = SoundId.entries.map { bank[it] }
 
     /** While true (focus lost / paused) the system makes no sound and drops queued events. */
     var paused = false
@@ -133,7 +135,7 @@ class HullSoundSystem(
 
     /** Stops everything (pause, screen change). */
     fun silence() {
-        for (id in SoundId.entries) bank[id].stop()
+        for (sound in allSounds) sound.stop()
         loopId = -1L
         scrapeId = -1L
         queue.clearTouching()

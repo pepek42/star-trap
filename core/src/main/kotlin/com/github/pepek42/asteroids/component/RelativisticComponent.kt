@@ -31,6 +31,13 @@ class RelativisticComponent : Component, Pool.Poolable {
     /** γ used for the last step, kept for the proper time update in `afterStep`. */
     var gUsed = 1f
 
+    /**
+     * Gravitational clock rate `prod sqrt(1 - rs/r)` over all gravity sources (ST-086, research E15), set by `GravitySystem`
+     * every step. 1 without gravity. The product over several sources is an APPROXIMATION (the potentials add, the
+     * exact factor would be `sqrt(1 - sum rs/r)`).
+     */
+    var gravFactor = 1f
+
     /** Velocity written into Box2D before the last step, to detect contact-induced changes. */
     val vSet = Vector2()
 
@@ -59,6 +66,7 @@ class RelativisticComponent : Component, Pool.Poolable {
         lastAccel.setZero()
         tau = 0f
         gUsed = 1f
+        gravFactor = 1f
         vSet.setZero()
         gammaMax = GAMMA_MAX_MASSIVE
         restMass = 0f
@@ -75,7 +83,7 @@ val Entity.relativisticCmpOptional by optionalPropertyFor(relativisticMapper)
  * Time that passed on this entity's own clock during a frame of world time (ST-040, research E2).
  *
  * The player keeps the pilot's clock, so it gets the real frame time (exact while the warp is uncapped, FAKE past the
- * cap: the pilot's clock never slows). Other relativistic bodies run on proper time `worldDt / γ`. Everything else
+ * cap: the pilot's clock never slows). Other relativistic bodies run on proper time `worldDt · gravFactor / γ` (ST-086). Everything else
  * runs on world time. Without a [clock] all three fall back to [frameDt].
  */
 fun Entity.properDelta(clock: GameClock?, frameDt: Float): Float {
@@ -83,16 +91,16 @@ fun Entity.properDelta(clock: GameClock?, frameDt: Float): Float {
     val worldDt = clock?.worldDt ?: frameDt
     if (playerCmpOptional != null) return realDt
     val rel = relativisticCmpOptional ?: return worldDt
-    return worldDt / rel.gUsed
+    return worldDt * rel.gravFactor / rel.gUsed
 }
 
 /**
  * Factor `f` by which the rotation controller's clock is slowed relative to world time: `1 / warp` for the player (a
- * turn takes the same real time at any warp), `1 / γ` for other relativistic bodies, 1 otherwise or with no [clock].
+ * turn takes the same real time at any warp), `gravFactor / γ` for other relativistic bodies, 1 otherwise or with no [clock].
  */
 fun Entity.rotationTimeFactor(clock: GameClock?): Float {
     if (clock == null) return 1f
     if (playerCmpOptional != null) return 1f / clock.warp
     val rel = relativisticCmpOptional ?: return 1f
-    return 1f / rel.gUsed
+    return rel.gravFactor / rel.gUsed
 }

@@ -18,7 +18,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-40. ST-086 Gravitational time dilation
 41. ST-087 Accretion disk
 43. ST-095 Lighting math (pure)
 44. ST-096 Normal maps from alpha in the texture packer
@@ -182,25 +181,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 
 - note (2026-11-02, owner follow-up, game-design §11 Q1 answered): black holes, planets and decoration **start static** (placed at level start, zero velocity) but are **dynamic and feel gravity**: n-body among the sources, plus the player's pull. **Decision (planner):** sources are Box2D dynamic bodies on the **Newtonian path** (no `RelativisticComponent`): they are heavy and stay far below 0.1 c, so γ ≈ 1 and they need neither `RelativisticDynamics`, nor the γ-mass of ST-047, nor the ship clocks of ST-040. Black holes get a sensor body (no contacts, ignored by the projectile sweep, which already skips sensors); planets get a solid body. Because they have bodies, `BoundaryFieldSystem` (which acts on every `BodyComponent`) keeps them in the arena with no extra code, and `LightHistorySystem` records them for the pilot view. With the physical pull, two holes 60 u apart would collide in about 6 s, so source–source gravity is scaled by `sourceCoupling = 0.1` (declared FAKE, about 19 s), pending ST-092. Holes that touch merge. Counts stay low for performance: at most 2 holes, 2 planets and 6 debris pieces per level.
 - note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
-
-### ST-086 Gravitational time dilation in ship clocks and the time warp
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-040, ST-085
-- files: `component/RelativisticComponent.kt`, `system/GravitySystem.kt`, `system/RelativisticDynamics.kt`, `system/TimeWarpSystem.kt`; tests
-- goal: Clocks deep in a gravity well run slow (research E15: `dτ/dt = √(1 − r_s/r)`, combined as `√(1 − r_s/r)/γ`). Hiding near the hole makes the world race ahead ("Interstellar's planet"), and it feeds into the pilot clock warp.
-- spec:
-  - `RelativisticComponent.gravFactor = 1f` (reset 1). `GravitySystem.beforeStep` sets it to `∏ √(1 − rs/max(r, 1.01·rs))` over all sources (1 when gravity is off or there are no sources). For planets use `rs = rsFromGm(gm, c)` (0.17 u for the default planet, so about 2 % at its surface). The player's pull isn't a source here. Sources themselves have no `RelativisticComponent` and run on arena time.
-  - `RelativisticDynamics.afterStep`: `tau += dt·gravFactor/gUsed`.
-  - `properDelta` (ST-040), non-player relativistic entities: `worldDt·gravFactor/gUsed`.
-  - `TimeWarpSystem`: the warp uses `γ_eff = gUsed/gravFactor` instead of `gUsed`. Rotation factor `f` for non-players (ST-040): `gravFactor/gUsed`.
-  - Pure: `fun gravTimeFactor(r: Float, rs: Float): Float`.
-- acceptance:
-  - [ ] Tests: `gravTimeFactor(4f, 2f) ≈ 0.7071`; `gravTimeFactor(1f, 2f) ≈ √(1 − 1/1.01)` (clamped); far away (r = 1000) ≈ 1
-  - [ ] Test: a body held at rest at r = 2 r_s accumulates `tau ≈ 0.707` per second of world time, and with it as the player the warp is `1.414 ± 0.01`
-  - [ ] `./gradlew core:test` passes
-- playtest: Skim close to a hole and watch the world time race ahead on the HUD while your guns feel the same.
 
 ### ST-087 Accretion disk: GPU particle disk
 - status: ready

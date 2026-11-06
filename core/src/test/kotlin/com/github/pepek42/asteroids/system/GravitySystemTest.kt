@@ -20,7 +20,10 @@ import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.physics.BH_RS
+import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.gravTimeFactor
+import com.github.pepek42.asteroids.physics.rsFromGm
 import com.github.pepek42.asteroids.physics.bendPhoton
 import com.github.pepek42.asteroids.physics.gammaFromU
 import com.github.pepek42.asteroids.physics.gmFromRs
@@ -312,6 +315,68 @@ class GravitySystemTest {
         assertEquals(0f, proj.linearVelocity.y, 0f)
         assertEquals(1f, photon.dir.x, 0f)
         assertEquals(0f, photon.dir.y, 0f)
+    }
+
+    private val dt = PHYSICS_UPDATE_INTERVAL
+
+    /** Runs the gravity and dynamics listeners on bodies that are not moved by Box2D (held at rest). */
+    private fun heldSteps(n: Int) = repeat(n) {
+        gravity.beforeStep(dt)
+        dynamics.afterStep(dt)
+    }
+
+    private val stepsPerSecond get() = Math.round(1f / dt)
+
+    @Test
+    fun bodyHeldAtTwoSchwarzschildRadiiAccumulatesProperTimeAtTheStaticClockRate() {
+        addSource(0f, 0f)
+        val rel = addRelativistic(2f * BH_RS, 0f)
+        heldSteps(stepsPerSecond)
+        assertEquals(0.7071f, rel.gravFactor, 1e-4f)
+        assertEquals(0.7071f, rel.tau, 0.01f)
+    }
+
+    @Test
+    fun playerHeldAtTwoSchwarzschildRadiiMakesTheWarpSqrtTwo() {
+        addSource(0f, 0f)
+        addRelativistic(2f * BH_RS, 0f, player = true)
+        val clock = GameClock()
+        engine.addSystem(TimeWarpSystem(clock, settings))
+        gravity.beforeStep(dt)
+        engine.update(dt)
+        assertEquals(1.414f, clock.warp, 0.01f)
+        assertEquals(false, clock.warpCapped)
+    }
+
+    @Test
+    fun planetFactorUsesRsFromGmAndSourcesMultiply() {
+        val gm = 40f
+        val planetRs = rsFromGm(gm, c)
+        addSource(0f, 0f, GravitySourceKind.PLANET, gm = gm, radius = 2f)
+        val rel = addRelativistic(5f, 0f)
+        gravity.beforeStep(dt)
+        assertEquals(gravTimeFactor(5f, planetRs), rel.gravFactor, 1e-6f)
+        addSource(10f, 0f)
+        gravity.beforeStep(dt)
+        assertEquals(gravTimeFactor(5f, planetRs) * gravTimeFactor(5f, BH_RS), rel.gravFactor, 1e-6f)
+    }
+
+    @Test
+    fun gravFactorIsOneWithoutGravityOrSources() {
+        val rel = addRelativistic(5f, 0f)
+        rel.gravFactor = 0.3f
+        gravity.beforeStep(dt)
+        assertEquals(1f, rel.gravFactor, 0f)
+        addSource(0f, 0f)
+        gravity.beforeStep(dt)
+        assertTrue(rel.gravFactor < 1f)
+        settings.gravityEnabled = false
+        gravity.beforeStep(dt)
+        assertEquals(1f, rel.gravFactor, 0f)
+        settings.gravityEnabled = true
+        settings.relativityEnabled = false
+        gravity.beforeStep(dt)
+        assertEquals(1f, rel.gravFactor, 0f)
     }
 
     companion object {

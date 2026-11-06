@@ -19,6 +19,13 @@ import kotlin.math.min
 /** Slack for the "steps capped" comparison. */
 private const val STEPS_CAPPED_EPSILON = 1e-6f
 
+/**
+ * Warp the pilot's clock asks for: `γ / gravFactor` (ST-086). Without gravity (`gravFactor` 1) it is γ. A non-positive
+ * [gravFactor] is treated as 1, and `GravitySystem` keeps it above `sqrt(1 - 1/1.01)` (about 0.1), so the result is at
+ * most about 10 γ.
+ */
+fun effectiveGamma(gamma: Float, gravFactor: Float): Float = if (gravFactor > 0f) gamma / gravFactor else gamma
+
 /** Fills [GameClock] for the frame from the player's γ of the last physics step. Registered first. */
 class TimeWarpSystem(
     private val clock: GameClock,
@@ -34,7 +41,9 @@ class TimeWarpSystem(
 
     override fun update(deltaTime: Float) {
         clock.realDt = deltaTime
-        val gamma = entities.firstOrNull()?.relativisticCmp?.gUsed ?: 1f
+        val rel = entities.firstOrNull()?.relativisticCmp
+        // Pilot clock rate is gravFactor / γ, so the arena runs 1 / rate = γ / gravFactor faster (ST-086).
+        val gamma = if (rel == null) 1f else effectiveGamma(rel.gUsed, rel.gravFactor)
         val enabled = settings.timeWarpEnabled && settings.relativityEnabled
         clock.warp = timeWarpFactor(gamma, enabled, settings.timeWarpMax)
         clock.warpCapped = isWarpCapped(gamma, enabled, settings.timeWarpMax)

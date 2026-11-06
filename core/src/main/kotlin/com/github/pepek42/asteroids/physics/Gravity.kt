@@ -55,6 +55,18 @@ fun gmFromRs(rs: Float, c: Float): Float = rs * c * c / 2f
 /** Inverse of [gmFromRs]: `r_s = 2 GM / c^2` (planets, ST-086). */
 fun rsFromGm(gm: Float, c: Float): Float = 2f * gm / (c * c)
 
+/** Floor of `r / r_s` in [gravTimeFactor]: clocks inside it tick at the rate of `r = 1.01 r_s` (research E15), so the factor stays above 0. */
+const val GRAV_TIME_MIN_R_PER_RS = 1.01f
+
+/**
+ * Rate `dtau/dt = sqrt(1 - r_s/r)` of a static clock at distance [r] from a source with Schwarzschild radius [rs]
+ * (research E15, EXACT for a static clock). `r` is floored at `GRAV_TIME_MIN_R_PER_RS * rs`. Gives 1 for `rs <= 0`.
+ */
+fun gravTimeFactor(r: Float, rs: Float): Float {
+    if (rs <= 0f) return 1f
+    return sqrt(1f - rs / max(r, GRAV_TIME_MIN_R_PER_RS * rs))
+}
+
 /**
  * Proper acceleration `du/dtau` of a massive body at [rx], [ry] (body minus source) with proper velocity [ux], [uy]
  * (research E14): `-(GM / r^3) (1 + 3 L^2 / (c^2 r^2)) r_vec`, `L = |r x u|`. Gives exact Schwarzschild orbit shapes.

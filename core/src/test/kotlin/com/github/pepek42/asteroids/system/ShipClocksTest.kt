@@ -65,6 +65,17 @@ class ShipClocksTest {
     }
 
     @Test
+    fun gravFactorSlowsOtherShipsButNotThePlayersClock() {
+        val clock = GameClock().apply { realDt = 0.1f; worldDt = 0.4f; warp = 4f }
+        val player = Entity().add(PlayerComponent()).add(RelativisticComponent().apply { gUsed = 4f; gravFactor = 0.5f })
+        val other = Entity().add(RelativisticComponent().apply { gUsed = 2f; gravFactor = 0.5f })
+        assertEquals(0.1f, player.properDelta(clock, 0.7f), 1e-6f)
+        assertEquals(0.1f, other.properDelta(clock, 0.7f), 1e-6f)
+        assertEquals(0.25f, other.rotationTimeFactor(clock), 1e-6f)
+        assertEquals(0.25f, player.rotationTimeFactor(clock), 1e-6f)
+    }
+
+    @Test
     fun rotationTimeFactorPicksClockByEntityKind() {
         val clock = GameClock().apply { warp = 4f }
         val player = Entity().add(PlayerComponent()).add(RelativisticComponent().apply { gUsed = 5f })

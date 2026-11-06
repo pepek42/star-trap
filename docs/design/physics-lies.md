@@ -10,7 +10,7 @@ Tags: **FAKE** is a deliberate departure. **APPROX** is a simplification that is
 
 | # | Lie | Tag | Why | Where | Exact alternative / revisit |
 |---|---|---|---|---|---|
-| 1 | The pilot clock's fast-forward is capped at ~12× (`TIME_WARP_MAX_LIMIT`). Past the cap the arena stops speeding up relative to the pilot | FAKE, ENGINE | Each step multiplies CPU cost (γ physics steps per frame) | ST-068, ST-069 | Raise the cap if profiling allows |
+| 1 | The pilot clock's fast-forward is capped at ~12× (`TIME_WARP_MAX_LIMIT`). Past the cap the arena stops speeding up relative to the pilot. Since ST-086 the warp is `γ_eff = γ/gravFactor`, so hovering near a hole hits the cap quickly (≈ 10× at rest at 1.01 r_s) | FAKE, ENGINE | Each step multiplies CPU cost (γ physics steps per frame) | ST-068, ST-069 | Raise the cap if profiling allows |
 | 2 | The arena is simulated in one frame (the arena rest frame), and Box2D collisions/contacts aren't Lorentz-covariant | APPROX | Box2D can only work in one inertial frame | whole sim | — |
 | 3 | Box2D clamps movement to 2 u per step, so c = 20 u/s, well under the ~90 u/s Box2D cap at 60 Hz | ENGINE | Box2D limitation | `PhysicsConstants.kt`, ST-101 | Substeps (costs CPU) |
 | 4 | γ safety bound at 50 | ENGINE | Float precision | ST-055 | — |
@@ -51,6 +51,7 @@ Tags: **FAKE** is a deliberate departure. **APPROX** is a simplification that is
 | 19 | Lensing is applied to the backdrop only, fades at the edge of the lens area, and overlapping lens areas don't lens each other | FAKE | Cost, and to hide seams | ST-088 | Per-object lensing (research: L, skip) |
 | 19b | A black hole that swallows a planet doesn't grow (rs unchanged, planet momentum lost); the planet is removed once its centre is within `rs + 0.5·R` | FAKE | Planet mass ≪ hole mass | ST-093 | Merge via `mergeSources` with the planet's gm as mass |
 | 19c | Planet gm is tuned so surface gravity is half the engine's proper acceleration (`PLANET_SURFACE_GRAVITY_FRACTION · engineProperAccel · R²`), read at spawn | FAKE | Ships must be able to take off; follows runtime c | ST-093 | — |
+| 19d | Gravitational time dilation: the clock factor is the product `∏ √(1 − rs_i/r_i)` over sources (exact only for one static source; weak-field superposition would be `√(1 − Σ rs_i/r_i)`), r is clamped to ≥ 1.01·rs, sources are treated as static (no frame dragging or motion), and the sources themselves run on arena time | APPROX | Simple, per-source, exact in the single-hole case that matters | ST-086 (`gravTimeFactor`, `GravitySystem.beforeStep`) | Weak-field sum, or a proper metric for moving sources |
 
 ## Rendering and light
 

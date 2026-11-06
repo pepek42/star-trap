@@ -151,7 +151,7 @@ class RelativisticDynamics(
                 entity.bodyCmp.body.setLinearVelocity(velocity)
                 rel.vSet.set(velocity)
             }
-            rel.tau += dt / rel.gUsed
+            rel.tau += dt * rel.gravFactor / rel.gUsed
             rel.lastAccel.set(rel.accel)
             rel.accel.setZero()
         }

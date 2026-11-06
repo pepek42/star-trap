@@ -5,6 +5,7 @@ import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.utils.Pool
 import com.github.pepek42.asteroids.physics.BH_RS
 import com.github.pepek42.asteroids.physics.gmFromRs
+import com.github.pepek42.asteroids.physics.rsFromGm
 import ktx.ashley.mapperFor
 import ktx.ashley.optionalPropertyFor
 import ktx.ashley.propertyFor
@@ -32,6 +33,9 @@ class GravitySourceComponent : Component, Pool.Poolable {
 
     /** Effective `GM` at light speed [c]: from [rs] for a black hole, the stored [gm] for a planet. */
     fun effectiveGm(c: Float): Float = if (kind == GravitySourceKind.BLACK_HOLE) gmFromRs(rs, c) else gm
+
+    /** Schwarzschild radius at light speed [c]: [rs] for a black hole, `rsFromGm(gm, c)` for a planet (gravitational time dilation, ST-086). */
+    fun effectiveRs(c: Float): Float = if (kind == GravitySourceKind.BLACK_HOLE) rs else rsFromGm(gm, c)
 
     override fun reset() {
         kind = GravitySourceKind.BLACK_HOLE

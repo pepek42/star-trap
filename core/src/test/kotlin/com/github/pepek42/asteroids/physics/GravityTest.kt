@@ -35,6 +35,18 @@ class GravityTest {
         assertEquals(0.5f, rsFromGm(gmFromRs(0.5f, 33f), 33f), 1e-5f)
     }
 
+    @Test
+    fun gravTimeFactorMatchesTheStaticClockRate() {
+        assertEquals(0.7071f, gravTimeFactor(4f, 2f), 1e-4f)
+        // Inside 1.01 r_s the radius is clamped, so the factor stays above zero.
+        val clamped = sqrt(1f - 1f / GRAV_TIME_MIN_R_PER_RS)
+        assertEquals(sqrt(1f - 1f / 1.01f), clamped, 1e-6f)
+        assertEquals(clamped, gravTimeFactor(1f, 2f), 1e-6f)
+        assertEquals(clamped, gravTimeFactor(0f, 2f), 1e-6f)
+        assertEquals(1f, gravTimeFactor(1000f, 2f), 2e-3f)
+        assertEquals(1f, gravTimeFactor(3f, 0f), 0f)
+    }
+
     /** One RK4 step in proper time of the state (x, y, ux, uy); dx/dtau = u. */
     private fun rk4(s: DoubleArray, h: Double) {
         val tmp = Vector2()

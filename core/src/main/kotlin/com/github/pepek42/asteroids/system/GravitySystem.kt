@@ -34,11 +34,13 @@ import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SOURCE_PULL_MIN_SOFTENING
 import com.github.pepek42.asteroids.physics.bendPhoton
+import com.github.pepek42.asteroids.physics.gravTimeFactor
 import com.github.pepek42.asteroids.physics.gravityAccelTau
 import com.github.pepek42.asteroids.physics.newtonAccel
 import ktx.ashley.allOf
 import kotlin.math.atan2
 import kotlin.math.max
+import kotlin.math.sqrt
 
 /**
  * Gravity in the per-step physics (research E14, ST-083). Every step, before `RelativisticDynamics`:
@@ -55,6 +57,9 @@ import kotlin.math.max
  *
  * [afterStep] also runs the black-hole horizon (bodies inside `rs` are removed, the player's health goes to 0) and merges
  * holes that touch (ST-085) and eats planets whose centre is within `rs + 0.5 radius` of a hole (ST-093); these run even with `gravityEnabled` off.
+ *
+ * Each relativistic body also gets `RelativisticComponent.gravFactor` (ST-086, [gravTimeFactor] over all sources, 1 without
+ * gravity or sources); the player's own pull does not count.
  *
  * Pull does nothing with `gravityEnabled` off or without sources. Must be registered before `RelativisticDynamics`.
  */
@@ -82,10 +87,37 @@ class GravitySystem(
     override fun update(deltaTime: Float) = Unit
 
     override fun beforeStep(dt: Float) {
-        if (!settings.gravityEnabled || sources.size() == 0) return
+        if (!settings.gravityEnabled || sources.size() == 0) {
+            resetGravFactors()
+            return
+        }
         val c = settings.c
         pullSources()
         for (i in 0 until bodies.size()) pullBody(bodies[i], c, dt)
+    }
+
+    /** No gravity: every clock ticks at the arena rate again. */
+    private fun resetGravFactors() {
+        for (i in 0 until bodies.size()) {
+            val rel = relativisticMapper.get(bodies[i]) ?: continue
+            rel.gravFactor = 1f
+        }
+    }
+
+    /**
+     * `prod gravTimeFactor(r, rs)` over the live sources at [x], [y] (ST-086): the clock rate of a body there. The product
+     * is an APPROXIMATION for several sources (the exact factor uses the summed potential), exact for one.
+     */
+    private fun gravClockFactor(x: Float, y: Float, c: Float): Float {
+        var factor = 1f
+        for (i in 0 until sources.size()) {
+            if (removeMapper.has(sources[i])) continue
+            val sp = sources[i].bodyCmp.body.position
+            val dx = x - sp.x
+            val dy = y - sp.y
+            factor *= gravTimeFactor(sqrt(dx * dx + dy * dy), sources[i].gravitySourceCmp.effectiveRs(c))
+        }
+        return factor
     }
 
     override fun afterStep(dt: Float) {
@@ -241,6 +273,8 @@ class GravitySystem(
         }
         val rel = if (settings.relativityEnabled) relativisticMapper.get(entity) else null
         val pos = body.position
+        // Clock rate from the potential; with relativity off the clocks stay on arena time.
+        relativisticMapper.get(entity)?.gravFactor = if (rel != null) gravClockFactor(pos.x, pos.y, c) else 1f
         accel.setZero()
         for (i in 0 until sources.size()) {
             if (removeMapper.has(sources[i])) continue

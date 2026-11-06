@@ -31,6 +31,10 @@ import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaRel
 import com.github.pepek42.asteroids.physics.photonEnergyFactor
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
+import com.github.pepek42.asteroids.audio.HullSoundKind
+import com.github.pepek42.asteroids.audio.HullSoundQueue
+import com.github.pepek42.asteroids.audio.impactVolume
+import com.github.pepek42.asteroids.audio.isScrape
 import com.github.pepek42.asteroids.component.AsteroidComponent
 import com.github.pepek42.asteroids.component.asteroidMapper
 import ktx.ashley.allOf
@@ -101,6 +105,8 @@ fun ramDamage(va: Vector2, vb: Vector2, restMassA: Float, restMassB: Float, c: F
 class ContactSystem(
     world: World,
     private val settings: RelativitySettings = RelativitySettings(),
+    /** Player hull hits and scrapes go here for `HullSoundSystem`; null in headless runs. */
+    private val hullSounds: HullSoundQueue? = null,
 ) : EntitySystem(), ContactListener, PhysicsStepListener {
     private val asteroids = allOf(AsteroidComponent::class).get()
 
@@ -122,7 +128,21 @@ class ContactSystem(
             applyProjectileHit(engine, entityTwo, entityOne, settings)
         } else if (!contact.fixtureA.isSensor && !contact.fixtureB.isSensor) {
             applyRamDamage(entityOne, contact.fixtureA.body, entityTwo, contact.fixtureB.body)
+            queueHullSound(entityOne, contact.fixtureA.body, entityTwo, contact.fixtureB.body)
         }
+    }
+
+    /** A contact involving the player's hull: a hit, or a scrape when slow, scaled by the relative speed ([impactVolume]). */
+    private fun queueHullSound(entityA: Entity, bodyA: Body, entityB: Entity, bodyB: Body) {
+        val queue = hullSounds ?: return
+        if (entityA.playerCmpOptional == null && entityB.playerCmpOptional == null) return
+        velocityA.set(entityA.relativisticCmpOptional?.vSet ?: bodyA.linearVelocity)
+        velocityB.set(entityB.relativisticCmpOptional?.vSet ?: bodyB.linearVelocity)
+        val speed = velocityA.sub(velocityB).len()
+        queue.push(
+            if (isScrape(speed, settings.c)) HullSoundKind.HULL_SCRAPE else HullSoundKind.HULL_HIT,
+            impactVolume(speed, settings.c),
+        )
     }
 
     /**

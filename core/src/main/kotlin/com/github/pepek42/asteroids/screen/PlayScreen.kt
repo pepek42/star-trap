@@ -17,6 +17,10 @@ import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.debug.SCREENSHOT_FRAME_DELTA
+import com.github.pepek42.asteroids.audio.HullSoundQueue
+import com.github.pepek42.asteroids.audio.SoundBank
+import com.github.pepek42.asteroids.settings.SoundSettings
+import com.github.pepek42.asteroids.system.HullSoundSystem
 import com.github.pepek42.asteroids.ecs.clearLevel
 import com.github.pepek42.asteroids.ecs.GameplayDeps
 import com.github.pepek42.asteroids.ecs.buildGameplaySystems
@@ -75,6 +79,8 @@ class PlayScreen(
         game.get<Skin>(), settings, debugSettings, game.get<ControlSettings>(),
     ) { visible -> Gdx.graphics.setSystemCursor(if (visible) SystemCursor.Arrow else SystemCursor.Crosshair) }
 
+    private val hullSounds = HullSoundQueue()
+    private lateinit var hullSoundSystem: HullSoundSystem
     private lateinit var lightHistory: LightHistorySystem
 
     init {
@@ -105,6 +111,7 @@ class PlayScreen(
                 game.finishLevel()
             },
             onPlayerDeath = { game.endRun() },
+            hullSounds = hullSounds,
         )
         // Execution order lives in buildGameplaySystems (shared with the headless balance runner); the presentation
         // systems below are inserted between the observer and the lifetime system.
@@ -121,6 +128,8 @@ class PlayScreen(
                         pilotViewProjector, observerState,
                     )
                 )
+                hullSoundSystem = HullSoundSystem(game.get<SoundBank>(), hullSounds, game.get<SoundSettings>())
+                addSystem(hullSoundSystem)
                 addSystem(DebugVectorSystem(camera, settings, debugSettings))
                 addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>(), gameEventManager, game.get<ControlSettings>(), batch = spriteBatch, font = game.get<Skin>().getFont("font")))
                 addSystem(DebugSystem(world, engine, camera, debugSettings))
@@ -170,7 +179,12 @@ class PlayScreen(
             if (debugSettings.panelVisible) debugPanel.widthInScreenPx() else 0f)
     }
 
+    override fun pause() {
+        hullSoundSystem.silence()
+    }
+
     override fun hide() {
+        hullSoundSystem.silence()
         Gdx.graphics.setSystemCursor(SystemCursor.Arrow)
         hud.toggleHud(show = false)
         debugPanel.hide()

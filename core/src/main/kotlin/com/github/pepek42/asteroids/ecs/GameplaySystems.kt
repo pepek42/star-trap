@@ -4,6 +4,7 @@ import com.badlogic.ashley.core.Engine
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.math.RandomXS128
 import com.badlogic.gdx.physics.box2d.World
+import com.github.pepek42.asteroids.audio.HullSoundQueue
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.GameClock
@@ -47,6 +48,8 @@ class GameplayDeps(
     val shimmerImpacts: ShimmerImpacts,
     val onLevelCleared: () -> Unit,
     val onPlayerDeath: () -> Unit,
+    /** Hull sound events (ST-135); null in the headless balance runner, which must not touch audio. */
+    val hullSounds: HullSoundQueue? = null,
 )
 
 /** Systems the presentation layer needs a handle on. */
@@ -68,7 +71,7 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
     val relativisticDynamics = RelativisticDynamics(deps.settings)
     // Must come after relativisticDynamics: it records the post-step state.
     val lightHistory = LightHistorySystem()
-    val contactSystem = ContactSystem(deps.world, deps.settings)
+    val contactSystem = ContactSystem(deps.world, deps.settings, deps.hullSounds)
     val systems = GameplaySystems(lightHistory)
     with(deps.engine) {
         addSystem(TimeWarpSystem(deps.clock, deps.settings))
@@ -80,7 +83,7 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
             )
         )
         addSystem(moveSystem)
-        addSystem(WeaponSystem(deps.weaponProjectileProvider, deps.clock))
+        addSystem(WeaponSystem(deps.weaponProjectileProvider, deps.clock, deps.hullSounds))
         addSystem(contactSystem)
         addSystem(boundaryFieldSystem)
         addSystem(projectileSweepSystem)

@@ -22,7 +22,8 @@ class MenuSettingsTest {
         val display = DisplaySettings()
         val applied = mutableListOf<Boolean>()
         val controls = ControlSettings()
-        val specs = menuSettings(rel, controls, dbg, display, true, applyFullscreen = { applied += it }).specs
+        val sound = SoundSettings()
+        val specs = menuSettings(rel, controls, dbg, display, true, applyFullscreen = { applied += it }, sound = sound).specs
         fun spec(key: String) = specs.first { it.key == key }
     }
 
@@ -47,6 +48,24 @@ class MenuSettingsTest {
         assertEquals(a.dbg.targetPointersEnabled, b.dbg.targetPointersEnabled)
         assertEquals(a.dbg.gridEnabled, b.dbg.gridEnabled)
         assertEquals(1f, store.getFloat(SETTINGS_VERSION_KEY, 0f))
+    }
+
+    @Test
+    fun volumesRoundTripAndReset() {
+        val a = Fixture()
+        a.sound.masterVolume = 0.25f
+        a.sound.hullSoundVolume = 0.5f
+        val store = MemoryKeyValueStore()
+        saveSettings(store, a.specs)
+        val b = Fixture()
+        loadSettings(store, b.specs)
+        assertEquals(0.25f, b.sound.masterVolume)
+        assertEquals(0.5f, b.sound.hullSoundVolume)
+        resetSettings(b.specs)
+        assertEquals(MASTER_VOLUME_DEFAULT, b.sound.masterVolume)
+        assertEquals(HULL_SOUND_VOLUME_DEFAULT, b.sound.hullSoundVolume)
+        b.sound.masterVolume = 3f
+        assertEquals(1f, b.sound.masterVolume)
     }
 
     @Test

@@ -16,6 +16,7 @@ import com.badlogic.gdx.utils.Logger
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.badlogic.gdx.utils.viewport.Viewport
+import com.github.pepek42.asteroids.audio.SoundBank
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.debug.LaunchOptions
 import com.github.pepek42.asteroids.debug.ScreenshotHarness
@@ -31,6 +32,7 @@ import com.github.pepek42.asteroids.screen.MainMenuScreen
 import com.github.pepek42.asteroids.screen.PlayScreen
 import com.github.pepek42.asteroids.settings.DisplaySettings
 import com.github.pepek42.asteroids.settings.TacticalSettings
+import com.github.pepek42.asteroids.settings.SoundSettings
 import com.github.pepek42.asteroids.settings.GdxPreferencesStore
 import com.github.pepek42.asteroids.settings.KeyValueStore
 import com.github.pepek42.asteroids.settings.MemoryKeyValueStore
@@ -65,6 +67,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
         assetManager.load("i18n/messages", I18NBundle::class.java)
         assetManager.load("ui/uiskin.atlas", TextureAtlas::class.java)
         assetManager.load("textures/textures.atlas", TextureAtlas::class.java)
+        SoundBank.queueLoading(assetManager)
         assetManager.finishLoading()
 
         ctx.register {
@@ -76,11 +79,13 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             bindSingleton(store)
             bindSingleton(display)
             bindSingleton(TacticalSettings())
+            bindSingleton(SoundSettings())
+            bindSingleton(SoundBank(assetManager))
             bindSingleton(
                 menuSettings(
                     inject<RelativitySettings>(), inject<ControlSettings>(), inject<DebugSettings>(),
                     display, Gdx.app.type == Application.ApplicationType.Desktop, ::applyFullscreen,
-                    inject<TacticalSettings>(), ::applyDebugMode,
+                    inject<TacticalSettings>(), ::applyDebugMode, inject<SoundSettings>(),
                 )
             )
             bindSingleton<OrthographicCamera>(OrthographicCamera())

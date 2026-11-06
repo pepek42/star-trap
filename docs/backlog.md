@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-138**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-139**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -16,7 +16,7 @@ M3 Relativity MVP:
 M4 Relativistic view:
 
 Audio (owner 2026-11-05):
-33. ST-135 Sound system + hull sounds (sim layer)
+33. ST-138 Hull sound follow-ups: sustained scrape, pause, cached lookups
 33. ST-136 Assist: computer-synthesized sounds for remote events
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
@@ -187,25 +187,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 
 - note (owner 2026-11-05): the game has no sound yet. Two layers, following the Vision in `CLAUDE.md`. **Sim:** space is a vacuum, so the pilot only hears what travels through the ship itself: engine rumble, gun recoil, hits and scrapes on the own hull, structural creaks under acceleration, the computer's own alarms. **Assist:** the ship's computer synthesizes sounds for remote events it can see (asteroid break-ups, later enemy ships and their weapons), a toggle like the other assists. Sounds are generated procedurally by a tool task, so there are no third-party assets and they are reproducible. Web: WAV only (decodes in every browser and on desktop); verify in the browser once ST-127 is done.
 
-### ST-135 Sound system + hull sounds (sim layer)
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-134
-- refs: `docs/tech/sound.md`, `settings/MenuSettings.kt`, `Game.kt` (AssetManager), `system/MoveSystem.kt`, `system/WeaponSystem.kt`, `system/ContactSystem.kt`
-- files: create `audio/SoundBank.kt`, `system/HullSoundSystem.kt`; edit `Game.kt`, `ecs/GameplaySystems.kt` (presentation side only, the headless balance runner must not load audio), `settings/MenuSettings.kt`, `assets/i18n/messages.properties`; tests
-- goal: The pilot hears only what the ship itself makes.
-- spec:
-  - Load the WAVs through the existing `AssetManager` into a `SoundBank` DI singleton (libGDX `Sound`, web-safe; no `AudioDevice`, no threads). Settings: `master_volume` and `hull_sound_volume` sliders (0..1) in `MenuSettings`, persisted.
-  - `HullSoundSystem` (presentation system, after render): engine loop volume and pitch follow `MoveComponent.thrusters` (smoothed, no per-frame allocation; start/stop the loop instance, not a new one per frame); `laser_fire` when the player fires; `hull_hit`/`hull_scrape` from player contacts (route through an event or a small queue filled by `ContactSystem`, scaled by impact speed); alarms from existing HUD/proximity state if present, else leave a TODO in sound.md.
-  - Pitch is not Doppler-shifted (the sound is in the ship's own frame). Time warp doesn't change pitch either (the pilot's clock is the reference).
-  - Silence everything on pause/screen change.
-- acceptance:
-  - [ ] Test: the pure engine mix function maps thrusters 0 -> volume 0, 1 -> configured max, monotonic
-  - [ ] Test: settings round-trip and "Reset defaults" restore volumes
-  - [ ] `./gradlew core:test` passes; `tool:balanceSim` still runs headless
-- playtest: Thrust, shoot, ram an asteroid: rumble, thump and knock; nothing from asteroids breaking far away.
-
 ### ST-136 Assist: computer-synthesized sounds for remote events
 - status: ready
 - size: M
@@ -225,6 +206,22 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew core:test` passes
 - playtest: Shoot a far asteroid: you hear the break-up only when you see it. With the toggle off, distant events are silent.
 
+### ST-138 Hull sound follow-ups: sustained scrape, pause, cached lookups
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-135
+- refs: `system/HullSoundSystem.kt`, `audio/SoundBank.kt`, `audio/HullSoundQueue.kt`, `system/ContactSystem.kt`, `screen/PlayScreen.kt`, `docs/tech/sound.md`
+- goal: Follow-ups of ST-135 (sim layer).
+- spec:
+  - Sustained scrape: track player contacts that stay touching (begin/end contact); while a contact lasts and the tangential speed is above a small fraction of c, keep one `hull_scrape` loop instance playing, volume scaled by that speed; stop it when the last contact ends. No per-frame allocation.
+  - Pause: make sure the engine loop and queued one-shots are silent while the pause overlay is up (check whether `PlayScreen` keeps updating the engine on pause; if so, gate `HullSoundSystem` on the paused state). Also call `silence()` from `dispose()`.
+  - Cache the `Sound` handles in `HullSoundSystem` fields (no per-frame `AssetManager.get` by string).
+  - Alarms stay a TODO in sound.md until a proximity / low-hull state exists.
+- acceptance:
+  - [ ] Test: a pure helper maps tangential speed to scrape volume (0 below threshold, monotonic, capped at 1)
+  - [ ] `./gradlew core:test` passes
+- playtest: Rub the hull along an asteroid: a continuous scrape that stops when you pull away. Pause mid-thrust: silence.
 ---
 
 ## M5 Gravity & black holes

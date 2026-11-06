@@ -70,6 +70,7 @@ fun menuSettings(
     applyFullscreen: (Boolean) -> Unit = {},
     tactical: TacticalSettings = TacticalSettings(),
     applyDebugMode: (Boolean) -> Unit = {},
+    sound: SoundSettings = SoundSettings(),
 ): MenuSettings {
     val relativityOn = { relativity.relativityEnabled }
     return MenuSettings(
@@ -130,6 +131,14 @@ fun menuSettings(
                 { debug.targetPointersEnabled }, { debug.targetPointersEnabled = it },
             ),
             SettingSpec.Toggle("grid", GRID_ENABLED, { debug.gridEnabled }, { debug.gridEnabled = it }),
+            SettingSpec.Slider(
+                "master_volume", 0f, 1f, 0.05f, 2, MASTER_VOLUME_DEFAULT,
+                { sound.masterVolume }, { sound.masterVolume = it },
+            ),
+            SettingSpec.Slider(
+                "hull_sound_volume", 0f, 1f, 0.05f, 2, HULL_SOUND_VOLUME_DEFAULT,
+                { sound.hullSoundVolume }, { sound.hullSoundVolume = it },
+            ),
             if (includeFullscreen) {
                 SettingSpec.Toggle(
                     "fullscreen", false,

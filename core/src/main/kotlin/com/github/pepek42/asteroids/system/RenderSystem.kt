@@ -97,7 +97,7 @@ class RenderSystem(
             val p = player!!.transformCmp.interpolatedPosition
             pilotView.begin(p.x, p.y)
         }
-        holes?.let { blackHoleRenderer.render(camera, it, if (pilotViewActive) pilotView else null) }
+        holes?.let { blackHoleRenderer.render(camera, it, if (pilotViewActive) pilotView else null, observer.worldTime, settings.c) }
         batch.use(camera) {
             additive.clear()
             super.update(deltaTime)

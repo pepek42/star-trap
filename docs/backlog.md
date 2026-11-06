@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-140**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-141**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -18,7 +18,7 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-41. ST-087 Accretion disk
+41a. ST-140 Accretion disk follow-ups: colour gradient and a hole-in-view harness flag
 43. ST-095 Lighting math (pure)
 44. ST-096 Normal maps from alpha in the texture packer
 45. ST-097 Lit sprites: accretion disks light ships, asteroids and planets
@@ -182,26 +182,21 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 - note (2026-11-02, owner follow-up, game-design §11 Q1 answered): black holes, planets and decoration **start static** (placed at level start, zero velocity) but are **dynamic and feel gravity**: n-body among the sources, plus the player's pull. **Decision (planner):** sources are Box2D dynamic bodies on the **Newtonian path** (no `RelativisticComponent`): they are heavy and stay far below 0.1 c, so γ ≈ 1 and they need neither `RelativisticDynamics`, nor the γ-mass of ST-047, nor the ship clocks of ST-040. Black holes get a sensor body (no contacts, ignored by the projectile sweep, which already skips sensors); planets get a solid body. Because they have bodies, `BoundaryFieldSystem` (which acts on every `BodyComponent`) keeps them in the arena with no extra code, and `LightHistorySystem` records them for the pilot view. With the physical pull, two holes 60 u apart would collide in about 6 s, so source–source gravity is scaled by `sourceCoupling = 0.1` (declared FAKE, about 19 s), pending ST-092. Holes that touch merge. Counts stay low for performance: at most 2 holes, 2 planets and 6 debris pieces per level.
 - note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
 
-### ST-087 Accretion disk: GPU particle disk
-- status: ready
-- size: M
+### ST-140 Accretion disk follow-ups: colour gradient and a hole-in-view harness flag
+- status: needs-user
+- size: S
 - agent: kotlin-dev
-- depends: ST-043, ST-085
-- files: create `render/AccretionDisk.kt`, `assets/shaders/accretion_disk.vert`, `assets/shaders/accretion_disk.frag`; edit `render/BlackHoleRenderer.kt`, `system/RenderSystem.kt`; tests
-- goal: The owner's end-goal visual: "bright matter around it" (research E17). A face-on rotating disk of glowing particles, coloured by temperature and gravitational redshift. It is also a "danger here" signal.
+- depends: ST-087
+- refs: ST-087 commit; `render/AccretionDisk.kt`, `docs/tech/dev-workflow.md` (screenshot harness), `LaunchOptions`
+- question: With the physical constants (T peak 12000 K, outer rim ~7000 K, g⁴ dimming at the ISCO) the disk renders almost white: "whiter inside, redder outside" is barely visible. Options: (a) keep it physical (recommended: matches the realism vision; colour readability can come from the ST-089 Doppler beaming); (b) lower `DISK_T_PEAK` to ~8000 K, which is still physical for a hotter/cooler disk choice; (c) add a saturation boost in the shader (FAKE, needs a physics-lies row).
+- goal: Make the disk's temperature gradient readable, and make black-hole visuals screenshot-testable.
 - spec:
-  - Constants: `DISK_INNER = 3·BH_RS` (ISCO), `DISK_OUTER = 12·BH_RS`, `DISK_PARTICLES = 3000`, `DISK_T_PEAK = 12000f`, `DISK_PARTICLE_SIZE = 0.25f`.
-  - Pure: `fun diskTemperature(r: Float, rIn: Float, tPeak: Float): Float` with `T(r) = T*·x^(−3/4)·(1 − x^(−1/2))^(1/4)`, `x = r/rIn`, and `T*` chosen so the peak, at `x = 49/36`, equals `tPeak`. `fun diskRedshift(r: Float, rs: Float) = sqrt(1 − 1.5·rs/r)` (face-on, includes transverse Doppler). `fun diskOmega(r: Float, gm: Float) = sqrt(gm/r³)`.
-  - `AccretionDisk(seed)`: a static `Mesh` built once per black hole, with 4 vertices and 6 indices per particle. Attributes `a_corner` (vec2, ±1), `a_r`, `a_phi0`, `a_size`, `a_temp` (precomputed `T·g`). Radii sampled with density ∝ 1/r (more near the inside); `φ₀` uniform. No CPU updates per frame.
-  - Holes move (ST-085), so `u_center` is a per-hole uniform set every frame from the hole's interpolated transform, and a merge (rs changes) rebuilds that hole's mesh with radii scaled by the new rs.
-  - Vertex shader: `φ = a_phi0 + sqrt(u_gm/a_r³)·u_time` (`u_time` = `GameClock.worldTime`, so the disk turns at arena speed and visibly fast-forwards with the warp), `pos = u_center + a_r·(cos φ, sin φ) + a_corner·a_size`, colour from a 256×1 blackbody LUT texture built from `BlackbodyLut` (ST-043) at `a_temp`, brightness `g⁴`. Fragment: soft round dot. Additive blending (`GL_SRC_ALPHA, GL_ONE`). GLSL must be TeaVM/WebGL-safe (`#ifdef GL_ES precision mediump float;`).
-  - No radial drift in this version (declared omission). World view only; pilot view comes in ST-089 (in pilot view, skip the disk until then).
+  - Apply the owner's choice above (for (b)/(c), tune and re-screenshot).
+  - Harness: add a `--hole-near` launch flag (and note the URL-query equivalent for the web harness) that places the first black hole ~25 u from the player spawn, so screenshots show the hole without a temporary patch. Debug/harness only; doesn't change normal spawning.
 - acceptance:
-  - [ ] Tests: `diskTemperature` peaks at `r = 49/36·rIn` with value `tPeak ± 1 %` and is 0 at `rIn`; `diskRedshift(3·rs, rs) ≈ 0.7071`; `diskOmega(12f, 3600f) ≈ 1.443`
-  - [ ] Test: the mesh builder fills `DISK_PARTICLES·4` vertices with all radii in `[DISK_INNER, DISK_OUTER]`
-  - [ ] Screenshot via the harness (seed 42, level 1) viewed by the agent: a bright disk around the hole, whiter inside, redder outside
+  - [ ] Screenshot with `--seed=42 --hole-near` shows the hole and disk in view
   - [ ] `./gradlew core:test` passes
-- playtest: The disk swirls, faster near the hole. It speeds up when the world fast-forwards.
+- playtest: The disk shows a visible warm-to-white gradient (if (b)/(c) chosen).
 
 ### ST-088 Gravitational lensing of the backdrop
 - status: ready

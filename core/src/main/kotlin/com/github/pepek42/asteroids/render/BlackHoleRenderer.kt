@@ -9,6 +9,8 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
+import com.badlogic.gdx.utils.ObjectMap
+import com.github.pepek42.asteroids.component.GravitySourceKind
 import com.github.pepek42.asteroids.component.gravitySourceCmp
 import com.github.pepek42.asteroids.component.transformCmp
 
@@ -31,19 +33,29 @@ private const val PHOTON_RING_ALPHA = 0.6f
 private const val ISCO_ALPHA = 0.4f
 
 /**
- * Black hole shadow, photon ring and dashed ISCO ring (ST-085, research E16) with a ShapeRenderer. Call outside a SpriteBatch
- * begin/end, after the backdrop and before the sprites. The world view draws at the interpolated transform. In pilot view the
- * hole moves, so it is drawn at its retarded position, every circle point boosted like a sprite corner.
+ * Black hole shadow, photon ring and dashed ISCO ring (ST-085, research E16) with a ShapeRenderer, plus the particle accretion
+ * disk (ST-087, research E17). Call outside a SpriteBatch begin/end, after the backdrop and before the sprites. The world view
+ * draws at the interpolated transform. In pilot view the hole moves, so it is drawn at its retarded position, every circle point
+ * boosted like a sprite corner; the disk is skipped there until ST-089.
  */
 class BlackHoleRenderer : Disposable {
     private val shapes = ShapeRenderer()
     private val centre = Vector2()
     private val pt = Vector2()
     private val prevPt = Vector2()
+    private val diskShader = AccretionDiskShader()
+    private val disks = ObjectMap<Entity, AccretionDisk>()
+    private var diskSeed = 0L
 
-    /** Draws every entity of [holes] (each with a gravity source and transform). [pilot] is non-null in pilot view. */
-    fun render(camera: Camera, holes: ImmutableArray<Entity>, pilot: PilotViewProjector?) {
-        if (holes.size() == 0) return
+    /**
+     * Draws every entity of [holes] (each with a gravity source and transform). [pilot] is non-null in pilot view. [worldTime] is
+     * `GameClock.worldTime` (turns the disk) and [c] the light speed (gives the disk `GM`).
+     */
+    fun render(camera: Camera, holes: ImmutableArray<Entity>, pilot: PilotViewProjector?, worldTime: Float, c: Float) {
+        if (holes.size() == 0) {
+            releaseGoneDisks(holes)
+            return
+        }
         Gdx.gl.glEnable(GL20.GL_BLEND)
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         shapes.projectionMatrix = camera.combined
@@ -71,6 +83,42 @@ class BlackHoleRenderer : Disposable {
             ring(BH_ISCO_PER_RS * rs, pilot, dashes = BH_ISCO_DASHES)
         }
         shapes.end()
+        if (pilot == null && diskShader.ready) renderDisks(camera, holes, worldTime, c)
+        releaseGoneDisks(holes)
+    }
+
+    private fun renderDisks(camera: Camera, holes: ImmutableArray<Entity>, worldTime: Float, c: Float) {
+        diskShader.begin(camera, worldTime)
+        for (i in 0 until holes.size()) {
+            val e = holes[i]
+            val source = e.gravitySourceCmp
+            if (source.kind != GravitySourceKind.BLACK_HOLE) continue
+            val disk = diskFor(e, source.rs)
+            centre.set(e.transformCmp.interpolatedPosition)
+            diskShader.draw(disk, centre.x, centre.y, source.effectiveGm(c))
+        }
+        diskShader.end()
+    }
+
+    /** The disk mesh of [e]; a merge changed `rs`, so the mesh is rebuilt with the same seed (same layout, new scale). */
+    private fun diskFor(e: Entity, rs: Float): AccretionDisk {
+        val old = disks.get(e)
+        if (old != null && old.rs == rs) return old
+        val seed = old?.seed ?: diskSeed++
+        old?.dispose()
+        return AccretionDisk(seed, rs).also { disks.put(e, it) }
+    }
+
+    /** Frees the meshes of holes that are no longer in [holes]; checked every frame without allocating. */
+    private fun releaseGoneDisks(holes: ImmutableArray<Entity>) {
+        val it = disks.iterator()
+        while (it.hasNext()) {
+            val entry = it.next()
+            if (!holes.contains(entry.key, true)) {
+                entry.value.dispose()
+                it.remove()
+            }
+        }
     }
 
     /** Fills [centre] with the hole's arena centre as drawn (before the boost); false when its light has not arrived. */
@@ -111,7 +159,12 @@ class BlackHoleRenderer : Disposable {
         }
     }
 
-    override fun dispose() = shapes.dispose()
+    override fun dispose() {
+        shapes.dispose()
+        for (d in disks.values()) d.dispose()
+        disks.clear()
+        diskShader.dispose()
+    }
 
     private companion object {
         /** Line pieces per dash arc so a dash follows the circle. */

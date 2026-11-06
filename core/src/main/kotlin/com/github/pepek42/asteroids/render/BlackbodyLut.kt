@@ -24,13 +24,15 @@ object BlackbodyLut {
 
     init {
         for (i in 0 until BLACKBODY_LUT_SIZE) {
-            val k = exp(logMin + logSpan * i / (BLACKBODY_LUT_SIZE - 1))
-            val c = blackbodyRgb(k)
+            val c = blackbodyRgb(kelvinAt(i))
             rgb[i * 3] = c[0]
             rgb[i * 3 + 1] = c[1]
             rgb[i * 3 + 2] = c[2]
         }
     }
+
+    /** Temperature (K) of LUT entry [i]; the entries are log-spaced between [BLACKBODY_LUT_MIN_K] and [BLACKBODY_LUT_MAX_K]. */
+    fun kelvinAt(i: Int): Float = exp(logMin + logSpan * i / (BLACKBODY_LUT_SIZE - 1))
 
     /** Writes the colour (r, g, b in 0..1) for [kelvin] into `out[0..2]`, linearly interpolated. Does not allocate. */
     fun rgbInto(kelvin: Float, out: FloatArray) {

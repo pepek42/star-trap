@@ -86,6 +86,20 @@ class PilotViewProjector(
      * has not arrived yet. Call [begin] first. Allocation-free.
      */
     fun apparentCentre(entity: Entity, out: Vector2): Boolean {
+        if (!retardedCentre(entity, out)) return false
+        if (playerMapper.has(entity)) return true
+        return apparentPoint(out.x, out.y, out).let { true }
+    }
+
+    /** Boosts the arena point ([px], [py]) into the pilot frame like a sprite corner (identity without aberration). Call [begin] first. */
+    fun apparentPoint(px: Float, py: Float, out: Vector2): Vector2 =
+        pilotCorner(px, py, ox, oy, betaX, betaY, settings.pilotAberration, out)
+
+    /**
+     * Writes the arena position the pilot sees [entity] at (retarded when [RelativitySettings.pilotDelay], else interpolated)
+     * into [out], before the aberration boost. False when its light has not arrived. Call [begin] first. Allocation-free.
+     */
+    fun retardedCentre(entity: Entity, out: Vector2): Boolean {
         if (playerMapper.has(entity)) return out.set(ox, oy).let { true }
         val h = if (settings.pilotDelay) baseInfoMapper.get(entity)?.let { history.historyOf(it.id) } else null
         val x: Float
@@ -99,7 +113,7 @@ class PilotViewProjector(
             x = pos.x
             y = pos.y
         }
-        pilotCorner(x, y, ox, oy, betaX, betaY, settings.pilotAberration, out)
+        out.set(x, y)
         return true
     }
 

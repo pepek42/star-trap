@@ -13,6 +13,7 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.Game
+import com.github.pepek42.asteroids.component.GravitySourceComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
@@ -32,6 +33,7 @@ import com.github.pepek42.asteroids.physics.gammaFromV
 import com.github.pepek42.asteroids.provider.BackgroundProvider
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.AdditiveSpriteQueue
+import com.github.pepek42.asteroids.render.BlackHoleRenderer
 import com.github.pepek42.asteroids.render.BlackbodyLut
 import com.github.pepek42.asteroids.render.DOPPLER_MIN_BETA
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
@@ -61,9 +63,11 @@ class RenderSystem(
     private val settings: RelativitySettings,
     private val pilotView: PilotViewProjector,
     private val observer: ObserverState,
+    private val blackHoleRenderer: BlackHoleRenderer = BlackHoleRenderer(),
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()), Disposable {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
     private var players: ImmutableArray<Entity>? = null
+    private var holes: ImmutableArray<Entity>? = null
     private var pilotViewActive = false
 
     init {
@@ -73,6 +77,7 @@ class RenderSystem(
     override fun addedToEngine(engine: Engine) {
         super.addedToEngine(engine)
         players = engine.getEntitiesFor(allOf(PlayerComponent::class, TransformComponent::class).get())
+        holes = engine.getEntitiesFor(allOf(GravitySourceComponent::class, TransformComponent::class).get())
     }
 
     override fun update(deltaTime: Float) {
@@ -92,6 +97,7 @@ class RenderSystem(
             val p = player!!.transformCmp.interpolatedPosition
             pilotView.begin(p.x, p.y)
         }
+        holes?.let { blackHoleRenderer.render(camera, it, if (pilotViewActive) pilotView else null) }
         batch.use(camera) {
             additive.clear()
             super.update(deltaTime)
@@ -103,6 +109,7 @@ class RenderSystem(
     override fun dispose() {
         fieldShimmerRenderer.dispose()
         gridRenderer.dispose()
+        blackHoleRenderer.dispose()
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {

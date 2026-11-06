@@ -11,6 +11,7 @@ enum class EntityType {
     SHIP,
     ASTEROID,
     PROJECTILE,
+    BLACK_HOLE,
     UNKNOWN,
 }
 

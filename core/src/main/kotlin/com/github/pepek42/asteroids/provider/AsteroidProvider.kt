@@ -11,6 +11,7 @@ import com.github.pepek42.asteroids.component.AsteroidComponent
 import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.EntityType
+import com.github.pepek42.asteroids.component.GravitySourceComponent
 import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.bodyCmp
@@ -25,6 +26,7 @@ import com.github.pepek42.asteroids.environment.asteroidHealth
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.uFromV
+import ktx.ashley.allOf
 import ktx.ashley.entity
 import ktx.ashley.with
 import ktx.box2d.body
@@ -93,9 +95,14 @@ class AsteroidProvider(
         val maxRadius = min(center.x, center.y) - settings.fieldParams.skin - AsteroidSize.LARGE.radius - 1f
         val step = MathUtils.PI2 / maxAsteroids
         for (i in 0 until maxAsteroids) {
-            val angle = step * i * random.nextDouble().toFloat().let { 0.9f + it * 0.2f }
-            val r = ASTEROID_SPAWN_MIN_RADIUS + random.nextFloat() * (maxRadius - ASTEROID_SPAWN_MIN_RADIUS)
-            val positionShift = vec2(r, 0f).rotateRad(angle)
+            var positionShift = vec2()
+            var attempts = 0
+            do {
+                val angle = step * i * random.nextDouble().toFloat().let { 0.9f + it * 0.2f }
+                val r = ASTEROID_SPAWN_MIN_RADIUS + random.nextFloat() * (maxRadius - ASTEROID_SPAWN_MIN_RADIUS)
+                positionShift = vec2(r, 0f).rotateRad(angle)
+            } while (nearBlackHole(center.x + positionShift.x, center.y + positionShift.y) && ++attempts < MAX_SPAWN_ATTEMPTS)
+            if (attempts >= MAX_SPAWN_ATTEMPTS) continue
             val speedMax = ASTEROID_SPAWN_BETA_MAX * settings.c
             val vx = random.nextFloat() * 2f * speedMax - speedMax
             val vy = random.nextFloat() * 2f * speedMax - speedMax
@@ -106,6 +113,18 @@ class AsteroidProvider(
                 angularSpeed = random.nextFloat() * 3f,
             )
         }
+    }
+
+    /** True within [BH_ASTEROID_CLEARANCE] of any black hole in the engine. */
+    private fun nearBlackHole(x: Float, y: Float): Boolean {
+        val holes = engine.getEntitiesFor(holeFamily)
+        for (k in 0 until holes.size()) {
+            val p = holes[k].bodyCmp.body.position
+            val dx = x - p.x
+            val dy = y - p.y
+            if (dx * dx + dy * dy < BH_ASTEROID_CLEARANCE * BH_ASTEROID_CLEARANCE) return true
+        }
+        return false
     }
 
     /** Spawns [count] extra large asteroids on a ring [NEAR_ASTEROID_MIN_DIST]..[NEAR_ASTEROID_MAX_DIST] u around [around] (harness only). */
@@ -126,5 +145,9 @@ class AsteroidProvider(
     companion object {
         const val NEAR_ASTEROID_MIN_DIST = 8f
         const val NEAR_ASTEROID_MAX_DIST = 15f
+
+        /** Resamples of a spawn point rejected by a black hole before the asteroid is skipped. */
+        private const val MAX_SPAWN_ATTEMPTS = 50
+        private val holeFamily = allOf(GravitySourceComponent::class, BodyComponent::class).get()
     }
 }

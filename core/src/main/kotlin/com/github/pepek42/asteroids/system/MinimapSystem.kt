@@ -28,6 +28,8 @@ private const val SHIP_DOT_RADIUS = 2.0f
 private const val PROJECTILE_DOT_RADIUS = 0.8f
 private const val ASTEROID_RADIUS_FACTOR = 1.0f
 private const val ASTEROID_MIN_DOT_RADIUS = 0.6f
+private const val HOLE_DOT_RADIUS = 1.6f
+private const val HOLE_OUTLINE = 0.5f
 private const val BACKGROUND_ALPHA = 0.55f
 private const val BORDER_INSET_PX = 0.5f
 
@@ -104,6 +106,10 @@ class MinimapSystem(
                 ?.let { (it.asteroidSize.radius * ASTEROID_RADIUS_FACTOR).coerceAtLeast(ASTEROID_MIN_DOT_RADIUS) }
                 ?: ASTEROID_MIN_DOT_RADIUS
             EntityType.PROJECTILE -> PROJECTILE_DOT_RADIUS
+            EntityType.BLACK_HOLE -> {
+                drawHole(entity)
+                return
+            }
             EntityType.UNKNOWN -> return
         }
         if (entity.playerCmpOptional != null) {
@@ -111,6 +117,15 @@ class MinimapSystem(
             return
         }
         drawDot(entity, baseInfo.faction.color, radius)
+    }
+
+    /** Black dot with a white outline at the true position; the outline is a second, larger white disc drawn first. */
+    private fun drawHole(entity: Entity) {
+        val pos = entity.transformCmp.interpolatedPosition
+        shape.color = Color.WHITE
+        shape.circle(pos.x, pos.y, HOLE_DOT_RADIUS + HOLE_OUTLINE)
+        shape.color = Color.BLACK
+        shape.circle(pos.x, pos.y, HOLE_DOT_RADIUS)
     }
 
     private fun drawDot(entity: Entity, color: Color, radius: Float) {

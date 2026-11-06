@@ -30,6 +30,7 @@ import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.AsteroidProvider
+import com.github.pepek42.asteroids.provider.BlackHoleProvider
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
@@ -74,6 +75,7 @@ class PlayScreen(
     private val engine = PooledEngine()
     private val playerEntityProvider = PlayerEntityProvider(engine, world, mapProvider, game.get<TextureAtlas>(), settings)
     private val asteroidProvider = AsteroidProvider(game.get<TextureAtlas>(), engine, world, game.get<RandomXS128>(), settings)
+    private val blackHoleProvider = BlackHoleProvider(engine, world, mapProvider)
     private val gameState = game.get<GameState>()
     private val minimapViewport = MinimapViewport()
     private val debugSettings = game.get<DebugSettings>()
@@ -158,6 +160,7 @@ class PlayScreen(
         gameState.nextLevel()
         mapProvider.loadMap()
         playerEntityProvider.spawnPlayerEntity()
+        if (settings.blackHolesEnabled) blackHoleProvider.spawn(gameState.level, game.get<RandomXS128>())
         asteroidProvider.spawnAsteroids(gameState.level, mapProvider)
         if (game.options.nearAsteroids > 0) {
             asteroidProvider.spawnNearAsteroids(game.options.nearAsteroids, mapProvider.playerSpawnLocation())

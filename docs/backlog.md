@@ -18,7 +18,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-37. ST-085 Black holes: spawn, horizon, merge, shadow, rings
 38. ST-093 Planets: solid gravity sources
 39. ST-094 Level decoration: drifting debris
 40. ST-086 Gravitational time dilation
@@ -185,29 +184,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 
 - note (2026-11-02, owner follow-up, game-design §11 Q1 answered): black holes, planets and decoration **start static** (placed at level start, zero velocity) but are **dynamic and feel gravity**: n-body among the sources, plus the player's pull. **Decision (planner):** sources are Box2D dynamic bodies on the **Newtonian path** (no `RelativisticComponent`): they are heavy and stay far below 0.1 c, so γ ≈ 1 and they need neither `RelativisticDynamics`, nor the γ-mass of ST-047, nor the ship clocks of ST-040. Black holes get a sensor body (no contacts, ignored by the projectile sweep, which already skips sensors); planets get a solid body. Because they have bodies, `BoundaryFieldSystem` (which acts on every `BodyComponent`) keeps them in the arena with no extra code, and `LightHistorySystem` records them for the pilot view. With the physical pull, two holes 60 u apart would collide in about 6 s, so source–source gravity is scaled by `sourceCoupling = 0.1` (declared FAKE, about 19 s), pending ST-092. Holes that touch merge. Counts stay low for performance: at most 2 holes, 2 planets and 6 debris pieces per level.
 - note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
-
-### ST-085 Black holes in the arena: spawn, horizon, merge, shadow and rings
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-072, ST-083, ST-084
-- files: create `provider/BlackHoleProvider.kt`, `render/BlackHoleRenderer.kt`; edit `component/BaseInfoComponent.kt`, `provider/AsteroidProvider.kt`, `system/GravitySystem.kt`, `system/RenderSystem.kt`, `system/MinimapSystem.kt`, `physics/RelativitySettings.kt`, `screen/PlayScreen.kt`; tests
-- goal: Black holes, 1–2 per level (owner decision 2026-11-02, research E16): a black shadow, a photon ring and a dashed ISCO danger ring. They start at rest and then move under gravity (ST-083); the boundary field keeps them in the arena. Crossing the horizon kills, and holes that touch merge.
-- spec:
-  - `EntityType.BLACK_HOLE`. `BlackHoleProvider.spawn(level: Int, random: RandomXS128)` creates `count = if (level >= 3) 2 else 1` entities with `BaseInfoComponent(NEUTRAL, BLACK_HOLE)`, `TransformComponent`, `BodyComponent` and `GravitySourceComponent(kind = BLACK_HOLE, rs = BH_RS)`. The body (`world.body {}`, `userData = entity`): `DynamicBody`, `fixedRotation = true`, zero initial velocity, one circle fixture of radius `rs` with `isSensor = true`, `density = 1f`, `filter.categoryBits = FactionEnum.NEUTRAL` category and `filter.maskBits = 0` (no contacts at all; the projectile sweep already skips sensors). Gravity is mass-independent and the boundary field is too, so the Box2D mass doesn't matter. Placement by rejection sampling with the seeded random: at least 30 u from every wall, at least 40 u from the arena centre (the player spawn) and at least 60 u from each other. Return the positions. Pull the rule into a pure `fun validSourcePosition(x, y, wallMargin, others: FloatArray, n: Int, minSep, mapW, mapH): Boolean` (also used by ST-093 and ST-094).
-  - `PlayScreen.show()` spawns black holes before asteroids (if `settings.blackHolesEnabled`, a new last setting, default true, debug checkbox). `AsteroidProvider` rejects spawn points within `BH_ASTEROID_CLEARANCE = 8·BH_RS` of any black hole.
-  - Horizon, in `GravitySystem.afterStep`: any non-source body with centre distance `< rs` from a hole gets a `RemoveComponent` (photons and asteroids included). The player instead gets `health = 0`, so ST-084 ends the run. Absorbed asteroids count as cleared for `EndLevelSystem`.
-  - Merge, in the same pass: two holes with centre distance `< rs₁ + rs₂` merge. The survivor (lower `BaseInfoComponent.id`) takes `mergeSources` (ST-082, with rs as the mass): `rs = rs₁ + rs₂`, the body is moved to the centre of mass (`setTransform`) with the merged velocity, and its fixture is replaced by a circle of the new radius. The other gets a `RemoveComponent`. Planets are handled in ST-093.
-  - `BlackHoleRenderer` (`ShapeRenderer`, called by `RenderSystem` after the backdrop and before sprites): a filled black circle of radius `2.598·rs` (the shadow), a thin bright ring at `1.5·rs` (photon ring, white, alpha 0.6) and a dashed ring at `3·rs` (ISCO, 32 dashes, orange, alpha 0.4). World view: at the interpolated transform. Pilot view: the holes move, so take the hole's retarded position from `LightHistorySystem.historyOf(id).retarded(...)` (holes exist from level start, so their history is `eternal`), then draw each circle as a 64-point polyline/fan through `o + apparentOffset(p − o, β)` around that position.
-  - Minimap: a black dot with a white outline at each hole's true position.
-- acceptance:
-  - [ ] Tests: `validSourcePosition` rejects points 20 u from a wall, 30 u from the centre and 50 u from another hole; accepts a valid point. With seed 42, level 3 spawns two holes satisfying all rules, both with zero velocity
-  - [ ] Test (real `World`): an asteroid dropped at r = 10 from a hole with no velocity is removed within 3 s; a player in the same spot ends up with `health == 0`
-  - [ ] Test: two holes placed 3 u apart merge in one step into one hole with `rs = 4`, at the midpoint, with the summed momentum; the other entity has a `RemoveComponent`
-  - [ ] Test: a hole given a velocity toward a wall stays inside the arena for 10 s (boundary field)
-  - [ ] Test: no asteroid spawns within 16 u of a hole (seed 42, level 4)
-  - [ ] `./gradlew core:test` passes
-- playtest: A black disc with rings sits in the arena and slowly drifts. Ships slingshot around it, and lasers bend near it. Flying close tugs the hole toward you. On level 3+, the two holes drift together and merge. Is the ISCO ring readable as "danger"?
 
 ### ST-093 Planets: solid gravity sources and obstacles
 - status: ready

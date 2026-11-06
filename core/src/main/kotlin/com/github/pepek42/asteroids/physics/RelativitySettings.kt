@@ -27,6 +27,7 @@ class RelativitySettings(
     gravityEnabled: Boolean = GRAVITY_ENABLED,
     sourceCoupling: Float = SOURCE_COUPLING_DEFAULT,
     playerGm: Float = PLAYER_GM,
+    var blackHolesEnabled: Boolean = true,
 ) {
     var relativityEnabled: Boolean = relativityEnabled
 

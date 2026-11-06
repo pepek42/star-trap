@@ -13,6 +13,16 @@ import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.GravitySourceComponent
 import com.github.pepek42.asteroids.component.GravitySourceKind
 import com.github.pepek42.asteroids.component.PlayerComponent
+import com.github.pepek42.asteroids.faction.FactionEnum
+import com.github.pepek42.asteroids.component.RemoveComponent
+import com.github.pepek42.asteroids.component.baseInfoCmp
+import com.github.pepek42.asteroids.component.healthMapper
+import com.github.pepek42.asteroids.component.playerMapper
+import com.github.pepek42.asteroids.component.removeMapper
+import com.github.pepek42.asteroids.component.transformMapper
+import com.github.pepek42.asteroids.physics.mergeSources
+import com.badlogic.gdx.physics.box2d.CircleShape
+import ktx.ashley.addComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.gravitySourceCmp
 import com.github.pepek42.asteroids.component.photonMapper
@@ -43,7 +53,10 @@ import kotlin.math.max
  *   `PHOTON_SUBSTEP_RADIUS_PER_RS * r_s` of a black hole the bend is split into `PHOTON_SUBSTEPS` substeps and the body
  *   flies the chord of that path (the last direction would overshoot the bend by about 8 % at b = 3 `r_s`).
  *
- * Does nothing with `gravityEnabled` off or without sources. Must be registered before `RelativisticDynamics`.
+ * [afterStep] also runs the black-hole horizon (bodies inside `rs` are removed, the player's health goes to 0) and merges
+ * holes that touch (ST-085); these run even with `gravityEnabled` off.
+ *
+ * Pull does nothing with `gravityEnabled` off or without sources. Must be registered before `RelativisticDynamics`.
  */
 class GravitySystem(
     private val settings: RelativitySettings = RelativitySettings(),
@@ -54,8 +67,11 @@ class GravitySystem(
     private val accel = Vector2()
     private val tmp = Vector2()
     private val dir = Vector2()
+    private val mergeOut = FloatArray(MERGE_OUT_SIZE)
+    private var engine: Engine? = null
 
     override fun addedToEngine(engine: Engine) {
+        this.engine = engine
         sources = engine.getEntitiesFor(allOf(GravitySourceComponent::class, BodyComponent::class).get())
         bodies = engine.getEntitiesFor(
             allOf(BodyComponent::class, BaseInfoComponent::class).exclude(GravitySourceComponent::class.java).get()
@@ -72,7 +88,94 @@ class GravitySystem(
         for (i in 0 until bodies.size()) pullBody(bodies[i], c, dt)
     }
 
-    override fun afterStep(dt: Float) = Unit
+    override fun afterStep(dt: Float) {
+        if (sources.size() == 0) return
+        mergeHoles()
+        absorbBodies()
+    }
+
+    /**
+     * Two black holes with centre distance `< rs1 + rs2` merge: the one with the lower id survives with `rs = rs1 + rs2` at the
+     * centre of mass with the merged velocity ([mergeSources] with `rs` as the mass), the other gets a `RemoveComponent`.
+     */
+    private fun mergeHoles() {
+        for (i in 0 until sources.size()) {
+            val a = sources[i]
+            if (!isLiveHole(a)) continue
+            for (j in i + 1 until sources.size()) {
+                val b = sources[j]
+                if (!isLiveHole(a) || !isLiveHole(b)) continue
+                val pa = a.bodyCmp.body.position
+                val pb = b.bodyCmp.body.position
+                val reach = a.gravitySourceCmp.rs + b.gravitySourceCmp.rs
+                val dx = pa.x - pb.x
+                val dy = pa.y - pb.y
+                if (dx * dx + dy * dy >= reach * reach) continue
+                if (a.baseInfoCmp.id < b.baseInfoCmp.id) mergeInto(a, b) else mergeInto(b, a)
+            }
+        }
+    }
+
+    private fun isLiveHole(e: Entity): Boolean =
+        e.gravitySourceCmp.kind == GravitySourceKind.BLACK_HOLE && !removeMapper.has(e)
+
+    private fun mergeInto(survivor: Entity, gone: Entity) {
+        val sb = survivor.bodyCmp.body
+        val gb = gone.bodyCmp.body
+        val sg = survivor.gravitySourceCmp
+        val gg = gone.gravitySourceCmp
+        mergeSources(
+            sg.rs, sb.position.x, sb.position.y, sb.linearVelocity.x, sb.linearVelocity.y,
+            gg.rs, gb.position.x, gb.position.y, gb.linearVelocity.x, gb.linearVelocity.y,
+            mergeOut,
+        )
+        sg.rs = mergeOut[0]
+        sb.setTransform(mergeOut[1], mergeOut[2], 0f)
+        sb.setLinearVelocity(mergeOut[3], mergeOut[4])
+        while (sb.fixtureList.size > 0) sb.destroyFixture(sb.fixtureList[0])
+        val shape = CircleShape().apply { radius = sg.rs }
+        val fixture = sb.createFixture(shape, 1f)
+        shape.dispose()
+        fixture.isSensor = true
+        fixture.filterData = fixture.filterData.apply {
+            categoryBits = FactionEnum.NEUTRAL.ownCategoryBit
+            maskBits = 0
+        }
+        survivorTransformReset(survivor)
+        gone.addComponent<RemoveComponent>(engine!!)
+    }
+
+    /** Keeps the render interpolation from smearing the hole from its old position to the centre of mass. */
+    private fun survivorTransformReset(e: Entity) {
+        val p = e.bodyCmp.body.position
+        transformMapper.get(e)?.let {
+            it.prevPosition.set(p)
+            it.interpolatedPosition.set(p)
+        }
+    }
+
+    /** Any non-source body whose centre is inside a hole's horizon dies: the player's health goes to 0, the rest get a `RemoveComponent`. */
+    private fun absorbBodies() {
+        for (i in 0 until sources.size()) {
+            val hole = sources[i]
+            if (!isLiveHole(hole)) continue
+            val hp = hole.bodyCmp.body.position
+            val rs = hole.gravitySourceCmp.rs
+            for (k in 0 until bodies.size()) {
+                val e = bodies[k]
+                if (removeMapper.has(e)) continue
+                val p = e.bodyCmp.body.position
+                val dx = p.x - hp.x
+                val dy = p.y - hp.y
+                if (dx * dx + dy * dy >= rs * rs) continue
+                if (playerMapper.has(e)) {
+                    healthMapper.get(e)?.let { if (it.health != 0f) it.health = 0f }
+                } else {
+                    e.addComponent<RemoveComponent>(engine!!)
+                }
+            }
+        }
+    }
 
     /** n-body pull between the sources plus the player's pull on them, as Box2D forces. */
     private fun pullSources() {
@@ -80,6 +183,7 @@ class GravitySystem(
         val coupling = settings.sourceCoupling
         val player = if (players.size() > 0) players[0].bodyCmp.body.position else null
         for (i in 0 until sources.size()) {
+            if (removeMapper.has(sources[i])) continue
             val si = sources[i].gravitySourceCmp
             val bi = sources[i].bodyCmp.body
             if (bi.type != BodyDef.BodyType.DynamicBody) continue
@@ -88,7 +192,7 @@ class GravitySystem(
             var ay = 0f
             if (coupling > 0f) {
                 for (j in 0 until sources.size()) {
-                    if (j == i) continue
+                    if (j == i || removeMapper.has(sources[j])) continue
                     val sj = sources[j].gravitySourceCmp
                     val pj = sources[j].bodyCmp.body.position
                     val soft = max(si.radius + sj.radius, SOURCE_PULL_MIN_SOFTENING)
@@ -119,6 +223,7 @@ class GravitySystem(
         val pos = body.position
         accel.setZero()
         for (i in 0 until sources.size()) {
+            if (removeMapper.has(sources[i])) continue
             val src = sources[i].gravitySourceCmp
             val sp = sources[i].bodyCmp.body.position
             val gm = src.effectiveGm(c)
@@ -163,6 +268,7 @@ class GravitySystem(
         dir.set(photonDir)
         repeat(steps) {
             for (i in 0 until sources.size()) {
+                if (removeMapper.has(sources[i])) continue
                 val src = sources[i].gravitySourceCmp
                 val sp = sources[i].bodyCmp.body.position
                 bendPhoton(px - sp.x, py - sp.y, dir.x, dir.y, src.effectiveGm(c), c, subDt, dir)
@@ -183,7 +289,7 @@ class GravitySystem(
     private fun nearHole(x: Float, y: Float): Boolean {
         for (i in 0 until sources.size()) {
             val src = sources[i].gravitySourceCmp
-            if (src.kind != GravitySourceKind.BLACK_HOLE) continue
+            if (src.kind != GravitySourceKind.BLACK_HOLE || removeMapper.has(sources[i])) continue
             val sp = sources[i].bodyCmp.body.position
             val limit = PHOTON_SUBSTEP_RADIUS_PER_RS * src.rs
             val dx = x - sp.x
@@ -191,5 +297,10 @@ class GravitySystem(
             if (dx * dx + dy * dy < limit * limit) return true
         }
         return false
+    }
+
+    private companion object {
+        /** Size of the `[m, x, y, vx, vy]` result of [mergeSources]. */
+        const val MERGE_OUT_SIZE = 5
     }
 }

@@ -42,6 +42,12 @@ class LaunchOptionsTest {
     }
 
     @Test
+    fun parsesHoleNear() {
+        assertEquals(true, parseLaunchOptions(arrayOf("--hole-near")).holeNear)
+        assertEquals(false, parseLaunchOptions(arrayOf()).holeNear)
+    }
+
+    @Test
     fun parsesNearAsteroids() {
         assertEquals(4, parseLaunchOptions(arrayOf("--near-asteroids=4")).nearAsteroids)
         assertEquals(0, parseLaunchOptions(arrayOf("--near-asteroids=x")).nearAsteroids)

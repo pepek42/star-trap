@@ -33,7 +33,7 @@ const val DISK_OUTER = DISK_OUTER_PER_RS * BH_RS
 const val DISK_PARTICLES = 3000
 
 /** Peak temperature of the disk (K), reached at `r = 49/36 * r_in`, before the gravitational redshift. */
-const val DISK_T_PEAK = 12000f
+const val DISK_T_PEAK = 6000f
 
 /** Half-size of a particle quad (world units) for a hole with `r_s` = [BH_RS]; scales with `r_s`. */
 const val DISK_PARTICLE_SIZE = 0.25f

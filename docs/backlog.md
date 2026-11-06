@@ -18,7 +18,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-41a. ST-140 Accretion disk follow-ups: colour gradient and a hole-in-view harness flag
 43. ST-095 Lighting math (pure)
 44. ST-096 Normal maps from alpha in the texture packer
 45. ST-097 Lit sprites: accretion disks light ships, asteroids and planets
@@ -181,22 +180,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 
 - note (2026-11-02, owner follow-up, game-design §11 Q1 answered): black holes, planets and decoration **start static** (placed at level start, zero velocity) but are **dynamic and feel gravity**: n-body among the sources, plus the player's pull. **Decision (planner):** sources are Box2D dynamic bodies on the **Newtonian path** (no `RelativisticComponent`): they are heavy and stay far below 0.1 c, so γ ≈ 1 and they need neither `RelativisticDynamics`, nor the γ-mass of ST-047, nor the ship clocks of ST-040. Black holes get a sensor body (no contacts, ignored by the projectile sweep, which already skips sensors); planets get a solid body. Because they have bodies, `BoundaryFieldSystem` (which acts on every `BodyComponent`) keeps them in the arena with no extra code, and `LightHistorySystem` records them for the pilot view. With the physical pull, two holes 60 u apart would collide in about 6 s, so source–source gravity is scaled by `sourceCoupling = 0.1` (declared FAKE, about 19 s), pending ST-092. Holes that touch merge. Counts stay low for performance: at most 2 holes, 2 planets and 6 debris pieces per level.
 - note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
-
-### ST-140 Accretion disk follow-ups: colour gradient and a hole-in-view harness flag
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-087
-- refs: ST-087 commit; `render/AccretionDisk.kt`, `docs/tech/dev-workflow.md` (screenshot harness), `LaunchOptions`
-- decision: owner 2026-11-06 chose (b): lower `DISK_T_PEAK` so the disk is more colourful (stays physical: a cooler disk).
-- goal: Make the disk's temperature gradient readable, and make black-hole visuals screenshot-testable.
-- spec:
-  - Lower `DISK_T_PEAK` (start at ~8000 K; go lower, e.g. 6000 K, if the outer rim still isn't clearly orange-red) and re-screenshot with `--hole-near`. Keep the physics functions unchanged; only the constant moves. Update the doc that quotes the peak.
-  - Harness: add a `--hole-near` launch flag (and note the URL-query equivalent for the web harness) that places the first black hole ~25 u from the player spawn, so screenshots show the hole without a temporary patch. Debug/harness only; doesn't change normal spawning.
-- acceptance:
-  - [ ] Screenshot with `--seed=42 --hole-near` shows the hole and disk in view
-  - [ ] `./gradlew core:test` passes
-- playtest: The disk is clearly colourful: whiter/yellow inside, orange-red outside.
 
 ### ST-088 Gravitational lensing of the backdrop
 - status: ready

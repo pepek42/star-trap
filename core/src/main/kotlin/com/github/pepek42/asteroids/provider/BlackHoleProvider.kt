@@ -17,6 +17,7 @@ import ktx.ashley.entity
 import ktx.ashley.with
 import ktx.box2d.body
 import ktx.box2d.circle
+import com.badlogic.gdx.math.Vector2
 import kotlin.math.hypot
 
 /** Black holes keep this far (u) from every arena wall at spawn. */
@@ -68,14 +69,21 @@ class BlackHoleProvider(
     private val world: World,
     private val mapProvider: MapProvider,
 ) {
-    /** Spawns the holes of [level] at rest; returns their positions as flat x, y pairs (fewer if no valid point was found). */
-    fun spawn(level: Int, random: RandomXS128): FloatArray {
+    /** Spawns the holes of [level] at rest (the first one at [firstHoleAt] if given: harness only); returns their positions as flat x, y pairs (fewer if no valid point was found). */
+    fun spawn(level: Int, random: RandomXS128, firstHoleAt: Vector2? = null): FloatArray {
         val count = blackHoleCount(level)
         val mapW = mapProvider.mapWidth
         val mapH = mapProvider.mapHeight
         val positions = FloatArray(2 * count)
         var placed = 0
         for (k in 0 until count) {
+            if (k == 0 && firstHoleAt != null) {
+                spawnHole(firstHoleAt.x, firstHoleAt.y)
+                positions[0] = firstHoleAt.x
+                positions[1] = firstHoleAt.y
+                placed++
+                continue
+            }
             var attempts = 0
             while (attempts++ < BH_MAX_ATTEMPTS) {
                 val x = random.nextFloat() * mapW

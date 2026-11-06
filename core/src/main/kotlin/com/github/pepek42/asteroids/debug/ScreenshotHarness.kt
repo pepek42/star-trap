@@ -25,10 +25,15 @@ data class LaunchOptions(
     val controls: ControlScheme? = null,
     /** Extra asteroids placed in a ring around the player at level spawn (`--near-asteroids=<n>`), for visual checks. */
     val nearAsteroids: Int = 0,
+    /** Places the first black hole [HOLE_NEAR_DISTANCE] u from the player spawn (`--hole-near`), for visual checks. */
+    val holeNear: Boolean = false,
 )
 
+/** Distance (u) from the player spawn to the first black hole under `--hole-near`. */
+const val HOLE_NEAR_DISTANCE = 25f
+
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>` and `--debug-panel`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near` and `--debug-panel`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -45,6 +50,7 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
             "--thrust" -> options = options.copy(thrust = true)
             "--controls" -> ControlScheme.fromFlag(value)?.let { options = options.copy(controls = it) }
             "--near-asteroids" -> value?.toIntOrNull()?.takeIf { it > 0 }?.let { options = options.copy(nearAsteroids = it) }
+            "--hole-near" -> options = options.copy(holeNear = true)
             "--debug-panel" -> options = options.copy(debugPanel = true)
         }
     }

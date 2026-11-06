@@ -15,6 +15,8 @@ import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.debug.DebugSettings
+import com.github.pepek42.asteroids.debug.HOLE_NEAR_DISTANCE
+import com.badlogic.gdx.math.Vector2
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.debug.SCREENSHOT_FRAME_DELTA
 import com.github.pepek42.asteroids.audio.ComputerSoundQueue
@@ -156,6 +158,10 @@ class PlayScreen(
         }
     }
 
+    /** `--hole-near`: where the first black hole goes ([HOLE_NEAR_DISTANCE] u right of the player spawn), else null. */
+    private fun holeNearSpawn(): Vector2? =
+        if (game.options.holeNear) mapProvider.playerSpawnLocation().add(HOLE_NEAR_DISTANCE, 0f) else null
+
     override fun show() {
         super.show()
         observerState.reset()
@@ -165,7 +171,7 @@ class PlayScreen(
         gameState.nextLevel()
         mapProvider.loadMap()
         playerEntityProvider.spawnPlayerEntity()
-        val holes = if (settings.blackHolesEnabled) blackHoleProvider.spawn(gameState.level, game.get<RandomXS128>()) else FloatArray(0)
+        val holes = if (settings.blackHolesEnabled) blackHoleProvider.spawn(gameState.level, game.get<RandomXS128>(), holeNearSpawn()) else FloatArray(0)
         val planets = if (settings.planetsEnabled) {
             planetProvider.spawn(gameState.level, game.get<RandomXS128>(), holes, holes.size / 2)
         } else FloatArray(0)

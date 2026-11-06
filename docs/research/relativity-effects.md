@@ -489,7 +489,7 @@ Each entry covers: **Physics** · **What the player sees** · **Implementation**
   - A static VBO of about 3000 particles with attributes `(r, φ₀, size, T)`. The vertex shader computes `φ = φ₀ + Ω(r)·t` from a time uniform, with no CPU updates and no shearing-texture problem. Additive blending. Blackbody LUT colour. A slow radial inward drift with respawn at the outer edge.
   - In world view, use `g`. In pilot view, apply `D_pilot` and `apparent()` per vertex. The particle velocity is analytic, so use the constant-velocity closed form instead of history.
   - Optional bloom FBO pass.
-- **Cost:** GPU small. Complexity M. **Gameplay:** eye candy plus a "danger here" signal. This is the owner's explicit end-goal visual ("bright matter around it"). **Verdict: Showcase.** `DISK_INNER = 3 r_s`, `DISK_OUTER = 12 r_s`, `DISK_PARTICLES = 3000`, `DISK_T_PEAK = 12000 K`.
+- **Cost:** GPU small. Complexity M. **Gameplay:** eye candy plus a "danger here" signal. This is the owner's explicit end-goal visual ("bright matter around it"). **Verdict: Showcase.** `DISK_INNER = 3 r_s`, `DISK_OUTER = 12 r_s`, `DISK_PARTICLES = 3000`, `DISK_T_PEAK = 6000 K`.
 
 #### E18. Gravitational lensing
 
@@ -575,7 +575,7 @@ No effect needs a per-sprite shader uniform, so `SpriteBatch` batching survives.
 | `HISTORY_SECONDS` | diagonal/c + 0.5 | | E8 |
 | `BH_RS` | 2 u | 1–4 | E14–E18 |
 | `LENS_EINSTEIN_RADIUS` | 4 r_s | 2–8 r_s | E18 |
-| `DISK_INNER`, `DISK_OUTER`, `DISK_PARTICLES`, `DISK_T_PEAK` | 3 r_s, 12 r_s, 3000, 12000 K | | E17 |
+| `DISK_INNER`, `DISK_OUTER`, `DISK_PARTICLES`, `DISK_T_PEAK` | 3 r_s, 12 r_s, 3000, 6000 K | | E17 |
 
 ---
 

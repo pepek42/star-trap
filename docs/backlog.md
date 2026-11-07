@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-170**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-171**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -32,9 +32,10 @@ M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 57a. ST-166 Save the run after each cleared level
-57b. ST-167 Shop between levels (owner decision on currency and items)
+57b. ST-167 Shop between levels
 57c. ST-168 Level-5 quick start with a prebuilt ship
 57d. ST-169 Scenarios: step-by-step tutorial objectives
+57e. ST-170 Scenario briefing pauses the game
 
 Parked:
 51. ST-091 Targeting-trance scheme
@@ -344,32 +345,35 @@ Source: owner 2026-11-07 ("After each level there will be save (and buying in sh
   - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes; save survives a page reload on web
 - playtest: Clear level 1, quit the game, start it again: Continue (level 2) is on the main page and starts level 2.
 
-### ST-167 Shop between levels (owner decision on currency and items)
-- status: needs-user
+### ST-167 Shop between levels
+- status: ready
 - size: M
 - agent: kotlin-dev
 - depends: ST-166, ST-163
 - files: `screen/LevelClearedScreen.kt` (replace the shop placeholder), new `shop/`, `GameState.kt`, `provider/PlayerEntityProvider.kt`
 - layer: meta (run progression)
 - goal: Spend what the level earned on upgrades before the next level.
-- questions for the owner (recommendation first): currency = credits per destroyed target, scaled by size (rec.) vs a fixed reward per level; items = engine (proper acceleration), hull (health), weapon slots / missiles (rec.: these three first).
+- decisions (owner 2026-11-07):
+  - Currency: credits per destroyed target, scaled by target type/size (easier to balance than a per-level reward).
+  - Roguelike offer: each shop visit shows a small random pool of items (drawn with the seeded `RandomXS128`). Rerolling costs credits, but the **first 2 rerolls per visit are free**.
+  - First items: engine (proper acceleration), hull (health), weapon slots / missiles.
 - acceptance:
-  - [ ] Tests: buying deducts credits and changes the next level's player; the purchase is saved (ST-166)
+  - [ ] Tests: buying deducts credits and changes the next level's player; the purchase is saved (ST-166); rerolls 1–2 are free, the 3rd costs credits; the offer is reproducible from the seed
   - [ ] `scripts/web-check.sh --play` passes
 - playtest: Clear a level, buy an engine upgrade, start the next level: the ship accelerates faster.
 
 ### ST-168 Level-5 quick start with a prebuilt ship
-- status: needs-user
+- status: ready
 - size: S
 - agent: kotlin-dev
 - depends: ST-167
 - files: `screen/MainMenuScreen.kt`, `GameState.kt`, `shop/`
 - layer: meta
 - goal: Starting at level 5 gives the upgrades a player would roughly have bought by then, so the quick start is fair.
-- spec: a fixed prebuild (or the credits of levels 1–4 to spend in the shop first; rec.: credits, so it reuses the shop). The New-game hint for level 5 says what is included.
+- spec (owner 2026-11-07): no fixed prebuild; the run starts with the credits levels 1–4 would typically pay (derive from the per-target rewards and the level spawn counts, not a literal) and opens the shop before level 5. The New-game hint for level 5 says so.
 - acceptance:
-  - [ ] Tests: `resetGame(QUICK_START_LEVEL)` grants the prebuild; level 1 grants nothing
-- playtest: New game → Level 5 → Start: the ship has the upgrades.
+  - [ ] Tests: `resetGame(QUICK_START_LEVEL)` grants the levels 1–4 credits and opens the shop first; level 1 grants nothing
+- playtest: New game → Level 5 → Start: the shop opens with credits; after buying, level 5 starts.
 
 ### ST-169 Scenarios: step-by-step tutorial objectives
 - status: ready
@@ -387,6 +391,20 @@ Source: owner 2026-11-07 ("After each level there will be save (and buying in sh
   - [ ] Tests: objectives advance in order when their predicates hold; a scenario without objectives behaves as today
   - [ ] `scripts/web-check.sh --query=scenario=relativity&play` passes
 - playtest: Scenarios → Relativity: the panel asks for β 0.5, then for V, then T, each ticking as done.
+
+### ST-170 Scenario briefing pauses the game
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: `ui/BriefingPanel.kt`, `screen/PlayScreen.kt`, `physics/GameClock` / `system/TimeWarpSystem.kt`
+- layer: meta (UI)
+- goal (owner 2026-11-07): while a scenario's briefing is open, the arena is frozen; "Got it" (or Enter) starts it.
+- spec: freeze world time (no physics steps, no AI, no weapon cooldowns, no lifetime ticks) but keep rendering the frozen scene and the UI. Player input other than closing the briefing and Esc is ignored while paused. ST-169 objective panels later reuse the same pause for "read this first" steps.
+- acceptance:
+  - [ ] Tests: world time does not advance while the briefing is shown, and advances after it is hidden
+  - [ ] `scripts/web-check.sh --query=scenario=relativity&play` passes (the screenshot shows the briefing and ship time 0)
+- playtest: Scenarios → Relativity → Start: nothing moves until Got it.
 
 ## Parked (low priority)
 

@@ -86,6 +86,7 @@ fun clearShopVisit(store: KeyValueStore) {
 /** Restores credits and upgrades from [save] into [state] (Continue). */
 fun restoreRunProgress(save: RunSave, state: GameState) {
     state.credits = save.credits
+    state.quickStart = false
     state.upgrades.clear()
     for (e in save.upgrades.entries) state.upgrades.setLevel(e.key, e.value)
     state.pendingShop = save.shop

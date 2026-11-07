@@ -137,8 +137,14 @@ class LevelClearedScreen(
             gameState.pendingShop = null
             shop = ShopSession(gameState, RandomXS128(shopSeed(gameState.runSeed, gameState.level)), resume, ::saveRun)
             saveRun()
-            title.setText(i18n.format("level_cleared_message", gameState.level))
-            subtitle.setText(i18n.format("level_cleared_next", gameState.level + 1))
+            if (gameState.quickStart) {
+                title.setText(i18n["quick_start_message"])
+                subtitle.setText(i18n.format("quick_start_next", gameState.level + 1))
+            } else {
+                title.setText(i18n.format("level_cleared_message", gameState.level))
+                subtitle.setText(i18n.format("level_cleared_next", gameState.level + 1))
+            }
+            gameState.quickStart = false
             layoutPanel(withShop = true)
             refreshShop()
             primaryButton.setText(i18n.format("next_level_button", gameState.level + 1))

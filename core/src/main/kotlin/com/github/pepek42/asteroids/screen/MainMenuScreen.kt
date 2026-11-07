@@ -254,7 +254,8 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         clearRunSave(store)
         saveSettings(store, specs)
         gameState.resetGame(startLevel)
-        game.setScreen<PlayScreen>()
+        // A quick start opens the shop first (level = startLevel - 1 is the "between levels" state, as for Continue).
+        if (gameState.quickStart) game.setScreen<LevelClearedScreen>() else game.setScreen<PlayScreen>()
     }
 
     // ---- Scenarios page --------------------------------------------------------------------------------------

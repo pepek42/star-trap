@@ -18,6 +18,9 @@ const val ASTEROID_DENSITY = 10f
  */
 const val ASTEROID_COUNT_PER_LEVEL_SQ = 1
 
+/** Fragments a destroyed asteroid breaks into (`DeathSystem.spawnSmallerAsteroids` spawns this many). */
+const val ASTEROID_FRAGMENTS = 2
+
 /** Number of large asteroids spawned on [level]: `1 + ASTEROID_COUNT_PER_LEVEL_SQ · level²`. */
 fun asteroidCount(level: Int): Int = 1 + ASTEROID_COUNT_PER_LEVEL_SQ * level * level
 

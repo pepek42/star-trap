@@ -26,7 +26,6 @@ M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
 50c. ST-165 Missile lock-on: lock first, then fire
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
-57c. ST-168 Level-5 quick start with a prebuilt ship
 57d. ST-169 Scenarios: step-by-step tutorial objectives
 57e. ST-170 Scenario briefing pauses the game
 57f. ST-171 Settings page with tabs
@@ -216,19 +215,6 @@ Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/aste
 ## Menus & runs
 
 Source: owner 2026-11-07 ("After each level there will be save (and buying in shop between levels) ... New game - select level 1, 5th (for quick start later level, with some prebuild once we have shop) ... tutorial like scenarios with some text"). The menu (New game with start level 1/5 and run physics, Scenarios with briefings, global Settings), the restyled `LevelClearedScreen` with a shop placeholder, Esc-to-menu and four scenarios (`scenario/Scenarios.kt`) are done. Web: saves go through libGDX `Preferences` (`KeyValueStore`), never `java.io`.
-
-### ST-168 Level-5 quick start with a prebuilt ship
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-167
-- files: `screen/MainMenuScreen.kt`, `GameState.kt`, `shop/`
-- layer: meta
-- goal: Starting at level 5 gives the upgrades a player would roughly have bought by then, so the quick start is fair.
-- spec (owner 2026-11-07): no fixed prebuild; the run starts with the credits levels 1–4 would typically pay (derive from the per-target rewards and the level spawn counts, not a literal) and opens the shop before level 5. The New-game hint for level 5 says so.
-- acceptance:
-  - [ ] Tests: `resetGame(QUICK_START_LEVEL)` grants the levels 1–4 credits and opens the shop first; level 1 grants nothing
-- playtest: New game → Level 5 → Start: the shop opens with credits; after buying, level 5 starts.
 
 ### ST-169 Scenarios: step-by-step tutorial objectives
 - status: ready

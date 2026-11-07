@@ -1,6 +1,10 @@
 package com.github.pepek42.asteroids.shop
 
+import com.github.pepek42.asteroids.FIRST_LEVEL
+import com.github.pepek42.asteroids.environment.ASTEROID_FRAGMENTS
 import com.github.pepek42.asteroids.environment.AsteroidSize
+import com.github.pepek42.asteroids.environment.asteroidCount
+import com.github.pepek42.asteroids.provider.enemyCount
 import com.github.pepek42.asteroids.provider.PLAYER_START_HEALTH
 
 /** Credits for destroying a large asteroid (a small one gives [CREDITS_SMALL_ASTEROID]; its two fragments come on top). */
@@ -17,6 +21,17 @@ fun asteroidCredits(size: AsteroidSize): Int = when (size) {
     AsteroidSize.LARGE -> CREDITS_LARGE_ASTEROID
     AsteroidSize.SMALL -> CREDITS_SMALL_ASTEROID
 }
+
+/** Credits one large asteroid yields when shot down completely: itself plus all its small fragments. */
+const val CREDITS_PER_LARGE_ROCK_CHAIN = CREDITS_LARGE_ASTEROID + ASTEROID_FRAGMENTS * CREDITS_SMALL_ASTEROID
+
+/**
+ * Credits a player would typically have earned by clearing levels 1 to [levels] (ST-168): per level,
+ * `asteroidCount(level)` large asteroids, each worth [CREDITS_PER_LARGE_ROCK_CHAIN] with its fragments, plus
+ * `enemyCount(level)` enemy ships at [CREDITS_ENEMY_SHIP]. Derived from the spawn functions, so it follows balance changes.
+ */
+fun typicalCreditsThroughLevel(levels: Int): Int =
+    (FIRST_LEVEL..levels).sumOf { asteroidCount(it) * CREDITS_PER_LARGE_ROCK_CHAIN + enemyCount(it) * CREDITS_ENEMY_SHIP }
 
 /** What an upgrade improves. Add a `WEAPON` effect here later (missiles, ST-164). */
 enum class UpgradeEffect { ENGINE, HULL }

@@ -38,6 +38,7 @@ import com.github.pepek42.asteroids.save.RunSave
 import com.github.pepek42.asteroids.save.applyRunSave
 import com.github.pepek42.asteroids.save.clearRunSave
 import com.github.pepek42.asteroids.save.readRunSave
+import com.github.pepek42.asteroids.save.restoreRunProgress
 import com.github.pepek42.asteroids.scenario.Scenario
 import com.github.pepek42.asteroids.scenario.Scenarios
 import com.github.pepek42.asteroids.scenario.applyScenarioPhysics
@@ -237,6 +238,7 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         // Run physics come from the save; the player's New-game defaults in the store stay untouched.
         applyRunSave(store, menuSettings.runSpecs)
         gameState.resetGame(save.nextLevel)
+        restoreRunProgress(save, gameState)
         game.setScreen<PlayScreen>()
     }
 

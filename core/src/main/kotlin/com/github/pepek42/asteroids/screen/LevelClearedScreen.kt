@@ -15,6 +15,9 @@ import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.save.saveAfterLevel
+import com.github.pepek42.asteroids.shop.FREE_REROLLS
+import com.github.pepek42.asteroids.shop.ShopSession
+import com.badlogic.gdx.math.RandomXS128
 import com.github.pepek42.asteroids.scenario.applyScenarioPhysics
 import com.github.pepek42.asteroids.settings.KeyValueStore
 import com.github.pepek42.asteroids.settings.MenuSettings
@@ -34,7 +37,7 @@ private const val BUTTON_SPACE = 16f
 private const val FADE_IN_S = 0.35f
 
 /**
- * Between levels: a centred panel with the result, a placeholder for the shop, and a primary "Next level" button
+ * Between levels: a centred panel with the result, the shop, and a primary "Next level" button
  * (or "Retry" / "Scenarios" after a scenario). The run is saved here (normal runs only).
  */
 class LevelClearedScreen(
@@ -49,7 +52,10 @@ class LevelClearedScreen(
     private val title = Label("", style.title)
     private val subtitle = style.paragraph("", PANEL_WIDTH, style.muted)
     private val shopTitle = Label(i18n["shop_title"], style.heading)
-    private val shopText = style.paragraph(i18n["shop_placeholder"], PANEL_WIDTH, style.muted)
+    private val creditsLabel = Label("", style.body)
+    private val shopItems = Table()
+    private val rerollButton = TextButton("", style.button)
+    private var shop: ShopSession? = null
     private val secondaryButton = TextButton("", style.button)
     private val primaryButton = TextButton("", style.primaryButton)
     private var onPrimary: () -> Unit = {}
@@ -69,6 +75,7 @@ class LevelClearedScreen(
 
     init {
         root.add(panel)
+        rerollButton.onChange { shop?.reroll()?.let { refreshShop() } }
         primaryButton.onChange { onPrimary() }
         secondaryButton.onChange { onSecondary() }
     }
@@ -83,18 +90,53 @@ class LevelClearedScreen(
         if (withShop) {
             t.add(Image(style.rule)).height(1f).padTop(SECTION_SPACE).padBottom(SECTION_SPACE).row()
             t.add(shopTitle).row()
-            t.add(shopText).padTop(4f).row()
+            t.add(creditsLabel).padTop(4f).row()
+            t.add(shopItems).padTop(8f).row()
+            t.add(rerollButton).height(MENU_BUTTON_HEIGHT).padTop(BUTTON_SPACE).left().row()
         }
         t.add(buttons).padTop(SECTION_SPACE * 2).row()
+    }
+
+    private fun saveRun() = saveAfterLevel(game.get<KeyValueStore>(), gameState, game.get<MenuSettings>().runSpecs)
+
+    /** Rebuilds the credits line, the offered items and the reroll button from the [shop] session. */
+    private fun refreshShop() {
+        val session = shop ?: return
+        creditsLabel.setText(i18n.format("shop_credits", gameState.credits))
+        shopItems.clearChildren()
+        shopItems.defaults().left().width(PANEL_WIDTH)
+        if (session.offer.isEmpty()) shopItems.add(style.paragraph(i18n["shop_empty"], PANEL_WIDTH, style.muted)).row()
+        session.offer.forEach { item ->
+            val buy = TextButton(i18n.format("shop_buy", gameState.upgrades.price(item)), style.button)
+            buy.isDisabled = !session.canBuy(item)
+            buy.onChange { if (session.buy(item)) refreshShop() }
+            val text = Table().apply {
+                add(Label(i18n[item.titleKey], style.heading)).left().row()
+                add(Label(i18n[item.descKey], style.muted)).left().row()
+                add(Label(i18n.format("shop_item_level", gameState.upgrades.level(item), item.maxLevel), style.muted)).left().row()
+            }
+            val row = Table()
+            row.add(text).left().expandX().fillX()
+            row.add(buy).height(MENU_BUTTON_HEIGHT).right()
+            shopItems.add(row).padBottom(BUTTON_SPACE / 2).row()
+        }
+        val cost = session.rerollCost()
+        rerollButton.setText(
+            if (cost == 0) i18n.format("shop_reroll_free", FREE_REROLLS - session.rerollsUsed)
+            else i18n.format("shop_reroll_cost", cost)
+        )
+        rerollButton.isDisabled = !session.canReroll()
     }
 
     override fun show() {
         val scenario = gameState.scenario
         if (scenario == null) {
-            saveAfterLevel(game.get<KeyValueStore>(), gameState, game.get<MenuSettings>().runSpecs)
+            saveRun()
+            shop = ShopSession(gameState, game.get<RandomXS128>(), ::saveRun)
             title.setText(i18n.format("level_cleared_message", gameState.level))
             subtitle.setText(i18n.format("level_cleared_next", gameState.level + 1))
             layoutPanel(withShop = true)
+            refreshShop()
             primaryButton.setText(i18n.format("next_level_button", gameState.level + 1))
             secondaryButton.setText(i18n["menu_quit_run"])
             onPrimary = { game.setScreen<PlayScreen>() }
@@ -102,6 +144,7 @@ class LevelClearedScreen(
         } else {
             title.setText(i18n["scenario_cleared_message"])
             subtitle.setText(i18n[scenario.titleKey])
+            shop = null
             layoutPanel(withShop = false)
             primaryButton.setText(i18n["scenario_retry"])
             secondaryButton.setText(i18n["menu_scenarios"])

@@ -1,6 +1,7 @@
 package com.github.pepek42.asteroids
 
 import com.github.pepek42.asteroids.scenario.Scenario
+import com.github.pepek42.asteroids.shop.RunUpgrades
 
 /** First level of a normal new game. */
 const val FIRST_LEVEL = 1
@@ -23,6 +24,17 @@ class GameState {
     /** Set when a run ended by player death; the main menu shows a message once and clears it. */
     var lastRunEnded = false
 
+    /** Credits of the current run (earned per kill, spent in the shop). Always 0 in scenarios. */
+    var credits = 0
+
+    /** Upgrades bought in the current run. */
+    val upgrades = RunUpgrades()
+
+    /** Adds [amount] credits to a normal run; scenarios earn nothing. */
+    fun addCredits(amount: Int) {
+        if (scenario == null) credits += amount
+    }
+
     fun nextLevel() {
         ++level
     }
@@ -32,11 +44,15 @@ class GameState {
         require(startLevel >= FIRST_LEVEL) { "startLevel must be >= $FIRST_LEVEL, was $startLevel" }
         scenario = null
         level = startLevel - 1
+        credits = 0
+        upgrades.clear()
     }
 
     /** Starts (or restarts) [scenario]; it is a single level. */
     fun startScenario(scenario: Scenario) {
         this.scenario = scenario
+        credits = 0
+        upgrades.clear()
         level = FIRST_LEVEL - 1
     }
 }

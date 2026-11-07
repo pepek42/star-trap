@@ -43,6 +43,7 @@ import com.github.pepek42.asteroids.provider.DecorationProvider
 import com.github.pepek42.asteroids.provider.EnemyShipProvider
 import com.github.pepek42.asteroids.provider.PlanetProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
+import com.github.pepek42.asteroids.shop.RunUpgrades
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
 import com.github.pepek42.asteroids.render.LensingPass
@@ -146,6 +147,7 @@ class PlayScreen(
                 game.finishLevel()
             },
             onPlayerDeath = { game.endRun() },
+            onCredits = { gameState.addCredits(it) },
             hullSounds = hullSounds,
             computerSounds = computerSounds,
             invulnerablePlayer = game.options.invulnerable,
@@ -258,7 +260,7 @@ class PlayScreen(
         gameState.nextLevel()
         val scenario = gameState.scenario
         mapProvider.loadMap(scenario?.arenaSize ?: MAP_WIDTH, scenario?.arenaSize ?: MAP_HEIGHT)
-        playerEntityProvider.spawnPlayerEntity()
+        playerEntityProvider.spawnPlayerEntity(if (scenario == null) gameState.upgrades else RunUpgrades())
         if (scenario != null) {
             scenario.spawn(ProviderSpawner(mapProvider.playerSpawnLocation()))
             star.roll(game.get<RandomXS128>())

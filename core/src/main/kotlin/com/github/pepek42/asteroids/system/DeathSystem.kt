@@ -25,6 +25,8 @@ import ktx.math.plus
 import ktx.math.vec2
 import com.badlogic.gdx.math.RandomXS128
 import com.github.pepek42.asteroids.provider.PLAYER_START_HEALTH
+import com.github.pepek42.asteroids.shop.CREDITS_ENEMY_SHIP
+import com.github.pepek42.asteroids.shop.asteroidCredits
 
 class DeathSystem(
     private val engine: Engine,
@@ -35,6 +37,8 @@ class DeathSystem(
     private val clock: GameClock? = null,
     /** Harness only (`--invulnerable`): the player is healed back to full instead of ending the run (black hole horizon included). */
     private val invulnerablePlayer: Boolean = false,
+    /** Credits a destroyed asteroid or enemy ship is worth (ST-167). */
+    private val onCredits: (Int) -> Unit = {},
     private val onPlayerDeath: () -> Unit = {},
 ) : IteratingSystem(allOf(HealthComponent::class).get()) {
     private var playerDeathReported = false
@@ -64,12 +68,14 @@ class DeathSystem(
             val body = entity.bodyCmp.body
             body.fixtureList.forEach { it.isSensor = true }
             val currentAsteroidSize = entity.asteroidCmp.asteroidSize
+            onCredits(asteroidCredits(currentAsteroidSize))
             pushBreakUp(body, currentAsteroidSize)
             if (currentAsteroidSize.nextSize != null) {
                 spawnSmallerAsteroids(body, currentAsteroidSize)
             }
         }
         if (entity.has(enemyMapper)) {
+            onCredits(CREDITS_ENEMY_SHIP)
             pushEnemyKill(entity.bodyCmp.body)
         }
         entity.addComponent<RemoveComponent>(engine)

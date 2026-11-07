@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-174**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-175**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -26,7 +26,7 @@ M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
 50c. ST-165 Missile lock-on: lock first, then fire
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
-57b. ST-167 Shop between levels
+57b2. ST-174 Shop follow-ups: credits HUD, saved offer, own RNG
 57c. ST-168 Level-5 quick start with a prebuilt ship
 57d. ST-169 Scenarios: step-by-step tutorial objectives
 57e. ST-170 Scenario briefing pauses the game
@@ -218,22 +218,25 @@ Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/aste
 
 Source: owner 2026-11-07 ("After each level there will be save (and buying in shop between levels) ... New game - select level 1, 5th (for quick start later level, with some prebuild once we have shop) ... tutorial like scenarios with some text"). The menu (New game with start level 1/5 and run physics, Scenarios with briefings, global Settings), the restyled `LevelClearedScreen` with a shop placeholder, Esc-to-menu and four scenarios (`scenario/Scenarios.kt`) are done. Web: saves go through libGDX `Preferences` (`KeyValueStore`), never `java.io`.
 
-### ST-167 Shop between levels
+### ST-174 Shop follow-ups: credits HUD, saved offer, own RNG
 - status: ready
-- size: M
+- size: S
 - agent: kotlin-dev
-- depends: ST-166, ST-163
-- files: `screen/LevelClearedScreen.kt` (replace the shop placeholder), new `shop/`, `GameState.kt`, `provider/PlayerEntityProvider.kt`
-- layer: meta (run progression)
-- goal: Spend what the level earned on upgrades before the next level.
-- decisions (owner 2026-11-07):
-  - Currency: credits per destroyed target, scaled by target type/size (easier to balance than a per-level reward).
-  - Roguelike offer: each shop visit shows a small random pool of items (drawn with the seeded `RandomXS128`). Rerolling costs credits, but the **first 2 rerolls per visit are free**.
-  - First items: engine (proper acceleration), hull (health), weapon slots / missiles.
+- depends: —
+- files: `shop/Shop.kt`, `shop/Upgrades.kt`, `save/RunSave.kt`, `screen/LevelClearedScreen.kt`, `screen/MainMenuScreen.kt`, `ui/Hud.kt`, `system/DeathSystem.kt`; tests
+- refs: commit "ST-167: Shop between levels"; `docs/tech/architecture.md` "Shop"
+- layer: meta
+- goal: Follow-ups from ST-167 (implementer + reviewer).
+- spec:
+  - Show the run's credits on the HUD during a level (hidden in scenarios).
+  - Persist the shop visit (offer items + reroll count) in the run save; Continue from a save made on the cleared screen reopens the shop instead of skipping it, so quitting can't reroll or skip a visit.
+  - Give the shop its own `RandomXS128` seeded from the run seed and level, so rerolls don't change the next level's layout (offer still reproducible from the seed).
+  - `--invulnerable` harness in `DeathSystem` heals to the player's upgraded start health, not the base `PLAYER_START_HEALTH`.
+  - Later (after ST-164 lands): a missile/weapon `ShopItem` applied to `WeaponLoadoutComponent` — leave as a note, not in this card's scope.
 - acceptance:
-  - [ ] Tests: buying deducts credits and changes the next level's player; the purchase is saved (ST-166); rerolls 1–2 are free, the 3rd costs credits; the offer is reproducible from the seed
-  - [ ] `scripts/web-check.sh --play` passes
-- playtest: Clear a level, buy an engine upgrade, start the next level: the ship accelerates faster.
+  - [ ] Tests: offer + rerolls survive a save/restore; level layout for a seed is the same with 0 and 3 rerolls; credits label shows `GameState.credits`
+  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes
+- playtest: Credits show in the HUD; quitting on the shop screen and pressing Continue brings back the same offer.
 
 ### ST-168 Level-5 quick start with a prebuilt ship
 - status: ready

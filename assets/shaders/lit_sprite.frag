@@ -20,6 +20,7 @@ uniform sampler2D u_normals;
 uniform vec4 u_colorRegion;  // u, v, u2, v2 of the colour region
 uniform vec4 u_normalRegion; // u, v, u2, v2 of the normal-map region (mode 1)
 uniform int u_normalMode;    // 0 flat, 1 normal map, 2 analytic sphere
+uniform float u_domeBlend;   // share of the sphere normal mixed into the normal map (mode 1), ASTEROID_DOME_BLEND for rocks
 uniform vec2 u_center;       // arena position of the sprite centre
 uniform vec2 u_rot;          // cos, sin of the arena angle
 uniform vec2 u_halfSize;
@@ -42,6 +43,9 @@ void main() {
         vec2 nuv = u_normalRegion.xy + t * (u_normalRegion.zw - u_normalRegion.xy);
         vec3 raw = texture2D(u_normals, nuv).rgb * 2.0 - 1.0;
         n = raw / max(length(raw), 0.0001);
+        vec3 sphere = vec3(q, sqrt(max(0.0, 1.0 - dot(q, q))));
+        vec3 blended = mix(n, sphere, u_domeBlend);
+        n = blended / max(length(blended), 0.0001);
     } else if (u_normalMode == 2) {
         n = vec3(q, sqrt(max(0.0, 1.0 - dot(q, q))));
     }

@@ -13,7 +13,9 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.IntMap
 import com.badlogic.gdx.utils.ObjectMap
+import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.GravitySourceKind
+import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.gravitySourceCmpOptional
 import kotlin.math.cos
 import kotlin.math.max
@@ -36,6 +38,9 @@ private const val REGION_KEY_SHIFT = 16
 /** Texture unit of the normal map (the colour texture is on unit 0, where the [SpriteBatch] binds it). */
 private const val NORMAL_UNIT = 1
 
+/** Floor of a blended normal's length before normalising (the GLSL uses the same). */
+private const val MIN_NORMAL_LENGTH = 0.0001f
+
 /** Normal source of a lit sprite: flat (0, 0, 1). */
 const val NORMAL_MODE_FLAT = 0
 
@@ -46,17 +51,26 @@ const val NORMAL_MODE_MAP = 1
 const val NORMAL_MODE_SPHERE = 2
 
 /**
+ * Share of the analytic sphere normal blended into the normal map of asteroids and debris (ST-148). The map is a 3 px bevel
+ * around a flat +z interior, and the disk light is nearly horizontal ([LIGHT_HEIGHT]), so on the map alone N·L is about
+ * the same all over an asteroid and only its rim shades. Mixing in a sphere normal gives the whole body a lit and a dark
+ * side. FAKE (physics-lies.md): rocks are lumpy, not spheres; ships keep the plain map (0).
+ */
+const val ASTEROID_DOME_BLEND = 0.7f
+
+/**
  * CPU reference of one fragment of the `lit_sprite` shader (ST-097); the GLSL mirrors it line by line. ([qx], [qy]) is the
  * texel in the sprite's local frame, −1..1 with y up; [halfW]/[halfH] the sprite half size (u); ([cx], [cy]) the sprite
  * centre and [rotRad] its angle in the arena frame. (nTexX, nTexY, nTexZ) is the unit tangent normal read from the map
  * (used in [NORMAL_MODE_MAP] only). Writes the light factor `ambient + Σ light` (rgb) over the first [n] lights of [idx]
  * into [out]; the caller multiplies the albedo. The normal is rotated into the arena frame and the lights are evaluated
- * at the texel's arena position, so the lit side follows the sprite's angle. Allocation-free.
+ * at the texel's arena position, so the lit side follows the sprite's angle. [domeBlend] (0..1) mixes the analytic sphere
+ * normal into the map normal in [NORMAL_MODE_MAP] (see [ASTEROID_DOME_BLEND]). Allocation-free.
  */
 fun shadeSpriteTexel(
     qx: Float, qy: Float, halfW: Float, halfH: Float, cx: Float, cy: Float, rotRad: Float, mode: Int,
     nTexX: Float, nTexY: Float, nTexZ: Float,
-    lights: Array<LightSource>, idx: IntArray, n: Int, ambient: Float, out: FloatArray,
+    lights: Array<LightSource>, idx: IntArray, n: Int, ambient: Float, out: FloatArray, domeBlend: Float = 0f,
 ) {
     val cosR = cos(rotRad)
     val sinR = sin(rotRad)
@@ -65,9 +79,14 @@ fun shadeSpriteTexel(
     val nz: Float
     when (mode) {
         NORMAL_MODE_MAP -> {
-            nx = nTexX
-            ny = nTexY
-            nz = nTexZ
+            val sz = sqrt(max(0f, 1f - (qx * qx + qy * qy)))
+            val mx = nTexX + (qx - nTexX) * domeBlend
+            val my = nTexY + (qy - nTexY) * domeBlend
+            val mz = nTexZ + (sz - nTexZ) * domeBlend
+            val len = max(sqrt(mx * mx + my * my + mz * mz), MIN_NORMAL_LENGTH)
+            nx = mx / len
+            ny = my / len
+            nz = mz / len
         }
         NORMAL_MODE_SPHERE -> {
             nx = qx
@@ -194,6 +213,8 @@ class LitSpriteRenderer(private val atlas: TextureAtlas) : Disposable {
         program.setUniformf("u_colorRegion", sprite.u, sprite.v, sprite.u2, sprite.v2)
         if (nr != null) program.setUniformf("u_normalRegion", nr.u, nr.v, nr.u2, nr.v2)
         program.setUniformi("u_normalMode", mode)
+        val type = baseInfoMapper.get(entity)?.entityType
+        program.setUniformf("u_domeBlend", if (type == EntityType.ASTEROID || type == EntityType.DEBRIS) ASTEROID_DOME_BLEND else 0f)
         program.setUniformf("u_center", ax, ay)
         program.setUniformf("u_rot", cos(angleRad), sin(angleRad))
         program.setUniformf("u_halfSize", sprite.width / 2f, sprite.height / 2f)

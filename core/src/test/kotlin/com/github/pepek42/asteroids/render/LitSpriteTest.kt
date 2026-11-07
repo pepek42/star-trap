@@ -75,6 +75,23 @@ class LitSpriteTest {
     }
 
     @Test
+    fun domeBlendGivesTheFlatMapALitAndADarkSide() {
+        val lights = arrayOf(diskLightAtOrigin())
+        fun lit(qx: Float, blend: Float): Float {
+            val out = FloatArray(3)
+            // A flat-interior texel (map normal +z) on a tiny sprite 15 u from the hole: only the normal differs between texels.
+            shadeSpriteTexel(qx, 0f, 1e-4f, 1e-4f, 15f, 0f, 0f, NORMAL_MODE_MAP, 0f, 0f, 1f, lights, intArrayOf(0), 1, LIGHT_AMBIENT, out, blend)
+            return out[0]
+        }
+        val flatContrast = lit(-0.8f, 0f) - lit(0.8f, 0f)
+        val domeContrast = lit(-0.8f, ASTEROID_DOME_BLEND) - lit(0.8f, ASTEROID_DOME_BLEND)
+        assertEquals(0f, flatContrast, 1e-3f)
+        assertTrue(domeContrast > 0.5f, "dome contrast $domeContrast")
+        // Blend 0 is the plain map (the sphere normal at the centre is +z too).
+        assertEquals(lit(0f, 0f), lit(0f, ASTEROID_DOME_BLEND), eps)
+    }
+
+    @Test
     fun flatModeIgnoresTheTexelNormal() {
         val lights = arrayOf(diskLightAtOrigin())
         val a = lightAt(lights, 0.5f, 0.5f, 10f, 0f, 0f, NORMAL_MODE_FLAT, 1f, 0f, 0f)

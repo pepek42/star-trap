@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-173**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-174**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -19,11 +19,11 @@ Audio (owner 2026-11-05):
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
+49j. ST-173 Enemy difficulty tuning (owner decision)
 
 M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
 50b. ST-164 Homing missile: relativistic rocket body and computer guidance
 50c. ST-165 Missile lock-on: lock first, then fire
-49i. ST-172 Balance bots that fight enemies, and a full enemy sweep
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 57a. ST-166 Save the run after each cleared level
@@ -150,29 +150,22 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew core:test` passes
 - playtest: At speed the view ahead is bright, and asteroids behind you are dim but outlined. Check whether the outline is too strong.
 
----
-
-## M6 Enemies
-
-Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
-
-### ST-172 Balance bots that fight enemies, and a full enemy sweep
-- status: ready
+### ST-173 Enemy difficulty tuning (owner decision)
+- status: needs-user
 - size: S
-- agent: kotlin-dev
-- depends: ST-161
-- files: `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/BalanceBots.kt`, `docs/tech/balance.md`; tests in `tool/src/test`
-- refs: ST-159 report (commit "ST-159: Balance runner with enemies"); `docs/tech/balance.md` "Enemies in the sweep (ST-159)"
-- layer: infra
-- goal: Follow-ups from ST-159. The bots treat enemy ships as rocks (steer away, hunt the nearest) and never dodge lasers, so the enemy numbers understate skilled play. 8-seed rates are about ±15%.
-- spec:
-  - Give the cautious and expert bots enemy-aware behaviour: keep moving sideways (strafe) relative to the nearest enemy while in its range, and prioritise enemies over rocks when one is in range. Keep it deterministic per seed.
-  - Run the full 20-seed sweep (`./gradlew tool:balanceSim`, all c and a0 cells) and refresh `balance.md`, including the stale "Chosen setting in detail" table (levels 3-5 predate enemies).
-  - Do not retune constants; propose enemy damage / fire-rate changes in the report (ST-159 found level 3 with one enemy trivial: 100% clear, 0-8 damage).
+- agent: junior-dev
+- depends: —
+- files: `provider/EnemyShipProvider.kt` (`enemyCount`), enemy weapon constants (`ENEMY_LASER_DAMAGE`, fire rate), `docs/tech/balance.md`
+- refs: `docs/tech/balance.md` "Enemy-aware bots and the full sweep (ST-172)"; commit "ST-172"
+- layer: sim (balance)
+- goal: Follow-ups from ST-172. With enemies, target T2 (cautious bot clears level 5 in >= 50 % of runs) fails at the chosen cell: 45 % (35 % deaths, 62 damage from enemies). Level 3 with one enemy is trivial (95 % clear, 11 damage).
+- question: How to even out enemy difficulty? (a) scale enemy laser damage/fire rate with level (weaker at L5 per ship, stronger at L3) — recommended; (b) cut enemy laser damage or fire rate by ~20-25 % everywhere and spawn 2 enemies on L3; (c) cap enemies at 2 until a later level; (d) accept T2 failing (L5 is meant to be hard).
+- spec (for the recommended option): derive per-level enemy damage from `ENEMY_LASER_DAMAGE` (KDoc derivation, no literals), re-run `./gradlew tool:balanceSim -PbalanceArgs="--levels=3,5 --bots=cautious,expert"` and record the numbers in `balance.md`.
 - acceptance:
-  - [ ] Test: a strafing bot's lateral velocity relative to an enemy in range is non-zero after a few seconds
+  - [ ] Cautious clears L5 in >= 50 % and L3 is no longer 0-damage trivial (record the numbers)
   - [ ] `./gradlew core:test tool:test` passes
-- playtest: —
+- playtest: Level 3's single enemy is a real threat; level 5 is hard but survivable.
+- note: the bots only weave, they don't dodge individual lasers (would need projectile positions in `BotView`); enemy damage attribution is still APPROX (ST-159).
 
 ---
 

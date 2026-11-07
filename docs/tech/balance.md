@@ -107,25 +107,45 @@ Reading the matrix:
 - **a0/c = 0.25** (sluggish) is too safe for the aggressive pilot (2 to 13 %) and slows the careful one on level 5. **0.7** makes flat-out flight a coin flip even on level 2 (70 % death), which violates "risky but not suicide".
 - **c = 20, a0/c = 0.41** is the only cell besides the extreme (30, 0.7) that passes all four, and it is the owner's pick (c = 20, `ENGINE_ACCEL_PER_C` from the 5 s-to-0.9c rule). Kept.
 
-### Chosen setting in detail (c = 20, a0/c = 0.41, 20 seeds, final sweep)
+### Chosen setting in detail (c = 20, a0/c = 0.41, 20 seeds, ST-172 sweep with enemies and enemy-aware bots)
 
-| Bot | Lvl | clear % | died % | timeout % | t death s | t clear s | dmg/min | kills/min | γ mean | γ p95 | warp capped % | steps/frame |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| cautious | 1 | 100 | 0 | 0 | - | 16.0 | 0.0 | 22.5 | 1.12 | 1.16 | 0.0 | 1.12 |
-| cautious | 2 | 100 | 0 | 0 | - | 39.2 | 0.0 | 23.0 | 1.14 | 1.16 | 0.0 | 1.14 |
-| cautious | 3 | 100 | 0 | 0 | - | 59.4 | 0.0 | 30.3 | 1.13 | 1.16 | 0.0 | 1.13 |
-| cautious | 4 | 100 | 0 | 0 | - | 83.2 | 0.0 | 36.8 | 1.13 | 1.16 | 0.0 | 1.13 |
-| cautious | 5 | 65 | 0 | 35 | - | 111.0 | 0.0 | 40.6 | 1.12 | 1.16 | 0.0 | 1.12 |
-| aggressive | 1 | 95 | 5 | 0 | 7.2 | 24.0 | 33.5 | 15.3 | 1.83 | 3.37 | 0.0 | 1.83 |
-| aggressive | 2 | 65 | 35 | 0 | 31.1 | 48.5 | 90.2 | 18.0 | 2.02 | 3.51 | 0.0 | 2.02 |
-| aggressive | 3 | 40 | 50 | 10 | 27.3 | 57.2 | 131.0 | 29.0 | 1.96 | 3.45 | 0.0 | 1.96 |
-| aggressive | 4 | 30 | 60 | 10 | 27.9 | 97.1 | 124.4 | 37.3 | 1.97 | 3.41 | 0.0 | 1.97 |
-| aggressive | 5 | 5 | 95 | 0 | 26.8 | 104.5 | 274.1 | 58.9 | 1.76 | 2.91 | 0.0 | 1.76 |
-| idle | 1 | 5 | 0 | 95 | - | 106.8 | 0.0 | 0.9 | 1.00 | 1.00 | 0.0 | 1.00 |
-| idle | 2 | 0 | 0 | 100 | - | - | 0.0 | 2.9 | 1.00 | 1.00 | 0.0 | 1.00 |
-| idle | 3 | 0 | 0 | 100 | - | - | 0.0 | 3.9 | 1.00 | 1.00 | 0.0 | 1.00 |
-| idle | 4 | 0 | 0 | 100 | - | - | 0.0 | 6.3 | 1.00 | 1.00 | 0.0 | 1.00 |
-| idle | 5 | 0 | 0 | 100 | - | - | 0.0 | 10.4 | 1.00 | 1.00 | 0.0 | 1.00 |
+Levels 3 to 5 include enemy ships (`enemyCount`: 1, 2, 3). Cells: clear / died / timeout %, then mean damage per minute and kills per minute (rocks and fragments only count as kills of asteroids; enemy kills are in the next table).
+
+| Bot | Lvl | clear % | died % | timeout % | t death s | t clear s | dmg/min | kills/min | γ mean | γ p95 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| cautious | 1 | 100 | 0 | 0 | - | 15.1 | 0.0 | 23.8 | 1.13 | 1.16 |
+| cautious | 2 | 100 | 0 | 0 | - | 37.9 | 0.0 | 23.8 | 1.14 | 1.16 |
+| cautious | 3 | 95 | 5 | 0 | 15.4 | 67.0 | 11.8 | 26.8 | 1.13 | 1.16 |
+| cautious | 4 | 90 | 10 | 0 | 21.7 | 87.0 | 17.8 | 34.9 | 1.12 | 1.16 |
+| cautious | 5 | 45 | 35 | 20 | 11.2 | 111.6 | 47.3 | 40.0 | 1.11 | 1.16 |
+| expert | 1 | 100 | 0 | 0 | - | 12.7 | 7.3 | 28.4 | 1.36 | 1.67 |
+| expert | 2 | 100 | 0 | 0 | - | 42.0 | 6.3 | 21.4 | 1.46 | 1.67 |
+| expert | 3 | 75 | 20 | 5 | 22.8 | 64.9 | 57.3 | 26.0 | 1.36 | 1.64 |
+| expert | 4 | 60 | 30 | 10 | 26.3 | 87.2 | 48.8 | 33.0 | 1.32 | 1.59 |
+| expert | 5 | 15 | 50 | 35 | 26.4 | 104.7 | 71.5 | 39.8 | 1.27 | 1.55 |
+| aggressive | 1 | 95 | 5 | 0 | 7.3 | 32.5 | 16.0 | 11.4 | 1.78 | 3.15 |
+| aggressive | 2 | 85 | 5 | 10 | 29.1 | 69.5 | 18.5 | 12.1 | 2.08 | 3.52 |
+| aggressive | 3 | 60 | 35 | 5 | 32.4 | 81.6 | 84.6 | 23.5 | 2.06 | 3.66 |
+| aggressive | 4 | 5 | 90 | 5 | 33.3 | 78.3 | 209.3 | 41.7 | 1.80 | 2.98 |
+| aggressive | 5 | 0 | 100 | 0 | 28.7 | - | 309.6 | 52.7 | 1.73 | 2.82 |
+| idle | 1 | 5 | 0 | 95 | - | 105.6 | 0.0 | 0.9 | 1.00 | 1.00 |
+| idle | 2 | 0 | 0 | 100 | - | - | 0.0 | 3.0 | 1.00 | 1.00 |
+| idle | 3 | 0 | 70 | 30 | 11.0 | - | 157.9 | 5.5 | 1.00 | 1.00 |
+| idle | 4 | 0 | 100 | 0 | 8.5 | - | 1146.4 | 21.3 | 1.00 | 1.00 |
+| idle | 5 | 0 | 100 | 0 | 7.5 | - | 1300.3 | 25.1 | 1.00 | 1.00 |
+
+Enemies at the same setting (all killed % / mean dmg from enemies / t kill all s):
+
+| Bot | Lvl 3 | Lvl 4 | Lvl 5 |
+|---|---|---|---|
+| cautious | 95 / 11.0 / 18.0 | 90 / 20.1 / 16.2 | 75 / 61.6 / 18.3 |
+| expert | 85 / 47.6 / 23.4 | 70 / 49.3 / 21.1 | 70 / 54.7 / 23.0 |
+| aggressive | 90 / 5.9 / 20.2 | 75 / 12.1 / 15.4 | 60 / 13.3 / 24.2 |
+| idle | 30 / 115.1 / 7.8 | 5 / 161.6 / 9.7 | 0 / 163.0 / - |
+
+Warp-capped share is 0.0 % in every row, steps per frame equal the mean γ (1.0 to 2.1).
+
+**T2 no longer holds at the chosen cell with enemies**: cautious clears level 5 in 45 % (T2 wants ≥ 50 %; the 65 % in the old table predates enemies). Its level 5 deaths (35 %) come from the three enemies (mean 61.6 damage from them). Across all c and a0 cells cautious L5 clear is 0 to 65 % (best c = 30, a0/c = 0.41: 65 %), so enemy pressure, not c or a0, is the lever; see "Enemy-aware bots" below.
 
 The full tables for every cell (c × a0 × level × bot) are produced by the task into `tool/build/balance/summary.md` and `runs.csv` (not committed: a few hundred KB of generated output).
 
@@ -159,3 +179,9 @@ Level 2 has no enemies. Enemy table (all killed % / mean dmg from enemies / t ki
 | idle | 38 / 111.7 / 7.6 | 0 / 163.0 / - |
 
 Level outcomes (clear / died %): cautious L3 100/0, L5 75/25; expert L3 100/0, L5 50/38; aggressive L3 63/38, L5 0/100; idle L3 0/63, L5 0/100 (idle takes mean 1289 damage per minute on level 5, mostly rocks).
+
+## Enemy-aware bots and the full sweep (ST-172)
+
+`BotView` now keeps enemy ships apart from rocks (`addEnemy`, `nearestEnemy`). **cautious** and **expert** fight an enemy that is inside its own fire range (`ENEMY_FIRE_RANGE_LIGHT_SECONDS * c`, 50 u at c = 20) unless a rock is inside the 15 u threat radius: the enemy wins target priority, the hull points 90 degrees off its bearing and the main engine burns (the auto-aim guns track the enemy on their own, fire inside `FIRE_RANGE`), and the side flips every `BotTuning.STRAFE_FLIP_SECONDS` (1.5 s) of pilot time, so the pilot weaves across the laser line (deterministic per seed: a tick counter, no randomness). Over the speed limit it brakes first. With no rocks left an enemy outside its range is hunted like a rock. **aggressive** still flies at the nearest thing, rock or enemy. **idle** is unchanged.
+
+The 20-seed sweep above is the full one (3 c x 3 a0 x 5 levels x 4 bots, 3000 runs, 130 s). Compared with the 8-seed first numbers, cautious at level 5 went 75 to 45 % clear (8-seed noise is about +-15 %, 20-seed about +-10 %); the strafing did not obviously reduce enemy damage (cautious level 5 mean 53 to 62), so the weave is a rough dodge, not a skilled one. Tuning proposals (not applied): see the ST-172 report; level 3 with one enemy is still easy for cautious (95 % clear, 11 dmg).

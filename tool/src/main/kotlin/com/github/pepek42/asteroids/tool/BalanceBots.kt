@@ -1,6 +1,7 @@
 package com.github.pepek42.asteroids.tool
 
 import com.github.pepek42.asteroids.math.shortestAngleDiffRad
+import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -19,13 +20,47 @@ class BotView(capacity: Int = 256) {
     var asteroidCount = 0
     var ax = FloatArray(capacity)
     var ay = FloatArray(capacity)
+    var enemyCount = 0
+    var ex = FloatArray(8)
+    var ey = FloatArray(8)
 
     val speed: Float get() = hypot(vx, vy)
     val beta: Float get() = speed / c
 
     fun clearAsteroids() {
         asteroidCount = 0
+        enemyCount = 0
     }
+
+    fun addEnemy(x: Float, y: Float) {
+        if (enemyCount == ex.size) {
+            ex = ex.copyOf(ex.size * 2)
+            ey = ey.copyOf(ey.size * 2)
+        }
+        ex[enemyCount] = x
+        ey[enemyCount] = y
+        enemyCount++
+    }
+
+    /** Index of the enemy ship nearest to the player, or -1 when there is none. */
+    fun nearestEnemy(): Int {
+        var best = -1
+        var bestD2 = Float.MAX_VALUE
+        for (i in 0 until enemyCount) {
+            val dx = ex[i] - px
+            val dy = ey[i] - py
+            val d2 = dx * dx + dy * dy
+            if (d2 < bestD2) {
+                bestD2 = d2
+                best = i
+            }
+        }
+        return best
+    }
+
+    fun enemyDistance(i: Int): Float = hypot(ex[i] - px, ey[i] - py)
+
+    fun enemyBearing(i: Int): Float = atan2(ey[i] - py, ex[i] - px)
 
     fun addAsteroid(x: Float, y: Float) {
         if (asteroidCount == ax.size) {
@@ -105,6 +140,12 @@ object BotTuning {
 
     /** Below this β the cautious pilot does not bother braking. */
     const val BRAKE_DEADBAND_BETA = 0.02f
+
+    /** An enemy this near (u) is fought: it gets priority over rocks and the pilot strafes. Its own fire range, 2.5 light-seconds. */
+    fun enemyRange(c: Float): Float = com.github.pepek42.asteroids.system.ENEMY_FIRE_RANGE_LIGHT_SECONDS * c
+
+    /** The strafe side flips every this many seconds of pilot time, so the pilot weaves instead of drifting off. */
+    const val STRAFE_FLIP_SECONDS = 1.5f
 }
 
 /**
@@ -119,17 +160,28 @@ class CautiousBot(
     override val name: String = "cautious",
 ) : BalanceBot {
 
+    private var ticks = 0
+
     override fun decide(view: BotView, out: BotCommand) {
         out.reset()
-        val n = view.nearest()
+        val tick = ticks++
         val beta = view.beta
-        if (n < 0) {
+        val e = view.nearestEnemy()
+        val n = view.nearest()
+        if (e >= 0 && view.enemyDistance(e) <= BotTuning.enemyRange(view.c) &&
+            (n < 0 || view.distanceTo(n) >= BotTuning.THREAT_RADIUS)
+        ) {
+            fightEnemy(view, out, e, tick)
+            return
+        }
+        if (n < 0 && e < 0) {
             // Nothing to shoot: just stop.
             brake(view, out)
             return
         }
-        val dist = view.distanceTo(n)
-        val bearing = view.bearingTo(n)
+        // Rocks first; with none left the pilot hunts the (out of range) enemy.
+        val dist = if (n >= 0) view.distanceTo(n) else view.enemyDistance(e)
+        val bearing = if (n >= 0) view.bearingTo(n) else view.enemyBearing(e)
         out.fire = dist <= BotTuning.FIRE_RANGE &&
             abs(shortestAngleDiffRad(view.hullAngle, bearing)) <= BotTuning.FIRE_CONE_HALF_RAD
         when {
@@ -148,6 +200,24 @@ class CautiousBot(
                 out.thrust = if (dist > BotTuning.HUNT_STANDOFF && aligned && beta < betaMax) 1f else 0f
             }
         }
+    }
+
+    /**
+     * Enemy in range: the guns (auto-aim) track it, so the hull points sideways to it and the pilot burns, weaving
+     * left and right every [BotTuning.STRAFE_FLIP_SECONDS]. Over the speed limit it brakes instead.
+     */
+    private fun fightEnemy(view: BotView, out: BotCommand, e: Int, tick: Int) {
+        out.fire = view.enemyDistance(e) <= BotTuning.FIRE_RANGE
+        if (view.beta > betaMax) {
+            brake(view, out)
+            return
+        }
+        val flips = (tick * PHYSICS_UPDATE_INTERVAL / BotTuning.STRAFE_FLIP_SECONDS).toInt()
+        val side = if (flips % 2 == 0) 1f else -1f
+        val sideways = view.enemyBearing(e) + side * (PI / 2).toFloat()
+        out.aimRad = sideways
+        val aligned = abs(shortestAngleDiffRad(view.hullAngle, sideways)) <= BotTuning.ALIGNED_RAD
+        out.thrust = if (aligned) 1f else 0f
     }
 
     /** Burn against the motion. No-op under the dead band. */
@@ -172,7 +242,9 @@ class AggressiveBot : BalanceBot {
         out.reset()
         out.fire = true
         val n = view.nearest()
-        if (n >= 0) out.aimRad = view.bearingTo(n)
+        val e = view.nearestEnemy()
+        if (e >= 0 && (n < 0 || view.enemyDistance(e) < view.distanceTo(n))) out.aimRad = view.enemyBearing(e)
+        else if (n >= 0) out.aimRad = view.bearingTo(n)
         out.thrust = 1f
     }
 }

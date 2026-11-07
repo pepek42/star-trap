@@ -1,6 +1,10 @@
 package com.github.pepek42.asteroids.tool
 
+import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -114,5 +118,44 @@ class BalanceBotsTest {
     @Test
     fun botByNameKnowsTheThreeBots() {
         assertEquals(listOf("cautious", "aggressive", "idle"), listOf("cautious", "AGGRESSIVE", "idle").map { botByName(it).name })
+    }
+
+    @Test
+    fun strafingBotBuildsLateralVelocityRelativeToEnemyInRange() {
+        // Enemy 30 u along +x (inside its fire range at c = 20). Crude kinematic ship: the hull follows the aim at once.
+        val bot = CautiousBot()
+        val v = view(hull = 0f)
+        v.addEnemy(130f, 100f)
+        var hull = 0f
+        repeat((3f / PHYSICS_UPDATE_INTERVAL).toInt()) {
+            bot.decide(v, command)
+            command.aimRad?.let { hull = it }
+            v.hullAngle = hull
+            val accel = command.thrust * 0.4f * c
+            v.vx += cos(hull) * accel * PHYSICS_UPDATE_INTERVAL
+            v.vy += sin(hull) * accel * PHYSICS_UPDATE_INTERVAL
+        }
+        val bearing = v.enemyBearing(0)
+        val lateral = -v.vx * sin(bearing) + v.vy * cos(bearing)
+        assertTrue(abs(lateral) > 0.5f, "lateral $lateral")
+        assertTrue(command.fire)
+    }
+
+    @Test
+    fun enemyInRangeBeatsFartherRock() {
+        val v = view(hull = 0f, asteroids = arrayOf(25f to 0f))
+        v.addEnemy(100f, 130f)
+        CautiousBot().decide(v, command)
+        // Hull points sideways to the enemy (bearing +90 deg, aim 180 deg), not at the rock.
+        assertEquals(PI.toFloat(), abs(command.aimRad!!), 1e-4f)
+    }
+
+    @Test
+    fun cautiousHuntsEnemyWhenNoRocksLeft() {
+        val v = view(hull = 0f)
+        v.addEnemy(190f, 100f)
+        CautiousBot().decide(v, command)
+        assertEquals(0f, command.aimRad!!, 1e-6f)
+        assertEquals(1f, command.thrust)
     }
 }

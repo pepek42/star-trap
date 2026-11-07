@@ -280,10 +280,9 @@ private fun fillView(view: BotView, player: Entity, asteroids: Iterable<Entity>,
         val p = asteroid.bodyCmp.body.position
         view.addAsteroid(p.x, p.y)
     }
-    // Enemy ships are targets too; the bots do not tell them apart from rocks.
     for (enemy in enemies) {
         val p = enemy.bodyCmp.body.position
-        view.addAsteroid(p.x, p.y)
+        view.addEnemy(p.x, p.y)
     }
 }
 

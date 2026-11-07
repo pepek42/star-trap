@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-152**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-162**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -17,7 +17,19 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
+48a. ST-152 Reset BaseInfoComponent.entityType and fix a stray KDoc (fix, before M6)
 48b. ST-151 Make the Einstein ring readable (owner decision)
+48c. ST-153 Tidal stretching and spaghettification near black holes
+
+M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
+49a. ST-154 Enemy pilot math: pursue to a standoff range (pure)
+49b. ST-155 Enemy ships in the arena (inert targets first)
+49c. ST-156 Enemy AI: light-delayed pursuit and honest fire control
+49d. ST-157 Enemy lasers use the enemy sprite; computer sound for destroyed ships
+49e. ST-158 Assist: incoming-fire warning on the tactical overlay
+49f. ST-159 Balance runner with enemies
+49g. ST-160 Enemy pressure per level (owner decision)
+49h. ST-161 Bring docs in line after M6
 
 Parked:
 51. ST-091 Targeting-trance scheme
@@ -162,6 +174,203 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - [ ] Pilot-view screenshot `--hole-near=14 --pilot-view` shows a readable ring
   - [ ] `./gradlew core:test` passes, `scripts/web-check.sh --play` PASS
 - playtest: You can tell where the Einstein ring is around a hole.
+
+### ST-153 Tidal stretching and spaghettification near black holes
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: `physics/Gravity.kt`, `system/GravitySystem.kt`, `component/RelativisticComponent.kt`, `render/RelativityVisuals.kt`, `system/RenderSystem.kt`, `physics/RelativitySettings.kt`, `ui/DebugPanel.kt`, `docs/design/physics-lies.md`; tests
+- refs: `relativity-effects.md` §E19, §E14 "Scale"
+- layer: sim
+- goal: The last M5 effect (E19): a hull that skims a hole feels a tidal acceleration difference `Δa ≈ 2GMℓ/r³` along `r̂`. Past what the hull can take it is damaged, and the sprite stretches along `r̂`, so the ISCO zone reads as deadly without the horizon being the only danger.
+- spec:
+  - Pure, in `Gravity.kt`: `fun tidalAccel(r: Float, gm: Float, length: Float): Float = 2f * gm * length / (r³)` with `r` clamped to ≥ 1e-3. Pure, in `RelativityVisuals.kt`: `fun tidalOffset(ox, oy, rhx, rhy, s: Float, out: Vector2): Vector2` scales the offset's component along unit `r̂` by `s` and the perpendicular one by `1/s` (area-preserving), same shape as `contractOffset`.
+  - `RelativisticComponent`: `tidalRatio = 0f`, `tidalDirX/Y = 0f` (reset to 0). In `GravitySystem.afterStep` (after `absorbBodies`), when `settings.tidalEnabled`, for every non-source body with a `RelativisticComponent` and `boundingRadius > 0`: sum `tidalAccel(r, src.gm, 2·boundingRadius)` over sources, keep the direction of the largest term. `threshold = settings.engineProperAccel · TIDAL_TOLERANCE_ENGINES` (1, KDoc: "a hull built for its own engine's thrust"). `tidalRatio = Δa / threshold`. If `tidalRatio > 1` and the entity has a `HealthComponent`: `health -= TIDAL_DPS · (tidalRatio − 1) · dτ`, with `dτ = dt · gravFactor / gUsed` and `TIDAL_DPS = 40f`.
+  - `RenderSystem` sprite path (both views): if `tidalRatio > 0`, apply `tidalOffset` to the 4 corner offsets before contraction, `s = min(TIDAL_STRETCH_MAX = 1.5f, 1 + TIDAL_VISUAL_K · tidalRatio)`, `TIDAL_VISUAL_K = 0.25f`. Skip it when `s < 1.01` (no extra work far from holes).
+  - `RelativitySettings.tidalEnabled = true`; debug checkbox "tidal".
+  - physics-lies row: Newtonian tidal limit, `SR γ` time mapping (APPROX); threshold, damage rate and visual scale K (FAKE); in pilot view the stretch uses the true, not retarded, tidal state (APPROX).
+- acceptance:
+  - [ ] Test: `tidalAccel(2f, 200f, 1f) == 50f`; `tidalOffset` is the identity at `s = 1` and has unit determinant (area-preserving) at `s = 1.5`
+  - [ ] Test (real `World`, `GravitySystem`): the player held at 3 `r_s` from a `BH_RS` hole for 1 s loses health; at 20 `r_s` it loses none; with `tidalEnabled = false` it loses none (gm from `gmFromRs(BH_RS, settings.c)`)
+  - [ ] `./gradlew core:test` passes, `scripts/web-check.sh --play` PASS
+- playtest: `--hole-near=6`: drift toward the hole; the hull stretches visibly near the ISCO ring and takes damage just outside it.
+
+---
+
+## M6 Enemies
+
+Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
+
+### ST-152 Reset BaseInfoComponent.entityType and fix a stray KDoc
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `component/BaseInfoComponent.kt`, `provider/PlayerEntityProvider.kt`, `docs/tech/architecture.md`; create `core/src/test/kotlin/com/github/pepek42/asteroids/component/BaseInfoComponentTest.kt`
+- refs: `architecture.md` "Known issues and tech debt" item 1
+- layer: infra
+- goal: Fix known issue 1 before enemies reuse pooled `BaseInfoComponent`s: `reset()` leaves `entityType` set, so a pooled component can carry `SHIP` or `ASTEROID` into a new entity.
+- spec:
+  - `BaseInfoComponent.reset()`: add `entityType = EntityType.UNKNOWN`.
+  - `PlayerEntityProvider.kt`: the line `/** Box2D density of the player ship. */` sits above the KDoc of `PLAYER_START_HEALTH`. Move it so it sits directly above `const val PLAYER_DENSITY = 20f`.
+  - `architecture.md` known issue 1: drop "`BaseInfoComponent.reset()` doesn't reset `entityType`."; keep the sentence about the static id counter.
+- acceptance:
+  - [ ] Test: set `entityType = EntityType.ASTEROID` and `faction = FactionEnum.ENEMY`, call `reset()`; `entityType == UNKNOWN`, `faction == NEUTRAL`, and `id` changed
+  - [ ] `./gradlew core:test` passes
+
+### ST-154 Enemy pilot math: pursue to a standoff range (pure)
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: create `ai/EnemyPilot.kt`, `core/src/test/kotlin/com/github/pepek42/asteroids/ai/EnemyPilotTest.kt`
+- refs: `relativity-effects.md` §E13; `math/Angles.kt` (`shortestAngleDiffRad`)
+- layer: sim
+- goal: The steering law for enemy ships as a pure function, first card of M6: close to a standoff distance from a target estimate, match its velocity, then face it to shoot.
+- spec:
+  - `class PilotCommand { var headingRad = 0f; var thrust = 0f; var aiming = false }` (plain reusable holder, not a component).
+  - `fun pursuitCommand(sx, sy, svx, svy, hullRad, tx, ty, tvx, tvy, standoff, accel, vMax: Float, out: PilotCommand): PilotCommand`:
+    - `r = t − s`, `d = |r|`. If `d < 1e-3`: `aiming = true`, `thrust = 0`, `heading = hullRad`.
+    - `r̂ = r/d`, `w = sv − tv` (Galilean relative velocity: APPROX, fine for a controller; the physics stays exact).
+    - `vDes = sign(d − standoff) · min(vMax, sqrt(2 · accel · ENEMY_BRAKE_MARGIN · |d − standoff|))`, `ENEMY_BRAKE_MARGIN = 0.5f`.
+    - `e = r̂·vDes − w`. If `|e| < ENEMY_VEL_DEADBAND · vMax` (0.1): `aiming = true`, `thrust = 0`, `heading = atan2(r̂)` (the caller swaps in the lead angle). Else `aiming = false`, `heading = atan2(e)`, `thrust = 1` if `|shortestAngleDiffRad(hullRad, heading)| < ENEMY_THRUST_CONE_RAD` (20°), else 0.
+  - Constants with KDoc derivations, all scaled by c at the call site: `ENEMY_STANDOFF_LIGHT_SECONDS = 1f` (standoff = `c · 1 s`), `ENEMY_VMAX_BETA = 0.5f` (vMax = `0.5 c`), `ENEMY_ENGINE_FRACTION = 0.6f` (accel = `0.6 · settings.engineProperAccel`). The braking law ignores γ (APPROX: γ ≤ 1.155 at β ≤ 0.5).
+- acceptance:
+  - [ ] Test: target far ahead along the hull, both at rest: `thrust == 1`, heading toward the target
+  - [ ] Test: at the standoff distance with matched velocities: `aiming == true`, `thrust == 0`
+  - [ ] Test: closing too fast inside the braking distance: heading points away from the target (braking)
+  - [ ] Test: hull 90° off the wanted heading: `thrust == 0`
+  - [ ] `./gradlew core:test` passes
+
+### ST-155 Enemy ships in the arena (inert targets first)
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-152
+- files: create `component/EnemyComponent.kt`, `provider/EnemyShipProvider.kt`; edit `component/ShipHandlingComponent.kt`, `system/MoveSystem.kt`, `system/EndLevelSystem.kt`, `ecs/GameplaySystems.kt` (if the family moves), `input/AutoAimStrategy.kt`, `screen/PlayScreen.kt`, `physics/RelativitySettings.kt`, `ui/DebugPanel.kt`; tests
+- refs: CLAUDE.md "Entity creation", "Web first" (component constructor rule); `PlayerEntityProvider` as the template
+- layer: sim
+- goal: Enemy ships exist, can be shot and rammed, and must be destroyed to clear the level. No AI yet (ST-156), so the game stays playable in between.
+- spec:
+  - `EnemyComponent` (empty marker, like `PlayerComponent`, in the `component` package so TeaVM reflection covers it; one no-arg constructor).
+  - `ShipHandlingComponent.engineFactor = 1f` (reset 1). `MoveSystem.addProperAcceleration` multiplies `settings.engineProperAccel` by it (`shipHandlingCmpOptional?.engineFactor ?: 1f`); the Newtonian path likewise.
+  - `EnemyShipProvider(engine, world, atlas, settings).spawn(level, random, mapProvider, avoid: FloatArray)`: `enemyCount(level) = min(ENEMY_MAX, max(0, level − 1))`, `ENEMY_MAX = 3` (ST-160 rec. (a)). Sprite `spaceship/attecker_red`; box fixture like the player, `ENEMY_DENSITY = PLAYER_DENSITY`; faction `ENEMY`, `EntityType.SHIP`; `RelativisticComponent` (`captureRestMass`), `MoveComponent`, `ShipHandlingComponent { engineFactor = ENEMY_ENGINE_FRACTION }`, `WeaponComponent` (laser, `shotsPerSecond = 1f`, `projectileDamage = ENEMY_LASER_DAMAGE = 10f`, muzzle at half width), `HealthComponent { health = ENEMY_HEALTH = 100f }`, `EnemyComponent`, `TransformComponent`, `SpriteComponent`. Positions from the seeded random, at least `ENEMY_MIN_SPAWN_DISTANCE = 3 · c · 1 s` from the player spawn and valid per `validSourcePosition` against `avoid` (holes and planets). `allowSleep = false`.
+  - `PlayScreen.show()`: spawn **after** `star.roll(...)`, so no existing layout shifts; gated by `settings.enemiesEnabled` (default true, debug checkbox "enemies", applies from the next level like `blackHolesEnabled`).
+  - `EndLevelSystem` default family: `oneOf(AsteroidComponent::class, EnemyComponent::class)`.
+  - `AutoAimStrategy`: accept targets that are `ASTEROID` or (`SHIP` with faction `ENEMY`).
+- acceptance:
+  - [ ] Tests: `enemyCount(1) == 0`, `enemyCount(2) == 1`, `enemyCount(10) == ENEMY_MAX`; spawned enemies keep the minimum distance; `ComponentConstructorTest` covers `EnemyComponent`
+  - [ ] Test: the level is not cleared while an enemy lives, even with no asteroids
+  - [ ] Test: an enemy at 0 health gets a `RemoveComponent` (generic `DeathSystem` path)
+  - [ ] `./gradlew core:test` passes, `scripts/web-check.sh --play` PASS (new component: web risk)
+- playtest: Level 2 shows one red ship drifting in place; auto-aim locks onto it; two hits destroy it.
+
+### ST-156 Enemy AI: light-delayed pursuit and honest fire control
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-154, ST-155
+- files: create `system/EnemyAiSystem.kt`; edit `ecs/GameplaySystems.kt`, `docs/tech/architecture.md` (system order); tests
+- refs: `relativity-effects.md` §E13, §E8; `physics/PhotonAim.kt` `leadDirection`; `physics/LightHistory.kt` `retarded`
+- layer: sim
+- goal: Enemies hunt the player using only the light that has reached them (E13): they see where the player was, extrapolate at constant velocity and lead their photons. Fast juking dodges for real reasons.
+- spec:
+  - `EnemyAiSystem(lightHistory, clock, settings)`, an `IteratingSystem` over `EnemyComponent + MoveComponent + WeaponComponent + BodyComponent`, registered in `buildGameplaySystems` right after `PlayerInputSystem` (before `MoveSystem`). Finds the player once per update (`PlayerComponent` family); no player → zero thrust, no fire.
+  - Per enemy: `history = lightHistory.historyOf(player.baseInfoCmp.id)`; `history.retarded(ex, ey, clock.worldTime, c, ret)` (reused `RetardedState`). If false (no light yet): `thrusters = 0`, `doAttack = false`.
+  - Estimate `x_e = ret.x + ret.vx·(now − ret.t)` (same for y), `pursuitCommand(...)` with the enemy's `vSet` (or body velocity), `body.angle`, `standoff = ENEMY_STANDOFF_LIGHT_SECONDS · c`, `accel = engineProperAccel · engineFactor`, `vMax = ENEMY_VMAX_BETA · c`. Write `move.thrusters = cmd.thrust`, `move.targetAngleRad = cmd.headingRad`.
+  - Fire: `leadDirection(ex, ey, βx, βy, ret, now, c, dir)`. If it succeeds and the estimate is within `ENEMY_FIRE_RANGE_LIGHT_SECONDS · c` (2.5): when `cmd.aiming`, set `targetAngleRad = atan2(dir)`; if `|shortestAngleDiffRad(body.angle, atan2(dir))| < ENEMY_FIRE_CONE_RAD` (15°) set `weapon.aimAngleRad = atan2(dir)` and `doAttack = true`, else `doAttack = false`.
+  - No allocation per frame. It never reads the player's true body state (assert this in a test by moving the player's body without recording history).
+- acceptance:
+  - [ ] Test: with no recorded player history the enemy neither thrusts nor fires
+  - [ ] Integration test (real `World`, gameplay systems from `buildGameplaySystems` with no presentation): a resting player 30 u away is approached and shot; the player's health drops within 10 s
+  - [ ] Test: the enemy aims at the retarded estimate, not the true position (teleport the player body after the history is recorded; the enemy's lead does not change that frame)
+  - [ ] `./gradlew core:test` passes, `scripts/web-check.sh --play` PASS
+- playtest: Level 2: the red ship closes in, hovers about 20 u away and fires. Flying fast and turning makes its shots miss behind you.
+
+### ST-157 Enemy lasers use the enemy sprite; computer sound for destroyed ships
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-155
+- files: `provider/WeaponProjectileProvider.kt`, `system/DeathSystem.kt`; tests in `provider/WeaponProjectileProviderTest.kt`, `system/DeathSystemTest.kt`
+- refs: —
+- layer: sim (sprite), assist (sound)
+- goal: Tell enemy fire from your own at a glance, and let the ship's computer announce a kill like it does for asteroids.
+- spec:
+  - `WeaponProjectileProvider.spawnProjectile`, `SpriteComponent` block: replace `textureAtlas.createSprite("player_laser", 1)` with `if (faction == FactionEnum.ENEMY) textureAtlas.createSprite("enemy_laser") else textureAtlas.createSprite("player_laser", 1)` (`faction` is already a local there). Keep the size code unchanged.
+  - `DeathSystem.processEntity`: before adding `RemoveComponent`, if `entity.has(enemyMapper)` push `ComputerSoundKind.ASTEROID_BREAK_LARGE` exactly like `pushBreakUp` does (position, velocity, `clock?.worldTime ?: 0f`). Add a KDoc note that a dedicated ship sound can replace it later.
+- acceptance:
+  - [ ] Test: a projectile spawned by an `ENEMY` shooter asks the atlas for region `enemy_laser` (mock the atlas)
+  - [ ] Test: an enemy at 0 health pushes one computer sound event
+  - [ ] `./gradlew core:test` passes
+
+### ST-158 Assist: incoming-fire warning on the tactical overlay
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-156
+- files: `system/TacticalOverlaySystem.kt`, `render/TacticalOverlay.kt`, `settings/TacticalSettings.kt`, `settings/MenuSettings.kt`, `assets/i18n/messages.properties`, `docs/design/physics-lies.md`; tests
+- refs: physics-lies row 34; CLAUDE.md "Vision"
+- layer: assist
+- goal: A photon flying at you arrives together with its own light, so the pilot can never see enemy fire coming. The ship's computer (true state, like the rest of the overlay) marks enemy photons that will pass close to the player.
+- spec:
+  - Pure, in `TacticalOverlay.kt`: `fun closestApproach(px, py, pvx, pvy, sx, sy, svx, svy: Float, out: Vector2): Float` returns the time `t* = max(0, −(Δr·Δv)/|Δv|²)` of the closest approach of a photon (p, v) to the ship (s, v_s) under constant velocities and writes the miss vector `Δr + Δv·t*` into `out` (`Δr = p − s`, `Δv = pv − sv`; `|Δv| = 0` gives `t* = 0`).
+  - In the overlay pass: for each projectile with faction `ENEMY` (skip removed), if `t* < THREAT_HORIZON_LIGHT_SECONDS` (1.5 s) and `|miss| < THREAT_MISS_RADIUS` (2 · player bounding radius), draw a red line from its true position to the impact point `p + pv·t*` and a small cross there, alpha falling with `t*`. Off-screen threats get a red `EdgePointer` like target pointers.
+  - `TacticalSettings.showIncomingFire = true`, a menu `SettingSpec` "Incoming fire warning" (English `messages.properties` key).
+  - physics-lies row: the warning uses the true photon state, information light has not delivered (FAKE by design, toggleable; like row 34).
+- acceptance:
+  - [ ] Tests: `closestApproach` for a head-on photon gives the arrival time `d/(c + v)` and zero miss; for a photon moving away it gives `t* = 0`
+  - [ ] `./gradlew core:test` passes
+- playtest: Enemy shots that will hit you show a red line and an impact cross ahead of time; ones that miss widely show nothing.
+
+### ST-159 Balance runner with enemies
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-156
+- files: `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/HeadlessLevel.kt`, `tool/.../BalanceReport.kt`, `tool/.../BalanceBots.kt` (bot targets), `docs/tech/balance.md`; tests in `tool/src/test`
+- refs: `docs/tech/balance.md`
+- layer: infra
+- goal: The headless sweep plays levels with enemies (the AI is already inside `buildGameplaySystems`), so enemy damage and count can be tuned with data, like ST-101 did for asteroids.
+- spec:
+  - `runLevel` spawns enemies with `EnemyShipProvider` after the asteroids (the headless atlas sprite stub works). The bots' target list includes enemy ships. `LevelResult` gains `enemiesKilled` (enemy entities removed, counted in the existing entity-removed listener) and `damageFromEnemies`: the player's per-frame health drop in frames where the listener saw a removed `spent` projectile of faction `ENEMY` (attribution APPROX: a ram in the same frame counts too; note it in `balance.md`).
+  - `summary.md` gets an enemy section per level: clear rate, mean damage from enemies, mean time to kill all enemies.
+  - Run `./gradlew tool:balanceSim -PbalanceArgs="--seeds=8 --levels=2,3,5"` and paste the summary numbers into the card report and `balance.md`. Do not retune constants here; propose changes in the report.
+- acceptance:
+  - [ ] `BalanceSimTest` covers a level-2 run that spawns one enemy and records `enemiesKilled`
+  - [ ] `./gradlew core:test tool:test` passes
+- playtest: —
+
+### ST-160 Enemy pressure per level (owner decision)
+- status: needs-user
+- size: S
+- agent: kotlin-dev
+- depends: ST-159
+- files: `provider/EnemyShipProvider.kt`
+- refs: ST-159 balance numbers
+- layer: sim
+- goal: Decide how many enemy ships appear and when, after the balance numbers exist.
+- question: How should enemies enter the levels? (a) **Recommended:** from level 2, `level − 1` ships, at most 3, all present from the start alongside the asteroids, and the level clears only when they are all dead. It ramps gently and keeps body counts low for web. (b) One ship from level 1, growing with the level. (c) Enemies come as a separate wave after the asteroids are cleared.
+- acceptance:
+  - [ ] `enemyCount` and the spawn timing match the chosen option; `game-design.md` "Decisions" records it
+  - [ ] `./gradlew core:test` passes
+
+### ST-161 Bring docs in line after M6
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-156, ST-157, ST-158
+- files: `CLAUDE.md` (system order sentence), `docs/tech/architecture.md` ("ECS system order", components list), `docs/design/game-design.md` (§7 Enemy ships row, §10 M6, §4 if controls changed)
+- refs: the closed cards' reports (`scripts/backlog.py show ST-154` … `ST-158`)
+- layer: infra
+- goal: Docs describe enemies as built: the `EnemyAiSystem` position in the order, `EnemyComponent`, `ShipHandlingComponent.engineFactor`, enemy count rule, honest light-delayed AI, the incoming-fire assist.
+- acceptance:
+  - [ ] CLAUDE.md's order list includes "enemy AI" after input; architecture's system table has a row for `EnemyAiSystem`
+  - [ ] game-design §7 shows enemy ships as "exists" with a one-line summary
+  - [ ] `./gradlew core:test` passes
+
+---
 
 ## Parked (low priority)
 

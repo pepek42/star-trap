@@ -48,6 +48,9 @@ fun tidalReadoutPercent(ratio: Float): Int = if (ratio > TIDAL_READOUT_MIN) (rat
 /** The readout is red while the hull takes damage (`ratio > 1`, ST-153). */
 fun tidalReadoutDamaging(ratio: Float): Boolean = ratio > 1f
 
+/** Text of the HUD credits line, or null when it is hidden ([credits] null). [format] renders the number. */
+fun creditsHudText(credits: Int?, format: (Int) -> String): String? = credits?.let(format)
+
 class Hud(
     game: Game,
 ) {
@@ -67,6 +70,8 @@ class Hud(
     private var tidalShownPercent = -1
     private var tidalShownRed = false
     private val levelLabel: Label = scene2d.label("")
+    private val creditsLabel: Label = scene2d.label("").apply { isVisible = false }
+    private var creditsShown: Int? = null
     private val centerLabel: Label = scene2d.label("").apply { isVisible = false }
     private val pointerLabel: Label = scene2d.label("").apply { isVisible = false }
     private val table: Table = Table()
@@ -88,6 +93,7 @@ class Hud(
         table.defaults().pad(3f).expand().fill()
         val verticalGroup = VerticalGroup().apply {
             addActor(levelLabel)
+            addActor(creditsLabel)
             addActor(coordinatesLabel)
             addActor(speedLabel)
             addActor(betaLabel)
@@ -230,6 +236,15 @@ class Hud(
 
     fun hidePointerDistance() {
         pointerLabel.isVisible = false
+    }
+
+    /** Credits line under the level title; [credits] null hides it (scenarios). Text rebuilt only on change. */
+    fun updateCredits(credits: Int?) {
+        creditsLabel.isVisible = credits != null
+        if (credits != creditsShown) {
+            creditsShown = credits
+            creditsHudText(credits) { i18NBundle.format("shop_credits", it) }?.let { creditsLabel.setText(it) }
+        }
     }
 
     fun updateLevel(level: Int) = updateTitle(i18NBundle.format("hud_level", level))

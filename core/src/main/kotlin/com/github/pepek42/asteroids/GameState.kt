@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids
 
 import com.github.pepek42.asteroids.scenario.Scenario
 import com.github.pepek42.asteroids.shop.RunUpgrades
+import com.github.pepek42.asteroids.shop.ShopVisit
 
 /** First level of a normal new game. */
 const val FIRST_LEVEL = 1
@@ -27,6 +28,12 @@ class GameState {
     /** Credits of the current run (earned per kill, spent in the shop). Always 0 in scenarios. */
     var credits = 0
 
+    /** Seed of the run (the launch seed), the base of the shop's own RNG. */
+    var runSeed = 0L
+
+    /** Shop visit restored from a save, consumed by the cleared screen; null when the next level is next. */
+    var pendingShop: ShopVisit? = null
+
     /** Upgrades bought in the current run. */
     val upgrades = RunUpgrades()
 
@@ -45,6 +52,7 @@ class GameState {
         scenario = null
         level = startLevel - 1
         credits = 0
+        pendingShop = null
         upgrades.clear()
     }
 
@@ -52,6 +60,7 @@ class GameState {
     fun startScenario(scenario: Scenario) {
         this.scenario = scenario
         credits = 0
+        pendingShop = null
         upgrades.clear()
         level = FIRST_LEVEL - 1
     }

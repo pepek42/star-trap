@@ -13,6 +13,7 @@ import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.provider.PLAYER_START_HEALTH
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.render.ShimmerImpacts
 import com.github.pepek42.asteroids.system.BoundaryFieldSystem
@@ -59,6 +60,8 @@ class GameplayDeps(
     val invulnerablePlayer: Boolean = false,
     /** Credits earned by a destroyed target (ST-167); the balance runner ignores them. */
     val onCredits: (Int) -> Unit = {},
+    /** Health `--invulnerable` heals the player to (upgraded start health). */
+    val invulnerableHealth: () -> Float = { PLAYER_START_HEALTH },
 )
 
 /** Systems the presentation layer needs a handle on. */
@@ -113,7 +116,7 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
         addSystem(ObserverSystem(deps.observerState, deps.settings, deps.clock))
         presentation(systems)
         addSystem(LifetimeSystem(deps.clock))
-        addSystem(DeathSystem(this, deps.asteroidProvider, deps.random, deps.computerSounds, deps.clock, deps.invulnerablePlayer, deps.onCredits, deps.onPlayerDeath))
+        addSystem(DeathSystem(this, deps.asteroidProvider, deps.random, deps.computerSounds, deps.clock, deps.invulnerablePlayer, deps.onCredits, deps.invulnerableHealth, deps.onPlayerDeath))
         addSystem(RemoveSystem(deps.world, deps.mapProvider))
     }
     return systems

@@ -39,6 +39,8 @@ class DeathSystem(
     private val invulnerablePlayer: Boolean = false,
     /** Credits a destroyed asteroid or enemy ship is worth (ST-167). */
     private val onCredits: (Int) -> Unit = {},
+    /** Health the harness heals the player back to (the upgraded start health). */
+    private val invulnerableHealth: () -> Float = { PLAYER_START_HEALTH },
     private val onPlayerDeath: () -> Unit = {},
 ) : IteratingSystem(allOf(HealthComponent::class).get()) {
     private var playerDeathReported = false
@@ -54,7 +56,7 @@ class DeathSystem(
         }
         if (entity.has(playerMapper)) {
             if (invulnerablePlayer) {
-                entity.healthCmp.health = PLAYER_START_HEALTH
+                entity.healthCmp.health = invulnerableHealth()
                 return
             }
             // The run ends instead of removing the player; the screen switch cleans the level up.

@@ -13,6 +13,12 @@ const val FREE_REROLLS = 2
 const val REROLL_COST = 10
 const val REROLL_COST_STEP = 5
 
+/** A shop visit as saved: the offer on screen and the rerolls already used. */
+data class ShopVisit(val offer: List<ShopItem>, val rerollsUsed: Int)
+
+/** Seed of the shop's own RNG for the visit after [level]: derived from the run seed so the offer is reproducible and rerolls never touch the level RNG. */
+fun shopSeed(runSeed: Long, level: Int): Long = runSeed xor (level.toLong() * -7046029254386353131L)
+
 /** Draws up to [size] distinct, not yet maxed items with [random] (partial Fisher-Yates, so the seed fixes the offer). */
 fun rollOffer(random: RandomXS128, upgrades: RunUpgrades, size: Int = OFFER_SIZE): List<ShopItem> {
     val pool = ShopItem.entries.filter { !upgrades.isMaxed(it) }.toMutableList()
@@ -31,12 +37,17 @@ fun rollOffer(random: RandomXS128, upgrades: RunUpgrades, size: Int = OFFER_SIZE
 class ShopSession(
     private val state: GameState,
     private val random: RandomXS128,
+    /** A visit restored from a save; null rolls a fresh offer. */
+    resume: ShopVisit? = null,
     private val onChanged: () -> Unit = {},
 ) {
-    var offer: List<ShopItem> = rollOffer(random, state.upgrades)
+    var offer: List<ShopItem> = resume?.offer ?: rollOffer(random, state.upgrades)
         private set
-    var rerollsUsed = 0
+    var rerollsUsed = resume?.rerollsUsed ?: 0
         private set
+
+    /** The visit as it stands now (what the run save stores). */
+    fun visit() = ShopVisit(offer, rerollsUsed)
 
     /** Credits the next reroll costs: 0 for the first [FREE_REROLLS], then [REROLL_COST] rising by [REROLL_COST_STEP]. */
     fun rerollCost(): Int =

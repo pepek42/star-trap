@@ -26,7 +26,6 @@ M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
 50c. ST-165 Missile lock-on: lock first, then fire
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
-57b2. ST-174 Shop follow-ups: credits HUD, saved offer, own RNG
 57c. ST-168 Level-5 quick start with a prebuilt ship
 57d. ST-169 Scenarios: step-by-step tutorial objectives
 57e. ST-170 Scenario briefing pauses the game
@@ -217,26 +216,6 @@ Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/aste
 ## Menus & runs
 
 Source: owner 2026-11-07 ("After each level there will be save (and buying in shop between levels) ... New game - select level 1, 5th (for quick start later level, with some prebuild once we have shop) ... tutorial like scenarios with some text"). The menu (New game with start level 1/5 and run physics, Scenarios with briefings, global Settings), the restyled `LevelClearedScreen` with a shop placeholder, Esc-to-menu and four scenarios (`scenario/Scenarios.kt`) are done. Web: saves go through libGDX `Preferences` (`KeyValueStore`), never `java.io`.
-
-### ST-174 Shop follow-ups: credits HUD, saved offer, own RNG
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: —
-- files: `shop/Shop.kt`, `shop/Upgrades.kt`, `save/RunSave.kt`, `screen/LevelClearedScreen.kt`, `screen/MainMenuScreen.kt`, `ui/Hud.kt`, `system/DeathSystem.kt`; tests
-- refs: commit "ST-167: Shop between levels"; `docs/tech/architecture.md` "Shop"
-- layer: meta
-- goal: Follow-ups from ST-167 (implementer + reviewer).
-- spec:
-  - Show the run's credits on the HUD during a level (hidden in scenarios).
-  - Persist the shop visit (offer items + reroll count) in the run save; Continue from a save made on the cleared screen reopens the shop instead of skipping it, so quitting can't reroll or skip a visit.
-  - Give the shop its own `RandomXS128` seeded from the run seed and level, so rerolls don't change the next level's layout (offer still reproducible from the seed).
-  - `--invulnerable` harness in `DeathSystem` heals to the player's upgraded start health, not the base `PLAYER_START_HEALTH`.
-  - Later (after ST-164 lands): a missile/weapon `ShopItem` applied to `WeaponLoadoutComponent` — leave as a note, not in this card's scope.
-- acceptance:
-  - [ ] Tests: offer + rerolls survive a save/restore; level layout for a seed is the same with 0 and 3 rerolls; credits label shows `GameState.credits`
-  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes
-- playtest: Credits show in the HUD; quitting on the shop screen and pressing Continue brings back the same offer.
 
 ### ST-168 Level-5 quick start with a prebuilt ship
 - status: ready

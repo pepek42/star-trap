@@ -37,6 +37,7 @@ import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.save.RunSave
 import com.github.pepek42.asteroids.save.applyRunSave
 import com.github.pepek42.asteroids.save.clearRunSave
+import com.github.pepek42.asteroids.save.continueOpensShop
 import com.github.pepek42.asteroids.save.readRunSave
 import com.github.pepek42.asteroids.save.restoreRunProgress
 import com.github.pepek42.asteroids.scenario.Scenario
@@ -239,7 +240,8 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         applyRunSave(store, menuSettings.runSpecs)
         gameState.resetGame(save.nextLevel)
         restoreRunProgress(save, gameState)
-        game.setScreen<PlayScreen>()
+        // level = nextLevel - 1 is the "between levels" state the cleared screen expects; Next level then plays nextLevel.
+        if (continueOpensShop(gameState)) game.setScreen<LevelClearedScreen>() else game.setScreen<PlayScreen>()
     }
 
     private fun startRun() {

@@ -14,7 +14,9 @@ import com.badlogic.gdx.utils.I18NBundle
 import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.event.GameEventManager
+import com.github.pepek42.asteroids.save.clearShopVisit
 import com.github.pepek42.asteroids.save.saveAfterLevel
+import com.github.pepek42.asteroids.shop.shopSeed
 import com.github.pepek42.asteroids.shop.FREE_REROLLS
 import com.github.pepek42.asteroids.shop.ShopSession
 import com.badlogic.gdx.math.RandomXS128
@@ -97,7 +99,7 @@ class LevelClearedScreen(
         t.add(buttons).padTop(SECTION_SPACE * 2).row()
     }
 
-    private fun saveRun() = saveAfterLevel(game.get<KeyValueStore>(), gameState, game.get<MenuSettings>().runSpecs)
+    private fun saveRun() = saveAfterLevel(game.get<KeyValueStore>(), gameState, game.get<MenuSettings>().runSpecs, shop?.visit())
 
     /** Rebuilds the credits line, the offered items and the reroll button from the [shop] session. */
     private fun refreshShop() {
@@ -131,15 +133,21 @@ class LevelClearedScreen(
     override fun show() {
         val scenario = gameState.scenario
         if (scenario == null) {
+            val resume = gameState.pendingShop
+            gameState.pendingShop = null
+            shop = ShopSession(gameState, RandomXS128(shopSeed(gameState.runSeed, gameState.level)), resume, ::saveRun)
             saveRun()
-            shop = ShopSession(gameState, game.get<RandomXS128>(), ::saveRun)
             title.setText(i18n.format("level_cleared_message", gameState.level))
             subtitle.setText(i18n.format("level_cleared_next", gameState.level + 1))
             layoutPanel(withShop = true)
             refreshShop()
             primaryButton.setText(i18n.format("next_level_button", gameState.level + 1))
             secondaryButton.setText(i18n["menu_quit_run"])
-            onPrimary = { game.setScreen<PlayScreen>() }
+            onPrimary = {
+                // The visit is over: Continue after quitting mid-level must go to the level, not the shop.
+                clearShopVisit(game.get<KeyValueStore>())
+                game.setScreen<PlayScreen>()
+            }
             onSecondary = { toMenu(MenuPage.MAIN) }
         } else {
             title.setText(i18n["scenario_cleared_message"])

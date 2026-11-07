@@ -98,4 +98,70 @@ class ShopTest {
         up.add(ShopItem.ENGINE_TUNING); up.add(ShopItem.AFTERBURNER)
         assertEquals(1f + ShopItem.ENGINE_TUNING.bonus + ShopItem.AFTERBURNER.bonus, up.engineFactor(), 1e-6f)
     }
+
+    @Test
+    fun offerAndRerollsSurviveASaveAndRestore() {
+        val s = state(100)
+        val store = MemoryKeyValueStore()
+        val shop = ShopSession(s, RandomXS128(3))
+        shop.reroll(); shop.reroll()
+        val bought = shop.offer.first()
+        shop.buy(bought)
+        assertTrue(saveAfterLevel(store, s, emptyList(), shop.visit()))
+
+        val restored = GameState()
+        restoreRunProgress(readRunSave(store)!!, restored)
+        assertEquals(shop.visit(), restored.pendingShop)
+        val resumed = ShopSession(restored, RandomXS128(99), restored.pendingShop)
+        assertEquals(shop.offer, resumed.offer)
+        assertEquals(2, resumed.rerollsUsed)
+    }
+
+    @Test
+    fun clearedShopVisitIsNotRestored() {
+        val s = state(10)
+        val store = MemoryKeyValueStore()
+        saveAfterLevel(store, s, emptyList(), ShopSession(s, RandomXS128(3)).visit())
+        com.github.pepek42.asteroids.save.clearShopVisit(store)
+        assertEquals(null, readRunSave(store)!!.shop)
+    }
+
+    @Test
+    fun rerollsDoNotShiftTheLevelRng() {
+        fun layoutDraw(rerolls: Int): Long {
+            val level = RandomXS128(5)
+            val s = state(1000)
+            val shop = ShopSession(s, RandomXS128(shopSeed(5, s.level)))
+            repeat(rerolls) { shop.reroll() }
+            return level.nextLong()
+        }
+        assertEquals(layoutDraw(0), layoutDraw(3))
+        assertEquals(shopSeed(5, 2), shopSeed(5, 2))
+        assertTrue(shopSeed(5, 2) != shopSeed(5, 3))
+    }
+
+    @Test
+    fun creditsHudTextShowsGameStateCredits() {
+        val s = state(42)
+        assertEquals("C42", com.github.pepek42.asteroids.ui.creditsHudText(s.credits) { "C$it" })
+        assertEquals(null, com.github.pepek42.asteroids.ui.creditsHudText(null) { "C$it" })
+    }
+
+    @Test
+    fun continueOpensShopOnlyWithPendingVisit() {
+        val s = state(10)
+        val store = MemoryKeyValueStore()
+        saveAfterLevel(store, s, emptyList(), ShopSession(s, RandomXS128(3)).visit())
+        val a = GameState()
+        val save = readRunSave(store)!!
+        a.resetGame(save.nextLevel); restoreRunProgress(save, a)
+        assertTrue(com.github.pepek42.asteroids.save.continueOpensShop(a))
+        assertEquals(save.nextLevel - 1, a.level)
+
+        saveAfterLevel(store, s, emptyList(), null)
+        val b = GameState()
+        val save2 = readRunSave(store)!!
+        b.resetGame(save2.nextLevel); restoreRunProgress(save2, b)
+        assertFalse(com.github.pepek42.asteroids.save.continueOpensShop(b))
+    }
 }

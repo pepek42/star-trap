@@ -43,6 +43,7 @@ import com.github.pepek42.asteroids.provider.DecorationProvider
 import com.github.pepek42.asteroids.provider.EnemyShipProvider
 import com.github.pepek42.asteroids.provider.PlanetProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
+import com.github.pepek42.asteroids.provider.PLAYER_START_HEALTH
 import com.github.pepek42.asteroids.shop.RunUpgrades
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
@@ -151,6 +152,7 @@ class PlayScreen(
             hullSounds = hullSounds,
             computerSounds = computerSounds,
             invulnerablePlayer = game.options.invulnerable,
+            invulnerableHealth = { if (gameState.scenario == null) gameState.upgrades.startHealth() else PLAYER_START_HEALTH },
         )
         // Execution order lives in buildGameplaySystems (shared with the headless balance runner); the presentation
         // systems below are inserted between the observer and the lifetime system.
@@ -180,7 +182,7 @@ class PlayScreen(
                 addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>(), gameEventManager, game.get<ControlSettings>(), batch = spriteBatch, font = game.get<Skin>().getFont("font")))
                 addSystem(DebugSystem(world, engine, camera, debugSettings))
                 addSystem(DebugPanelSystem(debugPanel, observerState, clock))
-                addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock))
+                addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock, creditsSource = { if (gameState.scenario == null) gameState.credits else null }))
                 addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, settings, panelWidthPx = { debugPanel.widthInScreenPx() }, star = star))
             }
         }

@@ -201,4 +201,11 @@ class GravityTest {
         // Heavier body pulls the centre toward itself.
         assertTrue(out[1] > 4f)
     }
+
+    @Test
+    fun tidalAccelIsTwoGmLOverRCubed() {
+        assertEquals(50f, tidalAccel(2f, 200f, 1f), 1e-4f)
+        // r is clamped, so the centre gives a large finite value.
+        assertTrue(tidalAccel(0f, 200f, 1f).isFinite())
+    }
 }

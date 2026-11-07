@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-162**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-163**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -18,7 +18,7 @@ Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
 48b. ST-151 Make the Einstein ring readable (owner decision)
-48c. ST-153 Tidal stretching and spaghettification near black holes
+48d. ST-162 Assist: tidal stress readout
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49a. ST-154 Enemy pilot math: pursue to a standoff range (pure)
@@ -174,32 +174,29 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - [ ] `./gradlew core:test` passes, `scripts/web-check.sh --play` PASS
 - playtest: You can tell where the Einstein ring is around a hole.
 
-### ST-153 Tidal stretching and spaghettification near black holes
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: —
-- files: `physics/Gravity.kt`, `system/GravitySystem.kt`, `component/RelativisticComponent.kt`, `render/RelativityVisuals.kt`, `system/RenderSystem.kt`, `physics/RelativitySettings.kt`, `ui/DebugPanel.kt`, `docs/design/physics-lies.md`; tests
-- refs: `relativity-effects.md` §E19, §E14 "Scale"
-- layer: sim
-- goal: The last M5 effect (E19): a hull that skims a hole feels a tidal acceleration difference `Δa ≈ 2GMℓ/r³` along `r̂`. Past what the hull can take it is damaged, and the sprite stretches along `r̂`, so the ISCO zone reads as deadly without the horizon being the only danger.
-- spec:
-  - Pure, in `Gravity.kt`: `fun tidalAccel(r: Float, gm: Float, length: Float): Float = 2f * gm * length / (r³)` with `r` clamped to ≥ 1e-3. Pure, in `RelativityVisuals.kt`: `fun tidalOffset(ox, oy, rhx, rhy, s: Float, out: Vector2): Vector2` scales the offset's component along unit `r̂` by `s` and the perpendicular one by `1/s` (area-preserving), same shape as `contractOffset`.
-  - `RelativisticComponent`: `tidalRatio = 0f`, `tidalDirX/Y = 0f` (reset to 0). In `GravitySystem.afterStep` (after `absorbBodies`), when `settings.tidalEnabled`, for every non-source body with a `RelativisticComponent` and `boundingRadius > 0`: sum `tidalAccel(r, src.gm, 2·boundingRadius)` over sources, keep the direction of the largest term. `threshold = settings.engineProperAccel · TIDAL_TOLERANCE_ENGINES` (1, KDoc: "a hull built for its own engine's thrust"). `tidalRatio = Δa / threshold`. If `tidalRatio > 1` and the entity has a `HealthComponent`: `health -= TIDAL_DPS · (tidalRatio − 1) · dτ`, with `dτ = dt · gravFactor / gUsed` and `TIDAL_DPS = 40f`.
-  - `RenderSystem` sprite path (both views): if `tidalRatio > 0`, apply `tidalOffset` to the 4 corner offsets before contraction, `s = min(TIDAL_STRETCH_MAX = 1.5f, 1 + TIDAL_VISUAL_K · tidalRatio)`, `TIDAL_VISUAL_K = 0.25f`. Skip it when `s < 1.01` (no extra work far from holes).
-  - `RelativitySettings.tidalEnabled = true`; debug checkbox "tidal".
-  - physics-lies row: Newtonian tidal limit, `SR γ` time mapping (APPROX); threshold, damage rate and visual scale K (FAKE); in pilot view the stretch uses the true, not retarded, tidal state (APPROX).
-- acceptance:
-  - [ ] Test: `tidalAccel(2f, 200f, 1f) == 50f`; `tidalOffset` is the identity at `s = 1` and has unit determinant (area-preserving) at `s = 1.5`
-  - [ ] Test (real `World`, `GravitySystem`): the player held at 3 `r_s` from a `BH_RS` hole for 1 s loses health; at 20 `r_s` it loses none; with `tidalEnabled = false` it loses none (gm from `gmFromRs(BH_RS, settings.c)`)
-  - [ ] `./gradlew core:test` passes, `scripts/web-check.sh --play` PASS
-- playtest: `--hole-near=6`: drift toward the hole; the hull stretches visibly near the ISCO ring and takes damage just outside it.
-
 ---
 
 ## M6 Enemies
 
 Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
+
+### ST-162 Assist: tidal stress readout
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-153
+- layer: assist
+- files: `system/HudSystem.kt` or `system/TacticalOverlaySystem.kt`, `assets/i18n/messages.properties`; tests
+- refs: ST-153 follow-up (2026-11-07); `RelativisticComponent.tidalRatio`, `physics/Gravity.kt` `tidalAccel`
+- goal: The ship's computer shows the player's tidal stress, so they can tell the deadly zone before they skim a hole. Hull damage starts at `tidalRatio` > 1 (ST-153).
+- spec:
+  - HUD line or small bar "Tidal stress: N %" (`tidalRatio` × 100) shown only when `tidalRatio` > `TIDAL_READOUT_MIN` (0.25); it turns red above 1 (the hull is taking damage). Reads the player's `RelativisticComponent`; no allocation per frame (reuse a StringBuilder or cache the integer).
+  - Optional (if cheap): a faint ring drawn by the computer at the radius where the player's ratio would reach 1, from the inverse of `tidalAccel` (`r = cbrt(2 GM ℓ / threshold)`), drawn with the other hole rings (boosted in pilot view). Toggle with the tactical settings if one fits; otherwise skip the ring.
+  - Text in `messages.properties`.
+- acceptance:
+  - [ ] Test: the pure formatting/threshold helper hides the readout below 0.25, shows it above, and flags red above 1; if the ring is done, its radius gives `tidalAccel(r, gm, ℓ) == threshold` within 1e-3
+  - [ ] `./gradlew core:test` passes
+- playtest: `--hole-near=6`: the tidal readout appears as you near the hole and turns red just before the hull starts losing health.
 
 ### ST-154 Enemy pilot math: pursue to a standoff range (pure)
 - status: ready

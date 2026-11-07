@@ -26,6 +26,31 @@ fun contractOffset(ox: Float, oy: Float, vhx: Float, vhy: Float, k: Float, out: 
     return out.set(ox - k * dot * vhx, oy - k * dot * vhy)
 }
 
+/** Largest tidal stretch factor `s` along `r̂` (ST-153); the perpendicular axis shrinks by `1/s`. */
+const val TIDAL_STRETCH_MAX = 1.5f
+
+/** Visual stretch per unit of `tidalRatio` (ST-153): `s = min(TIDAL_STRETCH_MAX, 1 + TIDAL_VISUAL_K * ratio)`. FAKE scale. */
+const val TIDAL_VISUAL_K = 0.25f
+
+/** Below this stretch factor the sprite is drawn unstretched (no extra work far from holes). */
+const val TIDAL_VISUAL_MIN_SCALE = 1.01f
+
+/** Stretch factor `s` for a `tidalRatio` ([ratio] 0 gives 1). */
+fun tidalStretch(ratio: Float): Float = min(TIDAL_STRETCH_MAX, 1f + TIDAL_VISUAL_K * ratio)
+
+/**
+ * Writes the offset (ox, oy) with its component along the unit vector r̂ = (rhx, rhy) scaled by [s] and the perpendicular
+ * component by `1/s` into [out]: area-preserving (determinant 1). Identity at `s = 1`.
+ */
+fun tidalOffset(ox: Float, oy: Float, rhx: Float, rhy: Float, s: Float, out: Vector2): Vector2 {
+    val along = ox * rhx + oy * rhy
+    val inv = 1f / s
+    return out.set(
+        (ox - along * rhx) * inv + s * along * rhx,
+        (oy - along * rhy) * inv + s * along * rhy,
+    )
+}
+
 /** Doppler colour strength: 1 is the exact factor, smaller values exaggerate less (research E4). */
 const val DOPPLER_COLOR_STRENGTH = 1f
 

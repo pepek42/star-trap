@@ -6,6 +6,7 @@ import com.badlogic.gdx.math.Vector2
 import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.playerMapper
+import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.physics.GameClock
@@ -215,9 +216,18 @@ class PilotViewProjector(
         val contract = speed > MIN_CONTRACTION_SPEED
         val k = if (contract) contractionK(gammaFromV(vx, vy, settings.c)) else 0f
         val isPlayer = playerMapper.has(entity)
+        // Tidal stretch (ST-153) uses the true (not retarded) tidal state, before the contraction.
+        val rel = entity.relativisticCmpOptional
+        val stretch = if (rel != null && rel.tidalRatio > 0f) tidalStretch(rel.tidalRatio) else 1f
+        val stretched = stretch >= TIDAL_VISUAL_MIN_SCALE
         for (i in 0 until SPRITE_VERTEX_FLOATS step SPRITE_VERTEX_STRIDE) {
             var px = out[i]
             var py = out[i + 1]
+            if (stretched && rel != null) {
+                tidalOffset(px - x, py - y, rel.tidalDirX, rel.tidalDirY, stretch, contracted)
+                px = x + contracted.x
+                py = y + contracted.y
+            }
             if (contract) {
                 contractOffset(px - x, py - y, vx / speed, vy / speed, k, contracted)
                 px = x + contracted.x

@@ -135,6 +135,7 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     relativity.shadowsEnabled = true
     relativity.starLightEnabled = true
     relativity.lensingEnabled = true
+    relativity.tidalEnabled = true
     debug.timeScale = 1f
     debug.showVectors = false
     debug.gridEnabled = GRID_ENABLED
@@ -215,6 +216,7 @@ class DebugPanel(
         checkBox("shadows", { relativitySettings.shadowsEnabled }) { relativitySettings.shadowsEnabled = it }
         checkBox("star light", { relativitySettings.starLightEnabled }) { relativitySettings.starLightEnabled = it }
         checkBox("lensing", { relativitySettings.lensingEnabled }) { relativitySettings.lensingEnabled = it }
+        checkBox("tidal", { relativitySettings.tidalEnabled }) { relativitySettings.tidalEnabled = it }
         checkBox("grid", { debugSettings.gridEnabled }) { debugSettings.gridEnabled = it }
         checkBox("target pointers", { debugSettings.targetPointersEnabled }) { debugSettings.targetPointersEnabled = it }
         checkBox("show vectors", { debugSettings.showVectors }) { debugSettings.showVectors = it }

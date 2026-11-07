@@ -53,7 +53,10 @@ import com.github.pepek42.asteroids.render.MIN_CONTRACTION_SPEED
 import com.github.pepek42.asteroids.render.StarLight
 import com.github.pepek42.asteroids.render.SPRITE_VERTEX_FLOATS
 import com.github.pepek42.asteroids.render.SPRITE_VERTEX_STRIDE
+import com.github.pepek42.asteroids.render.TIDAL_VISUAL_MIN_SCALE
 import com.github.pepek42.asteroids.render.contractOffset
+import com.github.pepek42.asteroids.render.tidalOffset
+import com.github.pepek42.asteroids.render.tidalStretch
 import com.github.pepek42.asteroids.render.contractionK
 import com.github.pepek42.asteroids.render.glowsAdditively
 import com.github.pepek42.asteroids.render.effectiveDoppler
@@ -247,13 +250,24 @@ class RenderSystem(
         val cx = transformComp.interpolatedPosition.x
         val cy = transformComp.interpolatedPosition.y
         val tinted = !isPlayer && observerBlueShiftActive(vx, vy)
+        val rel = entity.relativisticCmpOptional
+        val stretch = if (rel != null && rel.tidalRatio > 0f) tidalStretch(rel.tidalRatio) else 1f
+        val stretched = stretch >= TIDAL_VISUAL_MIN_SCALE
         beginLit(entity, sprite, cx, cy, transformComp.interpolatedRotationDeg * MathUtils.degreesToRadians, 0f)
-        if (!contract && !tinted) {
+        if (!contract && !tinted && !stretched) {
             sprite.draw(batch)
             endLit()
             return
         }
         System.arraycopy(sprite.vertices, 0, scratch, 0, VERTEX_FLOATS)
+        if (stretched && rel != null) {
+            // Tidal stretch along r̂ first (ST-153), then the contraction along v̂.
+            for (i in 0 until VERTEX_FLOATS step VERTEX_STRIDE) {
+                tidalOffset(scratch[i] - cx, scratch[i + 1] - cy, rel.tidalDirX, rel.tidalDirY, stretch, tmp)
+                scratch[i] = cx + tmp.x
+                scratch[i + 1] = cy + tmp.y
+            }
+        }
         if (contract) {
             val gamma = entity.relativisticCmpOptional?.gUsed ?: gammaFromV(vx, vy, settings.c)
             val k = contractionK(gamma)

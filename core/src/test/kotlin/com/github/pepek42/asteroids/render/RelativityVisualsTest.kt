@@ -39,4 +39,34 @@ class RelativityVisualsTest {
     fun gammaOneNoContraction() {
         assertEquals(0f, contractionK(1f), 1e-6f)
     }
+
+    @Test
+    fun tidalOffsetIsIdentityAtScaleOne() {
+        tidalOffset(3f, -2f, 0.6f, 0.8f, 1f, out)
+        assertEquals(3f, out.x, 1e-6f)
+        assertEquals(-2f, out.y, 1e-6f)
+    }
+
+    @Test
+    fun tidalOffsetStretchesAlongRadiusAndPreservesArea() {
+        val s = TIDAL_STRETCH_MAX
+        val rx = 0.6f
+        val ry = 0.8f
+        // Image of the unit axes of the basis (r, perp): determinant of the linear map.
+        tidalOffset(1f, 0f, rx, ry, s, out)
+        val ax = out.x
+        val ay = out.y
+        tidalOffset(0f, 1f, rx, ry, s, out)
+        assertEquals(1f, ax * out.y - ay * out.x, 1e-5f)
+        tidalOffset(rx, ry, rx, ry, s, out)
+        assertEquals(s, out.len(), 1e-5f)
+        tidalOffset(-ry, rx, rx, ry, s, out)
+        assertEquals(1f / s, out.len(), 1e-5f)
+    }
+
+    @Test
+    fun tidalStretchIsClamped() {
+        assertEquals(1f, tidalStretch(0f), 1e-6f)
+        assertEquals(TIDAL_STRETCH_MAX, tidalStretch(100f), 1e-6f)
+    }
 }

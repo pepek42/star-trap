@@ -38,6 +38,16 @@ class RelativisticComponent : Component, Pool.Poolable {
      */
     var gravFactor = 1f
 
+    /**
+     * Tidal acceleration difference across the hull as a multiple of what the hull tolerates (ST-153): 0 far from every
+     * source (or tidal off), above 1 the hull takes damage. Set by `GravitySystem.afterStep`; drives the sprite stretch.
+     */
+    var tidalRatio = 0f
+
+    /** Unit direction `r̂` (from the strongest tidal source to this body) of the stretch, valid while [tidalRatio] > 0. */
+    var tidalDirX = 0f
+    var tidalDirY = 0f
+
     /** Velocity written into Box2D before the last step, to detect contact-induced changes. */
     val vSet = Vector2()
 
@@ -67,6 +77,9 @@ class RelativisticComponent : Component, Pool.Poolable {
         tau = 0f
         gUsed = 1f
         gravFactor = 1f
+        tidalRatio = 0f
+        tidalDirX = 0f
+        tidalDirY = 0f
         vSet.setZero()
         gammaMax = GAMMA_MAX_MASSIVE
         restMass = 0f

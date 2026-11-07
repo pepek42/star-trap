@@ -49,6 +49,27 @@ const val PLAYER_PULL_SOFTENING = 2f
 /** Floor of the source-to-source softening (ST-083); the actual value is `max(radius_i + radius_j, this)`. */
 const val SOURCE_PULL_MIN_SOFTENING = 1f
 
+/**
+ * A hull is built for its own engine's thrust (ST-153): it takes a tidal acceleration difference up to
+ * `TIDAL_TOLERANCE_ENGINES * engineProperAccel` across its length undamaged. FAKE threshold, `physics-lies.md`.
+ */
+const val TIDAL_TOLERANCE_ENGINES = 1f
+
+/** Hull damage per second of proper time per unit of `tidalRatio - 1` (ST-153; the player has 100 health). FAKE, `physics-lies.md`. */
+const val TIDAL_DPS = 40f
+
+/** Floor of `r` in [tidalAccel], so a body at a source's centre gets a large finite value, not infinity. */
+const val TIDAL_MIN_R = 1e-3f
+
+/**
+ * Newtonian tidal acceleration difference `2 GM l / r^3` across a length [length] at distance [r] from a source of
+ * gravitational parameter [gm] (ST-153, research E19), along the line to the source. [r] is clamped to at least [TIDAL_MIN_R].
+ */
+fun tidalAccel(r: Float, gm: Float, length: Float): Float {
+    val rc = max(r, TIDAL_MIN_R)
+    return 2f * gm * length / (rc * rc * rc)
+}
+
 /** `GM` of a hole with Schwarzschild radius [rs]: `r_s = 2 GM / c^2`, so `GM = r_s c^2 / 2` (200 for `BH_RS` = 1 at c = 20). */
 fun gmFromRs(rs: Float, c: Float): Float = rs * c * c / 2f
 

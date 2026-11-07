@@ -27,7 +27,12 @@ import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.gravitySourceCmp
 import com.github.pepek42.asteroids.component.photonMapper
 import com.github.pepek42.asteroids.component.relativisticMapper
+import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.physics.PHOTON_SUBSTEPS
+import com.github.pepek42.asteroids.physics.TIDAL_DPS
+import com.github.pepek42.asteroids.physics.TIDAL_MIN_R
+import com.github.pepek42.asteroids.physics.TIDAL_TOLERANCE_ENGINES
+import com.github.pepek42.asteroids.physics.tidalAccel
 import com.github.pepek42.asteroids.physics.PHOTON_SUBSTEP_RADIUS_PER_RS
 import com.github.pepek42.asteroids.physics.PLAYER_PULL_SOFTENING
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
@@ -60,6 +65,9 @@ import kotlin.math.sqrt
  *
  * Each relativistic body also gets `RelativisticComponent.gravFactor` (ST-086, [gravTimeFactor] over all sources, 1 without
  * gravity or sources); the player's own pull does not count.
+ *
+ * [afterStep] ends with the tidal stress of ST-153 ([applyTidal]): `tidalRatio` and the hull damage, gated by
+ * `RelativitySettings.tidalEnabled` only (it also works with `gravityEnabled` off, so a held body can be tested).
  *
  * Pull does nothing with `gravityEnabled` off or without sources. Must be registered before `RelativisticDynamics`.
  */
@@ -121,10 +129,58 @@ class GravitySystem(
     }
 
     override fun afterStep(dt: Float) {
-        if (sources.size() == 0) return
-        mergeHoles()
-        absorbBodies()
-        eatPlanets()
+        if (sources.size() > 0) {
+            mergeHoles()
+            absorbBodies()
+            eatPlanets()
+        }
+        applyTidal(dt)
+    }
+
+    /**
+     * Tidal stress (ST-153, research E19) on every live relativistic body with a hull size: the largest `tidalAccel` over
+     * the live sources across `2 * boundingRadius`, as a ratio of `engineProperAccel * TIDAL_TOLERANCE_ENGINES`, stored in
+     * `RelativisticComponent.tidalRatio` with its direction. Above 1 a body with health loses
+     * `TIDAL_DPS * (ratio - 1) * dtau` (`dtau = dt * gravFactor / gUsed`). With `tidalEnabled` off or no sources the ratio is 0.
+     */
+    private fun applyTidal(dt: Float) {
+        val c = settings.c
+        val threshold = settings.engineProperAccel * TIDAL_TOLERANCE_ENGINES
+        val active = settings.tidalEnabled && sources.size() > 0 && threshold > 0f
+        for (i in 0 until bodies.size()) {
+            val e = bodies[i]
+            val rel = relativisticMapper.get(e) ?: continue
+            rel.tidalRatio = 0f
+            if (!active || removeMapper.has(e)) continue
+            val bodyCmp = e.bodyCmp
+            if (bodyCmp.boundingRadius < 0f) bodyCmp.boundingRadius = computeBoundingRadius(bodyCmp.body)
+            if (bodyCmp.boundingRadius <= 0f) continue
+            val length = 2f * bodyCmp.boundingRadius
+            val pos = bodyCmp.body.position
+            var best = 0f
+            for (k in 0 until sources.size()) {
+                if (removeMapper.has(sources[k])) continue
+                val sp = sources[k].bodyCmp.body.position
+                val dx = pos.x - sp.x
+                val dy = pos.y - sp.y
+                val r = sqrt(dx * dx + dy * dy)
+                val da = tidalAccel(r, sources[k].gravitySourceCmp.effectiveGm(c), length)
+                if (da <= best) continue
+                best = da
+                if (r > TIDAL_MIN_R) {
+                    rel.tidalDirX = dx / r
+                    rel.tidalDirY = dy / r
+                } else {
+                    rel.tidalDirX = 1f
+                    rel.tidalDirY = 0f
+                }
+            }
+            val ratio = best / threshold
+            rel.tidalRatio = ratio
+            if (ratio <= 1f) continue
+            val health = healthMapper.get(e) ?: continue
+            if (health.health > 0f) health.health -= TIDAL_DPS * (ratio - 1f) * dt * rel.gravFactor / rel.gUsed
+        }
     }
 
     /**

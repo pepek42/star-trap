@@ -17,7 +17,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-46a. ST-149 Shadow follow-ups: nearest occluders and a shadows-off harness flag
 47. ST-099 A distant star as a directional light
 48. ST-088 Gravitational lensing of the backdrop
 
@@ -185,21 +184,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - [ ] Screenshot (pilot view, near a hole) viewed by the agent: one side of the disk is brighter and bluer
   - [ ] `./gradlew core:test` passes
 - playtest: Orbit a hole in pilot view: the approaching half of the disk glows blue-white and the other half dims red.
-
-### ST-149 Shadow follow-ups: nearest occluders and a shadows-off harness flag
-- status: ready
-- size: S
-- agent: junior-dev
-- layer: sim visuals
-- depends: ST-098
-- files: `render/Lighting.kt` (`selectOccluders`), `debug/ScreenshotHarness.kt`, `physics/RelativitySettings.kt`; tests
-- refs: ST-098 report and review (2026-11-07)
-- goal: (1) When more than `MAX_OCCLUDERS` circles qualify, `selectOccluders` keeps the first ones found, so a distant occluder can displace a nearer one and the shadow pops with pool order. Keep the nearest ones instead (smallest `t` along the sprite-to-light segment, or distance to the sprite), still allocation-free (insertion into the fixed-size output). (2) Add a harness flag `--no-shadows` (web `?no-shadows`) that starts with `shadowsEnabled = false`, for A/B screenshots with `--shadow-demo`.
-- acceptance:
-  - [ ] Test: with 8 qualifying circles at different distances, the 6 nearest are kept, whatever their pool order
-  - [ ] `LaunchOptionsTest` covers `--no-shadows`; `docs/tech/dev-workflow.md` lists it
-  - [ ] `./gradlew core:test` passes
-- playtest: none (debug tooling and a tie-break).
 
 ### ST-099 A distant star as a directional light
 - status: ready

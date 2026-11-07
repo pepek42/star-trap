@@ -120,6 +120,19 @@ class ShadowTest {
     }
 
     @Test
+    fun selectionKeepsTheNearestWhateverThePoolOrder() {
+        // Eight qualifying circles on the segment (sprite at the origin, light at x = 20), pool order not sorted by distance.
+        val xs = floatArrayOf(9f, 3f, 7f, 1f, 5f, 8f, 2f, 6f)
+        val p = pool(*Array(xs.size) { floatArrayOf(xs[it], 0f, 2f) })
+        val out = OccluderCircles()
+        val n = selectOccluders(0f, 0f, 1f, lightAt(20f, 0f), intArrayOf(0), 1, p, 0f, -1, out)
+        assertEquals(MAX_OCCLUDERS, n)
+        // The six nearest (x = 1, 2, 3, 5, 6, 7), sorted nearest first; 8 and 9 are dropped.
+        val expected = floatArrayOf(1f, 2f, 3f, 5f, 6f, 7f)
+        for (j in 0 until n) assertEquals(expected[j], out.x[j], eps)
+    }
+
+    @Test
     fun selectionMovesOccludersBackByTheLag() {
         // At lag 0 the circle (y = 12, vy = 6) is off the segment.
         val p = pool(floatArrayOf(10f, 12f, 2f, 0f, 6f))

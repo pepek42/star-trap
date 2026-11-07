@@ -58,6 +58,9 @@ class LaunchOptionsTest {
         assertEquals(true, parseLaunchOptions(arrayOf("--shadow-demo")).shadowDemo)
         assertEquals(false, parseLaunchOptions(arrayOf()).shadowDemo)
         assertEquals(true, parseLaunchOptions(queryToLaunchArgs("?play&shadow-demo")).shadowDemo)
+        assertEquals(true, parseLaunchOptions(arrayOf("--no-shadows")).noShadows)
+        assertEquals(false, parseLaunchOptions(arrayOf()).noShadows)
+        assertEquals(true, parseLaunchOptions(queryToLaunchArgs("?play&shadow-demo&no-shadows")).noShadows)
     }
 
     @Test

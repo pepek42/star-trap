@@ -250,11 +250,41 @@ fun distSqToLightSegment(
     return qx * qx + qy * qy
 }
 
+/** Squared distance from ([px], [py]) to the centre of circle [i] of [out]. */
+private fun occluderDistSq(out: OccluderCircles, i: Int, px: Float, py: Float): Float {
+    val dx = out.x[i] - px
+    val dy = out.y[i] - py
+    return dx * dx + dy * dy
+}
+
+/**
+ * Adds the circle to [out] keeping [out] sorted by distance to ([px], [py]), nearest first. When [out] is full the farthest
+ * circle is dropped if the new one is nearer. Allocation-free.
+ */
+private fun insertNearestOccluder(out: OccluderCircles, px: Float, py: Float, cx: Float, cy: Float, cr: Float) {
+    val d2 = (cx - px) * (cx - px) + (cy - py) * (cy - py)
+    if (out.count == out.x.size) {
+        if (d2 >= occluderDistSq(out, out.count - 1, px, py)) return
+        out.count--
+    }
+    var j = out.count++
+    while (j > 0 && occluderDistSq(out, j - 1, px, py) > d2) {
+        out.x[j] = out.x[j - 1]
+        out.y[j] = out.y[j - 1]
+        out.r[j] = out.r[j - 1]
+        j--
+    }
+    out.x[j] = cx
+    out.y[j] = cy
+    out.r[j] = cr
+}
+
 /**
  * Fills [out] with up to [MAX_OCCLUDERS] circles of [pool] that can shadow the sprite at ([px], [py]) of radius [spriteRadius]:
  * those whose circle comes within `cr + spriteRadius` of the segment from the sprite to one of the first [n] lights of [idx]
  * (the lights picked for the sprite), skipping the entry with [selfId] (a body never shadows itself; N·L does that).
- * The occluders are moved back by [lag] seconds along their velocity (0 in the world view). The first ones found are kept.
+ * The occluders are moved back by [lag] seconds along their velocity (0 in the world view). When more qualify, the nearest
+ * to the sprite are kept (ST-149), sorted nearest first, whatever their pool order.
  * Returns how many were written. Allocation-free.
  */
 fun selectOccluders(
@@ -276,8 +306,7 @@ fun selectOccluders(
             }
         }
         if (!near) continue
-        out.add(cx, cy, pool.r[j])
-        if (out.count == out.x.size) break
+        insertNearestOccluder(out, px, py, cx, cy, pool.r[j])
     }
     return out.count
 }

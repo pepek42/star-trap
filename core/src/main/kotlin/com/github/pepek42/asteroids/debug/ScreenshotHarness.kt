@@ -39,13 +39,15 @@ data class LaunchOptions(
      * distance from the hole outside it. Harness only.
      */
     val shadowDemo: Boolean = false,
+    /** Starts with `RelativitySettings.shadowsEnabled` off (`--no-shadows`; web: `?no-shadows`), for A/B shots. Harness only. */
+    val noShadows: Boolean = false,
 )
 
 /** Distance (u) from the player spawn to the first black hole under a bare `--hole-near`. */
 const val HOLE_NEAR_DISTANCE = 25f
 
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play`, `--pilot-view` and `--shadow-demo`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play`, `--pilot-view`, `--shadow-demo` and `--no-shadows`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -68,6 +70,7 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
             "--play" -> options = options.copy(play = true)
             "--pilot-view" -> options = options.copy(pilotView = true)
             "--shadow-demo" -> options = options.copy(shadowDemo = true)
+            "--no-shadows" -> options = options.copy(noShadows = true)
         }
     }
     return options

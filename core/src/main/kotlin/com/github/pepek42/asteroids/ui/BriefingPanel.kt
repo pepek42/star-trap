@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.ui
 
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -25,11 +26,17 @@ class BriefingPanel(skin: Skin, hideText: String) {
     private val style = MenuStyle(skin)
     private val title = Label("", style.heading)
     private val text = style.paragraph("", BRIEFING_WIDTH)
+    private val objectives = style.paragraph("", BRIEFING_WIDTH)
     private val root = Table().apply { setFillParent(true) }
+    private val column = Table()
+    private val briefingPanel = style.panel(BRIEFING_PAD)
+    private val objectivesPanel = style.panel(BRIEFING_PAD)
+    private val objectivesCell: Cell<*>
+    private val briefingCell: Cell<*>
+    private var hasObjectives = false
 
     init {
-        val panel = style.panel(BRIEFING_PAD)
-        val t = panel.panelContent
+        val t = briefingPanel.panelContent
         t.defaults().left().width(BRIEFING_WIDTH)
         t.add(title).row()
         t.add(text).padTop(6f).row()
@@ -38,16 +45,44 @@ class BriefingPanel(skin: Skin, hideText: String) {
             override fun changed(event: ChangeEvent, actor: Actor) = hide()
         })
         t.add(hide).width(hide.prefWidth).right().padTop(10f).row()
-        root.add(panel).expand().bottom().left().pad(BRIEFING_EDGE_GAP)
+        val o = objectivesPanel.panelContent
+        o.defaults().left().width(BRIEFING_WIDTH)
+        o.add(objectives)
+        objectivesCell = column.add().left().padBottom(BRIEFING_EDGE_GAP / 2)
+        column.row()
+        briefingCell = column.add().left()
+        root.add(column).expand().bottom().left().pad(BRIEFING_EDGE_GAP)
     }
 
     fun show(stage: Stage, titleText: String, briefing: String) {
         title.setText(titleText)
         text.setText(briefing)
+        briefingCell.setActor(briefingPanel)
+        refreshObjectivesCell()
+        column.invalidateHierarchy()
         stage.addActor(root)
     }
 
+    /** Shows the tutorial checklist above the briefing; empty text hides it (ST-169). It stays after [hide]. */
+    fun setObjectives(checklist: String) {
+        objectives.setText(checklist)
+        hasObjectives = checklist.isNotEmpty()
+        refreshObjectivesCell()
+        column.invalidateHierarchy()
+    }
+
+    private fun refreshObjectivesCell() {
+        objectivesCell.setActor(if (hasObjectives) objectivesPanel else null)
+    }
+
+    /** "Got it": hides the briefing text but keeps the checklist on screen. */
     fun hide() {
+        briefingCell.setActor(null)
+        column.invalidateHierarchy()
+    }
+
+    /** Removes everything (leaving the level). */
+    fun close() {
         root.remove()
     }
 }

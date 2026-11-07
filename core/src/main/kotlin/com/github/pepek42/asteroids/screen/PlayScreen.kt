@@ -37,6 +37,8 @@ import com.github.pepek42.asteroids.provider.MAP_HEIGHT
 import com.github.pepek42.asteroids.provider.MAP_WIDTH
 import com.github.pepek42.asteroids.scenario.ScenarioSpawner
 import com.github.pepek42.asteroids.event.PlayerInputListener
+import com.github.pepek42.asteroids.scenario.ObjectiveTracker
+import com.github.pepek42.asteroids.system.ScenarioObjectiveSystem
 import com.github.pepek42.asteroids.ui.BriefingPanel
 import com.badlogic.gdx.utils.I18NBundle
 import com.github.pepek42.asteroids.provider.DecorationProvider
@@ -114,6 +116,22 @@ class PlayScreen(
         override fun quitToMenu() = game.quitRun()
     }
 
+    private lateinit var objectiveSystem: ScenarioObjectiveSystem
+    private val checklist = StringBuilder()
+
+    /** Redraws the instructor checklist: ticked steps, then the current one. Runs only when the step changes. */
+    private fun showObjectives(tracker: ObjectiveTracker?) {
+        checklist.setLength(0)
+        if (tracker != null) {
+            val shown = minOf(tracker.index + 1, tracker.objectives.size)
+            for (i in 0 until shown) {
+                if (i > 0) checklist.append('\n')
+                checklist.append(if (i < tracker.index) "[x] " else "[ ] ").append(i18n[tracker.objectives[i].textKey])
+            }
+        }
+        briefing.setObjectives(checklist.toString())
+    }
+
     private val hullSounds = HullSoundQueue()
     private lateinit var hullSoundSystem: HullSoundSystem
     private val computerSounds = ComputerSoundQueue(game.get<SoundSettings>())
@@ -160,6 +178,9 @@ class PlayScreen(
             lightHistory = systems.lightHistory
             val pilotViewProjector = PilotViewProjector(lightHistory, observerState, clock, settings)
             engine.add {
+                // Reads the observer's beta/gamma, so after ObserverSystem; idle unless the scenario has objectives.
+                objectiveSystem = ScenarioObjectiveSystem(observerState, ::showObjectives)
+                addSystem(objectiveSystem)
                 addSystem(CameraSystem(camera, gameEventManager, mapProvider, observerState, settings))
                 addSystem(
                     RenderSystem(
@@ -277,6 +298,8 @@ class PlayScreen(
             hud.updateLevel(gameState.level)
         }
         game.get<GameEventManager>().addInputListener(quitListener)
+        game.get<GameEventManager>().addInputListener(objectiveSystem)
+        objectiveSystem.start(scenario?.objectives ?: emptyList())
         if (debugSettings.panelAllowed) {
             debugPanel.show(game.get<Stage>())
             game.get<GameEventManager>().addDebugListener(debugPanel)
@@ -317,8 +340,10 @@ class PlayScreen(
         computerSoundSystem.silence()
         Gdx.graphics.setSystemCursor(SystemCursor.Arrow)
         hud.toggleHud(show = false)
-        briefing.hide()
+        briefing.close()
         game.get<GameEventManager>().removeInputListener(quitListener)
+        game.get<GameEventManager>().removeInputListener(objectiveSystem)
+        objectiveSystem.stop()
         debugPanel.hide()
         game.get<GameEventManager>().removeDebugListener(debugPanel)
         clearLevel(engine, world)

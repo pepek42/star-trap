@@ -26,7 +26,6 @@ M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
 50c. ST-165 Missile lock-on: lock first, then fire
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
-57d. ST-169 Scenarios: step-by-step tutorial objectives
 57e. ST-170 Scenario briefing pauses the game
 57f. ST-171 Settings page with tabs
 
@@ -215,23 +214,6 @@ Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/aste
 ## Menus & runs
 
 Source: owner 2026-11-07 ("After each level there will be save (and buying in shop between levels) ... New game - select level 1, 5th (for quick start later level, with some prebuild once we have shop) ... tutorial like scenarios with some text"). The menu (New game with start level 1/5 and run physics, Scenarios with briefings, global Settings), the restyled `LevelClearedScreen` with a shop placeholder, Esc-to-menu and four scenarios (`scenario/Scenarios.kt`) are done. Web: saves go through libGDX `Preferences` (`KeyValueStore`), never `java.io`.
-
-### ST-169 Scenarios: step-by-step tutorial objectives
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: —
-- files: `scenario/Scenario.kt`, `scenario/Scenarios.kt`, `ui/BriefingPanel.kt`, new `system/ScenarioObjectiveSystem.kt`, `assets/i18n/messages.properties`
-- layer: assist (in-fiction instructor)
-- goal: Tutorials teach one thing at a time instead of one long briefing.
-- spec:
-  - A scenario may list objectives (text key + a predicate on the world: "reach β 0.3", "switch to pilot view", "destroy a rock", "fly within 15 u of the planet"). The briefing panel shows the current one and ticks it when the predicate holds, then shows the next.
-  - Flight school: thrust, turn, fire, clear. Relativity: reach β 0.5, watch γ, toggle V and T. Gravity: orbit the planet once, stay out of the horizon.
-  - Predicates read the true state and input events only; the physics is not changed.
-- acceptance:
-  - [ ] Tests: objectives advance in order when their predicates hold; a scenario without objectives behaves as today
-  - [ ] `scripts/web-check.sh --query=scenario=relativity&play` passes
-- playtest: Scenarios → Relativity: the panel asks for β 0.5, then for V, then T, each ticking as done.
 
 ### ST-170 Scenario briefing pauses the game
 - status: ready

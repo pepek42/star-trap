@@ -14,7 +14,16 @@ private const val RELATIVITY_SCENARIO_C_FRACTION = C_MIN / SPEED_OF_LIGHT
 /** Built-in scenarios (tutorials and test rooms), in menu order. */
 object Scenarios {
     /** Steering, thrust and the guns against a few rocks in a small room. */
-    val FLIGHT_SCHOOL = Scenario("flight_school", arenaSize = 80f) {
+    val FLIGHT_SCHOOL = Scenario(
+        "flight_school",
+        arenaSize = 80f,
+        objectives = listOf(
+            Objective("scenario_flight_school_obj_thrust") { it.thrusted },
+            Objective("scenario_flight_school_obj_turn") { it.turned },
+            Objective("scenario_flight_school_obj_fire") { it.fired },
+            Objective("scenario_flight_school_obj_clear") { it.rocksDestroyed > 0 && it.rocksLeft == 0 },
+        ),
+    ) {
         asteroid(LARGE, 14f, 0f)
         asteroid(LARGE, -12f, 10f, spin = 0.5f)
         asteroid(LARGE, 2f, -16f, spin = 1f)
@@ -35,6 +44,12 @@ object Scenarios {
         "relativity",
         arenaSize = 140f,
         physics = ScenarioPhysics(relativity = true, cFraction = RELATIVITY_SCENARIO_C_FRACTION, timeWarp = true),
+        objectives = listOf(
+            Objective("scenario_relativity_obj_beta") { it.beta >= OBJECTIVE_BETA_HALF },
+            Objective("scenario_relativity_obj_gamma") { it.beta >= OBJECTIVE_BETA_FAST },
+            Objective("scenario_relativity_obj_pilot") { it.pilotViewToggled },
+            Objective("scenario_relativity_obj_tactical") { it.tacticalToggled },
+        ),
     ) {
         asteroid(LARGE, 45f, 0f, betaY = 0.5f)
         asteroid(LARGE, -40f, 20f, betaX = 0.3f, betaY = -0.3f)
@@ -43,7 +58,14 @@ object Scenarios {
     }
 
     /** A black hole and a planet: gravity bends every path, and the horizon kills. */
-    val GRAVITY = Scenario("gravity", arenaSize = 120f) {
+    val GRAVITY = Scenario(
+        "gravity",
+        arenaSize = 120f,
+        objectives = listOf(
+            Objective("scenario_gravity_obj_near") { it.planetDistanceRadii <= OBJECTIVE_PLANET_NEAR_RADII },
+            Objective("scenario_gravity_obj_orbit") { it.orbits >= 1f },
+        ),
+    ) {
         blackHole(32f, 0f)
         planet(-30f, 18f, 0)
         asteroid(LARGE, 0f, 24f)

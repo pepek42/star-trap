@@ -41,6 +41,8 @@ class Scenario(
     val id: String,
     val arenaSize: Float,
     val physics: ScenarioPhysics = ScenarioPhysics(),
+    /** Tutorial steps shown in the briefing panel one after the other (ST-169); empty means the plain briefing. */
+    val objectives: List<Objective> = emptyList(),
     val spawn: ScenarioSpawner.() -> Unit,
 ) {
     val titleKey: String get() = "scenario_${id}_title"

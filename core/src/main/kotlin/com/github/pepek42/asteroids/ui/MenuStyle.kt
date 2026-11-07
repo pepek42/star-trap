@@ -1,6 +1,7 @@
 package com.github.pepek42.asteroids.ui
 
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -46,7 +47,12 @@ const val MENU_BUTTON_HEIGHT = 46f
 class MenuStyle(private val skin: Skin) {
     private fun fill(color: Color): Drawable = skin.newDrawable("white", color)
 
-    val title = Label.LabelStyle(skin.getFont("window"), MENU_ACCENT_COLOR)
+    /** Brand font when loaded (see [addBrandFonts]), else the skin's bitmap font, so a bare test skin still works. */
+    private fun brand(name: String) = skin.optional(name, BitmapFont::class.java) ?: skin.getFont("window")
+
+    val title = Label.LabelStyle(brand(FONT_TITLE), MENU_ACCENT_COLOR)
+    val logo = Label.LabelStyle(brand(FONT_LOGO), MENU_ACCENT_COLOR)
+    val logoSub = Label.LabelStyle(brand(FONT_LOGO_SUB), Color.WHITE)
     val heading = Label.LabelStyle(skin.getFont("window"), Color.WHITE)
     val body = Label.LabelStyle(skin.getFont("font"), Color.WHITE)
     val muted = Label.LabelStyle(skin.getFont("font"), MENU_MUTED_COLOR)

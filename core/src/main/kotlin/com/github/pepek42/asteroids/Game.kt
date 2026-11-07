@@ -47,6 +47,7 @@ import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingU
 import com.github.pepek42.asteroids.settings.menuSettings
 import ktx.app.KtxGame
 import ktx.app.KtxScreen
+import com.github.pepek42.asteroids.ui.addBrandFonts
 import ktx.assets.disposeSafely
 import ktx.inject.Context
 import ktx.inject.register
@@ -97,7 +98,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             bindSingleton(SpriteBatch())
             bindSingleton(assetManager.get<TextureAtlas>("textures/textures.atlas"))
             bindSingleton(PlanetTextures(inject<RandomXS128>()))
-            bindSingleton(Skin(Gdx.files.internal("ui/uiskin.json"), assetManager["ui/uiskin.atlas"]))
+            bindSingleton(Skin(Gdx.files.internal("ui/uiskin.json"), assetManager["ui/uiskin.atlas"]).also { addBrandFonts(it) })
             Scene2DSkin.defaultSkin = ctx.inject<Skin>()
             bindSingleton(assetManager.get<I18NBundle>("i18n/messages"))
             bindSingleton(this@Game)

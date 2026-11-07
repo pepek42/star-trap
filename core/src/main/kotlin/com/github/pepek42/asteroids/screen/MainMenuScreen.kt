@@ -64,12 +64,8 @@ private const val SECTION_SPACE = 22f
 /** Room for the vertical scroll bar next to a pane's content. */
 private const val SCROLLBAR_ALLOWANCE = 28f
 private const val SLIDER_WIDTH = 160f
-/** Title font scale on the main page (the bitmap "window" font, doubled). */
-private const val TITLE_SCALE = 2f
-
-/** Scale and letter gap (px) of the "REDSHIFT" line under the title. */
-private const val SUBTITLE_SCALE = 1.4f
-private const val SUBTITLE_LETTER_GAP = 10f
+/** Letter gap (px) of the "REDSHIFT" line under the title. */
+private const val SUBTITLE_LETTER_GAP = 8f
 
 /** Red end of the subtitle's Doppler gradient. */
 private val REDSHIFT_END_COLOR = Color(1f, 0.22f, 0.16f, 1f)
@@ -141,11 +137,10 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
      */
     private fun redshiftLogo(text: String): Actor {
         val row = Table()
-        val letterStyle = Label.LabelStyle(style.title.font, Color.WHITE)
+        val letterStyle = style.logoSub
         val last = (text.length - 1).coerceAtLeast(1)
         val letters = text.mapIndexed { i, ch ->
             Label(ch.toString(), letterStyle).apply {
-                setFontScale(SUBTITLE_SCALE)
                 setAlignment(Align.center)
                 color = Color(MENU_ACCENT_COLOR).lerp(REDSHIFT_END_COLOR, i.toFloat() / last)
             }
@@ -160,8 +155,8 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
 
     private fun buildMainPage(): Actor {
         val t = Table()
-        t.add(Label(TITLE_NAME.uppercase(), style.title).apply { setFontScale(TITLE_SCALE) }).row()
-        t.add(redshiftLogo(TITLE_SUBTITLE.uppercase())).padTop(2f).row()
+        t.add(Label(TITLE_NAME.uppercase(), style.logo)).row()
+        t.add(redshiftLogo(TITLE_SUBTITLE.uppercase())).padTop(4f).row()
         t.add(style.label(i18n["menu_subtitle"], style.muted)).padTop(10f).padBottom(SECTION_SPACE * 2).row()
         t.defaults().width(MENU_BUTTON_WIDTH).height(MENU_BUTTON_HEIGHT).space(BUTTON_SPACE)
         t.add(button("menu_new_game", primary = true) { open(MenuPage.NEW_GAME) }).row()
@@ -295,6 +290,7 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
                 syncAll()
             }.also { it.addListener(hintTooltip(i18n["menu_reset_defaults_hint"], tooltips, skin)) },
         )).colspan(2).growX().padTop(SECTION_SPACE).row()
+        t.add(style.label(i18n["credits_fonts"], style.muted)).colspan(2).left().padTop(SECTION_SPACE).row()
         return panel
     }
 

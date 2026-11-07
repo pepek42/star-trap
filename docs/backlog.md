@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-151**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-152**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -17,7 +17,7 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-48a. ST-150 Lensing follow-ups: planets drawn as holes?, ring visibility, edge margin
+48b. ST-151 Make the Einstein ring readable (owner decision)
 
 Parked:
 51. ST-091 Targeting-trance scheme
@@ -167,20 +167,21 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 
 ---
 
-### ST-150 Lensing follow-ups: planets drawn as holes?, ring visibility, edge margin
-- status: ready
+### ST-151 Make the Einstein ring readable (owner decision)
+- status: needs-user
 - size: S
 - agent: kotlin-dev
-- layer: sim visuals
-- depends: ST-088
-- files: `render/BlackHoleRenderer.kt`, `render/LensingPass.kt`, `assets/shaders/lensing.frag`; tests
-- refs: ST-088 report and review (2026-11-07)
-- goal: (1) `BlackHoleRenderer.render` draws shadow, photon ring and ISCO for every entity in `holes`, including PLANET gravity sources (only the disk filters on kind). Check whether planets get a black disc and rings under their sprite; if so, filter to BLACK_HOLE and add a test. (2) The Einstein ring is faint because stars are sparse 1-3 px dots. Real lensing conserves surface brightness, so smearing is right, but a point star near R_E is magnified: try a brightness gain `≈ |μ|` (capped) for samples near the ring, and record it as APPROX/FAKE in `physics-lies.md` if it isn't exact. (3) Samples beyond the screen edge clamp (row 19): capture the backdrop with a margin of `LENS_QUAD_HALF·R_E` when a hole is near the screen edge, if cheap; otherwise leave it documented. Also hoist the duplicated `renderBg` call in `RenderSystem` (around lines 154/159).
+- layer: assist (option a) or sim backdrop (option b)
+- depends: ST-150
+- files: `render/LensingPass.kt` or `render/BlackHoleRenderer.kt`, `provider/BackgroundProvider.kt`; tests
+- refs: ST-150 report (2026-11-07); `docs/design/physics-lies.md` row 19
+- goal: The lensing is physically correct but hard to see. The backdrop has only sparse 1-3 px stars and a faint nebula, so near a hole it shows a few stretched star streaks, not a ring (a gain cap of 16 instead of 4 made no visible difference). Magnifying the uniform clear grey gave a bright halo, but that was fake light and was removed.
+- question: How should the Einstein ring become visible? (a) **Recommended:** a ship-computer assist that draws a faint dashed ring at R_E, as a toggle like the photon-ring and ISCO lines. It doesn't change the sim and fits the Vision rule "fix readability with assists". (b) A denser or brighter star layer and nebula near holes. That is more "real light", but it is a backdrop FAKE and costs fill rate on web. (c) Leave it as is: the streaks are the honest picture.
 - acceptance:
-  - [ ] (1) answered with a screenshot of a planet; fixed and tested if it was a bug
-  - [ ] Pilot-view screenshot `--hole-near=14 --pilot-view` with and without `--no-lensing`: the ring is clearly visible
+  - [ ] The chosen option is in place; for (a), it is toggleable and default on; for (b), a physics-lies row is added
+  - [ ] Pilot-view screenshot `--hole-near=14 --pilot-view` shows a readable ring
   - [ ] `./gradlew core:test` passes, `scripts/web-check.sh --play` PASS
-- playtest: The Einstein ring around a hole is easy to see in pilot view.
+- playtest: You can tell where the Einstein ring is around a hole.
 
 ## Parked (low priority)
 

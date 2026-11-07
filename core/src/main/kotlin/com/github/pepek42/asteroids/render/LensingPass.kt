@@ -30,6 +30,9 @@ const val LENS_FADE_START = 0.7f
 /** Grey level the screen is cleared to (`PlayScreen`); the backdrop buffer starts from the same colour. */
 const val SCREEN_CLEAR_GRAY = 0.1f
 
+/** Cap of the brightness gain near the Einstein ring (APPROX, physics-lies row 19). */
+const val LENS_GAIN_MAX = 4f
+
 private const val QUAD_VERTICES = 4
 
 /**
@@ -51,6 +54,25 @@ fun lensSourceOffset(rhoX: Float, rhoY: Float, rE: Float, quadHalf: Float, out: 
     out.set(rhoX * k, rhoY * k)
     return true
 }
+
+/**
+ * Brightness gain of a backdrop pixel at offset ([rhoX], [rhoY]): the point-source magnification of the image there,
+ * `|mu| = 1 / |1 - (R_E / r)^4|`, capped at [LENS_GAIN_MAX] and faded with the same weight `w` as the deflection. Surface brightness is
+ * conserved, so this is exact only for a star smaller than a pixel (which it brightens); applied to every pixel it also brightens
+ * nebula near the ring (APPROX); the gain acts on the light above the clear grey only ([lensChannel]). `lensing.frag` mirrors this.
+ */
+fun lensGain(rhoX: Float, rhoY: Float, rE: Float, quadHalf: Float): Float {
+    val r2 = rhoX * rhoX + rhoY * rhoY
+    val q = rE * rE / r2
+    val d = abs(1f - q * q)
+    val mu = if (d * LENS_GAIN_MAX < 1f) LENS_GAIN_MAX else 1f / d
+    val edge = maxOf(abs(rhoX), abs(rhoY))
+    val w = 1f - smoothstep(LENS_FADE_START * quadHalf, quadHalf, edge)
+    return 1f + w * (minOf(mu, LENS_GAIN_MAX) - 1f).coerceAtLeast(0f)
+}
+
+/** One colour channel after the gain: only the light above the clear grey [clear] is magnified, empty space stays [clear]. `lensing.frag` mirrors this. */
+fun lensChannel(sample: Float, clear: Float, gain: Float): Float = clear + gain * maxOf(sample - clear, 0f)
 
 /**
  * Gravitational lensing of the backdrop (ST-088, research E18). The nebula and starfield are drawn into an off-screen
@@ -157,6 +179,8 @@ class LensingPass : Disposable {
             program.setUniformf("u_shadow", BH_SHADOW_PER_RS * rs)
             val quadHalf = LENS_QUAD_HALF * rE
             program.setUniformf("u_quadHalf", quadHalf)
+            program.setUniformf("u_gainMax", LENS_GAIN_MAX)
+            program.setUniformf("u_clear", SCREEN_CLEAR_GRAY)
             program.setUniformf("u_fadeInner", LENS_FADE_START * quadHalf)
             program.setUniformf("u_fadeOuter", quadHalf)
             quad.render(program, GL20.GL_TRIANGLE_STRIP)

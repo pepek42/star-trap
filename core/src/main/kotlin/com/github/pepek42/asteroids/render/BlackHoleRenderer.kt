@@ -32,6 +32,9 @@ const val BH_RING_POINTS = 64
 private const val PHOTON_RING_ALPHA = 0.6f
 private const val ISCO_ALPHA = 0.4f
 
+/** True when a gravity source of [kind] gets a shadow, photon ring and ISCO ring: black holes only, planets are drawn by their sprite. */
+fun drawsHoleRings(kind: GravitySourceKind): Boolean = kind == GravitySourceKind.BLACK_HOLE
+
 /**
  * Black hole shadow, photon ring and dashed ISCO ring (ST-085, research E16) with a ShapeRenderer, plus the particle accretion
  * disk (ST-087, research E17). Call outside a SpriteBatch begin/end, after the backdrop and before the sprites. The world view
@@ -62,7 +65,7 @@ class BlackHoleRenderer : Disposable {
         shapes.begin(ShapeRenderer.ShapeType.Filled)
         for (i in 0 until holes.size()) {
             val e = holes[i]
-            if (!holeCentre(e, pilot)) continue
+            if (!drawsHoleRings(e.gravitySourceCmp.kind) || !holeCentre(e, pilot)) continue
             val rs = e.gravitySourceCmp.rs
             shapes.setColor(0f, 0f, 0f, 1f)
             if (pilot == null) {
@@ -75,7 +78,7 @@ class BlackHoleRenderer : Disposable {
         shapes.begin(ShapeRenderer.ShapeType.Line)
         for (i in 0 until holes.size()) {
             val e = holes[i]
-            if (!holeCentre(e, pilot)) continue
+            if (!drawsHoleRings(e.gravitySourceCmp.kind) || !holeCentre(e, pilot)) continue
             val rs = e.gravitySourceCmp.rs
             shapes.setColor(1f, 1f, 1f, PHOTON_RING_ALPHA)
             ring(BH_PHOTON_RING_PER_RS * rs, pilot, dashes = 0)

@@ -73,4 +73,26 @@ class LensingTest {
         assertEquals(40f, out.x, 1e-3f)
         assertEquals(-30f, out.y, 1e-3f)
     }
+
+    @Test
+    fun theGainPeaksAtTheRingAndIsOneFarAway() {
+        assertEquals(LENS_GAIN_MAX, lensGain(rE, 0f, rE, quadHalf), 1e-4f)
+        assertEquals(1f, lensGain(quadHalf, 0f, rE, quadHalf), 1e-4f)
+        assertEquals(1f, lensGain(60f, 40f, rE, quadHalf), 1e-4f)
+        for (r in listOf(6f, 7f, 9f, 10f, 14f)) assertTrue(lensGain(r, 0f, rE, quadHalf) in 1f..LENS_GAIN_MAX)
+        assertTrue(lensGain(9f, 0f, rE, quadHalf) > lensGain(14f, 0f, rE, quadHalf))
+    }
+
+    @Test
+    fun onlyBlackHolesGetRings() {
+        assertTrue(drawsHoleRings(com.github.pepek42.asteroids.component.GravitySourceKind.BLACK_HOLE))
+        assertFalse(drawsHoleRings(com.github.pepek42.asteroids.component.GravitySourceKind.PLANET))
+    }
+
+    @Test
+    fun theGainLeavesEmptySpaceAtTheClearGrey() {
+        assertEquals(SCREEN_CLEAR_GRAY, lensChannel(SCREEN_CLEAR_GRAY, SCREEN_CLEAR_GRAY, LENS_GAIN_MAX), 1e-6f)
+        assertEquals(SCREEN_CLEAR_GRAY, lensChannel(0.05f, SCREEN_CLEAR_GRAY, LENS_GAIN_MAX), 1e-6f)
+        assertEquals(SCREEN_CLEAR_GRAY + 0.4f, lensChannel(SCREEN_CLEAR_GRAY + 0.1f, SCREEN_CLEAR_GRAY, 4f), 1e-6f)
+    }
 }

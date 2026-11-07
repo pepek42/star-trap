@@ -150,13 +150,12 @@ class RenderSystem(
     private fun drawBackdrop(camera: OrthographicCamera) {
         val lens = lensing
         val lensCount = if (lens != null && lens.ready && settings.lensingEnabled) collectLenses() else 0
-        if (lens != null && lensCount > 0 && lens.beginCapture()) {
-            batch.use(camera) { backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width, observer) }
+        val lensed = lens != null && lensCount > 0 && lens.beginCapture()
+        batch.use(camera) { backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width, observer) }
+        if (lensed && lens != null) {
             lens.endCapture()
             viewport.apply()
             lens.draw(camera, batch, lensCentres, lensRadii, lensCount)
-        } else {
-            batch.use(camera) { backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width, observer) }
         }
     }
 

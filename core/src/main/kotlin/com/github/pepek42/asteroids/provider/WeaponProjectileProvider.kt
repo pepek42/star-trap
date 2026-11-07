@@ -59,7 +59,8 @@ class WeaponProjectileProvider(
                     this.angle = angle
                     this.position.set(position.x, position.y)
                     val velocity = when (weaponCmp.weaponType) {
-                        WeaponType.LASER -> Vector2(photonDir).scl(settings.c)
+                        // MISSILE is not spawned yet (ST-164); WeaponSystem skips it.
+                        WeaponType.LASER, WeaponType.MISSILE -> Vector2(photonDir).scl(settings.c)
                     }
                     linearVelocity.set(velocity)
                     bullet = true

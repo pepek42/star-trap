@@ -6,6 +6,9 @@ import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.math.Vector3
+import com.github.pepek42.asteroids.component.select
+import com.github.pepek42.asteroids.component.slot
+import com.github.pepek42.asteroids.component.tickInactive
 import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.HealthComponent
@@ -14,6 +17,7 @@ import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.moveCmp
 import com.github.pepek42.asteroids.component.weaponCmpOptional
+import com.github.pepek42.asteroids.component.weaponLoadoutCmpOptional
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
@@ -46,6 +50,7 @@ class PlayerInputSystem(
     private val unprojected = Vector3()
     private var lastScheme: ControlScheme? = null
     private var autoAim: AutoAimStrategy? = null
+    private var pendingSlot = -1
 
     /** Cursor position in world coordinates. */
     val aimWorld: Vector2 get() = input.aimWorld
@@ -107,6 +112,10 @@ class PlayerInputSystem(
             input.moveAxis.set(0f, 0f)
             lastScheme = scheme
         }
+        if (pendingSlot >= 0) {
+            if (weapon != null) entity.weaponLoadoutCmpOptional?.select(pendingSlot, weapon)
+            pendingSlot = -1
+        }
         strategy.apply(input, body.position, body.angle, move, weapon, deltaTime)
         defaultLoggingUtils.tryLogging { logger.debug { "scheme $scheme aimWorld ${input.aimWorld}" } }
     }
@@ -121,6 +130,10 @@ class PlayerInputSystem(
 
     override fun screenAimPoint(screenX: Int, screenY: Int) {
         screenAimPoint.set(screenX.toFloat(), screenY.toFloat())
+    }
+
+    override fun onSelectWeapon(slot: Int) {
+        pendingSlot = slot
     }
 
     override fun fire(fire: Boolean) {

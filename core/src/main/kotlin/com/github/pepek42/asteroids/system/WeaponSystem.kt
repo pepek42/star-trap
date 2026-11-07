@@ -2,10 +2,15 @@ package com.github.pepek42.asteroids.system
 
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
+import com.github.pepek42.asteroids.component.select
+import com.github.pepek42.asteroids.component.slot
+import com.github.pepek42.asteroids.component.tickInactive
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.component.properDelta
 import com.github.pepek42.asteroids.component.weaponCmp
+import com.github.pepek42.asteroids.component.weaponLoadoutCmpOptional
+import com.github.pepek42.asteroids.weapon.WeaponType
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.audio.HullSoundKind
 import com.github.pepek42.asteroids.audio.HullSoundQueue
@@ -21,9 +26,12 @@ class WeaponSystem(
 ) : IteratingSystem(allOf(WeaponComponent::class, BodyComponent::class).get()) {
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val weaponCmp = entity.weaponCmp
-        weaponCmp.cooldown -= entity.properDelta(clock, deltaTime)
+        val dt = entity.properDelta(clock, deltaTime)
+        weaponCmp.cooldown -= dt
+        entity.weaponLoadoutCmpOptional?.tickInactive(dt)
 
-        if (entity.weaponCmp.doAttack && weaponCmp.cooldown <= 0) {
+        // Only lasers fire for now; the missile waits for a lock (ST-164, ST-165).
+        if (weaponCmp.weaponType == WeaponType.LASER && weaponCmp.doAttack && weaponCmp.cooldown <= 0) {
             fire(weaponCmp, entity)
         }
     }

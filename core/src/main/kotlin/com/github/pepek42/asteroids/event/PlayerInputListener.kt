@@ -18,6 +18,9 @@ interface PlayerInputListener {
 
     fun toggleTacticalOverlay() = Unit
 
+    /** Pick the weapon in [slot] (0-based, keys 1..3); empty slots are ignored by the receiver. */
+    fun onSelectWeapon(slot: Int) = Unit
+
     /** Leave the run and go back to the main menu. */
     fun quitToMenu() = Unit
 }

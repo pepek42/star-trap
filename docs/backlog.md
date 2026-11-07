@@ -21,7 +21,6 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 
 M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
-50a. ST-163 Weapon slots: switch with 1/2/3
 50b. ST-164 Homing missile: relativistic rocket body and computer guidance
 50c. ST-165 Missile lock-on: lock first, then fire
 49h. ST-161 Bring docs in line after M6
@@ -195,26 +194,6 @@ Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own pro
 ## M7 Weapons
 
 Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/asteroid) and when locked can be shot ... change weapons by 1/2/3 keys"). Planned by the orchestrator, not the planner. Decisions: slot 1 = photon laser (current), slot 2 = homing missile, slot 3 = reserved (empty until a third weapon, e.g. the slug from game-design §7). Missiles are **sim** objects: massive relativistic bodies with a rocket engine (proper acceleration, so never reaching c), hit by gravity and the boundary field like ships. Lock-on and guidance are **assist/computer**: they use the true target state, like all player targeting (game-design Decisions 2026-11-07, physics-lies row 34). Web: watch body counts (cap missiles in flight), no per-frame allocation, new components stay in `component/` (reflection glob) with one public no-arg constructor.
-
-### ST-163 Weapon slots: switch with 1/2/3
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: —
-- files: `input/InputBindings.kt`, `event/GameEventManager.kt` (+ `PlayerInputListener`), `component/WeaponComponent.kt` or a new `component/WeaponLoadoutComponent.kt`, `weapon/WeaponType.kt`, `provider/PlayerEntityProvider.kt`, `system/PlayerInputSystem.kt`, `ui/Hud.kt`, `assets/i18n/messages.properties`; tests
-- refs: CLAUDE.md "Input & events", "Component convention"; `docs/tech/architecture.md` row 2
-- layer: sim (controls)
-- goal: The player carries several weapons and picks the active one with the number keys.
-- spec:
-  - `WeaponType` gains `MISSILE` (no behaviour yet beyond selection; ST-164 fills it).
-  - Player loadout: slot 1 = `LASER` (today's `WeaponComponent` values), slot 2 = `MISSILE`, slot 3 = empty. Keep it a small array on a player component; selecting writes the active weapon's parameters into the one `WeaponComponent` that `WeaponSystem` already reads (or switch `WeaponSystem` to read the active slot; pick the simpler, keep enemies untouched).
-  - Keys 1/2/3 go into the `InputBindings` table (no literals) → `PlayerInputListener.onSelectWeapon(slot)`. Selecting an empty slot does nothing. Switching keeps each slot's own cooldown.
-  - With slot 2 active, auto-aim does not auto-fire the laser (missiles fire only after a lock, ST-165).
-  - HUD: a small "Weapon: Laser [1] · Missile [2]" line with the active one highlighted (i18n keys).
-- acceptance:
-  - [ ] Tests: the binding table maps 1/2/3; selecting slot 2 makes `WeaponType.MISSILE` active; slot 3 keeps the current weapon
-  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes
-- playtest: Press 1, 2, 3: the HUD shows the active weapon; with 2 active the laser stops firing.
 
 ### ST-164 Homing missile: relativistic rocket body and computer guidance
 - status: ready

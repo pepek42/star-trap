@@ -19,6 +19,7 @@ import com.github.pepek42.asteroids.component.TACTICAL_COMPUTER_DEFAULT_TIER
 import com.github.pepek42.asteroids.component.TacticalComputerComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
+import com.github.pepek42.asteroids.component.WeaponLoadoutComponent
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.weapon.WeaponType
@@ -93,6 +94,7 @@ class PlayerEntityProvider(
                 with<ShipHandlingComponent>()
                 with<PlayerComponent>()
                 with<TacticalComputerComponent> { tier = TACTICAL_COMPUTER_DEFAULT_TIER }
+                with<WeaponLoadoutComponent>()
                 with<WeaponComponent> {
                     ready = true
                     weaponType = WeaponType.LASER

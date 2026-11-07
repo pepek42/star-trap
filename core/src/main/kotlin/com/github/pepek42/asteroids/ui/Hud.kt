@@ -6,10 +6,16 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.HorizontalGroup
 import com.badlogic.gdx.scenes.scene2d.ui.VerticalGroup
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.I18NBundle
 import com.github.pepek42.asteroids.Game
+import com.github.pepek42.asteroids.component.select
+import com.github.pepek42.asteroids.component.slot
+import com.github.pepek42.asteroids.component.tickInactive
+import com.github.pepek42.asteroids.component.WEAPON_SLOT_COUNT
+import com.github.pepek42.asteroids.component.WeaponLoadoutComponent
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import ktx.scene2d.label
 import ktx.scene2d.progressBar
@@ -55,6 +61,9 @@ class Hud(
     private val warpLabel: Label = scene2d.label("").apply { isVisible = false }
     private val rapidityBar: ProgressBar = scene2d.progressBar(0f, 1f, 0.001f, false, "default-horizontal")
     private val tidalLabel: Label = scene2d.label("").apply { isVisible = false }
+    private val weaponLabels: Array<Label> = Array(WEAPON_SLOT_COUNT) { scene2d.label("").apply { isVisible = false } }
+    private val weaponRow = HorizontalGroup().apply { space(8f) }
+    private var weaponShownActive = -1
     private var tidalShownPercent = -1
     private var tidalShownRed = false
     private val levelLabel: Label = scene2d.label("")
@@ -87,10 +96,13 @@ class Hud(
             addActor(timeLabel)
             addActor(warpLabel)
             addActor(tidalLabel)
+            addActor(weaponRow)
             columnAlign(Align.topLeft)
             top().left()
             pad(5f, 5f, 0f, 0f)
         }
+        weaponRow.addActor(scene2d.label(i18NBundle.get("hud_weapon")))
+        weaponLabels.forEach { weaponRow.addActor(it) }
         targetsTitle.setText(i18NBundle.get("hud_targets_title"))
         val targetsGroup = VerticalGroup().apply {
             addActor(targetsTitle)
@@ -168,6 +180,21 @@ class Hud(
     }
 
     /** Tidal stress readout (ST-162): hidden at or below [TIDAL_READOUT_MIN]; the text is rebuilt only when the percent changes. */
+    /** Weapon slots line; the active weapon is highlighted (ST-163). */
+    fun updateWeapons(loadout: WeaponLoadoutComponent) {
+        if (loadout.activeSlot == weaponShownActive) return
+        weaponShownActive = loadout.activeSlot
+        for (i in 0 until WEAPON_SLOT_COUNT) {
+            val type = loadout.slot(i)
+            val label = weaponLabels[i]
+            label.isVisible = type != null
+            if (type == null) continue
+            label.setText(i18NBundle.format("hud_weapon_slot", i18NBundle.get("weapon_" + type.name.lowercase()), i + 1))
+            label.color.set(if (i == weaponShownActive) WEAPON_ACTIVE_COLOR else Color.GRAY)
+        }
+        weaponRow.invalidateHierarchy()
+    }
+
     fun updateTidal(ratio: Float) {
         val percent = tidalReadoutPercent(ratio)
         tidalLabel.isVisible = percent >= 0
@@ -230,6 +257,7 @@ class Hud(
     companion object {
         private const val MAX_DELTA_TIME = 1f / 30
         private const val POINTER_LABEL_OFFSET = 40f
+        private val WEAPON_ACTIVE_COLOR = Color(1f, 0.9f, 0.3f, 1f)
         private val ENEMY_COUNT_COLOR = Color(1f, 0.35f, 0.35f, 1f)
     }
 }

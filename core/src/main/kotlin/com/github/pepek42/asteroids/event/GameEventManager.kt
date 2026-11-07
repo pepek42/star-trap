@@ -6,6 +6,7 @@ import com.github.pepek42.asteroids.input.InputAction
 import com.github.pepek42.asteroids.input.InputBindings
 import com.github.pepek42.asteroids.input.buttonAction
 import com.github.pepek42.asteroids.input.keyAction
+import com.github.pepek42.asteroids.input.weaponSlot
 import ktx.app.KtxInputAdapter
 import ktx.collections.GdxArray
 import ktx.log.logger
@@ -71,6 +72,10 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
             }
             InputAction.QUIT_TO_MENU -> {
                 playerInputListeners.forEach { it.quitToMenu() }
+                true
+            }
+            InputAction.SELECT_WEAPON_1, InputAction.SELECT_WEAPON_2, InputAction.SELECT_WEAPON_3 -> {
+                playerInputListeners.forEach { it.onSelectWeapon(action.weaponSlot()) }
                 true
             }
             // Move keys are consumed in every scheme; only TwinStickStrategy reads moveAxis today.

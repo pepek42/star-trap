@@ -223,6 +223,9 @@ class PlayScreen(
         if (settings.enemiesEnabled) {
             enemyShipProvider.spawn(gameState.level, game.get<RandomXS128>(), mapProvider, holes + planets)
         }
+        if (game.options.nearEnemies > 0) {
+            enemyShipProvider.spawnNearEnemies(game.options.nearEnemies, mapProvider.playerSpawnLocation())
+        }
         hud.toggleHud(show = true)
         hud.updateLevel(gameState.level)
         if (debugSettings.panelAllowed) {

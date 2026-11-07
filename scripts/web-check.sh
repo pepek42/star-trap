@@ -19,9 +19,10 @@ done
 
 ./gradlew teavm:teavmClasses --console=plain -q || { echo "RESULT: FAIL (compile)"; exit 1; }
 if [ "${WEB_XINT:-0}" = 1 ]; then
-  JAVA_TOOL_OPTIONS=-Xint ./gradlew --no-daemon teavm:generateJavaScript --console=plain -q
+  # teavm:clean: the incremental build can keep a stale reflection class list, so a new component class fails only at runtime (seen 2026-11-07).
+  JAVA_TOOL_OPTIONS=-Xint ./gradlew --no-daemon teavm:clean teavm:generateJavaScript --console=plain -q
 else
-  ./gradlew teavm:generateJavaScript --console=plain -q
+  ./gradlew teavm:clean teavm:generateJavaScript --console=plain -q
 fi || { echo "RESULT: FAIL (TeaVM generateJavaScript; if the log shows a JVM SIGSEGV retry with WEB_XINT=1)"; rm -f hs_err_pid*.log; exit 1; }
 
 if [ "$play" = 1 ]; then

@@ -23,7 +23,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49d. ST-157 Enemy lasers use the enemy sprite; computer sound for destroyed ships
 49e. ST-158 Assist: incoming-fire warning on the tactical overlay
 49f. ST-159 Balance runner with enemies
-49g. ST-160 Enemy pressure per level (owner decision)
 49h. ST-161 Bring docs in line after M6
 
 Parked:
@@ -155,7 +154,7 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 ---
 
 ### ST-151 Make the Einstein ring readable (owner decision)
-- status: needs-user
+- status: ready
 - size: S
 - agent: kotlin-dev
 - layer: assist (option a) or sim backdrop (option b)
@@ -163,7 +162,7 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 - files: `render/LensingPass.kt` or `render/BlackHoleRenderer.kt`, `provider/BackgroundProvider.kt`; tests
 - refs: ST-150 report (2026-11-07); `docs/design/physics-lies.md` row 19
 - goal: The lensing is physically correct but hard to see. The backdrop has only sparse 1-3 px stars and a faint nebula, so near a hole it shows a few stretched star streaks, not a ring (a gain cap of 16 instead of 4 made no visible difference). Magnifying the uniform clear grey gave a bright halo, but that was fake light and was removed.
-- question: How should the Einstein ring become visible? (a) **Recommended:** a ship-computer assist that draws a faint dashed ring at R_E, as a toggle like the photon-ring and ISCO lines. It doesn't change the sim and fits the Vision rule "fix readability with assists". (b) A denser or brighter star layer and nebula near holes. That is more "real light", but it is a backdrop FAKE and costs fill rate on web. (c) Leave it as is: the streaks are the honest picture.
+- decision: owner 2026-11-07 chose (a): a ship-computer assist that draws a faint dashed ring at R_E, toggleable (like the photon-ring and ISCO lines), default on.
 - acceptance:
   - [ ] The chosen option is in place; for (a), it is toggleable and default on; for (b), a physics-lies row is added
   - [ ] Pilot-view screenshot `--hole-near=14 --pilot-view` shows a readable ring
@@ -229,20 +228,6 @@ Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own pro
   - [ ] `BalanceSimTest` covers a level-2 run that spawns one enemy and records `enemiesKilled`
   - [ ] `./gradlew core:test tool:test` passes
 - playtest: —
-
-### ST-160 Enemy pressure per level (owner decision)
-- status: needs-user
-- size: S
-- agent: kotlin-dev
-- depends: ST-159
-- files: `provider/EnemyShipProvider.kt`
-- refs: ST-159 balance numbers
-- layer: sim
-- goal: Decide how many enemy ships appear and when, after the balance numbers exist.
-- question: How should enemies enter the levels? (a) **Recommended:** from level 2, `level − 1` ships, at most 3, all present from the start alongside the asteroids, and the level clears only when they are all dead. It ramps gently and keeps body counts low for web. (b) One ship from level 1, growing with the level. (c) Enemies come as a separate wave after the asteroids are cleared.
-- acceptance:
-  - [ ] `enemyCount` and the spawn timing match the chosen option; `game-design.md` "Decisions" records it
-  - [ ] `./gradlew core:test` passes
 
 ### ST-161 Bring docs in line after M6
 - status: ready

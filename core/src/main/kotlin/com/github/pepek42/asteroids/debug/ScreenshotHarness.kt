@@ -25,6 +25,8 @@ data class LaunchOptions(
     val controls: ControlScheme? = null,
     /** Extra asteroids placed in a ring around the player at level spawn (`--near-asteroids=<n>`), for visual checks. */
     val nearAsteroids: Int = 0,
+    /** Extra enemy ships placed around the player at level spawn (`--near-enemies=<n>`; web: `?near-enemies=2`), for visual checks. */
+    val nearEnemies: Int = 0,
     /** Places the first black hole this many u from the player spawn (`--hole-near[=<u>]`, bare = [HOLE_NEAR_DISTANCE]), for visual checks. */
     val holeNear: Float? = null,
     /** The player cannot die (`--invulnerable`; web: `?invulnerable`), so long screenshot runs near a hole survive. Harness only. */
@@ -53,7 +55,7 @@ data class LaunchOptions(
 const val HOLE_NEAR_DISTANCE = 25f
 
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play`, `--pilot-view`, `--shadow-demo`, `--no-shadows` and `--no-lensing`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--near-enemies=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play`, `--pilot-view`, `--shadow-demo`, `--no-shadows` and `--no-lensing`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -70,6 +72,7 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
             "--thrust" -> options = options.copy(thrust = true)
             "--controls" -> ControlScheme.fromFlag(value)?.let { options = options.copy(controls = it) }
             "--near-asteroids" -> value?.toIntOrNull()?.takeIf { it > 0 }?.let { options = options.copy(nearAsteroids = it) }
+            "--near-enemies" -> value?.toIntOrNull()?.takeIf { it > 0 }?.let { options = options.copy(nearEnemies = it) }
             "--hole-near" -> options = options.copy(holeNear = if (value == null) HOLE_NEAR_DISTANCE else value.toFloatOrNull()?.takeIf { it > 0f } ?: options.holeNear)
             "--invulnerable" -> options = options.copy(invulnerable = true)
             "--debug-panel" -> options = options.copy(debugPanel = true)

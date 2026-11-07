@@ -1,5 +1,7 @@
 package com.github.pepek42.asteroids.provider
 
+import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.ashley.core.PooledEngine
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.math.RandomXS128
@@ -54,8 +56,14 @@ const val ENEMY_SOURCE_CLEARANCE = 20f
 
 private const val ENEMY_SPAWN_TRIES = 50
 
-/** Number of enemies on [level]: none on level 1, then one more per level up to [ENEMY_MAX]. */
-fun enemyCount(level: Int): Int = min(ENEMY_MAX, max(0, level - 1))
+/** Distance (u) of harness enemies from the player (`--near-enemies`): inside the default 48 u wide view. */
+const val NEAR_ENEMY_DISTANCE = 12f
+
+/** First level with enemy ships (owner decision ST-160, 2026-11-07). */
+const val ENEMY_FIRST_LEVEL = 3
+
+/** Number of enemies on [level]: none before [ENEMY_FIRST_LEVEL], then one more per level up to [ENEMY_MAX]. */
+fun enemyCount(level: Int): Int = min(ENEMY_MAX, max(0, level - ENEMY_FIRST_LEVEL + 1))
 
 class EnemyShipProvider(
     private val engine: PooledEngine,
@@ -88,6 +96,17 @@ class EnemyShipProvider(
             }
         }
         return placed.copyOf(2 * n)
+    }
+
+    /**
+     * Harness only (`--near-enemies=<n>`): [n] enemies evenly spaced on a circle of [NEAR_ENEMY_DISTANCE] u around
+     * [centre], starting straight above it, so screenshots show enemies and their markers in view.
+     */
+    fun spawnNearEnemies(n: Int, centre: Vector2) {
+        for (i in 0 until n) {
+            val a = MathUtils.PI / 2f + i * MathUtils.PI2 / n
+            spawnEnemy(centre.x + NEAR_ENEMY_DISTANCE * MathUtils.cos(a), centre.y + NEAR_ENEMY_DISTANCE * MathUtils.sin(a))
+        }
     }
 
     private fun spawnEnemy(x: Float, y: Float) {

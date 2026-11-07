@@ -90,6 +90,12 @@ Tunables: the speed of light `c` (c = 20 u/s, see §11; it has to fit Box2D's ~9
 - **Accretion disk (ST-087, ST-140):** a GPU particle disk per hole with Doppler and blackbody colour. In pilot view (ST-089) each particle is light-delayed, aberrated and Doppler-shifted, so the side swinging toward the pilot is bluer and brighter.
 - **Lighting (planned):** the disk, and a distant star light, will light nearby sprites with falloff and direction. Planets and large asteroids will cast shadows. The maths exists (`render/Lighting.kt`, ST-095), but there is no lit-sprite shader, normal map or shadow yet.
 
+### Marker legend (2026-11-07)
+
+![Annotated screenshot of every marker](markers-legend.png)
+
+Regenerate it with `--frames=130 --seed=42 --invulnerable --near-asteroids=3 --near-enemies=3` (desktop screenshot harness) and annotate. What the player must destroy is always marked: a glowing red **target ring** on every asteroid and enemy ship in view, an **edge arrow** (red = enemy, grey = asteroid) for every one out of view, and the **Targets left** counter at the top right. Everything else (debris, planets, holes) has no ring and no arrow.
+
 ## 10. Milestones
 
 | ID | Milestone | Exit criteria |
@@ -124,6 +130,8 @@ The planner and auto-dev put new questions here or on `needs-user` backlog cards
 - 2026-11-02 (ST-034): The default weapon is the **photon laser at c** with muzzle aberration. The slug comes later as an upgrade.
 - 2026-11-02: **Braking boost.** Engine proper accel = a0·(1 + k·max(0, −cos θ)), with k = 2 (3× when burning straight against your motion).
 - 2026-11-02: **Shots leave the arena.** The boundary field ignores projectiles (no mirrors or bounces). A ripple shows where they cross.
+- 2026-11-07 (ST-160, owner): **Enemy ships from level 3**, one more per level, at most 3 (`ENEMY_FIRST_LEVEL`, `ENEMY_MAX`). They are present from the start next to the asteroids, and the level clears only when all are dead.
+- 2026-11-07 (ST-151, owner): the Einstein ring is made readable with a toggleable **computer assist ring**, not a brighter backdrop.
 - 2026-11-02: The next big areas are relativistic visuals and gravity/black holes. Black holes are **fixed, 1–2 per level**: gravity bends ships and shots, the horizon kills, and a bright accretion disk makes them readable.
 - 2026-11-02 (follow-up, Q1): Black holes, planets and decoration **start static but are dynamic**: they feel gravity from each other (n-body) and from the player, and the boundary field keeps them in the arena; counts stay low for performance. **Lighting:** the accretion disk (not the hole) and a distant star light nearby sprites with falloff and direction, and planets and large asteroids cast shadows; in pilot view, emitter light delay is skipped as a declared approximation.
 - 2026-11-02 (ST-092): Source–source gravity is scaled to **0.1** (FAKE). Every deliberate physics departure is listed in [physics-lies.md](physics-lies.md).

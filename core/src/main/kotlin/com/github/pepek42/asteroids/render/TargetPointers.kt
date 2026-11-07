@@ -2,9 +2,6 @@ package com.github.pepek42.asteroids.render
 
 import kotlin.math.abs
 
-/** Most edge arrows shown at once. */
-const val MAX_TARGET_POINTERS = 6
-
 /** Distance (u) at and beyond which an arrow is at its faintest. */
 const val POINTER_FADE_DIST = 120f
 const val POINTER_ALPHA_NEAR = 0.9f

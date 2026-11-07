@@ -11,8 +11,8 @@ class TargetPointersTest {
         for (i in 0 until 10) { c[2 * i] = 100f - 5f * i; c[2 * i + 1] = 0f }
         c[20] = 1f; c[21] = 1f
         c[22] = -9f; c[23] = 9f
-        val out = IntArray(MAX_TARGET_POINTERS)
-        val n = selectPointerTargets(0f, 0f, 10f, 10f, c, 12, MAX_TARGET_POINTERS, out)
+        val out = IntArray(6)
+        val n = selectPointerTargets(0f, 0f, 10f, 10f, c, 12, 6, out)
         assertEquals(6, n)
         assertEquals(listOf(9, 8, 7, 6, 5, 4), out.toList())
     }

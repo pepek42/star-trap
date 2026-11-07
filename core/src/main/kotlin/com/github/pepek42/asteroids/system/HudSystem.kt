@@ -8,12 +8,8 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.debug.DebugSettings
-import com.github.pepek42.asteroids.component.BaseInfoComponent
-import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.baseInfoCmp
-import com.github.pepek42.asteroids.component.removeMapper
 import com.github.pepek42.asteroids.faction.FactionEnum
-import com.github.pepek42.asteroids.render.MAX_TARGET_POINTERS
 import com.github.pepek42.asteroids.render.pointerAlpha
 import com.github.pepek42.asteroids.render.selectPointerTargets
 import com.github.pepek42.asteroids.render.ReferenceGridRenderer
@@ -29,6 +25,9 @@ import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.ui.Hud
+import com.github.pepek42.asteroids.ui.TargetCounts
+import com.github.pepek42.asteroids.ui.countLevelTargets
+import com.github.pepek42.asteroids.ecs.levelTargetFamily
 import ktx.ashley.allOf
 
 class HudSystem(
@@ -43,19 +42,23 @@ class HudSystem(
     private val pilotView: PilotViewProjector,
 ) : IteratingSystem(allOf(PlayerComponent::class, TransformComponent::class, BodyComponent::class).get()) {
 
-    private val targetFamily = allOf(BaseInfoComponent::class, TransformComponent::class).get()
+    /** Only level targets get arrows (owner 2026-11-07): every asteroid and enemy ship, nothing else. */
+    private val targetFamily = levelTargetFamily()
     private var candidates = FloatArray(64)
     private var candidateEntities = arrayOfNulls<Entity>(32)
-    private val selection = IntArray(MAX_TARGET_POINTERS)
+    private var selection = IntArray(32)
     private val pointerPos = Vector2()
     private val screenPos = Vector3()
     private val playerPos = Vector2()
     private val apparentPos = Vector2()
     private var hasPlayer = false
+    private val targetCounts = TargetCounts()
 
     override fun update(deltaTime: Float) {
         hasPlayer = false
         super.update(deltaTime)
+        countLevelTargets(engine.getEntitiesFor(targetFamily), targetCounts)
+        hud.updateTargets(targetCounts)
         updateTargetPointers()
         hud.updateAndRender(deltaTime)
     }
@@ -88,9 +91,6 @@ class HudSystem(
         var count = 0
         for (i in 0 until entities.size()) {
             val e = entities[i]
-            val info = e.baseInfoCmp
-            if (info.faction != FactionEnum.NEUTRAL && info.faction != FactionEnum.ENEMY) continue
-            if (info.entityType == EntityType.PROJECTILE || removeMapper.has(e)) continue
             if (2 * count + 1 >= candidates.size) candidates = candidates.copyOf(candidates.size * 2)
             if (count >= candidateEntities.size) candidateEntities = candidateEntities.copyOf(candidates.size / 2)
             if (apparent) {
@@ -104,8 +104,10 @@ class HudSystem(
             candidateEntities[count] = e
             count++
         }
+        // Every off-screen target gets an arrow; the buffer only grows (no per-frame allocation once warmed up).
+        if (selection.size < count) selection = IntArray(candidateEntities.size)
         val selected = selectPointerTargets(
-            camera.position.x, camera.position.y, halfW, halfH, candidates, count, MAX_TARGET_POINTERS, selection,
+            camera.position.x, camera.position.y, halfW, halfH, candidates, count, count, selection,
         )
         if (selected == 0) {
             hud.hidePointerDistance()

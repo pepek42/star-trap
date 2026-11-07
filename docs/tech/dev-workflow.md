@@ -73,6 +73,7 @@ Options (parsed by `parseLaunchOptions` in `core/.../debug/ScreenshotHarness.kt`
 - `--thrust`: hold the thrusters during the run.
 - `--seed=<long>`: seeds all gameplay randomness (one `RandomXS128` in the DI context). Without it the seed comes from the clock. Screenshot runs also use a fixed 1/60 s frame delta, so the same args give byte-identical PNGs.
 - `--near-asteroids=<n>`: additionally places n large asteroids in a ring 8-15 u around the player (seeded RNG), so near-field effects such as the pilot view are visible on level 1.
+- `--near-enemies=<n>`: places n enemy ships evenly on a 12 u circle around the player (starting straight above), so enemies and their markers are in view on any level. Web: `?near-enemies=2`.
 - `--hole-near[=<u>]`: places the first black hole `<u>` (default 25, `HOLE_NEAR_DISTANCE`) right of the player spawn so the hole and its disk are in view. `--invulnerable` keeps the player alive (also past the horizon) for long runs near a hole. Harness only; normal spawning and death are unchanged. Web: `?hole-near=18&invulnerable`.
 - `--controls=mouse|twin|auto`: picks the control scheme (`ControlScheme.fromFlag`); wins over the saved menu setting. Also works outside screenshot runs.
 - `--debug-panel`: allows the F1 debug panel even when the "Debug mode" setting is off. Also works outside screenshot runs.
@@ -99,6 +100,7 @@ No player input is sent otherwise. After frame N the framebuffer is saved as PNG
 Web gotchas found so far:
 - **Component constructors.** gdx-teavm's `ClassReflection.getConstructor(c)` returns `getConstructors()[0]`, not the no-arg constructor. Components must have exactly one public, parameterless constructor (no Kotlin constructor parameters with defaults, no `data class`); `ComponentConstructorTest` enforces it.
 - **Reflection patterns** in `teavm/build.gradle.kts` are globs: a package needs `.**` (`com.github.pepek42.asteroids.component.**`).
+- **Stale reflection list.** An incremental `teavm:generateJavaScript` kept an old reflection class list, so a new component (`EnemyComponent`) failed only at runtime with "missing no-arg constructor" (2026-11-07). `web-check.sh` therefore runs `teavm:clean` first. The default `--play` query starts level 1, which has no enemies; use `--query="seed=42&play&near-enemies=2"` to exercise them.
 - The 2026-11-04 TeaVM worker SIGSEGVs were faulty RAM, not TeaVM; `WEB_XINT=1` (interpreter-only worker) remains as a fallback.
 
 ## Web release (GitHub Pages)

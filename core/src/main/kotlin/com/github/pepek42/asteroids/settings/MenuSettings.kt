@@ -111,6 +111,10 @@ fun menuSettings(
                 { tactical.showLaserDamage }, { tactical.showLaserDamage = it }, relativityOn,
             ),
             SettingSpec.Toggle(
+                "tactical_target_rings", TACTICAL_TARGET_RINGS_DEFAULT,
+                { tactical.showTargetRings }, { tactical.showTargetRings = it },
+            ),
+            SettingSpec.Toggle(
                 "tactical_intercept_markers", TACTICAL_INTERCEPT_MARKERS_DEFAULT,
                 { tactical.showInterceptMarkers }, { tactical.showInterceptMarkers = it },
             ),

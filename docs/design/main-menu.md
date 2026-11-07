@@ -75,6 +75,7 @@ ST-114 adds `ControlScheme.implemented`. **Owner 2026-11-03: the menu has no aim
 | Speed of light c | `RelativitySettings.c` | slider `C_MIN`…`C_MAX_BOX2D_SAFE`, step 1 | `SPEED_OF_LIGHT` (20) | **menu**, disabled when relativity is off |
 | Time warp (arena runs on ship time) | `RelativitySettings.timeWarpEnabled` | toggle | `TIME_WARP_ENABLED` (true) | **menu**, disabled when relativity is off |
 | Target pointers | `DebugSettings.targetPointersEnabled` | toggle | `TARGET_POINTERS_ENABLED` | **menu** |
+| Target rings | `TacticalSettings.showTargetRings` | toggle | `TACTICAL_TARGET_RINGS_DEFAULT` (true) | **menu** (Tactical section) |
 | Reference grid | `DebugSettings.gridEnabled` | toggle | `GRID_ENABLED` | **menu** |
 | Fullscreen | `Gdx.graphics` | toggle, desktop only | false | **menu** (ST-117) |
 | Boundary field on/off, aberration, light delay | `RelativitySettings` | toggles | true | debug panel only |

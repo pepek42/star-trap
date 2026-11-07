@@ -25,3 +25,6 @@ val LOCK_RETICLE_COLOR: Color = Color(1f, 0.35f, 0.15f, 1f)
 
 /** Alpha of the auto-aim lock-on reticle. */
 const val LOCK_RETICLE_ALPHA = 0.9f
+
+/** Target rings (owner 2026-11-07): every level target the player must destroy is circled in this red. */
+val TARGET_RING_COLOR: Color = Color(1f, 0.15f, 0.15f, 1f)

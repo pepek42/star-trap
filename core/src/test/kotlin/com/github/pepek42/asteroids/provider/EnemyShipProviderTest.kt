@@ -53,7 +53,9 @@ class EnemyShipProviderTest {
     @Test
     fun enemyCountGrowsAndIsCapped() {
         assertEquals(0, enemyCount(1))
-        assertEquals(1, enemyCount(2))
+        assertEquals(0, enemyCount(ENEMY_FIRST_LEVEL - 1))
+        assertEquals(1, enemyCount(ENEMY_FIRST_LEVEL))
+        assertEquals(2, enemyCount(ENEMY_FIRST_LEVEL + 1))
         assertEquals(ENEMY_MAX, enemyCount(10))
     }
 
@@ -73,7 +75,7 @@ class EnemyShipProviderTest {
 
     @Test
     fun levelIsNotClearedWhileAnEnemyLivesAndDeadEnemyGetsRemoveComponent() {
-        provider.spawn(2, RandomXS128(7L), map, FloatArray(0))
+        provider.spawn(com.github.pepek42.asteroids.provider.ENEMY_FIRST_LEVEL, RandomXS128(7L), map, FloatArray(0))
         var cleared = 0
         engine.addSystem(EndLevelSystem({ cleared++ }))
         engine.addSystem(DeathSystem(engine, mock<AsteroidProvider>(), RandomXS128(1)))

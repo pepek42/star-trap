@@ -61,7 +61,8 @@ class TacticalOverlaySystemTest {
     private val world = World(Vector2.Zero, true).apply { setAutoClearForces(false) }
     private val engine = PooledEngine()
     private val settings = RelativitySettings()
-    private val tactical = TacticalSettings()
+    // Target rings have their own test below; off here so the shape-call counts cover only the overlay.
+    private val tactical = TacticalSettings().apply { showTargetRings = false }
     private val shape = mock<ShapeRenderer>()
     private val controls = ControlSettings()
     private val viewport = mock<Viewport> { on { screenWidth } doReturn 1280 }
@@ -260,5 +261,22 @@ class TacticalOverlaySystemTest {
             Gdx.app = mock<Application> { on { logLevel } doReturn Application.LOG_NONE }
             Gdx.gl = mock<GL20>()
         }
+    }
+
+    @Test
+    fun targetRingsCircleLevelTargetsEvenWithTheOverlayOff() {
+        tactical.showTargetRings = true
+        tactical.mode = com.github.pepek42.asteroids.render.TacticalOverlayMode.OFF
+        engine.update(1f / 60f)
+        val circles = org.mockito.Mockito.mockingDetails(shape).invocations.count { it.method.name == "circle" }
+        // One asteroid target (the player is not one): a core ring plus two rings per glow layer.
+        assertEquals(1 + 2 * (com.github.pepek42.asteroids.render.TARGET_RING_LAYER_ALPHA.size - 1), circles)
+    }
+
+    @Test
+    fun targetRingsToggleOffDrawsNone() {
+        tactical.mode = com.github.pepek42.asteroids.render.TacticalOverlayMode.OFF
+        engine.update(1f / 60f)
+        assertEquals(0, org.mockito.Mockito.mockingDetails(shape).invocations.count { it.method.name == "circle" })
     }
 }

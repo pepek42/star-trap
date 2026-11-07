@@ -10,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.VerticalGroup
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.I18NBundle
 import com.github.pepek42.asteroids.Game
+import com.github.pepek42.asteroids.environment.AsteroidSize
 import ktx.scene2d.label
 import ktx.scene2d.progressBar
 import ktx.scene2d.scene2d
@@ -61,6 +62,13 @@ class Hud(
     private val pointerLabel: Label = scene2d.label("").apply { isVisible = false }
     private val table: Table = Table()
     private val pointerPos = Vector2()
+    private val targetsTitle: Label = scene2d.label("")
+    private val asteroidLabels: Array<Label> = Array(AsteroidSize.entries.size) { scene2d.label("") }
+    private val enemiesLabel: Label = scene2d.label("").apply { color.set(ENEMY_COUNT_COLOR); isVisible = false }
+    private val shownTargets = TargetCounts()
+    private var targetsShownOnce = false
+    /** True once this level had an enemy ship, so the row stays (at 0) after the last one dies. */
+    private var levelHasEnemies = false
 
     /** False after toggleHud(false). */
     var isShown: Boolean = false
@@ -83,9 +91,19 @@ class Hud(
             top().left()
             pad(5f, 5f, 0f, 0f)
         }
+        targetsTitle.setText(i18NBundle.get("hud_targets_title"))
+        val targetsGroup = VerticalGroup().apply {
+            addActor(targetsTitle)
+            // Biggest asteroids first.
+            AsteroidSize.entries.sortedByDescending { it.radius }.forEach { addActor(asteroidLabels[it.ordinal]) }
+            addActor(enemiesLabel)
+            columnAlign(Align.topRight)
+            top().right()
+            pad(5f, 0f, 0f, 5f)
+        }
         table.add(verticalGroup).top().left()
         table.add()
-        table.add()
+        table.add(targetsGroup).top().right()
         table.row()
         table.add()
         table.add(centerLabel).align(Align.center)
@@ -189,10 +207,26 @@ class Hud(
 
     fun updateLevel(level: Int) {
         levelLabel.setText(i18NBundle.format("hud_level", level))
+        levelHasEnemies = false
+        targetsShownOnce = false
+    }
+
+    /** Targets-left counter (top right): one row per asteroid size and one for enemy ships; text rebuilt only on change. */
+    fun updateTargets(counts: TargetCounts) {
+        if (targetsShownOnce && counts.sameAs(shownTargets)) return
+        targetsShownOnce = true
+        shownTargets.copyFrom(counts)
+        for (size in AsteroidSize.entries) {
+            asteroidLabels[size.ordinal].setText(i18NBundle.format(asteroidCountKey(size), counts.asteroids[size.ordinal]))
+        }
+        if (counts.enemies > 0) levelHasEnemies = true
+        enemiesLabel.isVisible = levelHasEnemies
+        enemiesLabel.setText(i18NBundle.format("hud_enemies", counts.enemies))
     }
 
     companion object {
         private const val MAX_DELTA_TIME = 1f / 30
         private const val POINTER_LABEL_OFFSET = 40f
+        private val ENEMY_COUNT_COLOR = Color(1f, 0.35f, 0.35f, 1f)
     }
 }

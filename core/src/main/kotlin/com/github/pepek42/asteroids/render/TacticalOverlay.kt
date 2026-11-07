@@ -41,6 +41,42 @@ const val TACTICAL_LEAD_RANGE_SECONDS = 2f
 /** Radius of an intercept marker ring in screen pixels. */
 const val TACTICAL_LEAD_RING_PX = 6f
 
+/** Circle segments of an intercept ring (the ShapeRenderer default draws a diamond at this size). */
+const val TACTICAL_LEAD_RING_SEGMENTS = 16
+
+/** Gap between a target's hull (bounding radius) and its target ring, in screen pixels. */
+const val TARGET_RING_PAD_PX = 6f
+
+/** Smallest target ring radius in screen pixels, so far-zoomed targets stay marked. */
+const val TARGET_RING_MIN_RADIUS_PX = 10f
+
+/** Circle segments of a target ring (the ShapeRenderer default is too coarse for small world radii). */
+const val TARGET_RING_SEGMENTS = 40
+
+/** Glow halo: rings this many screen pixels apart on both sides of the core ring. */
+const val TARGET_RING_GLOW_STEP_PX = 1.5f
+
+/** Alpha of the core ring, then of each glow layer outward/inward (additive blending, so layers add up to a soft glow). */
+val TARGET_RING_LAYER_ALPHA = floatArrayOf(0.9f, 0.4f, 0.2f, 0.08f)
+
+/** Period of the gentle glow pulse in real seconds. */
+const val TARGET_RING_PULSE_PERIOD_S = 1.6f
+
+/** Glow alpha swings by +-this fraction over a pulse; the core ring does not pulse. */
+const val TARGET_RING_PULSE_DEPTH = 0.3f
+
+/** Radius of the target ring around a target with hull [boundingRadius] (world units), [wpp] world units per pixel. */
+fun targetRingRadius(boundingRadius: Float, wpp: Float): Float =
+    maxOf(boundingRadius + TARGET_RING_PAD_PX * wpp, TARGET_RING_MIN_RADIUS_PX * wpp)
+
+/** Alpha of glow layer [layer] (0 = core ring) at real time [timeS]: glow layers pulse gently, the core is steady. */
+fun targetRingLayerAlpha(layer: Int, timeS: Float): Float {
+    val base = TARGET_RING_LAYER_ALPHA[layer]
+    if (layer == 0) return base
+    val pulse = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * timeS / TARGET_RING_PULSE_PERIOD_S)
+    return base * (1f + TARGET_RING_PULSE_DEPTH * pulse)
+}
+
 /** Radius of the auto-aim lock-on reticle circle in screen pixels (ST-142). */
 const val LOCK_RETICLE_RADIUS_PX = 14f
 

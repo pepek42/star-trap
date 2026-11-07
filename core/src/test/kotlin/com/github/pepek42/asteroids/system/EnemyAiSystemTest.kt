@@ -216,7 +216,7 @@ class EnemyAiSystemTest {
         )
         buildGameplaySystems(deps)
         PlayerEntityProvider(real, world, map, atlas, settings).spawnPlayerEntity()
-        EnemyShipProvider(real, world, atlas, settings).spawn(2, RandomXS128(3), map, FloatArray(0))
+        EnemyShipProvider(real, world, atlas, settings).spawn(com.github.pepek42.asteroids.provider.ENEMY_FIRST_LEVEL, RandomXS128(3), map, FloatArray(0))
         val player = real.entities.first { it.getComponent(PlayerComponent::class.java) != null }
         val enemy = real.entities.first { it.getComponent(EnemyComponent::class.java) != null }
         // A resting target: no input from the player's side, so the enemy is the only actor.

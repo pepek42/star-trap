@@ -25,6 +25,8 @@ import com.github.pepek42.asteroids.component.RemoveComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.bodyCmp
+import com.github.pepek42.asteroids.component.bodyCmpOptional
+import com.github.pepek42.asteroids.render.TARGET_RING_PULSE_PERIOD_S
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.component.tacticalComputerCmpOptional
@@ -49,8 +51,17 @@ import com.github.pepek42.asteroids.render.LOCK_RETICLE_TICK_GAP_PX
 import com.github.pepek42.asteroids.render.LOCK_RETICLE_TICK_LEN_PX
 import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.TACTICAL_ARROW_HEAD_PX
+import com.github.pepek42.asteroids.render.TARGET_RING_GLOW_STEP_PX
+import com.github.pepek42.asteroids.render.TARGET_RING_LAYER_ALPHA
+import com.github.pepek42.asteroids.render.TARGET_RING_SEGMENTS
+import com.github.pepek42.asteroids.render.targetRingLayerAlpha
+import com.github.pepek42.asteroids.render.targetRingRadius
+import com.github.pepek42.asteroids.component.computeBoundingRadius
+import com.github.pepek42.asteroids.ecs.levelTargetFamily
+import com.github.pepek42.asteroids.ui.TARGET_RING_COLOR
 import com.github.pepek42.asteroids.render.TACTICAL_LEAD_MAX
 import com.github.pepek42.asteroids.render.TACTICAL_LEAD_RING_PX
+import com.github.pepek42.asteroids.render.TACTICAL_LEAD_RING_SEGMENTS
 import com.github.pepek42.asteroids.render.TACTICAL_MIN_ARROW_BETA
 import com.github.pepek42.asteroids.render.TACTICAL_MIN_RADIUS_PX
 import com.github.pepek42.asteroids.render.TACTICAL_OUTLINE_MAX_VERTS
@@ -120,12 +131,16 @@ class TacticalOverlaySystem(
     private val leadDir = Vector2()
     private val muzzle = Vector2()
     private val reticlePos = Vector2()
+    private val ringPos = Vector2()
+    private var levelTargets: ImmutableArray<Entity>? = null
+    private var ringTime = 0f
 
     override fun addedToEngine(engine: Engine) {
         super.addedToEngine(engine)
         players = engine.getEntitiesFor(allOf(PlayerComponent::class, TransformComponent::class).get())
         candidates = engine.getEntitiesFor(allOf(HealthComponent::class, BodyComponent::class, BaseInfoComponent::class).get())
         playerInput = engine.getSystem(PlayerInputSystem::class.java)
+        levelTargets = engine.getEntitiesFor(levelTargetFamily())
         gameEventManager.addInputListener(this)
     }
 
@@ -140,6 +155,8 @@ class TacticalOverlaySystem(
 
     override fun update(deltaTime: Float) {
         val tier = players?.let { if (it.size() > 0) it[0] else null }?.tacticalComputerCmpOptional?.tier ?: TACTICAL_TIER_NONE
+        ringTime = (ringTime + deltaTime) % TARGET_RING_PULSE_WRAP_S
+        drawTargetRings()
         drawLockReticle()
         if (!tacticalOverlayVisible(tactical.mode, relativity.pilotView, tier, tactical.inverted)) return
 
@@ -159,6 +176,57 @@ class TacticalOverlaySystem(
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         Gdx.gl.glDisable(GL20.GL_BLEND)
         drawLaserDamageLabel()
+    }
+
+    /**
+     * Target rings (owner 2026-11-07): a glowing red ring around every level target (asteroids and enemy ships, the set
+     * the level-clear check waits for), at the position its sprite is drawn (apparent centre in pilot view). Independent of
+     * the overlay toggle, like the lock reticle. The glow is a few concentric 1 px rings with falling alpha under additive
+     * blending (WebGL has no wide lines), whose outer layers pulse gently.
+     */
+    private fun drawTargetRings() {
+        if (!tactical.showTargetRings) return
+        val targets = levelTargets ?: return
+        if (targets.size() == 0) return
+        val view = pilotView
+        val apparent = relativity.pilotView && view != null
+        if (apparent) {
+            val player = players?.let { if (it.size() > 0) it[0] else null } ?: return
+            val p = player.transformCmp.interpolatedPosition
+            view!!.begin(p.x, p.y)
+        }
+        viewport.apply()
+        wpp = worldPerPixel(camera.viewportWidth, camera.zoom, viewport.screenWidth)
+        val step = TARGET_RING_GLOW_STEP_PX * wpp
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        // Additive colour, framebuffer alpha kept opaque.
+        Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE, GL20.GL_ZERO, GL20.GL_ONE)
+        shape.projectionMatrix = camera.combined
+        shape.begin(ShapeRenderer.ShapeType.Line)
+        for (i in 0 until targets.size()) {
+            val e = targets[i]
+            if (apparent) {
+                if (!view!!.apparentCentre(e, ringPos)) continue
+            } else {
+                ringPos.set(e.transformCmp.interpolatedPosition)
+            }
+            val bodyCmp = e.bodyCmpOptional ?: continue
+            if (bodyCmp.boundingRadius < 0f) bodyCmp.boundingRadius = computeBoundingRadius(bodyCmp.body)
+            val r = targetRingRadius(bodyCmp.boundingRadius, wpp)
+            for (layer in TARGET_RING_LAYER_ALPHA.indices) {
+                color.set(TARGET_RING_COLOR).a = targetRingLayerAlpha(layer, ringTime)
+                shape.color = color
+                if (layer == 0) {
+                    shape.circle(ringPos.x, ringPos.y, r, TARGET_RING_SEGMENTS)
+                } else {
+                    shape.circle(ringPos.x, ringPos.y, r + layer * step, TARGET_RING_SEGMENTS)
+                    shape.circle(ringPos.x, ringPos.y, maxOf(r - layer * step, step), TARGET_RING_SEGMENTS)
+                }
+            }
+        }
+        shape.end()
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+        Gdx.gl.glDisable(GL20.GL_BLEND)
     }
 
     /**
@@ -191,7 +259,7 @@ class TacticalOverlaySystem(
         shape.begin(ShapeRenderer.ShapeType.Line)
         color.set(LOCK_RETICLE_COLOR).a = LOCK_RETICLE_ALPHA
         shape.color = color
-        shape.circle(x, y, radius)
+        shape.circle(x, y, radius, TARGET_RING_SEGMENTS)
         shape.line(x - outer, y, x - inner, y)
         shape.line(x + inner, y, x + outer, y)
         shape.line(x, y - outer, x, y - inner)
@@ -255,7 +323,7 @@ class TacticalOverlaySystem(
             val my = sy + dirY * range
             color.set(target.baseInfoCmp.faction.color).a = TACTICAL_ALPHA
             shape.color = color
-            shape.circle(mx, my, ringRadius)
+            shape.circle(mx, my, ringRadius, TACTICAL_LEAD_RING_SEGMENTS)
             shape.line(tPos.x, tPos.y, mx, my)
         }
     }
@@ -372,5 +440,8 @@ class TacticalOverlaySystem(
     private companion object {
         /** Screen-pixel offset of the laser damage label from the target centre. */
         const val LASER_LABEL_OFFSET_PX = 14f
+
+        /** [ringTime] wraps at a whole number of pulses so float precision never degrades. */
+        const val TARGET_RING_PULSE_WRAP_S = 100f * TARGET_RING_PULSE_PERIOD_S
     }
 }

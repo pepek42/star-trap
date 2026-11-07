@@ -14,10 +14,13 @@ const val TACTICAL_INTERCEPT_MARKERS_DEFAULT = true
 /** Default of [TacticalSettings.showTargetRings]: glowing red rings on every level target (owner 2026-11-07). */
 const val TACTICAL_TARGET_RINGS_DEFAULT = true
 
+/** Default of [TacticalSettings.showIncomingFire] (ST-158). */
+const val TACTICAL_INCOMING_FIRE_DEFAULT = true
+
 /**
  * Tactical overlay preferences: [mode], the in-game flip [inverted], the laser damage multiplier label [showLaserDamage]
  * the intercept markers [showInterceptMarkers] (tier 2 only)
- * and the target rings [showTargetRings].
+ * the target rings [showTargetRings] and the incoming fire warning [showIncomingFire].
  */
 class TacticalSettings(
     var mode: TacticalOverlayMode = TACTICAL_OVERLAY_DEFAULT_MODE,
@@ -25,4 +28,5 @@ class TacticalSettings(
     var showLaserDamage: Boolean = TACTICAL_LASER_DAMAGE_DEFAULT,
     var showInterceptMarkers: Boolean = TACTICAL_INTERCEPT_MARKERS_DEFAULT,
     var showTargetRings: Boolean = TACTICAL_TARGET_RINGS_DEFAULT,
+    var showIncomingFire: Boolean = TACTICAL_INCOMING_FIRE_DEFAULT,
 )

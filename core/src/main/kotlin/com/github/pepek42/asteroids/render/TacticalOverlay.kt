@@ -210,3 +210,41 @@ fun formatDamageFactor(factor: Float, out: StringBuilder) {
     val tenths = (factor * 10f + 0.5f).toInt()
     out.append('\u00d7').append(tenths / 10).append('.').append(tenths % 10)
 }
+
+/** Incoming-fire warning (ST-158): only photons arriving within this many seconds of arena time are marked. */
+const val THREAT_HORIZON_LIGHT_SECONDS = 1.5f
+
+/** A photon is a threat when its closest approach is under this many player bounding radii. */
+const val THREAT_MISS_RADIUS_FACTOR = 2f
+
+/** Half-size of the impact cross in screen pixels. */
+const val THREAT_CROSS_PX = 6f
+
+/** Alpha of the warning line and cross at the moment of impact (t* = horizon) and right now (t* = 0). */
+const val THREAT_ALPHA_MIN = 0.25f
+const val THREAT_ALPHA_MAX = 1f
+
+/** Warning alpha: falls linearly from [THREAT_ALPHA_MAX] at t* = 0 to [THREAT_ALPHA_MIN] at the horizon. */
+fun threatAlpha(tStar: Float): Float {
+    val f = (tStar / THREAT_HORIZON_LIGHT_SECONDS).coerceIn(0f, 1f)
+    return THREAT_ALPHA_MAX + (THREAT_ALPHA_MIN - THREAT_ALPHA_MAX) * f
+}
+
+/**
+ * Closest approach of a photon (position [px],[py], velocity [pvx],[pvy]) to a ship ([sx],[sy], [svx],[svy]) under
+ * constant velocities. Returns `t* = max(0, -(dr.dv)/|dv|^2)` (0 when the relative speed is 0) and writes the miss
+ * vector `dr + dv t*` (photon minus ship) into [out].
+ */
+fun closestApproach(
+    px: Float, py: Float, pvx: Float, pvy: Float,
+    sx: Float, sy: Float, svx: Float, svy: Float, out: Vector2,
+): Float {
+    val drx = px - sx
+    val dry = py - sy
+    val dvx = pvx - svx
+    val dvy = pvy - svy
+    val dv2 = dvx * dvx + dvy * dvy
+    val t = if (dv2 <= 0f) 0f else max(0f, -(drx * dvx + dry * dvy) / dv2)
+    out.set(drx + dvx * t, dry + dvy * t)
+    return t
+}

@@ -19,7 +19,6 @@ Audio (owner 2026-11-05):
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
-49e. ST-158 Assist: incoming-fire warning on the tactical overlay
 49f. ST-159 Balance runner with enemies
 
 M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
@@ -158,25 +157,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 ## M6 Enemies
 
 Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
-
-### ST-158 Assist: incoming-fire warning on the tactical overlay
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-156
-- files: `system/TacticalOverlaySystem.kt`, `render/TacticalOverlay.kt`, `settings/TacticalSettings.kt`, `settings/MenuSettings.kt`, `assets/i18n/messages.properties`, `docs/design/physics-lies.md`; tests
-- refs: physics-lies row 34; CLAUDE.md "Vision"
-- layer: assist
-- goal: A photon flying at you arrives together with its own light, so the pilot can never see enemy fire coming. The ship's computer (true state, like the rest of the overlay) marks enemy photons that will pass close to the player.
-- spec:
-  - Pure, in `TacticalOverlay.kt`: `fun closestApproach(px, py, pvx, pvy, sx, sy, svx, svy: Float, out: Vector2): Float` returns the time `t* = max(0, −(Δr·Δv)/|Δv|²)` of the closest approach of a photon (p, v) to the ship (s, v_s) under constant velocities and writes the miss vector `Δr + Δv·t*` into `out` (`Δr = p − s`, `Δv = pv − sv`; `|Δv| = 0` gives `t* = 0`).
-  - In the overlay pass: for each projectile with faction `ENEMY` (skip removed), if `t* < THREAT_HORIZON_LIGHT_SECONDS` (1.5 s) and `|miss| < THREAT_MISS_RADIUS` (2 · player bounding radius), draw a red line from its true position to the impact point `p + pv·t*` and a small cross there, alpha falling with `t*`. Off-screen threats get a red `EdgePointer` like target pointers.
-  - `TacticalSettings.showIncomingFire = true`, a menu `SettingSpec` "Incoming fire warning" (English `messages.properties` key).
-  - physics-lies row: the warning uses the true photon state, information light has not delivered (FAKE by design, toggleable; like row 34).
-- acceptance:
-  - [ ] Tests: `closestApproach` for a head-on photon gives the arrival time `d/(c + v)` and zero miss; for a photon moving away it gives `t* = 0`
-  - [ ] `./gradlew core:test` passes
-- playtest: Enemy shots that will hit you show a red line and an impact cross ahead of time; ones that miss widely show nothing.
 
 ### ST-159 Balance runner with enemies
 - status: ready

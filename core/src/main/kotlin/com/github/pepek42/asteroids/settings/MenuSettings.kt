@@ -132,6 +132,10 @@ fun menuSettings(
                 { tactical.showInterceptMarkers }, { tactical.showInterceptMarkers = it },
             ),
             SettingSpec.Toggle(
+                "tactical_incoming_fire", TACTICAL_INCOMING_FIRE_DEFAULT,
+                { tactical.showIncomingFire }, { tactical.showIncomingFire = it },
+            ),
+            SettingSpec.Toggle(
                 "relativity", RELATIVITY_ENABLED,
                 { relativity.relativityEnabled }, { relativity.relativityEnabled = it },
             ),

@@ -66,6 +66,13 @@ import com.github.pepek42.asteroids.render.TACTICAL_MIN_RADIUS_PX
 import com.github.pepek42.asteroids.render.TACTICAL_OUTLINE_MAX_VERTS
 import com.github.pepek42.asteroids.render.TACTICAL_TIER_INTERCEPT
 import com.github.pepek42.asteroids.render.TACTICAL_TIER_NONE
+import com.github.pepek42.asteroids.render.THREAT_CROSS_PX
+import com.github.pepek42.asteroids.render.THREAT_HORIZON_LIGHT_SECONDS
+import com.github.pepek42.asteroids.render.THREAT_MISS_RADIUS_FACTOR
+import com.github.pepek42.asteroids.render.closestApproach
+import com.github.pepek42.asteroids.render.edgePointer
+import com.github.pepek42.asteroids.render.threatAlpha
+import com.github.pepek42.asteroids.component.ProjectileComponent
 import com.github.pepek42.asteroids.render.insertNearest
 import com.github.pepek42.asteroids.render.tacticalLeadRange
 import com.github.pepek42.asteroids.render.outlineVertices
@@ -132,6 +139,9 @@ class TacticalOverlaySystem(
     private val ringPos = Vector2()
     private var levelTargets: ImmutableArray<Entity>? = null
     private var ringTime = 0f
+    private var projectiles: ImmutableArray<Entity>? = null
+    private val miss = Vector2()
+    private val edgePos = Vector2()
 
     override fun addedToEngine(engine: Engine) {
         super.addedToEngine(engine)
@@ -139,6 +149,9 @@ class TacticalOverlaySystem(
         candidates = engine.getEntitiesFor(allOf(HealthComponent::class, BodyComponent::class, BaseInfoComponent::class).get())
         playerInput = engine.getSystem(PlayerInputSystem::class.java)
         levelTargets = engine.getEntitiesFor(levelTargetFamily())
+        projectiles = engine.getEntitiesFor(
+            allOf(ProjectileComponent::class, BaseInfoComponent::class, BodyComponent::class, TransformComponent::class).get(),
+        )
         gameEventManager.addInputListener(this)
     }
 
@@ -167,6 +180,7 @@ class TacticalOverlaySystem(
         shape.begin(ShapeRenderer.ShapeType.Line)
         super.update(deltaTime)
         if (tier >= TACTICAL_TIER_INTERCEPT && tactical.showInterceptMarkers) drawInterceptMarkers()
+        if (tactical.showIncomingFire) drawIncomingFire()
         color.set(ARENA_BOUNDARY_COLOR).a = TACTICAL_BORDER_ALPHA
         shape.color = color
         shape.rect(0f, 0f, mapProvider.mapWidth, mapProvider.mapHeight)
@@ -309,6 +323,48 @@ class TacticalOverlaySystem(
     }
 
     /**
+     * Incoming-fire warning (ST-158): for each enemy photon whose closest approach to the player (true state, constant
+     * velocities) is within [THREAT_HORIZON_LIGHT_SECONDS] and [THREAT_MISS_RADIUS_FACTOR] player radii, a red line from
+     * the photon to its impact point and a cross there; an edge arrow when the photon is off screen. Must run inside the
+     * shape `Line` batch. Allocation-free.
+     */
+    private fun drawIncomingFire() {
+        val player = players?.let { if (it.size() > 0) it[0] else null } ?: return
+        val list = projectiles ?: return
+        val pBody = player.bodyCmp
+        if (pBody.boundingRadius < 0f) pBody.boundingRadius = computeBoundingRadius(pBody.body)
+        val missRadius = THREAT_MISS_RADIUS_FACTOR * pBody.boundingRadius
+        val pPos = player.transformCmp.interpolatedPosition
+        val sv = player.relativisticCmpOptional?.vSet ?: pBody.body.linearVelocity
+        val halfW = camera.viewportWidth * camera.zoom / 2f
+        val halfH = camera.viewportHeight * camera.zoom / 2f
+        val margin = THREAT_EDGE_MARGIN_FRACTION * halfH
+        val cross = THREAT_CROSS_PX * wpp
+        val head = TACTICAL_ARROW_HEAD_PX * wpp
+        for (i in 0 until list.size()) {
+            val e = list[i]
+            if (e.baseInfoCmp.faction != FactionEnum.ENEMY || removeMapper.has(e)) continue
+            val pos = e.transformCmp.interpolatedPosition
+            val v = e.bodyCmp.body.linearVelocity
+            val t = closestApproach(pos.x, pos.y, v.x, v.y, pPos.x, pPos.y, sv.x, sv.y, miss)
+            if (t >= THREAT_HORIZON_LIGHT_SECONDS || miss.len() >= missRadius) continue
+            val ix = pos.x + v.x * t
+            val iy = pos.y + v.y * t
+            color.set(FactionEnum.ENEMY.color).a = threatAlpha(t)
+            shape.color = color
+            shape.line(pos.x, pos.y, ix, iy)
+            shape.line(ix - cross, iy - cross, ix + cross, iy + cross)
+            shape.line(ix - cross, iy + cross, ix + cross, iy - cross)
+            val angle = edgePointer(camera.position.x, camera.position.y, halfW, halfH, pos.x, pos.y, margin, edgePos)
+            if (angle.isNaN()) continue
+            val back = angle + Math.PI.toFloat() - headAngleRad
+            val back2 = angle + Math.PI.toFloat() + headAngleRad
+            shape.line(edgePos.x, edgePos.y, edgePos.x + cos(back) * head, edgePos.y + sin(back) * head)
+            shape.line(edgePos.x, edgePos.y, edgePos.x + cos(back2) * head, edgePos.y + sin(back2) * head)
+        }
+    }
+
+    /**
      * Muzzle world position (ST-137) into [out], as `WeaponProjectileProvider` spawns it: the interpolated hull centre plus
      * `weaponPosition` rotated by the interpolated hull angle. Allocation-free.
      */
@@ -420,6 +476,9 @@ class TacticalOverlaySystem(
     private companion object {
         /** Screen-pixel offset of the laser damage label from the target centre. */
         const val LASER_LABEL_OFFSET_PX = 14f
+
+        /** Inset of the incoming-fire edge arrows from the screen edge, as a fraction of the half height. */
+        const val THREAT_EDGE_MARGIN_FRACTION = 0.08f
 
         /** [ringTime] wraps at a whole number of pulses so float precision never degrades. */
         const val TARGET_RING_PULSE_WRAP_S = 100f * TARGET_RING_PULSE_PERIOD_S

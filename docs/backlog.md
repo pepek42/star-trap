@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-175**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-176**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -17,12 +17,13 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
+48z. ST-175 Black hole disk: tone down, damage, scatter on hit
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49j. ST-173 Enemy difficulty tuning (owner decision)
 
 M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
-50b. ST-164 Homing missile: relativistic rocket body and computer guidance
+50b. ST-164 Lock-on missile: homing projectile body
 50c. ST-165 Missile lock-on: lock first, then fire
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
@@ -165,32 +166,55 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 
 ---
 
+## M5 Gravity & black holes
+
+### ST-175 Black hole disk: tone down, damage, scatter on hit
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: none
+- files: `render/AccretionDisk.kt`, `render/BlackHoleRenderer.kt`, new `system/DiskDamageSystem.kt` (or a `GravitySystem` step-listener hook), `ecs/GameplaySystems.kt`, `docs/design/physics-lies.md`, `docs/tech/architecture.md`; tests
+- refs: architecture "Gravity, pilot view and death" and the accretion-disk section; physics-lies rows 18, 26, 38; `render/AccretionDisk.kt` (static mesh, GPU rotation)
+- layer: sim (disk damage) + visual
+- assumption: "the ring" = the accretion disk particle ring around the black hole (owner 2026-11-07: "a bit too much"); the dashed Einstein-ring assist only gets its alpha checked, not removed
+- goal: The disk reads as a hazard instead of a glare: dimmer and a bit smaller, it hurts what flies through it, and the particles are knocked aside where something hits them.
+- spec:
+  - Tone down: lower the disk brightness and light (`DISK_LIGHT_INTENSITY` and the particle alpha/size, roughly −30 %) and the outer radius `DISK_OUTER` by about 15 %; keep every value derived from `rs` as today. Check the Einstein-ring alpha (0.9) still reads on top; lower it to ~0.6 if it now dominates.
+  - Damage: a body (player, asteroid, enemy; not projectiles, not the hole) whose true position is inside the disk annulus takes `DISK_DAMAGE_PER_SECOND` × `dt` (proper time of the body, so scaled by `1/γ`); disk drag on bodies is out of scope. Tune it so crossing the disk once costs about a quarter of `PLAYER_START_HEALTH`; KDoc the derivation. The death path stays `DeathSystem`.
+  - Scatter: where a body overlaps the disk, the nearby particles are pushed out of its way and drift back over ~1–2 s. Keep it cheap and web-safe: no per-frame allocation, no mesh rebuild per frame — e.g. pass up to 4 "disturber" positions + radii as shader uniforms and offset particles radially in the vertex shader with a decaying strength (GLSL ES 1.00).
+  - physics-lies: the disk now does damage (a stand-in for heating/impact by disk gas, APPROX) and the scatter is visual only (the particles still have no dynamics, row 18).
+- acceptance:
+  - [ ] Tests: a body resting inside the annulus loses health at the expected rate (pure helper + one World/engine test); a body outside it loses none; projectiles are ignored
+  - [ ] The scatter uniforms are filled from a preallocated array (no allocation in `render`)
+  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes (shader change)
+- playtest: Fly through a black hole's disk: it looks calmer than before, the health bar drops while you are inside, and the particles part around the ship and close up behind it.
+
 ## M7 Weapons
 
 Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/asteroid) and when locked can be shot ... change weapons by 1/2/3 keys"). Planned by the orchestrator, not the planner. Decisions: slot 1 = photon laser (current), slot 2 = homing missile, slot 3 = reserved (empty until a third weapon, e.g. the slug from game-design §7). Missiles are **sim** objects: massive relativistic bodies with a rocket engine (proper acceleration, so never reaching c), hit by gravity and the boundary field like ships. Lock-on and guidance are **assist/computer**: they use the true target state, like all player targeting (game-design Decisions 2026-11-07, physics-lies row 34). Web: watch body counts (cap missiles in flight), no per-frame allocation, new components stay in `component/` (reflection glob) with one public no-arg constructor.
 
-### ST-164 Homing missile: relativistic rocket body and computer guidance
-- status: blocked
-- blocker: 2026-11-07 the kotlin-dev (Sonnet) run was stopped by API safeguards (request req_011CgpBwmNBaWvmkstoCG4kN) before it wrote any code; owner to decide how to proceed
+### ST-164 Lock-on missile: homing projectile body
+- status: ready
 - size: M
 - agent: kotlin-dev
 - depends: ST-163
-- files: new `component/MissileComponent.kt`, new `provider/MissileProvider.kt`, new `system/MissileGuidanceSystem.kt` (a `PhysicsStepListener`), new pure `weapon/MissileGuidance.kt`, `system/ContactSystem.kt`, `ecs/GameplaySystems.kt`, `raw_assets/` + atlas (missile sprite), `docs/design/physics-lies.md`, `docs/tech/architecture.md`; tests
-- refs: CLAUDE.md "Physics loop", "Constants are the single source of truth"; architecture `RelativisticDynamics`; `physics/PhotonAim.kt` (`photonInterceptDir` as a model for an intercept solve)
-- layer: sim (missile body) + assist (guidance uses the true target state)
-- goal: A fired missile is a small massive body that accelerates under its own engine and steers into its target.
+- context: Star Trap is a 2D top-down Asteroids-like arcade game. This card adds a classic arcade "homing missile" weapon: a slow projectile sprite that curves toward the enemy ship or asteroid the player picked, like the homing shots in many shoot-'em-ups. It is purely game logic inside the existing ECS.
+- files: new `component/MissileComponent.kt`, new `provider/MissileProvider.kt`, new `system/MissileSteeringSystem.kt` (a `PhysicsStepListener`), new pure `weapon/MissileSteering.kt`, `system/ContactSystem.kt`, `ecs/GameplaySystems.kt`, `raw_assets/` + atlas (missile sprite), `docs/design/physics-lies.md`, `docs/tech/architecture.md`; tests
+- refs: CLAUDE.md "Physics loop", "Constants are the single source of truth"; architecture `RelativisticDynamics`; `physics/PhotonAim.kt` (`photonInterceptDir`, the existing lead-point solve)
+- layer: sim (the projectile is a real body) + assist (homing reads the true target state)
+- goal: Weapon slot 2 gets a game projectile that is a small body with its own little engine and turns toward its target, so it curves on screen instead of flying straight like a laser shot.
 - spec:
-  - `MissileComponent`: `target: Entity?`, `burnLeft` (proper seconds of fuel), `damage`. Missile entity: small dynamic box body (bullet = true), `RelativisticComponent` (starts with the shooter's proper velocity `u`), `BaseInfoComponent` with the shooter's faction and `EntityType.MISSILE` (new), `LifetimeComponent`, `HealthComponent` (a laser can shoot it down).
-  - Engine: proper acceleration `MISSILE_PROPER_ACCEL = MISSILE_ACCEL_FACTOR * ENGINE_PROPER_ACCEL` (factor 3, KDoc derivation; scales with c through `ENGINE_PROPER_ACCEL`) added to `RelativisticComponent.accel` in `beforeStep` while `burnLeft > 0` (decrement by the missile's proper `dt/γ`); after burnout it coasts. So it never reaches c and it is pulled by gravity and the boundary field like any body.
-  - Guidance (pure, `MissileGuidance.kt`): proportional navigation on the **true** relative state (target body position and velocity), N = 3, output a unit thrust direction; turn rate limited (`MISSILE_TURN_RATE`); the body angle follows the thrust direction. Target gone (removed) → fly straight until lifetime ends.
-  - Hit: `ContactSystem` on missile contact with a non-own-faction body: apply `damage` (`MISSILE_DAMAGE = ENEMY_HEALTH`, one missile kills an enemy ship or breaks a large asteroid like enough laser hits) and remove the missile; reuse the existing explosion effect.
-  - Cap: `MISSILE_MAX_IN_FLIGHT` (4) per shooter; ammo `MISSILE_AMMO_PER_LEVEL` (6), refilled each level, shown next to the slot on the HUD.
-  - physics-lies row: guidance uses the true target state (computer, like row 34); the rocket exhaust mass loss is ignored (constant rest mass, APPROX).
+  - `MissileComponent` (fields + `reset()` only, logic in extension functions, see the ST-163 note in `docs/tech/dev-workflow.md`): `target: Entity?`, `burnLeft` (seconds of engine time), `damage`. The entity: small dynamic box body (bullet = true), `RelativisticComponent` (starts with the shooter's `u`), `BaseInfoComponent` with the shooter's faction and `EntityType.MISSILE` (new), `LifetimeComponent`, `HealthComponent` (a laser shot can pop it).
+  - Engine: proper acceleration `MISSILE_PROPER_ACCEL = MISSILE_ACCEL_FACTOR * ENGINE_PROPER_ACCEL` (factor 3, KDoc derivation, so it scales with c) added to `RelativisticComponent.accel` in `beforeStep` while `burnLeft > 0` (decrement by `dt/γ`); afterwards it coasts. It never reaches c, and gravity and the boundary field act on it like any body.
+  - Homing (pure function in `MissileSteering.kt`): aim at the lead point from the target's current position and velocity (reuse the intercept idea of `photonInterceptDir`, with the projectile's own speed), return a unit direction; limit how fast the heading turns (`MISSILE_TURN_RATE`, rad/s); the sprite angle follows the heading. Target gone → keep the current heading until the lifetime ends.
+  - Hit: `ContactSystem`, contact with a body of another faction: apply `damage` (`MISSILE_DAMAGE = ENEMY_HEALTH`, one hit destroys an enemy ship or breaks a large asteroid) and remove the projectile; reuse the existing hit effect.
+  - Limits: `MISSILE_MAX_IN_FLIGHT` (4) per shooter; ammo `MISSILE_AMMO_PER_LEVEL` (6), refilled each level, shown next to slot 2 on the HUD.
+  - physics-lies row: homing reads the true target state (computer, like row 34); constant rest mass, no fuel mass loss (APPROX).
 - acceptance:
-  - [ ] Tests (pure): PN steers a missile onto a constant-velocity target (hit within N s in a headless loop); a target moving at 0.9c is never outrun past c (missile speed < c at every step)
-  - [ ] Tests (World): a missile fired at a resting enemy hits and removes it; burnout stops acceleration
+  - [ ] Tests (pure): the homing function brings a projectile onto a constant-velocity target within a few seconds in a headless loop; with a target at 0.9c the projectile speed stays < c at every step
+  - [ ] Tests (World): a projectile fired at a resting enemy ship hits and removes it; after `burnLeft` runs out there is no more acceleration
   - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes
-- playtest: With a debug `--near-enemies=3` level, missiles (fired via a temporary debug path until ST-165) curve into the enemies.
+- playtest: With `--near-enemies=3`, slot 2 shots (temporary debug fire path until ST-165) curve into the enemy ships.
 
 ### ST-165 Missile lock-on: lock first, then fire
 - status: ready

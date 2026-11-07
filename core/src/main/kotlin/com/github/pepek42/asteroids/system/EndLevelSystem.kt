@@ -6,12 +6,13 @@ import com.badlogic.ashley.core.EntitySystem
 import com.badlogic.ashley.core.Family
 import com.badlogic.ashley.utils.ImmutableArray
 import com.github.pepek42.asteroids.component.AsteroidComponent
+import com.github.pepek42.asteroids.component.EnemyComponent
 import ktx.ashley.oneOf
 
-/** Calls [onLevelCleared] every update while no asteroid is left. */
+/** Calls [onLevelCleared] every update while no asteroid and no enemy ship is left. */
 class EndLevelSystem(
     private val onLevelCleared: () -> Unit,
-    private val family: Family = oneOf(AsteroidComponent::class).get(),
+    private val family: Family = oneOf(AsteroidComponent::class, EnemyComponent::class).get(),
 ) : EntitySystem() {
     private var entities: ImmutableArray<Entity>? = null
 

@@ -34,6 +34,7 @@ import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.BlackHoleProvider
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.DecorationProvider
+import com.github.pepek42.asteroids.provider.EnemyShipProvider
 import com.github.pepek42.asteroids.provider.PlanetProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
@@ -89,6 +90,7 @@ class PlayScreen(
     private val asteroidProvider = AsteroidProvider(game.get<TextureAtlas>(), engine, world, game.get<RandomXS128>(), settings)
     private val blackHoleProvider = BlackHoleProvider(engine, world, mapProvider)
     private val decorationProvider = DecorationProvider(engine, world, mapProvider) { game.get<TextureAtlas>().createSprite("debris") }
+    private val enemyShipProvider = EnemyShipProvider(engine, world, game.get<TextureAtlas>(), settings)
     private val planetProvider = PlanetProvider(engine, world, mapProvider, settings, game.get<PlanetTextures>()::createSprite)
     private val gameState = game.get<GameState>()
     private val minimapViewport = MinimapViewport()
@@ -218,6 +220,9 @@ class PlayScreen(
         // Drawn last so the star never shifts the layouts of the spawns above (ST-099).
         star.roll(game.get<RandomXS128>())
         game.options.starAngleDeg?.let { star.set(it * MathUtils.degreesToRadians, star.kelvin) }
+        if (settings.enemiesEnabled) {
+            enemyShipProvider.spawn(gameState.level, game.get<RandomXS128>(), mapProvider, holes + planets)
+        }
         hud.toggleHud(show = true)
         hud.updateLevel(gameState.level)
         if (debugSettings.panelAllowed) {

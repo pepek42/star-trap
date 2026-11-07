@@ -129,6 +129,7 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     relativity.sourceCoupling = SOURCE_COUPLING_DEFAULT
     relativity.playerGm = PLAYER_GM
     relativity.blackHolesEnabled = true
+    relativity.enemiesEnabled = true
     relativity.planetsEnabled = true
     relativity.decorationEnabled = true
     relativity.lightingEnabled = true
@@ -210,6 +211,7 @@ class DebugPanel(
         checkBox("light delay", { relativitySettings.pilotDelay }) { relativitySettings.pilotDelay = it }
         checkBox("gravity", { relativitySettings.gravityEnabled }) { relativitySettings.gravityEnabled = it }
         checkBox("black holes (next level)", { relativitySettings.blackHolesEnabled }) { relativitySettings.blackHolesEnabled = it }
+        checkBox("enemies (next level)", { relativitySettings.enemiesEnabled }) { relativitySettings.enemiesEnabled = it }
         checkBox("planets (next level)", { relativitySettings.planetsEnabled }) { relativitySettings.planetsEnabled = it }
         checkBox("debris (next level)", { relativitySettings.decorationEnabled }) { relativitySettings.decorationEnabled = it }
         checkBox("lighting", { relativitySettings.lightingEnabled }) { relativitySettings.lightingEnabled = it }

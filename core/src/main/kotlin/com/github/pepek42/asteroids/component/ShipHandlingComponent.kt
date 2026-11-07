@@ -22,7 +22,11 @@ class ShipHandlingComponent : Component, Pool.Poolable {
     /** Max angular velocity (rad/s). Must stay below Box2D's cap of 0.5*PI rad per step. */
     var maxAngularVelocity = ShipRotationController.MAX_ANGULAR_VELOCITY
 
+    /** Multiplier on `settings.engineProperAccel` (1 for the player, `ENEMY_ENGINE_FRACTION` for enemies). */
+    var engineFactor = 1f
+
     override fun reset() {
+        engineFactor = 1f
         rotationKp = ShipRotationController.ROTATION_KP
         rotationKd = ShipRotationController.ROTATION_KD
         maxAngularAcceleration = ShipRotationController.MAX_ANGULAR_ACCELERATION

@@ -24,7 +24,7 @@ import kotlin.math.atan2
  *
  * Honest fire control: candidates are the retarded positions the pilot sees ([retarded] from the ship's position at
  * [GameClock.worldTime]), and the aim is [leadDirection] (extrapolated at constant velocity), never a true position.
- * Only [EntityType.ASTEROID] entities are candidates (debris, planets and the rest are never locked, ST-142).
+ * Only [EntityType.ASTEROID] and enemy [EntityType.SHIP] entities are candidates (debris, planets and the rest are never locked, ST-142).
  */
 class AutoAimStrategy(
     private val targets: ImmutableArray<Entity>,
@@ -66,7 +66,7 @@ class AutoAimStrategy(
         var n = 0
         for (k in 0 until targets.size()) {
             val entity = targets[k]
-            if (entity.baseInfoCmp.entityType != EntityType.ASTEROID || removeMapper.get(entity) != null) continue
+            if (!isAutoAimTarget(entity) || removeMapper.get(entity) != null) continue
             val history = lightHistory.historyOf(entity.baseInfoCmp.id) ?: continue
             if (!history.retarded(shipPos.x, shipPos.y, now, c, scratch)) continue
             if (n == xs.size) grow()
@@ -85,6 +85,12 @@ class AutoAimStrategy(
         aimDir.set(lead)
         weapon.aimAngleRad = atan2(lead.y, lead.x)
         weapon.doAttack = true
+    }
+
+    private fun isAutoAimTarget(entity: Entity): Boolean {
+        val info = entity.baseInfoCmp
+        return info.entityType == EntityType.ASTEROID ||
+            (info.entityType == EntityType.SHIP && info.faction == FactionEnum.ENEMY)
     }
 
     private fun grow() {

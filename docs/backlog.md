@@ -20,7 +20,6 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 48b. ST-151 Make the Einstein ring readable (owner decision)
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
-49b. ST-155 Enemy ships in the arena (inert targets first)
 49c. ST-156 Enemy AI: light-delayed pursuit and honest fire control
 49d. ST-157 Enemy lasers use the enemy sprite; computer sound for destroyed ships
 49e. ST-158 Assist: incoming-fire warning on the tactical overlay
@@ -177,29 +176,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 ## M6 Enemies
 
 Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
-
-### ST-155 Enemy ships in the arena (inert targets first)
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-152
-- files: create `component/EnemyComponent.kt`, `provider/EnemyShipProvider.kt`; edit `component/ShipHandlingComponent.kt`, `system/MoveSystem.kt`, `system/EndLevelSystem.kt`, `ecs/GameplaySystems.kt` (if the family moves), `input/AutoAimStrategy.kt`, `screen/PlayScreen.kt`, `physics/RelativitySettings.kt`, `ui/DebugPanel.kt`; tests
-- refs: CLAUDE.md "Entity creation", "Web first" (component constructor rule); `PlayerEntityProvider` as the template
-- layer: sim
-- goal: Enemy ships exist, can be shot and rammed, and must be destroyed to clear the level. No AI yet (ST-156), so the game stays playable in between.
-- spec:
-  - `EnemyComponent` (empty marker, like `PlayerComponent`, in the `component` package so TeaVM reflection covers it; one no-arg constructor).
-  - `ShipHandlingComponent.engineFactor = 1f` (reset 1). `MoveSystem.addProperAcceleration` multiplies `settings.engineProperAccel` by it (`shipHandlingCmpOptional?.engineFactor ?: 1f`); the Newtonian path likewise.
-  - `EnemyShipProvider(engine, world, atlas, settings).spawn(level, random, mapProvider, avoid: FloatArray)`: `enemyCount(level) = min(ENEMY_MAX, max(0, level − 1))`, `ENEMY_MAX = 3` (ST-160 rec. (a)). Sprite `spaceship/attecker_red`; box fixture like the player, `ENEMY_DENSITY = PLAYER_DENSITY`; faction `ENEMY`, `EntityType.SHIP`; `RelativisticComponent` (`captureRestMass`), `MoveComponent`, `ShipHandlingComponent { engineFactor = ENEMY_ENGINE_FRACTION }`, `WeaponComponent` (laser, `shotsPerSecond = 1f`, `projectileDamage = ENEMY_LASER_DAMAGE = 10f`, muzzle at half width), `HealthComponent { health = ENEMY_HEALTH = 100f }`, `EnemyComponent`, `TransformComponent`, `SpriteComponent`. Positions from the seeded random, at least `ENEMY_MIN_SPAWN_DISTANCE = 3 · c · 1 s` from the player spawn and valid per `validSourcePosition` against `avoid` (holes and planets). `allowSleep = false`.
-  - `PlayScreen.show()`: spawn **after** `star.roll(...)`, so no existing layout shifts; gated by `settings.enemiesEnabled` (default true, debug checkbox "enemies", applies from the next level like `blackHolesEnabled`).
-  - `EndLevelSystem` default family: `oneOf(AsteroidComponent::class, EnemyComponent::class)`.
-  - `AutoAimStrategy`: accept targets that are `ASTEROID` or (`SHIP` with faction `ENEMY`).
-- acceptance:
-  - [ ] Tests: `enemyCount(1) == 0`, `enemyCount(2) == 1`, `enemyCount(10) == ENEMY_MAX`; spawned enemies keep the minimum distance; `ComponentConstructorTest` covers `EnemyComponent`
-  - [ ] Test: the level is not cleared while an enemy lives, even with no asteroids
-  - [ ] Test: an enemy at 0 health gets a `RemoveComponent` (generic `DeathSystem` path)
-  - [ ] `./gradlew core:test` passes, `scripts/web-check.sh --play` PASS (new component: web risk)
-- playtest: Level 2 shows one red ship drifting in place; auto-aim locks onto it; two hits destroy it.
 
 ### ST-156 Enemy AI: light-delayed pursuit and honest fire control
 - status: ready

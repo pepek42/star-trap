@@ -1,5 +1,6 @@
 package com.github.pepek42.asteroids.debug
 
+import com.github.pepek42.asteroids.render.EINSTEIN_RING_ENABLED
 import com.github.pepek42.asteroids.render.TARGET_POINTERS_ENABLED
 import com.github.pepek42.asteroids.render.GRID_ENABLED
 
@@ -19,6 +20,7 @@ class DebugSettings(
     var timeScale: Float = 1f,
     var showVectors: Boolean = false,
     var gridEnabled: Boolean = GRID_ENABLED,
+    var einsteinRingEnabled: Boolean = EINSTEIN_RING_ENABLED,
     var targetPointersEnabled: Boolean = TARGET_POINTERS_ENABLED,
     var forcePanel: Boolean = false,
 ) {

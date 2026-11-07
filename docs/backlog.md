@@ -17,7 +17,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-48b. ST-151 Make the Einstein ring readable (owner decision)
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49d. ST-157 Enemy lasers use the enemy sprite; computer sound for destroyed ships
@@ -154,33 +153,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] Tests: `beamBrightness(2f, true) == 3f` (clamped from 4); `beamBrightness(0.3f, true) == 0.25f` (floor); `beamBrightness(0.6f, false) == 0.6f`; `beamBrightness(1f, true) == 1f`
   - [ ] `./gradlew core:test` passes
 - playtest: At speed the view ahead is bright, and asteroids behind you are dim but outlined. Check whether the outline is too strong.
-
----
-
-## M5 Gravity & black holes
-
-Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends ships and shots, the horizon kills, and a bright accretion disk makes them readable. Research E14–E18 is detailed enough to plan directly. Q12 (lensing) is planned around the recommendation (a): only the backdrop is lensed. Tidal stretching (E19) is left for polish.
-
-- note (2026-11-02, owner follow-up, game-design §11 Q1 answered): black holes, planets and decoration **start static** (placed at level start, zero velocity) but are **dynamic and feel gravity**: n-body among the sources, plus the player's pull. **Decision (planner):** sources are Box2D dynamic bodies on the **Newtonian path** (no `RelativisticComponent`): they are heavy and stay far below 0.1 c, so γ ≈ 1 and they need neither `RelativisticDynamics`, nor the γ-mass of ST-047, nor the ship clocks of ST-040. Black holes get a sensor body (no contacts, ignored by the projectile sweep, which already skips sensors); planets get a solid body. Because they have bodies, `BoundaryFieldSystem` (which acts on every `BodyComponent`) keeps them in the arena with no extra code, and `LightHistorySystem` records them for the pilot view. With the physical pull, two holes 60 u apart would collide in about 6 s, so source–source gravity is scaled by `sourceCoupling = 0.1` (declared FAKE, about 19 s), pending ST-092. Holes that touch merge. Counts stay low for performance: at most 2 holes, 2 planets and 6 debris pieces per level.
-- note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
-
----
-
-### ST-151 Make the Einstein ring readable (owner decision)
-- status: ready
-- size: S
-- agent: kotlin-dev
-- layer: assist (option a) or sim backdrop (option b)
-- depends: ST-150
-- files: `render/LensingPass.kt` or `render/BlackHoleRenderer.kt`, `provider/BackgroundProvider.kt`; tests
-- refs: ST-150 report (2026-11-07); `docs/design/physics-lies.md` row 19
-- goal: The lensing is physically correct but hard to see. The backdrop has only sparse 1-3 px stars and a faint nebula, so near a hole it shows a few stretched star streaks, not a ring (a gain cap of 16 instead of 4 made no visible difference). Magnifying the uniform clear grey gave a bright halo, but that was fake light and was removed.
-- decision: owner 2026-11-07 chose (a): a ship-computer assist that draws a faint dashed ring at R_E, toggleable (like the photon-ring and ISCO lines), default on.
-- acceptance:
-  - [ ] The chosen option is in place; for (a), it is toggleable and default on; for (b), a physics-lies row is added
-  - [ ] Pilot-view screenshot `--hole-near=14 --pilot-view` shows a readable ring
-  - [ ] `./gradlew core:test` passes, `scripts/web-check.sh --play` PASS
-- playtest: You can tell where the Einstein ring is around a hole.
 
 ---
 

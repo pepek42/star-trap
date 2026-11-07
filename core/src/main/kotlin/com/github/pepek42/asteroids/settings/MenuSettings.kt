@@ -11,6 +11,7 @@ import com.github.pepek42.asteroids.physics.RELATIVITY_ENABLED
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.physics.TIME_WARP_ENABLED
+import com.github.pepek42.asteroids.render.EINSTEIN_RING_ENABLED
 import com.github.pepek42.asteroids.render.GRID_ENABLED
 import com.github.pepek42.asteroids.render.TARGET_POINTERS_ENABLED
 import com.github.pepek42.asteroids.render.TacticalOverlayMode
@@ -145,6 +146,10 @@ fun menuSettings(
             SettingSpec.Toggle(
                 "target_pointers", TARGET_POINTERS_ENABLED,
                 { debug.targetPointersEnabled }, { debug.targetPointersEnabled = it },
+            ),
+            SettingSpec.Toggle(
+                "einstein_ring", EINSTEIN_RING_ENABLED,
+                { debug.einsteinRingEnabled }, { debug.einsteinRingEnabled = it },
             ),
             SettingSpec.Toggle("grid", GRID_ENABLED, { debug.gridEnabled }, { debug.gridEnabled = it }),
             SettingSpec.Slider(

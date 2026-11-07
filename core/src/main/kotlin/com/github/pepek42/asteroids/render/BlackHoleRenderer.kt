@@ -26,11 +26,26 @@ const val BH_ISCO_PER_RS = 3f
 /** Dashes in the ISCO ring. */
 const val BH_ISCO_DASHES = 32
 
+/** Default of the "Einstein ring" assist: a faint dashed ring at the lens's Einstein radius (ST-151). */
+const val EINSTEIN_RING_ENABLED = true
+
+/** Dashes in the Einstein ring (an odd-looking count keeps it visually apart from the ISCO ring). */
+const val BH_EINSTEIN_DASHES = 48
+
+/** Radius of the Einstein ring assist for a hole of Schwarzschild radius [rs]: `R_E = LENS_EINSTEIN_RADIUS_RS * rs`, as the lens pass uses. */
+fun einsteinRingRadius(rs: Float): Float = LENS_EINSTEIN_RADIUS_RS * rs
+
 /** Points of a circle drawn through the pilot-view boost. */
 const val BH_RING_POINTS = 64
 
 private const val PHOTON_RING_ALPHA = 0.6f
 private const val ISCO_ALPHA = 0.4f
+private const val EINSTEIN_RING_ALPHA = 0.9f
+/** Spacing of the three lines of the Einstein ring, as a fraction of `R_E`. */
+private const val EINSTEIN_RING_STEP_PER_RE = 0.012f
+private const val EINSTEIN_RING_R = 0.5f
+private const val EINSTEIN_RING_G = 0.8f
+private const val EINSTEIN_RING_B = 1f
 
 /** True when a gravity source of [kind] gets a shadow, photon ring and ISCO ring: black holes only, planets are drawn by their sprite. */
 fun drawsHoleRings(kind: GravitySourceKind): Boolean = kind == GravitySourceKind.BLACK_HOLE
@@ -51,10 +66,10 @@ class BlackHoleRenderer : Disposable {
     private var diskSeed = 0L
 
     /**
-     * Draws every entity of [holes] (each with a gravity source and transform). [pilot] is non-null in pilot view. [worldTime] is
+     * Draws every entity of [holes] (each with a gravity source and transform). [pilot] is non-null in pilot view. [einsteinRing] adds the dashed Einstein ring assist. [worldTime] is
      * `GameClock.worldTime` (turns the disk) and [c] the light speed (gives the disk `GM`).
      */
-    fun render(camera: Camera, holes: ImmutableArray<Entity>, pilot: PilotViewProjector?, worldTime: Float, c: Float) {
+    fun render(camera: Camera, holes: ImmutableArray<Entity>, pilot: PilotViewProjector?, worldTime: Float, c: Float, einsteinRing: Boolean = false) {
         if (holes.size() == 0) {
             releaseGoneDisks(holes)
             return
@@ -87,7 +102,22 @@ class BlackHoleRenderer : Disposable {
         }
         shapes.end()
         if (diskShader.ready) renderDisks(camera, holes, pilot, worldTime, c)
+        if (einsteinRing) renderEinsteinRings(holes, pilot)
         releaseGoneDisks(holes)
+    }
+
+    /** The Einstein ring assist goes on top of the accretion disk, or the disk particles would hide it. */
+    private fun renderEinsteinRings(holes: ImmutableArray<Entity>, pilot: PilotViewProjector?) {
+        shapes.begin(ShapeRenderer.ShapeType.Line)
+        shapes.setColor(EINSTEIN_RING_R, EINSTEIN_RING_G, EINSTEIN_RING_B, EINSTEIN_RING_ALPHA)
+        for (i in 0 until holes.size()) {
+            val e = holes[i]
+            if (!drawsHoleRings(e.gravitySourceCmp.kind) || !holeCentre(e, pilot)) continue
+            val rE = einsteinRingRadius(e.gravitySourceCmp.rs)
+            // Three concentric lines: GL lines are 1 px (WebGL has no wide lines), too thin over the disk.
+            for (k in -1..1) ring(rE + k * EINSTEIN_RING_STEP_PER_RE * rE, pilot, dashes = BH_EINSTEIN_DASHES)
+        }
+        shapes.end()
     }
 
     private fun renderDisks(

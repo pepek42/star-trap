@@ -124,7 +124,7 @@ class RenderSystem(
         if (debugSettings.gridEnabled) {
             gridRenderer.render(camera, camera.zoom, mapProvider.mapWidth, mapProvider.mapHeight)
         }
-        holes?.let { blackHoleRenderer.render(camera, it, if (pilotViewActive) pilotView else null, observer.worldTime, settings.c) }
+        holes?.let { blackHoleRenderer.render(camera, it, if (pilotViewActive) pilotView else null, observer.worldTime, settings.c, debugSettings.einsteinRingEnabled) }
         lightingActive = false
         if (settings.lightingEnabled && litSprites?.ready == true) {
             holes?.let { lightSources.rebuild(it, if (settings.starLightEnabled) star else null) }

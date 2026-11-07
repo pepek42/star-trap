@@ -47,6 +47,7 @@ import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_PER_C_MIN
 import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_PER_C_MAX
 import com.github.pepek42.asteroids.physics.RELATIVITY_ENABLED
 import com.github.pepek42.asteroids.render.TARGET_POINTERS_ENABLED
+import com.github.pepek42.asteroids.render.EINSTEIN_RING_ENABLED
 import com.github.pepek42.asteroids.render.GRID_ENABLED
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
@@ -140,6 +141,7 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     debug.timeScale = 1f
     debug.showVectors = false
     debug.gridEnabled = GRID_ENABLED
+    debug.einsteinRingEnabled = EINSTEIN_RING_ENABLED
     debug.targetPointersEnabled = TARGET_POINTERS_ENABLED
 }
 
@@ -220,6 +222,7 @@ class DebugPanel(
         checkBox("lensing", { relativitySettings.lensingEnabled }) { relativitySettings.lensingEnabled = it }
         checkBox("tidal", { relativitySettings.tidalEnabled }) { relativitySettings.tidalEnabled = it }
         checkBox("grid", { debugSettings.gridEnabled }) { debugSettings.gridEnabled = it }
+        checkBox("Einstein ring", { debugSettings.einsteinRingEnabled }) { debugSettings.einsteinRingEnabled = it }
         checkBox("target pointers", { debugSettings.targetPointersEnabled }) { debugSettings.targetPointersEnabled = it }
         checkBox("show vectors", { debugSettings.showVectors }) { debugSettings.showVectors = it }
 

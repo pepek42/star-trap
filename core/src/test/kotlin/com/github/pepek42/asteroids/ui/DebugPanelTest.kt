@@ -86,9 +86,10 @@ class DebugPanelTest {
     fun resetRestoresDefaults() {
         val rel = RelativitySettings(c = 30f, engineAccelPerC = 1.5f, fieldEnabled = false)
         val debug = DebugSettings(debugMode = true, panelVisible = true, timeScale = 0.25f, showVectors = true,
-            gridEnabled = false, targetPointersEnabled = false)
+            gridEnabled = false, einsteinRingEnabled = false, targetPointersEnabled = false)
         resetDebugDefaults(rel, debug)
         assertTrue(debug.gridEnabled)
+        assertTrue(debug.einsteinRingEnabled)
         assertTrue(debug.targetPointersEnabled)
         assertEquals(SPEED_OF_LIGHT, rel.c)
         assertEquals(1f, debug.timeScale)

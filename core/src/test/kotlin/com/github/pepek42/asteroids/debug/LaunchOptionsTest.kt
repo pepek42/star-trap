@@ -55,6 +55,9 @@ class LaunchOptionsTest {
         assertEquals(true, parseLaunchOptions(arrayOf("--pilot-view")).pilotView)
         assertEquals(false, parseLaunchOptions(arrayOf()).pilotView)
         assertEquals(true, parseLaunchOptions(queryToLaunchArgs("?play&pilot-view")).pilotView)
+        assertEquals(true, parseLaunchOptions(arrayOf("--shadow-demo")).shadowDemo)
+        assertEquals(false, parseLaunchOptions(arrayOf()).shadowDemo)
+        assertEquals(true, parseLaunchOptions(queryToLaunchArgs("?play&shadow-demo")).shadowDemo)
     }
 
     @Test

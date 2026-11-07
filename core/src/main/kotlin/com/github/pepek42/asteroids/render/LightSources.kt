@@ -3,7 +3,9 @@ package com.github.pepek42.asteroids.render
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.utils.ImmutableArray
 import com.github.pepek42.asteroids.component.GravitySourceKind
+import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.bodyCmpOptional
+import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.component.gravitySourceCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.physics.BH_RS
@@ -79,4 +81,27 @@ class LightSources {
             lights[i].y = emitterAtRetardedTime(baseY[i], velY[i], lag, 0f)
         }
     }
+}
+
+/**
+ * Refills the pool with the shadow casters (ST-098): the planets among [sources] (entities with a gravity source) and the
+ * [asteroids], each with a body and a transform, whose bounding radius is at least [OCCLUDER_MIN_RADIUS]. Positions are the
+ * interpolated render positions (the arena frame). Fills a missing `boundingRadius` like `BoundaryFieldSystem` does.
+ */
+fun OccluderPool.rebuild(sources: ImmutableArray<Entity>, asteroids: ImmutableArray<Entity>) {
+    clear()
+    for (i in 0 until sources.size()) {
+        val e = sources[i]
+        if (e.gravitySourceCmp.kind == GravitySourceKind.PLANET) addCaster(e)
+    }
+    for (i in 0 until asteroids.size()) addCaster(asteroids[i])
+}
+
+private fun OccluderPool.addCaster(e: Entity) {
+    val bodyCmp = e.bodyCmpOptional ?: return
+    if (bodyCmp.boundingRadius < 0f) bodyCmp.boundingRadius = computeBoundingRadius(bodyCmp.body)
+    if (bodyCmp.boundingRadius < OCCLUDER_MIN_RADIUS) return
+    val pos = e.transformCmp.interpolatedPosition
+    val v = bodyCmp.body.linearVelocity
+    add(pos.x, pos.y, bodyCmp.boundingRadius, v.x, v.y, baseInfoMapper.get(e)?.id ?: NO_ENTITY_ID)
 }

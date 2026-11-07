@@ -31,10 +31,12 @@ class RelativitySettings(
     var planetsEnabled: Boolean = true,
     var decorationEnabled: Boolean = true,
     var lightingEnabled: Boolean = true,
+    var shadowsEnabled: Boolean = true,
 ) {
     var relativityEnabled: Boolean = relativityEnabled
 
     // lightingEnabled (constructor property, ST-097): accretion disks light ships, asteroids, debris and planets (render/LitSpriteRenderer).
+    // shadowsEnabled (constructor property, ST-098): planets and large asteroids shadow lit sprites; needs lightingEnabled.
 
     var c: Float = c.coerceIn(C_MIN, C_MAX_BOX2D_SAFE)
         set(value) {

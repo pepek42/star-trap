@@ -14,6 +14,8 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.Game
+import com.github.pepek42.asteroids.component.AsteroidComponent
+import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.GravitySourceComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
@@ -40,6 +42,8 @@ import com.github.pepek42.asteroids.render.DOPPLER_MIN_BETA
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
 import com.github.pepek42.asteroids.render.LightSources
 import com.github.pepek42.asteroids.render.LitSpriteRenderer
+import com.github.pepek42.asteroids.render.OccluderPool
+import com.github.pepek42.asteroids.render.rebuild
 import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.ReferenceGridRenderer
 import com.github.pepek42.asteroids.render.MIN_CONTRACTION_SPEED
@@ -72,8 +76,13 @@ class RenderSystem(
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
     private var players: ImmutableArray<Entity>? = null
     private var holes: ImmutableArray<Entity>? = null
+    private var asteroids: ImmutableArray<Entity>? = null
     private var pilotViewActive = false
     private val lightSources = LightSources()
+    private val occluders = OccluderPool()
+
+    /** True for the frame when [occluders] hold this frame's shadow casters (ST-098). */
+    private var shadowsActive = false
 
     /** True for the frame when lit sprites are drawn: lighting on, the shader compiled and at least one light exists. */
     private var lightingActive = false
@@ -89,6 +98,7 @@ class RenderSystem(
         super.addedToEngine(engine)
         players = engine.getEntitiesFor(allOf(PlayerComponent::class, TransformComponent::class).get())
         holes = engine.getEntitiesFor(allOf(GravitySourceComponent::class, TransformComponent::class).get())
+        asteroids = engine.getEntitiesFor(allOf(AsteroidComponent::class, BodyComponent::class, TransformComponent::class).get())
     }
 
     override fun update(deltaTime: Float) {
@@ -113,6 +123,12 @@ class RenderSystem(
         if (settings.lightingEnabled && litSprites?.ready == true) {
             holes?.let { lightSources.rebuild(it) }
             lightingActive = lightSources.count > 0
+        }
+        shadowsActive = lightingActive && settings.shadowsEnabled
+        if (shadowsActive) {
+            val sources = holes
+            val rocks = asteroids
+            if (sources != null && rocks != null) occluders.rebuild(sources, rocks) else shadowsActive = false
         }
         batch.use(camera) {
             additive.clear()
@@ -209,7 +225,7 @@ class RenderSystem(
      */
     private fun beginLit(entity: Entity, sprite: Sprite, ax: Float, ay: Float, angleRad: Float, lag: Float) {
         val lit = litSprites
-        litNow = lightingActive && lit != null && lit.prepare(batch, entity, sprite, lightSources, ax, ay, angleRad, lag)
+        litNow = lightingActive && lit != null && lit.prepare(batch, entity, sprite, lightSources, ax, ay, angleRad, lag, if (shadowsActive) occluders else null)
         if (!litNow) lit?.release(batch)
     }
 

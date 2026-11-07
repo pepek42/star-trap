@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-149**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-150**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -17,7 +17,7 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-46. ST-098 Shadows from planets and large asteroids
+46a. ST-149 Shadow follow-ups: nearest occluders and a shadows-off harness flag
 47. ST-099 A distant star as a directional light
 48. ST-088 Gravitational lensing of the backdrop
 
@@ -186,24 +186,20 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - [ ] `./gradlew core:test` passes
 - playtest: Orbit a hole in pilot view: the approaching half of the disk glows blue-white and the other half dims red.
 
-### ST-098 Shadows from planets and large asteroids
+### ST-149 Shadow follow-ups: nearest occluders and a shadows-off harness flag
 - status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-097
-- files: `render/Lighting.kt`, `render/LitSpriteRenderer.kt`, `assets/shaders/lit_sprite.frag`; tests
-- goal: Planets and large asteroids cast shadows away from the light (owner 2026-11-02). Space itself has nothing to light, so a shadow only shows where it falls on another sprite. That is physically right and means no shadow geometry is needed: an occlusion test in the lit-sprite shader is enough.
-- spec:
-  - Pure `fun circleShadowFactor(px, py, lx, ly, lightSize: Float, directional: Boolean, cx, cy, cr): Float` (1 = lit, 0 = fully shadowed). With `d̂` from the point toward the light and `t = (c − p)·d̂`: if `t ≤ 0` or (point light) `t ≥ |l − p|`, return 1 (the occluder isn't between). `dPerp` = distance from `c` to the ray. The penumbra half-width at the occluder is `w = lightSize·t/|l − p|` for point lights (similar triangles) and `w = STAR_ANGULAR_SIZE·t` for directional ones (`const val STAR_ANGULAR_SIZE = 0.01f` in `Lighting.kt`, used by ST-099), at least 0.05 u. Return `smoothstep(cr − w, cr + w, dPerp)`.
-  - Occluders: planets and asteroids with `boundingRadius ≥ OCCLUDER_MIN_RADIUS = 1.5f`, as circles in the arena frame (current state in world view, retarded state in pilot view, like ST-097). Per lit sprite, the CPU keeps up to `MAX_OCCLUDERS = 6` occluders whose circle comes within `cr + spriteRadius` of a segment from the sprite to one of its picked lights, excluding the sprite itself. Uniforms `u_occ[6]` (vec3 x, y, r), `u_occCount`. In the shader each light's contribution is multiplied by the product of `circleShadowFactor` over the occluders.
-  - Self-shadowing on the far side already comes from N·L. Small asteroids, ships and debris don't cast (performance; KDoc it).
-  - Setting `shadowsEnabled = true` (last param, debug checkbox).
+- size: S
+- agent: junior-dev
+- layer: sim visuals
+- depends: ST-098
+- files: `render/Lighting.kt` (`selectOccluders`), `debug/ScreenshotHarness.kt`, `physics/RelativitySettings.kt`; tests
+- refs: ST-098 report and review (2026-11-07)
+- goal: (1) When more than `MAX_OCCLUDERS` circles qualify, `selectOccluders` keeps the first ones found, so a distant occluder can displace a nearer one and the shadow pops with pool order. Keep the nearest ones instead (smallest `t` along the sprite-to-light segment, or distance to the sprite), still allocation-free (insertion into the fixed-size output). (2) Add a harness flag `--no-shadows` (web `?no-shadows`) that starts with `shadowsEnabled = false`, for A/B screenshots with `--shadow-demo`.
 - acceptance:
-  - [ ] Tests: an occluder exactly between point and light → < 0.05; offset sideways by `cr + 2w` → > 0.95; an occluder behind the point or beyond the light → 1; continuous along a sideways sweep (no jump > 0.1 between samples 0.01 u apart)
-  - [ ] Test: the CPU selection skips the sprite's own circle and keeps at most 6
-  - [ ] Screenshot (seed 42, a debug setup with a ship behind a planet relative to a hole) viewed by the agent: the ship is darker than one beside the planet
+  - [ ] Test: with 8 qualifying circles at different distances, the 6 nearest are kept, whatever their pool order
+  - [ ] `LaunchOptionsTest` covers `--no-shadows`; `docs/tech/dev-workflow.md` lists it
   - [ ] `./gradlew core:test` passes
-- playtest: Hide behind a planet from a black hole's glow: your ship goes dark. Are disk shadows (very soft, because the disk is large) readable?
+- playtest: none (debug tooling and a tie-break).
 
 ### ST-099 A distant star as a directional light
 - status: ready

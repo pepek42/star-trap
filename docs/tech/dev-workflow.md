@@ -78,6 +78,7 @@ Options (parsed by `parseLaunchOptions` in `core/.../debug/ScreenshotHarness.kt`
 - `--debug-panel`: allows the F1 debug panel even when the "Debug mode" setting is off. Also works outside screenshot runs.
 - `--play`: skips the main menu and starts a level, also outside screenshot runs.
 - `--pilot-view`: starts in the Pilot view (light-delayed, lit sprites) instead of the saved or default perspective. Web: `?pilot-view`.
+- `--shadow-demo`: shadow test scene (ST-098): a hole 25 u right of the player (as `--hole-near`), a planet 15 u right of the player, an asteroid in the planet's shadow and a control asteroid at the same distance from the hole outside it, all at rest. Use with `--invulnerable --frames=60 --seed=42`; toggle "shadows" in the debug panel (or flip the `shadowsEnabled` default) for an A/B. Web: `?shadow-demo`.
 
 **Web equivalent.** The web launcher maps the URL query to the same flags (`queryToLaunchArgs`): `index.html?seed=42&play&controls=twin&hole-near`. `screenshot` is ignored on web.
 

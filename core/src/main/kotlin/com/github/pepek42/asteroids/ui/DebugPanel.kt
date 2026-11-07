@@ -132,6 +132,7 @@ fun resetDebugDefaults(relativity: RelativitySettings, debug: DebugSettings) {
     relativity.planetsEnabled = true
     relativity.decorationEnabled = true
     relativity.lightingEnabled = true
+    relativity.shadowsEnabled = true
     debug.timeScale = 1f
     debug.showVectors = false
     debug.gridEnabled = GRID_ENABLED
@@ -209,6 +210,7 @@ class DebugPanel(
         checkBox("planets (next level)", { relativitySettings.planetsEnabled }) { relativitySettings.planetsEnabled = it }
         checkBox("debris (next level)", { relativitySettings.decorationEnabled }) { relativitySettings.decorationEnabled = it }
         checkBox("lighting", { relativitySettings.lightingEnabled }) { relativitySettings.lightingEnabled = it }
+        checkBox("shadows", { relativitySettings.shadowsEnabled }) { relativitySettings.shadowsEnabled = it }
         checkBox("grid", { debugSettings.gridEnabled }) { debugSettings.gridEnabled = it }
         checkBox("target pointers", { debugSettings.targetPointersEnabled }) { debugSettings.targetPointersEnabled = it }
         checkBox("show vectors", { debugSettings.showVectors }) { debugSettings.showVectors = it }

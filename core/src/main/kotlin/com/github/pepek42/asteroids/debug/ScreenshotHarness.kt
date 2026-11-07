@@ -33,13 +33,19 @@ data class LaunchOptions(
     val play: Boolean = false,
     /** Forces the pilot view at launch (`--pilot-view`; web: `?pilot-view`); wins over the saved perspective setting. */
     val pilotView: Boolean = false,
+    /**
+     * Sets up a shadow test (`--shadow-demo`; web: `?shadow-demo`, ST-098): a black hole [HOLE_NEAR_DISTANCE] u right of the player
+     * (as a bare `--hole-near`), a planet between them, an asteroid in the planet's shadow and a control asteroid at the same
+     * distance from the hole outside it. Harness only.
+     */
+    val shadowDemo: Boolean = false,
 )
 
 /** Distance (u) from the player spawn to the first black hole under a bare `--hole-near`. */
 const val HOLE_NEAR_DISTANCE = 25f
 
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play` and `--pilot-view`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play`, `--pilot-view` and `--shadow-demo`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -61,6 +67,7 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
             "--debug-panel" -> options = options.copy(debugPanel = true)
             "--play" -> options = options.copy(play = true)
             "--pilot-view" -> options = options.copy(pilotView = true)
+            "--shadow-demo" -> options = options.copy(shadowDemo = true)
         }
     }
     return options

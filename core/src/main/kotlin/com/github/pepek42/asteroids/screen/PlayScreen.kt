@@ -39,6 +39,10 @@ import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
 import com.github.pepek42.asteroids.render.LitSpriteRenderer
+import com.github.pepek42.asteroids.debug.HOLE_NEAR_DISTANCE
+import com.github.pepek42.asteroids.environment.AsteroidSize
+import com.badlogic.gdx.math.MathUtils
+import ktx.math.vec2
 import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.PlanetTextures
 import com.github.pepek42.asteroids.render.ReferenceGridRenderer
@@ -162,7 +166,26 @@ class PlayScreen(
 
     /** `--hole-near`: where the first black hole goes (`--hole-near=<u>` right of the player spawn), else null. */
     private fun holeNearSpawn(): Vector2? =
-        game.options.holeNear?.let { mapProvider.playerSpawnLocation().add(it, 0f) }
+        (game.options.holeNear ?: if (game.options.shadowDemo) HOLE_NEAR_DISTANCE else null)
+            ?.let { mapProvider.playerSpawnLocation().add(it, 0f) }
+
+    /**
+     * `--shadow-demo` (ST-098): with the hole at [HOLE_NEAR_DISTANCE] right of the player, a planet [SHADOW_DEMO_PLANET_DX] u from
+     * the player toward the hole shadows the player and an asteroid [SHADOW_DEMO_ROCK_DX] u from the player toward the planet; a control asteroid
+     * sits at the same distance from the hole, [SHADOW_DEMO_CONTROL_ANGLE_DEG] off the axis, outside the shadow. All at rest.
+     */
+    private fun spawnShadowDemo() {
+        val spawn = mapProvider.playerSpawnLocation()
+        planetProvider.spawnPlanet(spawn.x + SHADOW_DEMO_PLANET_DX, spawn.y, 0)
+        val rockX = spawn.x + SHADOW_DEMO_ROCK_DX
+        asteroidProvider.spawnAsteroid(AsteroidSize.LARGE, vec2(rockX, spawn.y), vec2(), 0f)
+        val holeX = spawn.x + HOLE_NEAR_DISTANCE
+        val dist = holeX - rockX
+        val a = SHADOW_DEMO_CONTROL_ANGLE_DEG * MathUtils.degreesToRadians
+        asteroidProvider.spawnAsteroid(
+            AsteroidSize.LARGE, vec2(holeX - dist * MathUtils.cos(a), spawn.y + dist * MathUtils.sin(a)), vec2(), 0f,
+        )
+    }
 
     override fun show() {
         super.show()
@@ -178,6 +201,7 @@ class PlayScreen(
             planetProvider.spawn(gameState.level, game.get<RandomXS128>(), holes, holes.size / 2)
         } else FloatArray(0)
         asteroidProvider.spawnAsteroids(gameState.level, mapProvider)
+        if (game.options.shadowDemo) spawnShadowDemo()
         if (game.options.nearAsteroids > 0) {
             asteroidProvider.spawnNearAsteroids(game.options.nearAsteroids, mapProvider.playerSpawnLocation())
         }
@@ -243,5 +267,8 @@ class PlayScreen(
 
     companion object {
         private val logger = logger<PlayScreen>()
+        private const val SHADOW_DEMO_PLANET_DX = 15f
+        private const val SHADOW_DEMO_ROCK_DX = 7f
+        private const val SHADOW_DEMO_CONTROL_ANGLE_DEG = 55f
     }
 }

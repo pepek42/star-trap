@@ -9,8 +9,8 @@ precision mediump float;
 #endif
 #endif
 
-// MAX_LIGHTS (MAX_LIGHTS_PER_SPRITE) and LIGHT_HEIGHT (Lighting.kt) are #defined by LitSpriteRenderer through
-// ShaderProgram.prependFragmentCode; directional lights use a tenth of LIGHT_HEIGHT.
+// MAX_LIGHTS (MAX_LIGHTS_PER_SPRITE), LIGHT_HEIGHT, MAX_OCCLUDERS, STAR_ANGULAR_SIZE and MIN_PENUMBRA (Lighting.kt) are
+// #defined by LitSpriteRenderer through ShaderProgram.prependFragmentCode; directional lights use a tenth of LIGHT_HEIGHT.
 
 varying vec4 v_color;
 varying vec2 v_texCoords;
@@ -31,6 +31,23 @@ uniform float u_lightSize[MAX_LIGHTS];
 uniform float u_lightRange[MAX_LIGHTS];
 uniform float u_lightDir[MAX_LIGHTS];  // 1 = directional (x, y is a direction)
 uniform int u_lightCount;
+uniform vec3 u_occ[MAX_OCCLUDERS];    // shadow casters (ST-098): x, y, radius in the arena frame
+uniform int u_occCount;
+
+// Mirrors circleShadowFactor in render/Lighting.kt: 1 = lit, 0 = shadowed by the circle occ (x, y, r) seen from p.
+// For a directional light lpos is the direction toward it.
+float circleShadow(vec2 p, vec2 lpos, float lightSize, bool directional, vec3 occ) {
+    vec2 toL = directional ? lpos : lpos - p;
+    float len = length(toL);
+    if (len <= 0.0) return 1.0;
+    vec2 dir = toL / len;
+    vec2 oc = occ.xy - p;
+    float t = dot(oc, dir);
+    if (t <= 0.0 || (!directional && t >= len)) return 1.0;
+    float dPerp = abs(oc.x * dir.y - oc.y * dir.x);
+    float w = max(directional ? STAR_ANGULAR_SIZE * t : lightSize * t / len, MIN_PENUMBRA);
+    return smoothstep(occ.z - w, occ.z + w, dPerp);
+}
 
 void main() {
     vec4 albedo = texture2D(u_texture, v_texCoords);
@@ -72,7 +89,12 @@ void main() {
             wrap = d <= 0.0 ? 1.0 : clamp(u_lightSize[i] / d, 0.0, 1.0);
         }
         float diffuse = max(0.0, (dot(n, l) + wrap) / (1.0 + wrap));
-        shade += u_lightColor[i] * (f * diffuse);
+        float shadow = 1.0;
+        for (int j = 0; j < MAX_OCCLUDERS; j++) {
+            if (j >= u_occCount) break;
+            shadow *= circleShadow(p, pos.xy, u_lightSize[i], u_lightDir[i] > 0.5, u_occ[j]);
+        }
+        shade += u_lightColor[i] * (f * diffuse * shadow);
     }
 
     gl_FragColor = vec4(albedo.rgb * shade * v_color.rgb, albedo.a * v_color.a);

@@ -32,6 +32,9 @@ private const val NORMAL_SUFFIX = "_n"
 /** [v] as a GLSL float literal (ES 1.00 has no int/float mixing, and some runtimes print 2f as "2"). */
 private fun glslFloat(v: Float): String = v.toString().let { if (it.contains('.') || it.contains('E') || it.contains('e')) it else "$it.0" }
 
+/** [BaseInfoComponent.id] stand-in for an entity without one (ids count up from 1). */
+const val NO_ENTITY_ID = -1
+
 /** Bits of `regionY` in the integer key of a region (atlas pages are far smaller than 65536 px). */
 private const val REGION_KEY_SHIFT = 16
 
@@ -65,12 +68,13 @@ const val ASTEROID_DOME_BLEND = 0.7f
  * (used in [NORMAL_MODE_MAP] only). Writes the light factor `ambient + Σ light` (rgb) over the first [n] lights of [idx]
  * into [out]; the caller multiplies the albedo. The normal is rotated into the arena frame and the lights are evaluated
  * at the texel's arena position, so the lit side follows the sprite's angle. [domeBlend] (0..1) mixes the analytic sphere
- * normal into the map normal in [NORMAL_MODE_MAP] (see [ASTEROID_DOME_BLEND]). Allocation-free.
+ * normal into the map normal in [NORMAL_MODE_MAP] (see [ASTEROID_DOME_BLEND]). [occluders] (ST-098) shadow each light, see [shade]. Allocation-free.
  */
 fun shadeSpriteTexel(
     qx: Float, qy: Float, halfW: Float, halfH: Float, cx: Float, cy: Float, rotRad: Float, mode: Int,
     nTexX: Float, nTexY: Float, nTexZ: Float,
     lights: Array<LightSource>, idx: IntArray, n: Int, ambient: Float, out: FloatArray, domeBlend: Float = 0f,
+    occluders: OccluderCircles? = null,
 ) {
     val cosR = cos(rotRad)
     val sinR = sin(rotRad)
@@ -104,7 +108,7 @@ fun shadeSpriteTexel(
     shade(
         cosR * nx - sinR * ny, sinR * nx + cosR * ny, nz,
         cx + cosR * lx - sinR * ly, cy + sinR * lx + cosR * ly,
-        lights, idx, n, ambient, out,
+        lights, idx, n, ambient, out, occluders,
     )
 }
 
@@ -131,6 +135,8 @@ fun shadeSpriteTexel(
  *   brightness are computed as if it were at rest in the arena). The pilot's own Doppler on the result still applies
  *   through the vertex colour.
  * - FAKE 3: lighting ignores length contraction (ST-044) of the lit sprite, and the disk is one soft point light (ST-095).
+ * - FAKE 4 (shadows, ST-098): the occluder circles are the planets' and large asteroids' bodies moved back to the sprite's
+ *   retarded time by their velocity (no history lookup), and a circle's shadow is a smoothstep penumbra, not a real eclipse.
  *
  * Normal-map matching assumes un-trimmed, un-rotated atlas regions (the packer settings: no whitespace stripping, no rotation).
  * Normal map and colour share the atlas page in the shipped atlas, but the lookup stays per region, so a second page works.
@@ -150,13 +156,17 @@ class LitSpriteRenderer(private val atlas: TextureAtlas) : Disposable {
     private val lightSize = FloatArray(MAX_LIGHTS_PER_SPRITE)
     private val lightRange = FloatArray(MAX_LIGHTS_PER_SPRITE)
     private val lightDirFlag = FloatArray(MAX_LIGHTS_PER_SPRITE)
+    private val occluders = OccluderCircles()
+    private val occData = FloatArray(MAX_OCCLUDERS * 3)
     private var active = false
 
     init {
         ShaderProgram.pedantic = false
         // prependFragmentCode is global to ShaderProgram: set it only while compiling this shader.
         val previousPrepend = ShaderProgram.prependFragmentCode
-        ShaderProgram.prependFragmentCode = "#define MAX_LIGHTS $MAX_LIGHTS_PER_SPRITE\n#define LIGHT_HEIGHT ${glslFloat(LIGHT_HEIGHT)}\n"
+        ShaderProgram.prependFragmentCode = "#define MAX_LIGHTS $MAX_LIGHTS_PER_SPRITE\n#define LIGHT_HEIGHT ${glslFloat(LIGHT_HEIGHT)}\n" +
+                "#define MAX_OCCLUDERS $MAX_OCCLUDERS\n#define STAR_ANGULAR_SIZE ${glslFloat(STAR_ANGULAR_SIZE)}\n" +
+                "#define MIN_PENUMBRA ${glslFloat(MIN_PENUMBRA)}\n"
         try {
             program = ShaderProgram(Gdx.files.internal(VERTEX_SHADER), Gdx.files.internal(FRAGMENT_SHADER))
         } finally {
@@ -173,11 +183,13 @@ class LitSpriteRenderer(private val atlas: TextureAtlas) : Disposable {
      * Makes the next quad of [sprite] lit, if [entity] can be: picks the strongest lights of [lights] at the sprite's arena
      * position ([ax], [ay]) with angle [angleRad] (arena frame, see the class doc), moving the emitters back by [lag] seconds
      * (`now − t_ret`, 0 in the world view), then binds the shader and uniforms. Returns false (and the caller draws unlit
-     * after [release]) for entities without normals. Allocation-free after the first call per region.
+     * after [release]) for entities without normals. With [shadowCasters] the sprite is shadowed by the first circles found that
+     * lie between it and its lights (ST-098, [selectOccluders]; the occluders are moved back by [lag] too). Allocation-free after
+     * the first call per region.
      */
     fun prepare(
         batch: SpriteBatch, entity: Entity, sprite: Sprite, lights: LightSources,
-        ax: Float, ay: Float, angleRad: Float, lag: Float,
+        ax: Float, ay: Float, angleRad: Float, lag: Float, shadowCasters: OccluderPool? = null,
     ): Boolean {
         if (!program.isCompiled) return false
         val mode: Int
@@ -205,6 +217,17 @@ class LitSpriteRenderer(private val atlas: TextureAtlas) : Disposable {
             lightRange[i] = l.range
             lightDirFlag[i] = if (l.directional) 1f else 0f
         }
+        var occCount = 0
+        if (shadowCasters != null && n > 0) {
+            val selfId = baseInfoMapper.get(entity)?.id ?: NO_ENTITY_ID
+            val radius = sqrt(sprite.width * sprite.width + sprite.height * sprite.height) / 2f
+            occCount = selectOccluders(ax, ay, radius, lights.lights, idx, n, shadowCasters, lag, selfId, occluders)
+            for (j in 0 until occCount) {
+                occData[j * 3] = occluders.x[j]
+                occData[j * 3 + 1] = occluders.y[j]
+                occData[j * 3 + 2] = occluders.r[j]
+            }
+        }
         batch.shader = program // flushes what was queued with the default shader, then binds
         program.bind()
         normals.bind(NORMAL_UNIT)
@@ -227,6 +250,8 @@ class LitSpriteRenderer(private val atlas: TextureAtlas) : Disposable {
             program.setUniform1fv("u_lightRange", lightRange, 0, n)
             program.setUniform1fv("u_lightDir", lightDirFlag, 0, n)
         }
+        program.setUniformi("u_occCount", occCount)
+        if (occCount > 0) program.setUniform3fv("u_occ", occData, 0, occCount * 3)
         active = true
         return true
     }

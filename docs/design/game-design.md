@@ -35,7 +35,8 @@ A run ends on death. Meta progression is out of scope for the POC.
 | Mouse wheel | Zoom (0.5–2×) |
 | Right Ctrl | Shield/block (placeholder) |
 | V | Toggle pilot view (Outside / Pilot, see [main-menu.md](main-menu.md)) |
-| T | Toggle the tactical computer overlay |
+| 1 / 2 / 3 | Select weapon slot 1, 2 or 3 (ST-163) |
+| T | Toggle the tactical computer overlay (includes the incoming-fire warning, ST-158) |
 | F1 | Debug panel (only in debug builds or with `--debug-panel`) |
 
 The source of truth is `input/InputBindings.kt`; the main menu lists it.
@@ -70,7 +71,7 @@ Tunables: the speed of light `c` (c = 20 u/s, see §11; it has to fit Box2D's ~9
 | Player ship (`disc_green`) | exists | Thrust, laser, health 100 |
 | Asteroids | exist | Split LARGE → SMALL. Count grows with level² |
 | Laser projectiles | exist | Should travel at a fraction of c, or at c for a "light" weapon |
-| Enemy ships | planned | Sprites exist: attacker/tic-tac/triangle/moon-lander in red. Simple steering AI via gdx-ai. Their clocks run at their own proper time |
+| Enemy ships | exists (ST-154..ST-160) | Red attacker/tic-tac/triangle/moon-lander sprites. Honest light-delayed pilot (`EnemyAiSystem`) that pursues to a standoff range and fires when its lead estimate is in range and its hull is aligned. Count `enemyCount(level)` = one per level from level 3, at most 3, present from the start; the level clears only when all are dead. They carry a `RelativisticComponent`, so their clocks run at their own proper time |
 | Planets | exists (ST-093) | Solid gravity wells, placed at spawn, pulled by the other sources and the player, eaten by a black hole. Mild gravitational time dilation (ST-086). Static until the gravity pull moves them |
 | Black holes | exists (ST-085) | 1 per level (2 from level 3), fixed at spawn and then pulled by gravity. Horizon kills, horizons merge, bright accretion disk and rings. Backdrop lensing (ST-088) |
 | Debris | exists (ST-094) | Small drifting pieces, not counted for level clear, no gravity pull. Not a target for auto-aim |
@@ -106,7 +107,7 @@ Regenerate it with `--frames=130 --seed=42 --invulnerable --near-asteroids=3 --n
 | M3 | Relativity MVP | Relativistic dynamics, proper time, Doppler, a β/γ HUD |
 | M4 | Relativistic view | Aberration, searchlight, light delay, length contraction |
 | M5 | Gravity & black holes | Gravity wells, black hole with lensing and accretion disk |
-| M6 | Enemies | AI ships with their own proper time |
+| M6 | Enemies | AI ships with their own proper time. Done: enemy ships exist (ST-154..ST-160), see §7 |
 | M7 | Roguelike & modes | Upgrades between levels. Race-mode prototype |
 
 ## 11. Open questions (owner)

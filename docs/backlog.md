@@ -23,7 +23,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
 50b. ST-164 Homing missile: relativistic rocket body and computer guidance
 50c. ST-165 Missile lock-on: lock first, then fire
-49h. ST-161 Bring docs in line after M6
 49i. ST-172 Balance bots that fight enemies, and a full enemy sweep
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
@@ -156,20 +155,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 ## M6 Enemies
 
 Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
-
-### ST-161 Bring docs in line after M6
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-156, ST-157, ST-158
-- files: `CLAUDE.md` (system order sentence), `docs/tech/architecture.md` ("ECS system order", components list), `docs/design/game-design.md` (§7 Enemy ships row, §10 M6, §4 if controls changed)
-- refs: the closed cards' reports (`scripts/backlog.py show ST-154` … `ST-158`)
-- layer: infra
-- goal: Docs describe enemies as built: the `EnemyAiSystem` position in the order, `EnemyComponent`, `ShipHandlingComponent.engineFactor`, enemy count rule, honest light-delayed AI, the incoming-fire assist.
-- acceptance:
-  - [ ] CLAUDE.md's order list includes "enemy AI" after input; architecture's system table has a row for `EnemyAiSystem`
-  - [ ] game-design §7 shows enemy ships as "exists" with a one-line summary
-  - [ ] `./gradlew core:test` passes
 
 ### ST-172 Balance bots that fight enemies, and a full enemy sweep
 - status: ready

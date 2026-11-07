@@ -37,6 +37,8 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 
 class WeaponProjectileProviderTest {
 
@@ -201,6 +203,21 @@ class WeaponProjectileProviderTest {
         val laser = fireFrom(WeaponProjectileProvider(textureAtlas, engine, world, settings), 0f)
 
         assertEquals(settings.c, laser.bodyCmp.body.linearVelocity.len(), 1e-3f)
+    }
+
+    @Test
+    fun enemyLaserUsesEnemySprite() {
+        val atlas = mock<TextureAtlas> { on { createSprite("enemy_laser") } doReturn laserSprite }
+        val enemyProvider = WeaponProjectileProvider(atlas, engine, world)
+        val shipBody = world.createBody(BodyDef().apply { type = BodyDef.BodyType.DynamicBody })
+        val enemy = Entity()
+            .add(BodyComponent().apply { body = shipBody })
+            .add(BaseInfoComponent().apply { this.faction = FactionEnum.ENEMY })
+
+        enemyProvider.spawnProjectile(WeaponComponent().apply { this.projectileRadius = 0.1f }, enemy)
+
+        verify(atlas).createSprite("enemy_laser")
+        verify(atlas, never()).createSprite("player_laser", 1)
     }
 
     companion object {

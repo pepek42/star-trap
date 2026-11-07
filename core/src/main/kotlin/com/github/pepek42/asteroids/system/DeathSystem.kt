@@ -10,6 +10,7 @@ import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.RemoveComponent
 import com.github.pepek42.asteroids.component.asteroidCmp
 import com.github.pepek42.asteroids.component.asteroidMapper
+import com.github.pepek42.asteroids.component.enemyMapper
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.healthCmp
 import com.github.pepek42.asteroids.component.playerMapper
@@ -68,7 +69,21 @@ class DeathSystem(
                 spawnSmallerAsteroids(body, currentAsteroidSize)
             }
         }
+        if (entity.has(enemyMapper)) {
+            pushEnemyKill(entity.bodyCmp.body)
+        }
         entity.addComponent<RemoveComponent>(engine)
+    }
+
+    /**
+     * The computer announces a destroyed enemy with the large-asteroid break-up sound (ST-157). A dedicated ship sound
+     * can replace it later.
+     */
+    private fun pushEnemyKill(body: Body) {
+        val queue = computerSounds ?: return
+        val p = body.position
+        val v = body.linearVelocity
+        queue.push(ComputerSoundKind.ASTEROID_BREAK_LARGE, p.x, p.y, v.x, v.y, clock?.worldTime ?: 0f)
     }
 
     private fun pushBreakUp(body: Body, size: AsteroidSize) {

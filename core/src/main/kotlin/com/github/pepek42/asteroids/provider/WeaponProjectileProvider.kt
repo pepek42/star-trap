@@ -21,6 +21,7 @@ import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
+import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.aberratePhoton
 import com.github.pepek42.asteroids.physics.worldHullToPilot
@@ -81,7 +82,12 @@ class WeaponProjectileProvider(
                 this.dir.set(photonDir)
             }
             with<SpriteComponent> {
-                val sprite = textureAtlas.createSprite("player_laser", 1)
+                // Enemy fire uses its own region so the pilot can tell it from their own lasers (ST-157).
+                val sprite = if (faction == FactionEnum.ENEMY) {
+                    textureAtlas.createSprite("enemy_laser")
+                } else {
+                    textureAtlas.createSprite("player_laser", 1)
+                }
                 // The headless balance runner hands out texture-less sprites, which are never drawn.
                 sprite.texture?.let { texture ->
                     val scale = weaponCmp.projectileRadius / texture.height * 3

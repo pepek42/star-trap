@@ -19,7 +19,6 @@ Audio (owner 2026-11-05):
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
-49d. ST-157 Enemy lasers use the enemy sprite; computer sound for destroyed ships
 49e. ST-158 Assist: incoming-fire warning on the tactical overlay
 49f. ST-159 Balance runner with enemies
 
@@ -159,23 +158,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 ## M6 Enemies
 
 Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
-
-### ST-157 Enemy lasers use the enemy sprite; computer sound for destroyed ships
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-155
-- files: `provider/WeaponProjectileProvider.kt`, `system/DeathSystem.kt`; tests in `provider/WeaponProjectileProviderTest.kt`, `system/DeathSystemTest.kt`
-- refs: —
-- layer: sim (sprite), assist (sound)
-- goal: Tell enemy fire from your own at a glance, and let the ship's computer announce a kill like it does for asteroids.
-- spec:
-  - `WeaponProjectileProvider.spawnProjectile`, `SpriteComponent` block: replace `textureAtlas.createSprite("player_laser", 1)` with `if (faction == FactionEnum.ENEMY) textureAtlas.createSprite("enemy_laser") else textureAtlas.createSprite("player_laser", 1)` (`faction` is already a local there). Keep the size code unchanged.
-  - `DeathSystem.processEntity`: before adding `RemoveComponent`, if `entity.has(enemyMapper)` push `ComputerSoundKind.ASTEROID_BREAK_LARGE` exactly like `pushBreakUp` does (position, velocity, `clock?.worldTime ?: 0f`). Add a KDoc note that a dedicated ship sound can replace it later.
-- acceptance:
-  - [ ] Test: a projectile spawned by an `ENEMY` shooter asks the atlas for region `enemy_laser` (mock the atlas)
-  - [ ] Test: an enemy at 0 health pushes one computer sound event
-  - [ ] `./gradlew core:test` passes
 
 ### ST-158 Assist: incoming-fire warning on the tactical overlay
 - status: ready

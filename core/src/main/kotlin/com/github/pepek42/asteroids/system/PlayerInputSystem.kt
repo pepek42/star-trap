@@ -72,7 +72,7 @@ class PlayerInputSystem(
             val targets = engine.getEntitiesFor(
                 allOf(HealthComponent::class, BodyComponent::class, BaseInfoComponent::class).get(),
             )
-            val strategy = AutoAimStrategy(targets, lightHistory, observer, clock, settings)
+            val strategy = AutoAimStrategy(targets, observer, clock, settings)
             autoAim = strategy
             strategies[ControlScheme.AUTO_AIM] = strategy
         }

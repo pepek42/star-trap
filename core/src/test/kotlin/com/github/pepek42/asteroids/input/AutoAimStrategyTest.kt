@@ -47,7 +47,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 
-/** Real `World`: a ship near c, an asteroid ahead of its hull, and the full honest fire-control chain. */
+/** Real `World`: a ship near c, an asteroid ahead of its hull, and the computer (true-state) fire-control chain. */
 class AutoAimStrategyTest {
     private val settings = RelativitySettings()
     private val c = settings.c
@@ -136,7 +136,7 @@ class AutoAimStrategyTest {
         )
         step(PHYSICS_WARMUP_STEPS)
         observer.betaRaw.set(ship.bodyOf().linearVelocity).scl(1f / c)
-        return Scenario(ship, asteroid, weapon, MoveComponent(), AutoAimStrategy(targets, history, observer, clock, settings))
+        return Scenario(ship, asteroid, weapon, MoveComponent(), AutoAimStrategy(targets, observer, clock, settings))
     }
 
     @Test

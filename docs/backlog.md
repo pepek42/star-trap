@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-163**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-166**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -23,6 +23,11 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49d. ST-157 Enemy lasers use the enemy sprite; computer sound for destroyed ships
 49e. ST-158 Assist: incoming-fire warning on the tactical overlay
 49f. ST-159 Balance runner with enemies
+
+M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
+50a. ST-163 Weapon slots: switch with 1/2/3
+50b. ST-164 Homing missile: relativistic rocket body and computer guidance
+50c. ST-165 Missile lock-on: lock first, then fire
 49h. ST-161 Bring docs in line after M6
 
 Parked:
@@ -244,6 +249,71 @@ Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own pro
   - [ ] `./gradlew core:test` passes
 
 ---
+
+## M7 Weapons
+
+Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/asteroid) and when locked can be shot ... change weapons by 1/2/3 keys"). Planned by the orchestrator, not the planner. Decisions: slot 1 = photon laser (current), slot 2 = homing missile, slot 3 = reserved (empty until a third weapon, e.g. the slug from game-design §7). Missiles are **sim** objects: massive relativistic bodies with a rocket engine (proper acceleration, so never reaching c), hit by gravity and the boundary field like ships. Lock-on and guidance are **assist/computer**: they use the true target state, like all player targeting (game-design Decisions 2026-11-07, physics-lies row 34). Web: watch body counts (cap missiles in flight), no per-frame allocation, new components stay in `component/` (reflection glob) with one public no-arg constructor.
+
+### ST-163 Weapon slots: switch with 1/2/3
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: `input/InputBindings.kt`, `event/GameEventManager.kt` (+ `PlayerInputListener`), `component/WeaponComponent.kt` or a new `component/WeaponLoadoutComponent.kt`, `weapon/WeaponType.kt`, `provider/PlayerEntityProvider.kt`, `system/PlayerInputSystem.kt`, `ui/Hud.kt`, `assets/i18n/messages.properties`; tests
+- refs: CLAUDE.md "Input & events", "Component convention"; `docs/tech/architecture.md` row 2
+- layer: sim (controls)
+- goal: The player carries several weapons and picks the active one with the number keys.
+- spec:
+  - `WeaponType` gains `MISSILE` (no behaviour yet beyond selection; ST-164 fills it).
+  - Player loadout: slot 1 = `LASER` (today's `WeaponComponent` values), slot 2 = `MISSILE`, slot 3 = empty. Keep it a small array on a player component; selecting writes the active weapon's parameters into the one `WeaponComponent` that `WeaponSystem` already reads (or switch `WeaponSystem` to read the active slot; pick the simpler, keep enemies untouched).
+  - Keys 1/2/3 go into the `InputBindings` table (no literals) → `PlayerInputListener.onSelectWeapon(slot)`. Selecting an empty slot does nothing. Switching keeps each slot's own cooldown.
+  - With slot 2 active, auto-aim does not auto-fire the laser (missiles fire only after a lock, ST-165).
+  - HUD: a small "Weapon: Laser [1] · Missile [2]" line with the active one highlighted (i18n keys).
+- acceptance:
+  - [ ] Tests: the binding table maps 1/2/3; selecting slot 2 makes `WeaponType.MISSILE` active; slot 3 keeps the current weapon
+  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes
+- playtest: Press 1, 2, 3: the HUD shows the active weapon; with 2 active the laser stops firing.
+
+### ST-164 Homing missile: relativistic rocket body and computer guidance
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-163
+- files: new `component/MissileComponent.kt`, new `provider/MissileProvider.kt`, new `system/MissileGuidanceSystem.kt` (a `PhysicsStepListener`), new pure `weapon/MissileGuidance.kt`, `system/ContactSystem.kt`, `ecs/GameplaySystems.kt`, `raw_assets/` + atlas (missile sprite), `docs/design/physics-lies.md`, `docs/tech/architecture.md`; tests
+- refs: CLAUDE.md "Physics loop", "Constants are the single source of truth"; architecture `RelativisticDynamics`; `physics/PhotonAim.kt` (`photonInterceptDir` as a model for an intercept solve)
+- layer: sim (missile body) + assist (guidance uses the true target state)
+- goal: A fired missile is a small massive body that accelerates under its own engine and steers into its target.
+- spec:
+  - `MissileComponent`: `target: Entity?`, `burnLeft` (proper seconds of fuel), `damage`. Missile entity: small dynamic box body (bullet = true), `RelativisticComponent` (starts with the shooter's proper velocity `u`), `BaseInfoComponent` with the shooter's faction and `EntityType.MISSILE` (new), `LifetimeComponent`, `HealthComponent` (a laser can shoot it down).
+  - Engine: proper acceleration `MISSILE_PROPER_ACCEL = MISSILE_ACCEL_FACTOR * ENGINE_PROPER_ACCEL` (factor 3, KDoc derivation; scales with c through `ENGINE_PROPER_ACCEL`) added to `RelativisticComponent.accel` in `beforeStep` while `burnLeft > 0` (decrement by the missile's proper `dt/γ`); after burnout it coasts. So it never reaches c and it is pulled by gravity and the boundary field like any body.
+  - Guidance (pure, `MissileGuidance.kt`): proportional navigation on the **true** relative state (target body position and velocity), N = 3, output a unit thrust direction; turn rate limited (`MISSILE_TURN_RATE`); the body angle follows the thrust direction. Target gone (removed) → fly straight until lifetime ends.
+  - Hit: `ContactSystem` on missile contact with a non-own-faction body: apply `damage` (`MISSILE_DAMAGE = ENEMY_HEALTH`, one missile kills an enemy ship or breaks a large asteroid like enough laser hits) and remove the missile; reuse the existing explosion effect.
+  - Cap: `MISSILE_MAX_IN_FLIGHT` (4) per shooter; ammo `MISSILE_AMMO_PER_LEVEL` (6), refilled each level, shown next to the slot on the HUD.
+  - physics-lies row: guidance uses the true target state (computer, like row 34); the rocket exhaust mass loss is ignored (constant rest mass, APPROX).
+- acceptance:
+  - [ ] Tests (pure): PN steers a missile onto a constant-velocity target (hit within N s in a headless loop); a target moving at 0.9c is never outrun past c (missile speed < c at every step)
+  - [ ] Tests (World): a missile fired at a resting enemy hits and removes it; burnout stops acceleration
+  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes
+- playtest: With a debug `--near-enemies=3` level, missiles (fired via a temporary debug path until ST-165) curve into the enemies.
+
+### ST-165 Missile lock-on: lock first, then fire
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-164
+- files: new `weapon/MissileLock.kt` (pure state machine), `system/PlayerInputSystem.kt` or a new `system/MissileLockSystem.kt`, `system/WeaponSystem.kt`, `system/TacticalOverlaySystem.kt`, `render/TacticalOverlay.kt`, `audio/` (lock tone), `assets/i18n/messages.properties`, `docs/tech/architecture.md`; tests
+- refs: architecture rows 2 (auto-aim) and 12c (lock reticle, target rings); game-design Decisions 2026-11-07
+- layer: assist (the lock is the targeting computer, true state)
+- goal: With missiles selected the computer must lock a target (enemy ship or asteroid) before a missile can be fired; the missile then homes on that target.
+- spec:
+  - Candidate: the level target (`levelTargetFamily()`) nearest the aim direction within `MISSILE_LOCK_CONE_RAD` (±15°) of the hull (muzzle direction for turret schemes) and within `MISSILE_LOCK_RANGE_LIGHT_SECONDS * c` (3), using **true** positions.
+  - Pure `MissileLock` state: NONE → LOCKING (the same candidate held for `MISSILE_LOCK_TIME_S` = 1.0 s of ship proper time) → LOCKED; losing the candidate (out of cone/range, removed) drops back to NONE; switching candidates restarts LOCKING. LOCKED stays while the target is in a wider `MISSILE_LOCK_KEEP_CONE_RAD` (±30°) so the lock doesn't flicker.
+  - Fire: LMB with slot 2 fires a missile only in LOCKED, with `MissileComponent.target` = the locked entity; otherwise nothing (and a short "no lock" click). Ammo and in-flight cap from ST-164 apply.
+  - Display (tactical overlay, independent of the overlay toggle like the lock reticle): LOCKING = an amber reticle closing in on the target ring over the lock time; LOCKED = a solid red diamond on the true position plus a short tone. A HUD line "LOCKED" / "Locking…" next to the weapon slot.
+- acceptance:
+  - [ ] Tests (pure): lock progresses after `MISSILE_LOCK_TIME_S` of steady aim, resets on candidate change, drops when out of the keep cone; fire is refused while not LOCKED
+  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --query="seed=42&play&near-enemies=3"` passes
+- playtest: Press 2, keep the nose on an enemy: the reticle closes and turns red with a tone; click: the missile flies and hits. Click without a lock: nothing flies.
 
 ## Parked (low priority)
 

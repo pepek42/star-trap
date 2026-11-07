@@ -49,7 +49,6 @@ import com.github.pepek42.asteroids.render.formatDamageFactor
 import com.github.pepek42.asteroids.render.LOCK_RETICLE_RADIUS_PX
 import com.github.pepek42.asteroids.render.LOCK_RETICLE_TICK_GAP_PX
 import com.github.pepek42.asteroids.render.LOCK_RETICLE_TICK_LEN_PX
-import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.TACTICAL_ARROW_HEAD_PX
 import com.github.pepek42.asteroids.render.TARGET_RING_GLOW_STEP_PX
 import com.github.pepek42.asteroids.render.TARGET_RING_LAYER_ALPHA
@@ -106,7 +105,6 @@ class TacticalOverlaySystem(
     private val shape: ShapeRenderer = ShapeRenderer(),
     private val batch: SpriteBatch? = null,
     private val font: BitmapFont? = null,
-    private val pilotView: PilotViewProjector? = null,
 ) : IteratingSystem(
     allOf(BaseInfoComponent::class, BodyComponent::class, TransformComponent::class)
         .exclude(RemoveComponent::class).get()
@@ -180,7 +178,8 @@ class TacticalOverlaySystem(
 
     /**
      * Target rings (owner 2026-11-07): a glowing red ring around every level target (asteroids and enemy ships, the set
-     * the level-clear check waits for), at the position its sprite is drawn (apparent centre in pilot view). Independent of
+     * the level-clear check waits for), at its TRUE position (computer assist, owner 2026-11-07; in pilot view it can sit apart from the light-delayed
+     * sprite). Independent of
      * the overlay toggle, like the lock reticle. The glow is a few concentric 1 px rings with falling alpha under additive
      * blending (WebGL has no wide lines), whose outer layers pulse gently.
      */
@@ -188,13 +187,6 @@ class TacticalOverlaySystem(
         if (!tactical.showTargetRings) return
         val targets = levelTargets ?: return
         if (targets.size() == 0) return
-        val view = pilotView
-        val apparent = relativity.pilotView && view != null
-        if (apparent) {
-            val player = players?.let { if (it.size() > 0) it[0] else null } ?: return
-            val p = player.transformCmp.interpolatedPosition
-            view!!.begin(p.x, p.y)
-        }
         viewport.apply()
         wpp = worldPerPixel(camera.viewportWidth, camera.zoom, viewport.screenWidth)
         val step = TARGET_RING_GLOW_STEP_PX * wpp
@@ -205,11 +197,7 @@ class TacticalOverlaySystem(
         shape.begin(ShapeRenderer.ShapeType.Line)
         for (i in 0 until targets.size()) {
             val e = targets[i]
-            if (apparent) {
-                if (!view!!.apparentCentre(e, ringPos)) continue
-            } else {
-                ringPos.set(e.transformCmp.interpolatedPosition)
-            }
+            ringPos.set(e.transformCmp.interpolatedPosition)
             val bodyCmp = e.bodyCmpOptional ?: continue
             if (bodyCmp.boundingRadius < 0f) bodyCmp.boundingRadius = computeBoundingRadius(bodyCmp.body)
             val r = targetRingRadius(bodyCmp.boundingRadius, wpp)
@@ -230,22 +218,14 @@ class TacticalOverlaySystem(
     }
 
     /**
-     * Auto-aim lock-on reticle (ST-142): circle plus four ticks on the locked target, constant screen size, at the position
-     * its sprite is drawn (apparent, light-delayed centre in pilot view, interpolated position in world view). Part of
+     * Auto-aim lock-on reticle (ST-142): circle plus four ticks on the locked target, constant screen size, at the target's
+     * TRUE interpolated position (computer assist, also in pilot view, owner 2026-11-07). Part of
      * auto-aim, so independent of the overlay toggle. Runs after the render system, so it is drawn over the sprites.
      */
     private fun drawLockReticle() {
         val target = playerInput?.autoAimTarget ?: return
         if (removeMapper.has(target)) return
-        val player = players?.let { if (it.size() > 0) it[0] else null } ?: return
-        val view = pilotView
-        if (relativity.pilotView && view != null) {
-            val p = player.transformCmp.interpolatedPosition
-            view.begin(p.x, p.y)
-            if (!view.apparentCentre(target, reticlePos)) return
-        } else {
-            reticlePos.set(target.transformCmp.interpolatedPosition)
-        }
+        reticlePos.set(target.transformCmp.interpolatedPosition)
         viewport.apply()
         wpp = worldPerPixel(camera.viewportWidth, camera.zoom, viewport.screenWidth)
         val radius = LOCK_RETICLE_RADIUS_PX * wpp

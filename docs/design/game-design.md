@@ -141,6 +141,7 @@ The planner and auto-dev put new questions here or on `needs-user` backlog cards
 - 2026-11-05 (ST-126): Tactical computer overlay is shown **always** by default, in both perspectives (revisit to "Pilot view only" when the shop sells the computer). Velocity arrows are **arena-frame** for now; ship-relative arrows can be a tier-2 option.
 - 2026-11-05 (ST-023): Field damping is tuned to **4.5 1/s**, so a bounce keeps 95.2 % of the normal speed (about 4.8 % lost), and the backstop restitution is 0.95. Owner: "field should reflect 100% of speed. We can try 95% also, to slow down game a little bit."
 - 2026-11-02: The backdrop should be calmer, with orientation aids (reference grid, pointer to the arena centre), ST-100. Code-generated planet sprites are fine as placeholders.
+- 2026-11-07: **All player targeting is computer targeting on the true position.** Auto-aim (target pick and lead), lock reticle, target rings and edge arrows use the true state, in both views; only sprites show what light delivers. Sprites themselves are never highlighted. (Enemy pilots stay honest, light-delayed, physics-lies row 45.)
 
 ## 12. Ideas parking lot
 

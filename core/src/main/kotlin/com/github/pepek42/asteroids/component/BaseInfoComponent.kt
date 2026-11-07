@@ -28,6 +28,7 @@ class BaseInfoComponent : Component, Pool.Poolable {
     override fun reset() {
         id = ++globalCounter
         faction = FactionEnum.NEUTRAL
+        entityType = EntityType.UNKNOWN
     }
 
     companion object {

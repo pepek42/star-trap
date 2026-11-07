@@ -108,7 +108,7 @@ The convention is described in `CLAUDE.md`: a `Poolable` class, `xxxMapper`, and
 
 These are input for the backlog. Card IDs are given where a card exists.
 
-1. `BaseInfoComponent.reset()` doesn't reset `entityType`. The global id counter is a static mutable. (No card yet.)
+1. The global id counter in `BaseInfoComponent` is a static mutable. (No card yet.)
 2. Boundary backstop vs. contacts (ST-038): `BoundaryFieldSystem.afterStep` runs before `RelativisticDynamics.afterStep`, so if a contact changes a relativistic body's velocity in the same step as a backstop hit, the backstop reflects the stale `u` and the contact change is lost. Judged very rare (the field repels strongly there). (No card.)
 
 Fixed in M1 and removed from this list: ST-006 (level cleanup in `hide()`), ST-007 (faction filter bits), ST-008 (small asteroid texture), ST-009 (CI on JDK 25), ST-011 (minimap rework), ST-012 (starfield).

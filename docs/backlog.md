@@ -17,7 +17,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-48a. ST-152 Reset BaseInfoComponent.entityType and fix a stray KDoc (fix, before M6)
 48b. ST-151 Make the Einstein ring readable (owner decision)
 48c. ST-153 Tidal stretching and spaghettification near black holes
 
@@ -201,23 +200,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 ## M6 Enemies
 
 Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
-
-### ST-152 Reset BaseInfoComponent.entityType and fix a stray KDoc
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: —
-- files: `component/BaseInfoComponent.kt`, `provider/PlayerEntityProvider.kt`, `docs/tech/architecture.md`; create `core/src/test/kotlin/com/github/pepek42/asteroids/component/BaseInfoComponentTest.kt`
-- refs: `architecture.md` "Known issues and tech debt" item 1
-- layer: infra
-- goal: Fix known issue 1 before enemies reuse pooled `BaseInfoComponent`s: `reset()` leaves `entityType` set, so a pooled component can carry `SHIP` or `ASTEROID` into a new entity.
-- spec:
-  - `BaseInfoComponent.reset()`: add `entityType = EntityType.UNKNOWN`.
-  - `PlayerEntityProvider.kt`: the line `/** Box2D density of the player ship. */` sits above the KDoc of `PLAYER_START_HEALTH`. Move it so it sits directly above `const val PLAYER_DENSITY = 20f`.
-  - `architecture.md` known issue 1: drop "`BaseInfoComponent.reset()` doesn't reset `entityType`."; keep the sentence about the static id counter.
-- acceptance:
-  - [ ] Test: set `entityType = EntityType.ASTEROID` and `faction = FactionEnum.ENEMY`, call `reset()`; `entityType == UNKNOWN`, `faction == NEUTRAL`, and `id` changed
-  - [ ] `./gradlew core:test` passes
 
 ### ST-154 Enemy pilot math: pursue to a standoff range (pure)
 - status: ready

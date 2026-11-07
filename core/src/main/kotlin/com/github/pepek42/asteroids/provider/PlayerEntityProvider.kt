@@ -29,10 +29,10 @@ import ktx.box2d.body
 import ktx.box2d.box
 import ktx.math.vec2
 
-/** Box2D density of the player ship. */
 /** Player health at spawn (also what `--invulnerable` restores). */
 const val PLAYER_START_HEALTH = 100f
 
+/** Box2D density of the player ship. */
 const val PLAYER_DENSITY = 20f
 
 /** Pixel size of the (square) player sprite `spaceship/disc_green` in the atlas. */

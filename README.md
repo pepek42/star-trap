@@ -1,4 +1,6 @@
-# star-trap
+# Star Trap: Redshift
+
+A physics-based 2D space shooter with relativistic dynamics (repo name: `star-trap`).
 
 A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/tommyettinger/gdx-liftoff).
 

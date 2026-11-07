@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Star Trap: a proof-of-concept physics-based 2D space shooter (Asteroids-like, aiming toward an action roguelike) built with libGDX + Kotlin + KTX, using Ashley ECS and Box2D. Controls: default auto-aim (the mouse steers the hull, the guns pick targets; LMB also fires), RMB thrusters, mouse wheel zoom, Esc quits to the menu; `--controls=mouse|twin|auto` picks the scheme. The Kotlin package is `com.github.pepek42.asteroids` (not `startrap`).
+Star Trap: Redshift (in-game name since 2026-11-07; the repo, Gradle projects, packages and the `star-trap-settings` preferences keep the old names, and `TITLE` in `Config.kt` is the one source of the displayed name): a proof-of-concept physics-based 2D space shooter (Asteroids-like, aiming toward an action roguelike) built with libGDX + Kotlin + KTX, using Ashley ECS and Box2D. Controls: default auto-aim (the mouse steers the hull, the guns pick targets; LMB also fires), RMB thrusters, mouse wheel zoom, Esc quits to the menu; `--controls=mouse|twin|auto` picks the scheme. The Kotlin package is `com.github.pepek42.asteroids` (not `startrap`).
 
 **The web build (TeaVM) is the primary release target.** Desktop (`lwjgl3`) is the fast dev and test loop, but a feature isn't shipped until it works in the browser. See "Web first" below.
 

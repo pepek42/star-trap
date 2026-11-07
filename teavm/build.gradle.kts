@@ -18,7 +18,7 @@ gdxTeaVM {
 
     webDefaults {
         mainClass.set("com.github.pepek42.asteroids.teavm.TeaVMLauncher")
-        htmlTitle.set("Star Trap")
+        htmlTitle.set("Star Trap: Redshift") // keep in sync with TITLE in core Config.kt
         htmlWidth.set(1280)
         htmlHeight.set(720)
         serverPort.set(8080)

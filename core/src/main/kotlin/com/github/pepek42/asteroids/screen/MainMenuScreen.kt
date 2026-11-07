@@ -25,7 +25,9 @@ import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.FIRST_LEVEL
 import com.github.pepek42.asteroids.START_LEVELS
-import com.github.pepek42.asteroids.TITLE
+import com.github.pepek42.asteroids.TITLE_NAME
+import com.github.pepek42.asteroids.TITLE_SUBTITLE
+import com.github.pepek42.asteroids.ui.MENU_ACCENT_COLOR
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.input.ControlSettings
@@ -64,6 +66,13 @@ private const val SCROLLBAR_ALLOWANCE = 28f
 private const val SLIDER_WIDTH = 160f
 /** Title font scale on the main page (the bitmap "window" font, doubled). */
 private const val TITLE_SCALE = 2f
+
+/** Scale and letter gap (px) of the "REDSHIFT" line under the title. */
+private const val SUBTITLE_SCALE = 1.4f
+private const val SUBTITLE_LETTER_GAP = 10f
+
+/** Red end of the subtitle's Doppler gradient. */
+private val REDSHIFT_END_COLOR = Color(1f, 0.22f, 0.16f, 1f)
 /** Width (px) of wrapped description text on the New game and Scenarios pages. */
 private const val TEXT_WIDTH = 440f
 /** Width (px) of the scenario list buttons. */
@@ -126,12 +135,34 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         syncAll()
     }
 
+    /**
+     * The subtitle as spaced letters whose colour slides from the menu's accent blue to red: the word drawn
+     * as its own Doppler shift.
+     */
+    private fun redshiftLogo(text: String): Actor {
+        val row = Table()
+        val letterStyle = Label.LabelStyle(style.title.font, Color.WHITE)
+        val last = (text.length - 1).coerceAtLeast(1)
+        val letters = text.mapIndexed { i, ch ->
+            Label(ch.toString(), letterStyle).apply {
+                setFontScale(SUBTITLE_SCALE)
+                setAlignment(Align.center)
+                color = Color(MENU_ACCENT_COLOR).lerp(REDSHIFT_END_COLOR, i.toFloat() / last)
+            }
+        }
+        // Equal cells, so narrow letters (I) don't break the rhythm of a proportional font.
+        val cell = letters.maxOf { it.prefWidth }
+        letters.forEach { row.add(it).width(cell).padLeft(SUBTITLE_LETTER_GAP / 2).padRight(SUBTITLE_LETTER_GAP / 2) }
+        return row
+    }
+
     // ---- Main page -------------------------------------------------------------------------------------------
 
     private fun buildMainPage(): Actor {
         val t = Table()
-        t.add(Label(TITLE.uppercase(), style.title).apply { setFontScale(TITLE_SCALE) }).row()
-        t.add(style.label(i18n["menu_subtitle"], style.muted)).padBottom(SECTION_SPACE * 2).row()
+        t.add(Label(TITLE_NAME.uppercase(), style.title).apply { setFontScale(TITLE_SCALE) }).row()
+        t.add(redshiftLogo(TITLE_SUBTITLE.uppercase())).padTop(2f).row()
+        t.add(style.label(i18n["menu_subtitle"], style.muted)).padTop(10f).padBottom(SECTION_SPACE * 2).row()
         t.defaults().width(MENU_BUTTON_WIDTH).height(MENU_BUTTON_HEIGHT).space(BUTTON_SPACE)
         t.add(button("menu_new_game", primary = true) { open(MenuPage.NEW_GAME) }).row()
         t.add(button("menu_scenarios") { open(MenuPage.SCENARIOS) }).row()

@@ -19,6 +19,7 @@ import com.github.pepek42.asteroids.system.BoundaryFieldSystem
 import com.github.pepek42.asteroids.system.ContactSystem
 import com.github.pepek42.asteroids.system.DeathSystem
 import com.github.pepek42.asteroids.system.EndLevelSystem
+import com.github.pepek42.asteroids.system.EnemyAiSystem
 import com.github.pepek42.asteroids.system.GravitySystem
 import com.github.pepek42.asteroids.system.LifetimeSystem
 import com.github.pepek42.asteroids.system.LightHistorySystem
@@ -63,7 +64,7 @@ class GameplaySystems(val lightHistory: LightHistorySystem)
 
 /**
  * Registers the gameplay systems on `deps.engine` in the one true execution order (CLAUDE.md): time warp, end level,
- * input, move, weapons, contact, boundary field, gravity, projectile sweep, relativistic dynamics, light history, physics, observer,
+ * input, enemy AI, move, weapons, contact, boundary field, gravity, projectile sweep, relativistic dynamics, light history, physics, observer,
  * [presentation], lifetime, death, remove. Registration order is execution order.
  *
  * [presentation] runs after the observer system and registers camera, render, debug, HUD and minimap systems (needs GL, so
@@ -90,6 +91,8 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
                 lightHistory, deps.clock,
             )
         )
+        // Enemy pilots write MoveComponent/WeaponComponent like the player's input does, so before MoveSystem and WeaponSystem.
+        addSystem(EnemyAiSystem(lightHistory, deps.clock, deps.settings))
         addSystem(moveSystem)
         addSystem(WeaponSystem(deps.weaponProjectileProvider, deps.clock, deps.hullSounds))
         addSystem(contactSystem)

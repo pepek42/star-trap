@@ -20,7 +20,6 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 48b. ST-151 Make the Einstein ring readable (owner decision)
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
-49c. ST-156 Enemy AI: light-delayed pursuit and honest fire control
 49d. ST-157 Enemy lasers use the enemy sprite; computer sound for destroyed ships
 49e. ST-158 Assist: incoming-fire warning on the tactical overlay
 49f. ST-159 Balance runner with enemies
@@ -176,28 +175,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 ## M6 Enemies
 
 Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
-
-### ST-156 Enemy AI: light-delayed pursuit and honest fire control
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-154, ST-155
-- files: create `system/EnemyAiSystem.kt`; edit `ecs/GameplaySystems.kt`, `docs/tech/architecture.md` (system order); tests
-- refs: `relativity-effects.md` §E13, §E8; `physics/PhotonAim.kt` `leadDirection`; `physics/LightHistory.kt` `retarded`
-- layer: sim
-- goal: Enemies hunt the player using only the light that has reached them (E13): they see where the player was, extrapolate at constant velocity and lead their photons. Fast juking dodges for real reasons.
-- spec:
-  - `EnemyAiSystem(lightHistory, clock, settings)`, an `IteratingSystem` over `EnemyComponent + MoveComponent + WeaponComponent + BodyComponent`, registered in `buildGameplaySystems` right after `PlayerInputSystem` (before `MoveSystem`). Finds the player once per update (`PlayerComponent` family); no player → zero thrust, no fire.
-  - Per enemy: `history = lightHistory.historyOf(player.baseInfoCmp.id)`; `history.retarded(ex, ey, clock.worldTime, c, ret)` (reused `RetardedState`). If false (no light yet): `thrusters = 0`, `doAttack = false`.
-  - Estimate `x_e = ret.x + ret.vx·(now − ret.t)` (same for y), `pursuitCommand(...)` with the enemy's `vSet` (or body velocity), `body.angle`, `standoff = ENEMY_STANDOFF_LIGHT_SECONDS · c`, `accel = engineProperAccel · engineFactor`, `vMax = ENEMY_VMAX_BETA · c`. Write `move.thrusters = cmd.thrust`, `move.targetAngleRad = cmd.headingRad`.
-  - Fire: `leadDirection(ex, ey, βx, βy, ret, now, c, dir)`. If it succeeds and the estimate is within `ENEMY_FIRE_RANGE_LIGHT_SECONDS · c` (2.5): when `cmd.aiming`, set `targetAngleRad = atan2(dir)`; if `|shortestAngleDiffRad(body.angle, atan2(dir))| < ENEMY_FIRE_CONE_RAD` (15°) set `weapon.aimAngleRad = atan2(dir)` and `doAttack = true`, else `doAttack = false`.
-  - No allocation per frame. It never reads the player's true body state (assert this in a test by moving the player's body without recording history).
-- acceptance:
-  - [ ] Test: with no recorded player history the enemy neither thrusts nor fires
-  - [ ] Integration test (real `World`, gameplay systems from `buildGameplaySystems` with no presentation): a resting player 30 u away is approached and shot; the player's health drops within 10 s
-  - [ ] Test: the enemy aims at the retarded estimate, not the true position (teleport the player body after the history is recorded; the enemy's lead does not change that frame)
-  - [ ] `./gradlew core:test` passes, `scripts/web-check.sh --play` PASS
-- playtest: Level 2: the red ship closes in, hovers about 20 u away and fires. Flying fast and turning makes its shots miss behind you.
 
 ### ST-157 Enemy lasers use the enemy sprite; computer sound for destroyed ships
 - status: ready

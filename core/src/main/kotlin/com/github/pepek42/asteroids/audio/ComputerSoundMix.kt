@@ -59,7 +59,7 @@ fun computerPan(dx: Float, dy: Float): Float {
     return (dx / dist).coerceIn(-1f, 1f)
 }
 
-/** What the computer turns into sound. Enemy ships and their weapons come later. */
+/** What the computer turns into sound. Only asteroid breaks so far; enemy ships and their weapons have no computer sound yet. */
 enum class ComputerSoundKind(val soundId: SoundId) {
     ASTEROID_BREAK_SMALL(SoundId.SYNTH_ASTEROID_BREAK_SMALL),
     ASTEROID_BREAK_MEDIUM(SoundId.SYNTH_ASTEROID_BREAK_MEDIUM),

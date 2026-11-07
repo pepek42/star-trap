@@ -23,6 +23,7 @@ import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.transformCmp
+import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
@@ -70,6 +71,7 @@ class HudSystem(
             observer.betaRaw.len(), observer.gammaRaw, observer.rapidity, observer.tau, observer.worldTime,
             clock.warp, clock.warpCapped || clock.stepsCapped,
         )
+        hud.updateTidal(entity.relativisticCmpOptional?.tidalRatio ?: 0f)
     }
 
     private fun updateTargetPointers() {

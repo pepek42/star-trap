@@ -18,7 +18,6 @@ Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
 48b. ST-151 Make the Einstein ring readable (owner decision)
-48d. ST-162 Assist: tidal stress readout
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49a. ST-154 Enemy pilot math: pursue to a standoff range (pure)
@@ -179,24 +178,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 ## M6 Enemies
 
 Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
-
-### ST-162 Assist: tidal stress readout
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-153
-- layer: assist
-- files: `system/HudSystem.kt` or `system/TacticalOverlaySystem.kt`, `assets/i18n/messages.properties`; tests
-- refs: ST-153 follow-up (2026-11-07); `RelativisticComponent.tidalRatio`, `physics/Gravity.kt` `tidalAccel`
-- goal: The ship's computer shows the player's tidal stress, so they can tell the deadly zone before they skim a hole. Hull damage starts at `tidalRatio` > 1 (ST-153).
-- spec:
-  - HUD line or small bar "Tidal stress: N %" (`tidalRatio` × 100) shown only when `tidalRatio` > `TIDAL_READOUT_MIN` (0.25); it turns red above 1 (the hull is taking damage). Reads the player's `RelativisticComponent`; no allocation per frame (reuse a StringBuilder or cache the integer).
-  - Optional (if cheap): a faint ring drawn by the computer at the radius where the player's ratio would reach 1, from the inverse of `tidalAccel` (`r = cbrt(2 GM ℓ / threshold)`), drawn with the other hole rings (boosted in pilot view). Toggle with the tactical settings if one fits; otherwise skip the ring.
-  - Text in `messages.properties`.
-- acceptance:
-  - [ ] Test: the pure formatting/threshold helper hides the readout below 0.25, shows it above, and flags red above 1; if the ring is done, its radius gives `tidalAccel(r, gm, ℓ) == threshold` within 1e-3
-  - [ ] `./gradlew core:test` passes
-- playtest: `--hole-near=6`: the tidal readout appears as you near the hole and turns red just before the hull starts losing health.
 
 ### ST-154 Enemy pilot math: pursue to a standoff range (pure)
 - status: ready

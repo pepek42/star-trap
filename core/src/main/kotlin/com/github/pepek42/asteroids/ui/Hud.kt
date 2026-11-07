@@ -1,5 +1,6 @@
 package com.github.pepek42.asteroids.ui
 
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Label
@@ -31,6 +32,15 @@ fun warpLabelKey(warp: Float, capped: Boolean): String? = when {
 /** Fill of the rapidity bar in 0..1. */
 fun rapidityBarValue(rapidity: Float): Float = (rapidity / HUD_RAPIDITY_FULL).coerceIn(0f, 1f)
 
+/** `tidalRatio` below this hides the tidal stress readout (ST-162). */
+const val TIDAL_READOUT_MIN = 0.25f
+
+/** Percent shown by the tidal readout, or -1 when it is hidden (`ratio <= TIDAL_READOUT_MIN`). */
+fun tidalReadoutPercent(ratio: Float): Int = if (ratio > TIDAL_READOUT_MIN) (ratio * 100f).roundToInt() else -1
+
+/** The readout is red while the hull takes damage (`ratio > 1`, ST-153). */
+fun tidalReadoutDamaging(ratio: Float): Boolean = ratio > 1f
+
 class Hud(
     game: Game,
 ) {
@@ -43,6 +53,9 @@ class Hud(
     private val timeLabel: Label = scene2d.label("")
     private val warpLabel: Label = scene2d.label("").apply { isVisible = false }
     private val rapidityBar: ProgressBar = scene2d.progressBar(0f, 1f, 0.001f, false, "default-horizontal")
+    private val tidalLabel: Label = scene2d.label("").apply { isVisible = false }
+    private var tidalShownPercent = -1
+    private var tidalShownRed = false
     private val levelLabel: Label = scene2d.label("")
     private val centerLabel: Label = scene2d.label("").apply { isVisible = false }
     private val pointerLabel: Label = scene2d.label("").apply { isVisible = false }
@@ -65,6 +78,7 @@ class Hud(
             addActor(gammaLabel)
             addActor(timeLabel)
             addActor(warpLabel)
+            addActor(tidalLabel)
             columnAlign(Align.topLeft)
             top().left()
             pad(5f, 5f, 0f, 0f)
@@ -133,6 +147,25 @@ class Hud(
         val key = warpLabelKey(warp, capped)
         warpLabel.isVisible = key != null
         if (key != null) warpLabel.setText(i18NBundle.format(key, warp))
+    }
+
+    /** Tidal stress readout (ST-162): hidden at or below [TIDAL_READOUT_MIN]; the text is rebuilt only when the percent changes. */
+    fun updateTidal(ratio: Float) {
+        val percent = tidalReadoutPercent(ratio)
+        tidalLabel.isVisible = percent >= 0
+        if (percent < 0) {
+            tidalShownPercent = -1
+            return
+        }
+        if (percent != tidalShownPercent) {
+            tidalShownPercent = percent
+            tidalLabel.setText(i18NBundle.format("hud_tidal", percent))
+        }
+        val red = tidalReadoutDamaging(ratio)
+        if (red != tidalShownRed) {
+            tidalShownRed = red
+            tidalLabel.color.set(if (red) Color.RED else Color.WHITE)
+        }
     }
 
     /** Distance label next to the nearest target arrow. [screenX], [screenY] are window pixels with y pointing down. */

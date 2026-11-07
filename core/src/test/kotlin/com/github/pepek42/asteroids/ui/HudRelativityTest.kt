@@ -27,3 +27,23 @@ class HudRelativityTest {
         assertEquals(0.5f, rapidityBarValue(HUD_RAPIDITY_FULL / 2), 1e-6f)
     }
 }
+
+class HudTidalReadoutTest {
+    @Test
+    fun hiddenBelowMin() {
+        assertEquals(-1, tidalReadoutPercent(0f))
+        assertEquals(-1, tidalReadoutPercent(TIDAL_READOUT_MIN))
+    }
+
+    @Test
+    fun shownAboveMin() {
+        assertEquals(30, tidalReadoutPercent(0.3f))
+        assertEquals(150, tidalReadoutPercent(1.5f))
+    }
+
+    @Test
+    fun redAboveOne() {
+        assertEquals(false, tidalReadoutDamaging(1f))
+        assertEquals(true, tidalReadoutDamaging(1.01f))
+    }
+}

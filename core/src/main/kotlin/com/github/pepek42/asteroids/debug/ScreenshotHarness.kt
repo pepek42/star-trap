@@ -39,6 +39,10 @@ data class LaunchOptions(
      * distance from the hole outside it. Harness only.
      */
     val shadowDemo: Boolean = false,
+    /** Starts with `RelativitySettings.starLightEnabled` off (`--no-star`), for A/B shots. Harness only. */
+    val noStar: Boolean = false,
+    /** Fixes the level's star azimuth in degrees (`--star-angle=<deg>`; web: `?star-angle=`), for A/B shots. Harness only. */
+    val starAngleDeg: Float? = null,
     /** Starts with `RelativitySettings.shadowsEnabled` off (`--no-shadows`; web: `?no-shadows`), for A/B shots. Harness only. */
     val noShadows: Boolean = false,
 )
@@ -71,6 +75,8 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
             "--pilot-view" -> options = options.copy(pilotView = true)
             "--shadow-demo" -> options = options.copy(shadowDemo = true)
             "--no-shadows" -> options = options.copy(noShadows = true)
+            "--no-star" -> options = options.copy(noStar = true)
+            "--star-angle" -> value?.toFloatOrNull()?.let { options = options.copy(starAngleDeg = it) }
         }
     }
     return options

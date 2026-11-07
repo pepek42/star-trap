@@ -20,6 +20,8 @@ import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.render.StarLight
+import com.github.pepek42.asteroids.render.BlackbodyLut
 import com.github.pepek42.asteroids.ui.ARENA_BOUNDARY_COLOR
 import com.github.pepek42.asteroids.ui.MinimapViewport
 import com.github.pepek42.asteroids.ui.PLAYER_MARKER_COLOR
@@ -35,6 +37,11 @@ private const val BACKGROUND_ALPHA = 0.55f
 private const val BORDER_INSET_PX = 0.5f
 
 private const val DEBRIS_DOT_RADIUS = 0.5f
+
+/** Star arrow (ST-099): length as a fraction of the half map size, half-width as a fraction of the length, and its alpha. */
+private const val STAR_ARROW_LENGTH = 0.3f
+private const val STAR_ARROW_WIDTH = 0.5f
+private const val STAR_ARROW_ALPHA = 0.45f
 
 /** Planets are drawn as grey discs at their true radius. */
 private val PLANET_MINIMAP_COLOR = Color(0.55f, 0.55f, 0.55f, 1f)
@@ -57,10 +64,12 @@ class MinimapSystem(
     private val settings: RelativitySettings,
     private val panelWidthPx: () -> Float,
     private val shape: ShapeRenderer = ShapeRenderer(),
+    private val star: StarLight? = null,
 ) : IteratingSystem(allOf(BaseInfoComponent::class, TransformComponent::class).get()),
     Disposable {
 
     private var playerEntity: Entity? = null
+    private val starRgb = FloatArray(3)
 
     init {
         shape.setAutoShapeType(true)
@@ -98,6 +107,7 @@ class MinimapSystem(
         shape.color = FIELD_SKIN_COLOR
         val skin = settings.fieldParams.skin
         shape.rect(skin, skin, mapW - 2 * skin, mapH - 2 * skin)
+        drawStarArrow(mapW, mapH)
         shape.end()
 
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
@@ -132,6 +142,24 @@ class MinimapSystem(
             return
         }
         drawDot(entity, baseInfo.faction.color, radius)
+    }
+
+    /** Faint arrow at the map edge pointing toward the level's distant star, in the star's colour (ST-099). */
+    private fun drawStarArrow(mapW: Float, mapH: Float) {
+        val s = star ?: return
+        if (!s.active || !settings.starLightEnabled) return
+        BlackbodyLut.rgbInto(s.kelvin, starRgb)
+        shape.set(ShapeRenderer.ShapeType.Filled)
+        shape.setColor(starRgb[0], starRgb[1], starRgb[2], STAR_ARROW_ALPHA)
+        // Ray from the map centre along the star direction to the border, then back inward by the arrow length.
+        val half = minOf(mapW, mapH) / 2f
+        val tipX = mapW / 2f + s.dirX * half
+        val tipY = mapH / 2f + s.dirY * half
+        val len = half * STAR_ARROW_LENGTH
+        val wid = len * STAR_ARROW_WIDTH
+        val baseX = tipX - s.dirX * len
+        val baseY = tipY - s.dirY * len
+        shape.triangle(tipX, tipY, baseX - s.dirY * wid, baseY + s.dirX * wid, baseX + s.dirY * wid, baseY - s.dirX * wid)
     }
 
     /** Black dot with a white outline at the true position; the outline is a second, larger white disc drawn first. */

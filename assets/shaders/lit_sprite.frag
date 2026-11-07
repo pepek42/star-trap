@@ -10,7 +10,7 @@ precision mediump float;
 #endif
 
 // MAX_LIGHTS (MAX_LIGHTS_PER_SPRITE), LIGHT_HEIGHT, MAX_OCCLUDERS, STAR_ANGULAR_SIZE and MIN_PENUMBRA (Lighting.kt) are
-// #defined by LitSpriteRenderer through ShaderProgram.prependFragmentCode; directional lights use a tenth of LIGHT_HEIGHT.
+// #defined by LitSpriteRenderer through ShaderProgram.prependFragmentCode; a directional light's u_lightPos is (azimuth x, azimuth y, tan(elevation)).
 
 varying vec4 v_color;
 varying vec2 v_texCoords;
@@ -79,7 +79,7 @@ void main() {
         float f = 1.0;
         float wrap = 0.0;
         if (u_lightDir[i] > 0.5) {
-            l = normalize(vec3(pos.xy, LIGHT_HEIGHT / 10.0));
+            l = normalize(pos);
         } else {
             vec2 dxy = pos.xy - p;
             float d = length(dxy);

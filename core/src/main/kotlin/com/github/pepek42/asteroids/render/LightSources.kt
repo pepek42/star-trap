@@ -43,9 +43,18 @@ class LightSources {
     private val rgb = FloatArray(3)
     private var appliedLag = 0f
 
-    /** Re-reads [holes] (entities with a gravity source and a transform): the black holes become disk lights. */
-    fun rebuild(holes: ImmutableArray<Entity>) {
+    /** Re-reads [holes] (entities with a gravity source and a transform): the black holes become disk lights. A [star] comes first, as a directional light. */
+    fun rebuild(holes: ImmutableArray<Entity>, star: StarLight? = null) {
         count = 0
+        if (star != null && star.active) {
+            val light = lights[0]
+            star.configure(light, rgb)
+            baseX[0] = star.dirX
+            baseY[0] = star.dirY
+            velX[0] = 0f
+            velY[0] = 0f
+            count = 1
+        }
         for (i in 0 until holes.size()) {
             if (count == MAX_LIGHT_SOURCES) break
             val e = holes[i]

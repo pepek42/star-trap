@@ -98,11 +98,11 @@ fun lightWrap(light: LightSource, d: Float): Float =
 
 /**
  * Writes the unit vector from point ([px], [py], 0) toward [light] into [out] and returns the in-plane distance
- * (+∞ for a directional light, whose vector is `(x, y, LIGHT_HEIGHT/10)` normalised).
+ * (+∞ for a directional light, whose vector is `(x, y, z)` normalised: a unit azimuth and `z = tan(elevation)`, see [StarLight]).
  */
 fun lightDir(px: Float, py: Float, light: LightSource, out: Vector3): Float {
     if (light.directional) {
-        out.set(light.x, light.y, LIGHT_HEIGHT / 10f).nor()
+        out.set(light.x, light.y, light.z).nor()
         return Float.POSITIVE_INFINITY
     }
     val dx = light.x - px

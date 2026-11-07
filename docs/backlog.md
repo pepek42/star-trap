@@ -17,7 +17,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-47. ST-099 A distant star as a directional light
 48. ST-088 Gravitational lensing of the backdrop
 
 Parked:
@@ -184,24 +183,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
   - [ ] Screenshot (pilot view, near a hole) viewed by the agent: one side of the disk is brighter and bluer
   - [ ] `./gradlew core:test` passes
 - playtest: Orbit a hole in pilot view: the approaching half of the disk glows blue-white and the other half dims red.
-
-### ST-099 A distant star as a directional light
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-097, ST-098
-- files: `render/LightSources.kt`, `render/Lighting.kt`, `screen/PlayScreen.kt`, `physics/RelativitySettings.kt`, `ui/DebugPanel.kt`; tests
-- goal: "Maybe some stars as light sources" (owner 2026-11-02). Planned as one distant sun per level: a directional light, so levels without a black hole near you still have a lit side and shading, and each level gets its own mood. In-arena stars (gravity, heat and light together) would be a later, bigger feature.
-- spec:
-  - Per level, from the seeded random in `PlayScreen.show()`: `angle = random.range(0, 2π)`, `temperature = random.range(4000f, 9000f)`. A `LightSource` with `directional = true`, `(x, y) = (cos, sin)`, colour from `BlackbodyLut`, `intensity = STAR_LIGHT_INTENSITY = 0.6f`. Shadows from the star use `STAR_ANGULAR_SIZE` (ST-098). It's always in the list, before the disk lights.
-  - No visible star sprite (it's far beyond the arena, in the plane). Draw a faint arrow on the minimap edge pointing toward it, in the star's colour.
-  - Pilot view: the star is static and infinitely far, so the illumination direction in the arena frame is exact (by the ST-097 events argument), and only FAKE 2 (no Doppler at the object) applies.
-  - Setting `starLightEnabled = true` (last param, debug checkbox).
-- acceptance:
-  - [ ] Test: seed 42 gives the same star direction and temperature on every run of a level; a different level gives a different one
-  - [ ] Test: with only the star light, a sphere-mode texel facing the star direction is brighter than one facing away, and the result doesn't depend on distance
-  - [ ] `./gradlew core:test` passes
-- playtest: Each level has a sun direction: everything is lit from one side. Does it read well with the disk glow on top? Does the owner want visible in-arena stars instead (later card)?
 
 ---
 

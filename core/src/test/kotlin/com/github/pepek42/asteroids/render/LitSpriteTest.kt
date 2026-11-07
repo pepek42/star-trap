@@ -25,6 +25,7 @@ class LitSpriteTest {
         @JvmStatic
         @org.junit.jupiter.api.BeforeAll
         fun initBox2D() {
+            com.badlogic.gdx.utils.GdxNativesLoader.load()
             Box2D.init()
         }
     }
@@ -64,7 +65,7 @@ class LitSpriteTest {
     @Test
     fun normalMapTexelOnARotatedSpriteIsLitFromTheRotatedSide() {
         // Tangent normal +x on a sprite turned by 90 degrees points to +y in the arena.
-        fun light(x: Float, y: Float) = LightSource().apply { this.x = x; this.y = y; directional = true }
+        fun light(x: Float, y: Float) = LightSource().apply { this.x = x; this.y = y; this.z = 0.2f; directional = true }
         val fromPlusY = arrayOf(light(0f, 1f))
         val fromPlusX = arrayOf(light(1f, 0f))
         val rot = Math.PI.toFloat() / 2f

@@ -47,6 +47,7 @@ import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.PlanetTextures
 import com.github.pepek42.asteroids.render.ReferenceGridRenderer
 import com.github.pepek42.asteroids.render.ShimmerImpacts
+import com.github.pepek42.asteroids.render.StarLight
 import com.github.pepek42.asteroids.system.CameraSystem
 import com.github.pepek42.asteroids.system.LightHistorySystem
 import com.github.pepek42.asteroids.system.DebugPanelSystem
@@ -89,6 +90,7 @@ class PlayScreen(
     private val planetProvider = PlanetProvider(engine, world, mapProvider, settings, game.get<PlanetTextures>()::createSprite)
     private val gameState = game.get<GameState>()
     private val minimapViewport = MinimapViewport()
+    private val star = StarLight()
     private val debugSettings = game.get<DebugSettings>()
     private val debugPanel = DebugPanel(
         game.get<Skin>(), settings, debugSettings, game.get<ControlSettings>(),
@@ -146,6 +148,7 @@ class PlayScreen(
                         gridRenderer, mapProvider, debugSettings, settings,
                         pilotViewProjector, observerState,
                         litSprites = LitSpriteRenderer(game.get<TextureAtlas>()),
+                        star = star,
                     )
                 )
                 hullSoundSystem = HullSoundSystem(game.get<SoundBank>(), hullSounds, game.get<SoundSettings>(), settings)
@@ -159,7 +162,7 @@ class PlayScreen(
                 addSystem(DebugSystem(world, engine, camera, debugSettings))
                 addSystem(DebugPanelSystem(debugPanel, observerState, clock))
                 addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock, settings, pilotViewProjector))
-                addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, settings, panelWidthPx = { debugPanel.widthInScreenPx() }))
+                addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, settings, panelWidthPx = { debugPanel.widthInScreenPx() }, star = star))
             }
         }
     }
@@ -209,6 +212,9 @@ class PlayScreen(
             val sources = holes + planets
             decorationProvider.spawn(gameState.level, game.get<RandomXS128>(), sources, sources.size / 2)
         }
+        // Drawn last so the star never shifts the layouts of the spawns above (ST-099).
+        star.roll(game.get<RandomXS128>())
+        game.options.starAngleDeg?.let { star.set(it * MathUtils.degreesToRadians, star.kelvin) }
         hud.toggleHud(show = true)
         hud.updateLevel(gameState.level)
         if (debugSettings.panelAllowed) {

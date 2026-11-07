@@ -47,6 +47,7 @@ import com.github.pepek42.asteroids.render.rebuild
 import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.ReferenceGridRenderer
 import com.github.pepek42.asteroids.render.MIN_CONTRACTION_SPEED
+import com.github.pepek42.asteroids.render.StarLight
 import com.github.pepek42.asteroids.render.SPRITE_VERTEX_FLOATS
 import com.github.pepek42.asteroids.render.SPRITE_VERTEX_STRIDE
 import com.github.pepek42.asteroids.render.contractOffset
@@ -72,6 +73,7 @@ class RenderSystem(
     private val observer: ObserverState,
     private val blackHoleRenderer: BlackHoleRenderer = BlackHoleRenderer(),
     private val litSprites: LitSpriteRenderer? = null,
+    private val star: StarLight? = null,
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()), Disposable {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
     private var players: ImmutableArray<Entity>? = null
@@ -121,7 +123,7 @@ class RenderSystem(
         holes?.let { blackHoleRenderer.render(camera, it, if (pilotViewActive) pilotView else null, observer.worldTime, settings.c) }
         lightingActive = false
         if (settings.lightingEnabled && litSprites?.ready == true) {
-            holes?.let { lightSources.rebuild(it) }
+            holes?.let { lightSources.rebuild(it, if (settings.starLightEnabled) star else null) }
             lightingActive = lightSources.count > 0
         }
         shadowsActive = lightingActive && settings.shadowsEnabled

@@ -100,3 +100,7 @@ Web gotchas found so far:
 - **Component constructors.** gdx-teavm's `ClassReflection.getConstructor(c)` returns `getConstructors()[0]`, not the no-arg constructor. Components must have exactly one public, parameterless constructor (no Kotlin constructor parameters with defaults, no `data class`); `ComponentConstructorTest` enforces it.
 - **Reflection patterns** in `teavm/build.gradle.kts` are globs: a package needs `.**` (`com.github.pepek42.asteroids.component.**`).
 - The 2026-11-04 TeaVM worker SIGSEGVs were faulty RAM, not TeaVM; `WEB_XINT=1` (interpreter-only worker) remains as a fallback.
+
+## Web release (GitHub Pages)
+
+`.github/workflows/pages.yaml` builds `teavm:generateJavaScript` and deploys `teavm/build/dist/js/webapp` to https://pepek42.github.io/star-trap/ (launch flags work as a query, e.g. `?seed=42&play`). It runs only by hand: Actions → "Deploy web build to GitHub Pages" → Run workflow. One-time setup: Settings → Pages → Source "GitHub Actions"; the `github-pages` environment only allows the default branch until another branch (e.g. `AI-slop`) is added under Settings → Environments → github-pages → Deployment branches. Run `scripts/web-check.sh --play` before publishing.

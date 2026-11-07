@@ -34,6 +34,10 @@ import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.input.ControlScheme
 import com.github.pepek42.asteroids.input.InputBindings
 import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.save.RunSave
+import com.github.pepek42.asteroids.save.applyRunSave
+import com.github.pepek42.asteroids.save.clearRunSave
+import com.github.pepek42.asteroids.save.readRunSave
 import com.github.pepek42.asteroids.scenario.Scenario
 import com.github.pepek42.asteroids.scenario.Scenarios
 import com.github.pepek42.asteroids.scenario.applyScenarioPhysics
@@ -103,6 +107,13 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
     private var syncing = false
     private val runEndedLabel = Label("", Label.LabelStyle(style.body.font, WARNING_COLOR))
     private var startLevel = FIRST_LEVEL
+    private val continueButton = TextButton("", style.primaryButton)
+    private val overwriteWarning = style.paragraph(i18n["new_game_overwrite_warning"], TEXT_WIDTH, Label.LabelStyle(style.body.font, WARNING_COLOR))
+    private val startButton = button("menu_start", primary = true) { startRun() }
+    /** The save found when the menu opened, or null. */
+    private var runSave: RunSave? = null
+    /** Set by the first Start click while a save exists; the second click overwrites it. */
+    private var overwriteConfirmed = false
     private var selectedScenario: Scenario = Scenarios.ALL.first()
 
     /** The page [show] opens; reset to [MenuPage.MAIN] after use. Set before switching to this screen. */
@@ -159,7 +170,17 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         t.add(redshiftLogo(TITLE_SUBTITLE.uppercase())).padTop(4f).row()
         t.add(style.label(i18n["menu_subtitle"], style.muted)).padTop(10f).padBottom(SECTION_SPACE * 2).row()
         t.defaults().width(MENU_BUTTON_WIDTH).height(MENU_BUTTON_HEIGHT).space(BUTTON_SPACE)
-        t.add(button("menu_new_game", primary = true) { open(MenuPage.NEW_GAME) }).row()
+        continueButton.onChange { continueRun() }
+        t.add(continueButton).row()
+        syncs.add {
+            val save = runSave
+            continueButton.isVisible = save != null
+            if (save != null) continueButton.setText(i18n.format("menu_continue", save.nextLevel))
+        }
+        val newGameButton = button("menu_new_game", primary = true) { overwriteConfirmed = false; open(MenuPage.NEW_GAME) }
+        // Continue is the primary action while a save exists.
+        syncs.add { newGameButton.style = if (runSave != null) style.button else style.primaryButton }
+        t.add(newGameButton).row()
         t.add(button("menu_scenarios") { open(MenuPage.SCENARIOS) }).row()
         t.add(button("menu_settings") { open(MenuPage.SETTINGS) }).row()
         if (Gdx.app.type != Application.ApplicationType.WebGL) {
@@ -201,12 +222,32 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
 
         t.add(buttonRow(
             button("menu_back") { open(MenuPage.MAIN) },
-            button("menu_start", primary = true) { startRun() },
+            startButton,
         )).colspan(2).growX().padTop(SECTION_SPACE).row()
+        t.add(overwriteWarning).width(TEXT_WIDTH).colspan(2).padTop(ROW_SPACE).row()
+        syncs.add {
+            overwriteWarning.isVisible = runSave != null
+            startButton.setText(i18n[if (runSave != null && overwriteConfirmed) "menu_start_confirm" else "menu_start"])
+        }
         return panel
     }
 
+    private fun continueRun() {
+        val save = runSave ?: return
+        // Run physics come from the save; the player's New-game defaults in the store stay untouched.
+        applyRunSave(store, menuSettings.runSpecs)
+        gameState.resetGame(save.nextLevel)
+        game.setScreen<PlayScreen>()
+    }
+
     private fun startRun() {
+        if (runSave != null && !overwriteConfirmed) {
+            overwriteConfirmed = true
+            syncAll()
+            return
+        }
+        // A new run replaces the old one: drop the save so Esc afterwards doesn't offer a stale Continue.
+        clearRunSave(store)
         saveSettings(store, specs)
         gameState.resetGame(startLevel)
         game.setScreen<PlayScreen>()
@@ -440,6 +481,8 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         // A scenario may have overridden the run physics; restore the player's saved New-game choices.
         resetSettings(menuSettings.runSpecs)
         loadSettings(store, menuSettings.runSpecs)
+        runSave = readRunSave(store)
+        overwriteConfirmed = false
         runEndedLabel.setText(if (gameState.lastRunEnded) i18n["run_ended_message"] else "")
         gameState.lastRunEnded = false
         stage.addActor(root)

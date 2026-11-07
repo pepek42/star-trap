@@ -52,6 +52,7 @@ import ktx.assets.disposeSafely
 import ktx.inject.Context
 import ktx.inject.register
 import ktx.log.logger
+import com.github.pepek42.asteroids.save.clearRunSave
 import ktx.scene2d.Scene2DSkin
 
 class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() {
@@ -179,6 +180,8 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
         ctx.inject<GameEventManager>().ignorePlayerInputs()
         Gdx.app.postRunnable {
             val gameState = ctx.inject<GameState>()
+            // Roguelike: death ends the run for good, so the save goes too.
+            if (gameState.scenario == null) clearRunSave(ctx.inject<KeyValueStore>())
             gameState.resetGame()
             gameState.lastRunEnded = true
             setScreen<MainMenuScreen>()

@@ -14,7 +14,10 @@ import com.badlogic.gdx.utils.I18NBundle
 import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
 import com.github.pepek42.asteroids.event.GameEventManager
+import com.github.pepek42.asteroids.save.saveAfterLevel
 import com.github.pepek42.asteroids.scenario.applyScenarioPhysics
+import com.github.pepek42.asteroids.settings.KeyValueStore
+import com.github.pepek42.asteroids.settings.MenuSettings
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.ui.MENU_BUTTON_HEIGHT
 import com.github.pepek42.asteroids.ui.MENU_BUTTON_WIDTH
@@ -32,7 +35,7 @@ private const val FADE_IN_S = 0.35f
 
 /**
  * Between levels: a centred panel with the result, a placeholder for the shop, and a primary "Next level" button
- * (or "Retry" / "Scenarios" after a scenario). The run is saved here once saving exists.
+ * (or "Retry" / "Scenarios" after a scenario). The run is saved here (normal runs only).
  */
 class LevelClearedScreen(
     private val game: Game,
@@ -88,6 +91,7 @@ class LevelClearedScreen(
     override fun show() {
         val scenario = gameState.scenario
         if (scenario == null) {
+            saveAfterLevel(game.get<KeyValueStore>(), gameState, game.get<MenuSettings>().runSpecs)
             title.setText(i18n.format("level_cleared_message", gameState.level))
             subtitle.setText(i18n.format("level_cleared_next", gameState.level + 1))
             layoutPanel(withShop = true)

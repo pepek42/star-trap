@@ -26,7 +26,6 @@ M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
 50c. ST-165 Missile lock-on: lock first, then fire
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
-57a. ST-166 Save the run after each cleared level
 57b. ST-167 Shop between levels
 57c. ST-168 Level-5 quick start with a prebuilt ship
 57d. ST-169 Scenarios: step-by-step tutorial objectives
@@ -218,25 +217,6 @@ Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/aste
 ## Menus & runs
 
 Source: owner 2026-11-07 ("After each level there will be save (and buying in shop between levels) ... New game - select level 1, 5th (for quick start later level, with some prebuild once we have shop) ... tutorial like scenarios with some text"). The menu (New game with start level 1/5 and run physics, Scenarios with briefings, global Settings), the restyled `LevelClearedScreen` with a shop placeholder, Esc-to-menu and four scenarios (`scenario/Scenarios.kt`) are done. Web: saves go through libGDX `Preferences` (`KeyValueStore`), never `java.io`.
-
-### ST-166 Save the run after each cleared level
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: —
-- files: `GameState.kt`, new `save/RunSave.kt`, `screen/LevelClearedScreen.kt`, `screen/MainMenuScreen.kt`, `settings/KeyValueStore.kt`, `assets/i18n/messages.properties`; tests
-- refs: CLAUDE.md "Settings"; `ui/MenuStyle.kt`
-- layer: meta (not sim, not assist)
-- goal: A run survives quitting the game: the cleared screen saves it, the main menu offers Continue.
-- spec:
-  - One save slot in `Preferences` under its own key prefix with a version number: next level, run physics (`RUN_SETTING_KEYS` values), and later the loadout/credits (keep the format extensible).
-  - `LevelClearedScreen.show()` writes the save for normal runs (never for scenarios). Death clears it (roguelike: the run is over).
-  - Main page: a primary "Continue (level N)" button above New game while a save exists; New game warns that it overwrites the save (a confirm row on the New-game page, no modal).
-  - Continuing restores the run physics into `RelativitySettings` for the run without overwriting the player's New-game defaults.
-- acceptance:
-  - [ ] Tests: save/load round trip through `MemoryKeyValueStore`; death clears the save; scenarios never save; unknown version is ignored
-  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes; save survives a page reload on web
-- playtest: Clear level 1, quit the game, start it again: Continue (level 2) is on the main page and starts level 2.
 
 ### ST-167 Shop between levels
 - status: ready

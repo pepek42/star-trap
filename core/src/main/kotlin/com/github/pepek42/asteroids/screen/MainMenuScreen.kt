@@ -2,11 +2,14 @@ package com.github.pepek42.asteroids.screen
 
 import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup
 import com.badlogic.gdx.scenes.scene2d.ui.CheckBox
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
@@ -14,26 +17,39 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
+import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.I18NBundle
 import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.GameState
+import com.github.pepek42.asteroids.FIRST_LEVEL
+import com.github.pepek42.asteroids.START_LEVELS
 import com.github.pepek42.asteroids.TITLE
 import com.github.pepek42.asteroids.debug.DebugSettings
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.input.ControlScheme
 import com.github.pepek42.asteroids.input.InputBindings
+import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.scenario.Scenario
+import com.github.pepek42.asteroids.scenario.Scenarios
+import com.github.pepek42.asteroids.scenario.applyScenarioPhysics
 import com.github.pepek42.asteroids.settings.KeyValueStore
 import com.github.pepek42.asteroids.settings.MenuSettings
 import com.github.pepek42.asteroids.settings.SettingSpec
+import com.github.pepek42.asteroids.settings.loadSettings
 import com.github.pepek42.asteroids.settings.resetSettings
 import com.github.pepek42.asteroids.settings.saveSettings
+import com.github.pepek42.asteroids.ui.MENU_BUTTON_HEIGHT
+import com.github.pepek42.asteroids.ui.MENU_BUTTON_WIDTH
+import com.github.pepek42.asteroids.ui.MenuStyle
 import com.github.pepek42.asteroids.ui.controlsRows
+import com.github.pepek42.asteroids.ui.formatSettingValue
 import com.github.pepek42.asteroids.ui.hintTooltip
 import com.github.pepek42.asteroids.ui.hintTooltipManager
+import com.github.pepek42.asteroids.ui.panelContent
 import com.github.pepek42.asteroids.ui.styleOnOffCheckBox
-import com.github.pepek42.asteroids.ui.formatSettingValue
 import ktx.app.KtxScreen
 import ktx.app.clearScreen
 import ktx.log.logger
@@ -41,101 +57,265 @@ import ktx.log.logger
 private const val MENU_PAD = 24f
 private const val COLUMN_SPACE = 20f
 private const val ROW_SPACE = 8f
-private const val BUTTON_SPACE = 16f
+private const val BUTTON_SPACE = 12f
+private const val SECTION_SPACE = 22f
 /** Room for the vertical scroll bar next to a pane's content. */
 private const val SCROLLBAR_ALLOWANCE = 28f
 private const val SLIDER_WIDTH = 160f
+/** Title font scale on the main page (the bitmap "window" font, doubled). */
+private const val TITLE_SCALE = 2f
+/** Width (px) of wrapped description text on the New game and Scenarios pages. */
+private const val TEXT_WIDTH = 440f
+/** Width (px) of the scenario list buttons. */
+private const val SCENARIO_BUTTON_WIDTH = 240f
+/** Vertical room (px) the Settings and Scenarios pages keep for their title and button rows outside the scroll panes. */
+private const val PAGE_CHROME_HEIGHT = 230f
+private val WARNING_COLOR = Color(1f, 0.55f, 0.4f, 1f)
 
+/** Main menu pages. */
+enum class MenuPage { MAIN, NEW_GAME, SCENARIOS, SETTINGS }
+
+/**
+ * Main menu: a title page with New game / Scenarios / Settings / Exit, each opening its own page.
+ * New game picks the start level and the run's physics (fixed for the run); Settings holds the global settings,
+ * which apply to every run at once.
+ */
 class MainMenuScreen(private val game: Game) : KtxScreen {
     private val i18n = game.get<I18NBundle>()
     private val stage = game.get<Stage>()
     private val skin = game.get<Skin>()
     private val gameState = game.get<GameState>()
     private val store = game.get<KeyValueStore>()
-    private val specs = game.get<MenuSettings>().specs
+    private val menuSettings = game.get<MenuSettings>()
+    private val specs = menuSettings.specs
     private val controls = game.get<ControlSettings>()
     private val debug = game.get<DebugSettings>()
+    private val relativity = game.get<RelativitySettings>()
+    private val style = MenuStyle(skin)
 
     private val tooltips = hintTooltipManager()
     private val syncs = ArrayList<() -> Unit>()
     private var syncing = false
-    private val runEndedLabel = Label("", skin)
-    private val menu: Actor = buildMenu()
+    private val runEndedLabel = Label("", Label.LabelStyle(style.body.font, WARNING_COLOR))
+    private var startLevel = FIRST_LEVEL
+    private var selectedScenario: Scenario = Scenarios.ALL.first()
 
-    private fun buildMenu(): Actor {
-        val root = Table(skin)
-        root.setFillParent(true)
-        root.touchable = Touchable.enabled
-        root.pad(MENU_PAD)
-        root.add(Label(TITLE, skin)).padBottom(MENU_PAD).row()
-        val columns = Table()
-        columns.defaults().top().padLeft(COLUMN_SPACE / 2).padRight(COLUMN_SPACE / 2)
-        columns.add(buildButtons())
-        // A ScrollPane cell may be shrunk below its content's width; the content table then
-        // shrinks around its centre and clips labels on the left. Pin each pane to its content width.
-        for (content in listOf(buildSettings(), buildControls())) {
-            val pane = scrolled(content)
-            columns.add(pane).width(content.prefWidth + SCROLLBAR_ALLOWANCE).minWidth(content.prefWidth + SCROLLBAR_ALLOWANCE)
-        }
-        root.add(columns)
-        return root
+    /** The page [show] opens; reset to [MenuPage.MAIN] after use. Set before switching to this screen. */
+    var nextPage: MenuPage = MenuPage.MAIN
+
+    /** Scroll panes take the stage height minus the page's title and button rows. */
+    private val scrollMaxHeight = object : Value() {
+        override fun get(context: Actor?): Float = stage.height - PAGE_CHROME_HEIGHT
     }
 
-    private fun scrolled(content: Table): ScrollPane = ScrollPane(content, skin).apply {
-        setFadeScrollBars(false)
-        setScrollingDisabled(true, false)
+    private val root = Table().apply {
+        setFillParent(true)
+        touchable = Touchable.enabled
+        pad(MENU_PAD)
+    }
+    private val pages: Map<MenuPage, Actor> = mapOf(
+        MenuPage.MAIN to buildMainPage(),
+        MenuPage.NEW_GAME to buildNewGamePage(),
+        MenuPage.SCENARIOS to buildScenariosPage(),
+        MenuPage.SETTINGS to buildSettingsPage(),
+    )
+
+    private fun open(page: MenuPage) {
+        root.clearChildren()
+        root.add(pages.getValue(page))
+        syncAll()
     }
 
-    private fun buildButtons(): Table {
+    // ---- Main page -------------------------------------------------------------------------------------------
+
+    private fun buildMainPage(): Actor {
         val t = Table()
-        t.defaults().space(BUTTON_SPACE).fillX()
-        t.add(runEndedLabel).padBottom(BUTTON_SPACE).row()
-        t.add(TextButton(i18n["menu_single_player"], skin).also { b ->
-            b.onChange {
-                saveSettings(store, specs)
-                gameState.resetGame()
-                game.setScreen<PlayScreen>()
-            }
-        }).row()
+        t.add(Label(TITLE.uppercase(), style.title).apply { setFontScale(TITLE_SCALE) }).row()
+        t.add(style.label(i18n["menu_subtitle"], style.muted)).padBottom(SECTION_SPACE * 2).row()
+        t.defaults().width(MENU_BUTTON_WIDTH).height(MENU_BUTTON_HEIGHT).space(BUTTON_SPACE)
+        t.add(button("menu_new_game", primary = true) { open(MenuPage.NEW_GAME) }).row()
+        t.add(button("menu_scenarios") { open(MenuPage.SCENARIOS) }).row()
+        t.add(button("menu_settings") { open(MenuPage.SETTINGS) }).row()
         if (Gdx.app.type != Application.ApplicationType.WebGL) {
-            t.add(TextButton(i18n["menu_exit"], skin).also { b ->
-                b.onChange {
-                    logger.info { "Exiting application" }
-                    Gdx.app.exit()
-                }
+            t.add(button("menu_exit") {
+                logger.info { "Exiting application" }
+                Gdx.app.exit()
             }).row()
         }
+        t.add(runEndedLabel).width(Value.prefWidth).height(Value.prefHeight).padTop(SECTION_SPACE).row()
         return t
     }
 
-    private fun buildSettings(): Table {
+    // ---- New game page ---------------------------------------------------------------------------------------
+
+    private fun buildNewGamePage(): Actor {
+        val panel = style.panel()
+        val t = panel.panelContent
+        t.defaults().left()
+        t.add(Label(i18n["menu_new_game"], style.title)).colspan(2).padBottom(SECTION_SPACE).row()
+
+        t.add(Label(i18n["new_game_start_level"], style.heading)).colspan(2).padBottom(ROW_SPACE).row()
+        val levelButtons = Table()
+        val group = ButtonGroup<TextButton>().apply { setMinCheckCount(1); setMaxCheckCount(1) }
+        val levelHint = style.paragraph("", TEXT_WIDTH, style.muted)
+        for (level in START_LEVELS) {
+            val b = TextButton(i18n.format("new_game_level", level), style.toggleButton)
+            b.onChange { if (b.isChecked) { startLevel = level; levelHint.setText(i18n["new_game_level_${level}_hint"]) } }
+            group.add(b)
+            levelButtons.add(b).width(MENU_BUTTON_WIDTH * 0.6f).height(MENU_BUTTON_HEIGHT).padRight(BUTTON_SPACE)
+        }
+        syncs.add { group.buttons[START_LEVELS.indexOf(startLevel)].isChecked = true; levelHint.setText(i18n["new_game_level_${startLevel}_hint"]) }
+        t.add(levelButtons).colspan(2).row()
+        t.add(levelHint).width(TEXT_WIDTH).colspan(2).padTop(ROW_SPACE).row()
+
+        t.add(divider()).colspan(2).growX().padTop(SECTION_SPACE).padBottom(SECTION_SPACE).row()
+        t.add(Label(i18n["new_game_physics"], style.heading)).colspan(2).row()
+        t.add(style.paragraph(i18n["new_game_physics_hint"], TEXT_WIDTH, style.muted)).width(TEXT_WIDTH).colspan(2).padBottom(ROW_SPACE).row()
+        addSettingRows(t, menuSettings.runSpecs)
+
+        t.add(buttonRow(
+            button("menu_back") { open(MenuPage.MAIN) },
+            button("menu_start", primary = true) { startRun() },
+        )).colspan(2).growX().padTop(SECTION_SPACE).row()
+        return panel
+    }
+
+    private fun startRun() {
+        saveSettings(store, specs)
+        gameState.resetGame(startLevel)
+        game.setScreen<PlayScreen>()
+    }
+
+    // ---- Scenarios page --------------------------------------------------------------------------------------
+
+    private fun buildScenariosPage(): Actor {
+        val panel = style.panel()
+        val t = panel.panelContent
+        t.defaults().left().top()
+        t.add(Label(i18n["menu_scenarios"], style.title)).colspan(2).padBottom(SECTION_SPACE).row()
+
+        val list = Table()
+        list.defaults().width(SCENARIO_BUTTON_WIDTH).height(MENU_BUTTON_HEIGHT).space(BUTTON_SPACE)
+        val group = ButtonGroup<TextButton>().apply { setMinCheckCount(1); setMaxCheckCount(1) }
+        val title = Label("", style.heading)
+        val summary = style.paragraph("", TEXT_WIDTH, style.muted)
+        val briefing = style.paragraph("", TEXT_WIDTH)
+        val details = Table().apply {
+            defaults().left().width(TEXT_WIDTH)
+            add(title).row()
+            add(summary).padBottom(ROW_SPACE).row()
+            add(briefing).row()
+        }
+        fun show(s: Scenario) {
+            title.setText(i18n[s.titleKey])
+            summary.setText(i18n[s.summaryKey])
+            briefing.setText(i18n[s.briefingKey])
+        }
+        for (s in Scenarios.ALL) {
+            val b = TextButton(i18n[s.titleKey], style.toggleButton)
+            b.label.setAlignment(Align.left)
+            b.onChange { if (b.isChecked) { selectedScenario = s; show(s) } }
+            group.add(b)
+            list.add(b).row()
+        }
+        syncs.add { group.buttons[Scenarios.ALL.indexOf(selectedScenario)].isChecked = true; show(selectedScenario) }
+        t.add(list).padRight(COLUMN_SPACE)
+        t.add(scrolled(details)).width(TEXT_WIDTH + SCROLLBAR_ALLOWANCE).maxHeight(scrollMaxHeight).row()
+
+        t.add(buttonRow(
+            button("menu_back") { open(MenuPage.MAIN) },
+            button("menu_start", primary = true) { startScenario(selectedScenario) },
+        )).colspan(2).growX().padTop(SECTION_SPACE).row()
+        return panel
+    }
+
+    private fun startScenario(scenario: Scenario) {
+        // Save first: the scenario's physics overrides are temporary and must not be persisted.
+        saveSettings(store, specs)
+        applyScenarioPhysics(scenario.physics, relativity)
+        gameState.startScenario(scenario)
+        game.setScreen<PlayScreen>()
+    }
+
+    // ---- Settings page ---------------------------------------------------------------------------------------
+
+    private fun buildSettingsPage(): Actor {
+        val panel = style.panel()
+        val t = panel.panelContent
+        t.defaults().top().left()
+        t.add(Label(i18n["menu_settings"], style.title)).colspan(2).padBottom(ROW_SPACE).row()
+        t.add(style.paragraph(i18n["menu_settings_hint"], TEXT_WIDTH * 1.5f, style.muted)).width(TEXT_WIDTH * 1.5f).colspan(2).padBottom(SECTION_SPACE).row()
+        // A ScrollPane cell may be shrunk below its content's width; the content table then
+        // shrinks around its centre and clips labels on the left. Pin each pane to its content width.
+        val settings = Table().also { addSettingRows(it, menuSettings.globalSpecs) }
+        val controlsList = buildControls()
+        val columns = listOf(settings, controlsList)
+        for (content in columns) {
+            val w = content.prefWidth + SCROLLBAR_ALLOWANCE
+            t.add(scrolled(content)).width(w).minWidth(w).maxHeight(scrollMaxHeight)
+                .padRight(if (content === columns.first()) COLUMN_SPACE else 0f)
+        }
+        t.row()
+        t.add(buttonRow(
+            button("menu_back") { open(MenuPage.MAIN) },
+            button("menu_reset_defaults") {
+                resetSettings(menuSettings.globalSpecs)
+                saveSettings(store, specs)
+                syncAll()
+            }.also { it.addListener(hintTooltip(i18n["menu_reset_defaults_hint"], tooltips, skin)) },
+        )).colspan(2).growX().padTop(SECTION_SPACE).row()
+        return panel
+    }
+
+    private fun buildControls(): Table {
         val t = Table()
         t.defaults().left().pad(ROW_SPACE / 2)
-        t.add(Label(i18n["menu_settings"], skin)).colspan(2).row()
-        val enabledSyncs = ArrayList<() -> Unit>()
-        for (spec in specs) {
+        val tr = { key: String -> i18n[key] }
+        fun rows(includeDebug: Boolean): List<Pair<String, String>> =
+            controlsRows(InputBindings.DEFAULT, controls.scheme, includeDebug, tr)
+        var shownScheme: ControlScheme? = null
+        var shownDebug: Boolean? = null
+        // Rebuilt from syncAll() so the list follows the "Controls" setting.
+        fun fill() {
+            if (shownScheme == controls.scheme && shownDebug == debug.panelAllowed) return
+            shownScheme = controls.scheme
+            shownDebug = debug.panelAllowed
+            t.clearChildren()
+            t.add(Label(i18n["menu_controls"], style.heading)).colspan(2).padBottom(ROW_SPACE).row()
+            for (row in rows(false)) {
+                t.add(Label(row.first, style.muted)).padRight(COLUMN_SPACE / 2)
+                t.add(Label(row.second, style.body)).row()
+            }
+            if (debug.panelAllowed) {
+                val plain = rows(false).toSet()
+                t.add(Label(i18n["menu_controls_debug"], style.heading)).colspan(2).padTop(BUTTON_SPACE).row()
+                for (row in rows(true).filter { it !in plain }) {
+                    t.add(Label(row.first, style.muted)).padRight(COLUMN_SPACE / 2)
+                    t.add(Label(row.second, style.body)).row()
+                }
+            }
+        }
+        fill()
+        syncs.add { fill() }
+        return t
+    }
+
+    // ---- Setting widgets -------------------------------------------------------------------------------------
+
+    private fun addSettingRows(t: Table, list: List<SettingSpec>) {
+        for (spec in list) {
             val label = Label(i18n[spec.labelKey], skin)
             label.addListener(hintTooltip(i18n[spec.hintKey], tooltips, skin))
-            t.add(label)
+            t.add(label).left().pad(ROW_SPACE / 2).padRight(COLUMN_SPACE)
             val widget: Actor = when (spec) {
                 is SettingSpec.Toggle -> toggleWidget(spec)
                 is SettingSpec.Slider -> sliderWidget(spec)
                 is SettingSpec.Choice -> choiceWidget(spec)
             }
             widget.addListener(hintTooltip(i18n[spec.hintKey], tooltips, skin))
-            t.add(widget).row()
-            enabledSyncs.add { setDisabled(widget, !spec.enabled()); label.color.a = if (spec.enabled()) 1f else 0.5f }
+            t.add(widget).left().pad(ROW_SPACE / 2).row()
+            syncs.add { setDisabled(widget, !spec.enabled()); label.color.a = if (spec.enabled()) 1f else 0.5f }
         }
-        syncs.addAll(enabledSyncs)
-        t.add(TextButton(i18n["menu_reset_defaults"], skin).also { b ->
-            b.addListener(hintTooltip(i18n["menu_reset_defaults_hint"], tooltips, skin))
-            b.onChange {
-                resetSettings(specs)
-                saveSettings(store, specs)
-                syncAll()
-            }
-        }).colspan(2).padTop(BUTTON_SPACE).row()
-        return t
     }
 
     private fun toggleWidget(spec: SettingSpec.Toggle): Actor {
@@ -203,37 +383,23 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         }
     }
 
-    private fun buildControls(): Table {
-        val t = Table()
-        t.defaults().left().pad(ROW_SPACE / 2)
-        val tr = { key: String -> i18n[key] }
-        fun rows(includeDebug: Boolean): List<Pair<String, String>> =
-            controlsRows(InputBindings.DEFAULT, controls.scheme, includeDebug, tr)
-        var shownScheme: ControlScheme? = null
-        var shownDebug: Boolean? = null
-        // Rebuilt from syncAll() so the list follows the "Controls" setting.
-        fun fill() {
-            if (shownScheme == controls.scheme && shownDebug == debug.panelAllowed) return
-            shownScheme = controls.scheme
-            shownDebug = debug.panelAllowed
-            t.clearChildren()
-            t.add(Label(i18n["menu_controls"], skin)).colspan(2).row()
-            for (row in rows(false)) {
-                t.add(Label(row.first, skin)).padRight(COLUMN_SPACE / 2)
-                t.add(Label(row.second, skin)).row()
-            }
-            if (debug.panelAllowed) {
-                val plain = rows(false).toSet()
-                t.add(Label(i18n["menu_controls_debug"], skin)).colspan(2).padTop(BUTTON_SPACE).row()
-                for (row in rows(true).filter { it !in plain }) {
-                    t.add(Label(row.first, skin)).padRight(COLUMN_SPACE / 2)
-                    t.add(Label(row.second, skin)).row()
-                }
-            }
-        }
-        fill()
-        syncs.add { fill() }
-        return t
+    // ---- Small builders --------------------------------------------------------------------------------------
+
+    private fun button(key: String, primary: Boolean = false, onClick: () -> Unit): TextButton =
+        TextButton(i18n[key], if (primary) style.primaryButton else style.button).also { it.onChange(onClick) }
+
+    /** [left] on the left edge, [right] on the right edge. */
+    private fun buttonRow(left: Actor, right: Actor): Table = Table().apply {
+        add(left).height(MENU_BUTTON_HEIGHT).left()
+        add().expandX()
+        add(right).height(MENU_BUTTON_HEIGHT).minWidth(MENU_BUTTON_WIDTH * 0.6f).right()
+    }
+
+    private fun divider(): Image = Image(style.rule).apply { height = 1f }
+
+    private fun scrolled(content: Table): ScrollPane = ScrollPane(content, skin).apply {
+        setFadeScrollBars(false)
+        setScrollingDisabled(true, false)
     }
 
     private fun Actor.onChange(block: () -> Unit) {
@@ -244,10 +410,14 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
 
     override fun show() {
         game.get<GameEventManager>().ignorePlayerInputs()
-        syncAll()
+        // A scenario may have overridden the run physics; restore the player's saved New-game choices.
+        resetSettings(menuSettings.runSpecs)
+        loadSettings(store, menuSettings.runSpecs)
         runEndedLabel.setText(if (gameState.lastRunEnded) i18n["run_ended_message"] else "")
         gameState.lastRunEnded = false
-        stage.addActor(menu)
+        stage.addActor(root)
+        open(nextPage)
+        nextPage = MenuPage.MAIN
     }
 
     override fun render(delta: Float) {
@@ -259,10 +429,11 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
     override fun resize(width: Int, height: Int) {
         logger.info { "Resizing screen to ${width}x$height" }
         stage.viewport.update(width, height, true)
+        root.invalidateHierarchy()
     }
 
     override fun hide() {
-        menu.remove()
+        root.remove()
     }
 
     companion object {

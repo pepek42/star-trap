@@ -11,8 +11,8 @@ const val MAP_HEIGHT = 200f
 
 class MapProvider(
     private val gameEventManager: GameEventManager,
-    private val width: Float = MAP_WIDTH,
-    private val height: Float = MAP_HEIGHT,
+    width: Float = MAP_WIDTH,
+    height: Float = MAP_HEIGHT,
 ) {
 
     var mapWidth = 0f
@@ -27,7 +27,11 @@ class MapProvider(
 
     fun playerSpawnLocation() = vec2(mapWidth / 2, mapHeight / 2)
 
-    fun loadMap() {
+    /** Broadcasts the current map; with a size, the arena changes to it first (scenarios use smaller arenas). */
+    fun loadMap(width: Float = mapWidth, height: Float = mapHeight) {
+        require(width > 0f && height > 0f) { "map size must be positive, was $width x $height" }
+        mapWidth = width
+        mapHeight = height
         gameEventManager.newMap(mapWidth, mapHeight)
     }
 }

@@ -99,7 +99,8 @@ class BlackHoleProvider(
         return positions.copyOf(2 * placed)
     }
 
-    private fun spawnHole(x: Float, y: Float): Entity = engine.entity {
+    /** One hole at rest at ([x], [y]); used by [spawn] and by scenarios. */
+    fun spawnHole(x: Float, y: Float): Entity = engine.entity {
         with<BaseInfoComponent> {
             faction = FactionEnum.NEUTRAL
             entityType = EntityType.BLACK_HOLE

@@ -109,7 +109,8 @@ class EnemyShipProvider(
         }
     }
 
-    private fun spawnEnemy(x: Float, y: Float) {
+    /** One enemy ship at rest at ([x], [y]); used by the level spawn, the harness and scenarios. */
+    fun spawnEnemy(x: Float, y: Float) {
         val sprite = textureAtlas.createSprite("spaceship/attecker_red")
         val w = sprite.width / UNIT_SCALE
         val h = sprite.height / UNIT_SCALE

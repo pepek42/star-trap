@@ -205,8 +205,11 @@ class Hud(
         pointerLabel.isVisible = false
     }
 
-    fun updateLevel(level: Int) {
-        levelLabel.setText(i18NBundle.format("hud_level", level))
+    fun updateLevel(level: Int) = updateTitle(i18NBundle.format("hud_level", level))
+
+    /** Top-left title of a new level ("Level 3", or a scenario's name); resets the per-level target rows. */
+    fun updateTitle(text: String) {
+        levelLabel.setText(text)
         levelHasEnemies = false
         targetsShownOnce = false
     }

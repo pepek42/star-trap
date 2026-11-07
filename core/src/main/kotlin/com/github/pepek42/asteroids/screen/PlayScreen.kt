@@ -33,6 +33,12 @@ import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.BlackHoleProvider
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.provider.MAP_HEIGHT
+import com.github.pepek42.asteroids.provider.MAP_WIDTH
+import com.github.pepek42.asteroids.scenario.ScenarioSpawner
+import com.github.pepek42.asteroids.event.PlayerInputListener
+import com.github.pepek42.asteroids.ui.BriefingPanel
+import com.badlogic.gdx.utils.I18NBundle
 import com.github.pepek42.asteroids.provider.DecorationProvider
 import com.github.pepek42.asteroids.provider.EnemyShipProvider
 import com.github.pepek42.asteroids.provider.PlanetProvider
@@ -99,6 +105,12 @@ class PlayScreen(
     private val debugPanel = DebugPanel(
         game.get<Skin>(), settings, debugSettings, game.get<ControlSettings>(),
     ) { visible -> Gdx.graphics.setSystemCursor(if (visible) SystemCursor.Arrow else SystemCursor.Crosshair) }
+
+    private val i18n = game.get<I18NBundle>()
+    private val briefing = BriefingPanel(game.get<Skin>(), i18n["briefing_hide"])
+    private val quitListener = object : PlayerInputListener {
+        override fun quitToMenu() = game.quitRun()
+    }
 
     private val hullSounds = HullSoundQueue()
     private lateinit var hullSoundSystem: HullSoundSystem
@@ -195,15 +207,8 @@ class PlayScreen(
         )
     }
 
-    override fun show() {
-        super.show()
-        observerState.reset()
-        clock.reset()
-        lightHistory.clear()
-        computerSounds.clear()
-        gameState.nextLevel()
-        mapProvider.loadMap()
-        playerEntityProvider.spawnPlayerEntity()
+    /** The procedural level [GameState.level]: holes, planets, asteroids, decoration, star, enemies, plus harness extras. */
+    private fun spawnLevel() {
         val holes = if (settings.blackHolesEnabled) blackHoleProvider.spawn(gameState.level, game.get<RandomXS128>(), holeNearSpawn()) else FloatArray(0)
         val planets = if (settings.planetsEnabled) {
             planetProvider.spawn(gameState.level, game.get<RandomXS128>(), holes, holes.size / 2)
@@ -226,8 +231,48 @@ class PlayScreen(
         if (game.options.nearEnemies > 0) {
             enemyShipProvider.spawnNearEnemies(game.options.nearEnemies, mapProvider.playerSpawnLocation())
         }
+    }
+
+    /** Places a scenario's spawns relative to [centre] (the player spawn); velocities are fractions of the runtime c. */
+    private inner class ProviderSpawner(private val centre: Vector2) : ScenarioSpawner {
+        override fun asteroid(size: AsteroidSize, dx: Float, dy: Float, betaX: Float, betaY: Float, spin: Float) =
+            asteroidProvider.spawnAsteroid(size, vec2(centre.x + dx, centre.y + dy), vec2(betaX * settings.c, betaY * settings.c), spin)
+
+        override fun enemy(dx: Float, dy: Float) = enemyShipProvider.spawnEnemy(centre.x + dx, centre.y + dy)
+
+        override fun blackHole(dx: Float, dy: Float) {
+            blackHoleProvider.spawnHole(centre.x + dx, centre.y + dy)
+        }
+
+        override fun planet(dx: Float, dy: Float, variant: Int) {
+            planetProvider.spawnPlanet(centre.x + dx, centre.y + dy, variant)
+        }
+    }
+
+    override fun show() {
+        super.show()
+        observerState.reset()
+        clock.reset()
+        lightHistory.clear()
+        computerSounds.clear()
+        gameState.nextLevel()
+        val scenario = gameState.scenario
+        mapProvider.loadMap(scenario?.arenaSize ?: MAP_WIDTH, scenario?.arenaSize ?: MAP_HEIGHT)
+        playerEntityProvider.spawnPlayerEntity()
+        if (scenario != null) {
+            scenario.spawn(ProviderSpawner(mapProvider.playerSpawnLocation()))
+            star.roll(game.get<RandomXS128>())
+        } else {
+            spawnLevel()
+        }
         hud.toggleHud(show = true)
-        hud.updateLevel(gameState.level)
+        if (scenario != null) {
+            hud.updateTitle(i18n[scenario.titleKey])
+            briefing.show(game.get<Stage>(), i18n[scenario.titleKey], i18n[scenario.briefingKey])
+        } else {
+            hud.updateLevel(gameState.level)
+        }
+        game.get<GameEventManager>().addInputListener(quitListener)
         if (debugSettings.panelAllowed) {
             debugPanel.show(game.get<Stage>())
             game.get<GameEventManager>().addDebugListener(debugPanel)
@@ -268,6 +313,8 @@ class PlayScreen(
         computerSoundSystem.silence()
         Gdx.graphics.setSystemCursor(SystemCursor.Arrow)
         hud.toggleHud(show = false)
+        briefing.hide()
+        game.get<GameEventManager>().removeInputListener(quitListener)
         debugPanel.hide()
         game.get<GameEventManager>().removeDebugListener(debugPanel)
         clearLevel(engine, world)

@@ -30,6 +30,9 @@ import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.PlanetTextures
 import com.github.pepek42.asteroids.screen.LevelClearedScreen
 import com.github.pepek42.asteroids.screen.MainMenuScreen
+import com.github.pepek42.asteroids.screen.MenuPage
+import com.github.pepek42.asteroids.scenario.Scenarios
+import com.github.pepek42.asteroids.scenario.applyScenarioPhysics
 import com.github.pepek42.asteroids.screen.PlayScreen
 import com.github.pepek42.asteroids.settings.DisplaySettings
 import com.github.pepek42.asteroids.settings.TacticalSettings
@@ -126,9 +129,26 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
         Gdx.graphics.setTitle(TITLE)
         logger.info { "Finished setup" }
         if (options.play || (options.screenshotPath != null && options.scene == ScreenshotScene.PLAY)) {
+            val scenario = Scenarios.byId(options.scenario)
+            if (scenario != null) {
+                applyScenarioPhysics(scenario.physics, ctx.inject<RelativitySettings>())
+                ctx.inject<GameState>().startScenario(scenario)
+            } else {
+                options.scenario?.let { logger.error { "Unknown scenario '$it'; known: ${Scenarios.ALL.joinToString { s -> s.id }}" } }
+                ctx.inject<GameState>().resetGame(options.startLevel ?: FIRST_LEVEL)
+            }
             setScreen<PlayScreen>()
             if (options.thrust) ctx.inject<GameEventManager>().thrusters(1f)
+        } else if (options.screenshotPath != null && options.scene == ScreenshotScene.CLEARED) {
+            ctx.inject<GameState>().apply {
+                resetGame(options.startLevel ?: FIRST_LEVEL)
+                Scenarios.byId(options.scenario)?.let { startScenario(it) }
+                nextLevel()
+            }
+            setScreen<LevelClearedScreen>()
         } else {
+            MenuPage.entries.firstOrNull { it.name.equals(options.menuPage, ignoreCase = true) }
+                ?.let { ctx.inject<MainMenuScreen>().nextPage = it }
             setScreen<MainMenuScreen>()
         }
     }
@@ -160,6 +180,17 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             val gameState = ctx.inject<GameState>()
             gameState.resetGame()
             gameState.lastRunEnded = true
+            setScreen<MainMenuScreen>()
+        }
+    }
+
+    /** Esc during a run: abandon it and go back to the main menu (deferred, like [endRun]). */
+    fun quitRun() {
+        ctx.inject<GameEventManager>().ignorePlayerInputs()
+        Gdx.app.postRunnable {
+            val gameState = ctx.inject<GameState>()
+            if (gameState.scenario != null) ctx.inject<MainMenuScreen>().nextPage = MenuPage.SCENARIOS
+            gameState.resetGame()
             setScreen<MainMenuScreen>()
         }
     }

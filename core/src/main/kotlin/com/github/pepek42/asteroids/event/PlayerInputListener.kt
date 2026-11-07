@@ -17,4 +17,7 @@ interface PlayerInputListener {
     fun togglePilotView() = Unit
 
     fun toggleTacticalOverlay() = Unit
+
+    /** Leave the run and go back to the main menu. */
+    fun quitToMenu() = Unit
 }

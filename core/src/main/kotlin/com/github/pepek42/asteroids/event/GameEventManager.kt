@@ -69,6 +69,10 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
                 playerInputListeners.forEach { it.toggleTacticalOverlay() }
                 true
             }
+            InputAction.QUIT_TO_MENU -> {
+                playerInputListeners.forEach { it.quitToMenu() }
+                true
+            }
             // Move keys are consumed in every scheme; only TwinStickStrategy reads moveAxis today.
             InputAction.MOVE_UP, InputAction.MOVE_DOWN, InputAction.MOVE_LEFT, InputAction.MOVE_RIGHT ->
                 setMoveKey(action, true)

@@ -58,8 +58,20 @@ sealed class SettingSpec(val key: String, val enabled: () -> Boolean = { true })
     ) : SettingSpec(key, enabled)
 }
 
-/** Wrapper so DI can bind the list. */
-class MenuSettings(val specs: List<SettingSpec>)
+/**
+ * Keys of the per-run physics settings. They are picked on the New game page before a run starts and stay fixed
+ * during it; every other setting is global (Settings page) and applies to any run right away.
+ */
+val RUN_SETTING_KEYS = setOf("relativity", "speed_of_light", "time_warp")
+
+/** Wrapper so DI can bind the list. [specs] holds every setting (persistence iterates it). */
+class MenuSettings(val specs: List<SettingSpec>) {
+    /** Settings chosen per run on the New game page. */
+    val runSpecs: List<SettingSpec> = specs.filter { it.key in RUN_SETTING_KEYS }
+
+    /** Global settings shown on the Settings page. */
+    val globalSpecs: List<SettingSpec> = specs.filter { it.key !in RUN_SETTING_KEYS }
+}
 
 fun menuSettings(
     relativity: RelativitySettings,

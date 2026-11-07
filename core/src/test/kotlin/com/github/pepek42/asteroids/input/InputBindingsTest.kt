@@ -43,10 +43,10 @@ class InputBindingsTest {
     fun forMenuFiltersDebugAndSchemes() {
         val noDebug = InputBindings.DEFAULT.forMenu(ControlScheme.MOUSE_HULL, includeDebug = false)
         assertEquals(InputBindings.DEFAULT.filter { !it.debugOnly && ControlScheme.MOUSE_HULL in it.schemes }, noDebug)
-        assertEquals(7, noDebug.size)
+        assertEquals(8, noDebug.size)
         val withDebug = InputBindings.DEFAULT.forMenu(ControlScheme.MOUSE_HULL, includeDebug = true)
         assertEquals(InputAction.DEBUG_PANEL, withDebug.last().action)
-        assertEquals(8, withDebug.size)
+        assertEquals(9, withDebug.size)
 
         val twin = Binding(InputAction.AIM, InputTrigger.MouseMove, "x", schemes = setOf(ControlScheme.TWIN_STICK))
         assertFalse(listOf(twin).forMenu(ControlScheme.MOUSE_HULL, true).contains(twin))

@@ -69,7 +69,10 @@ Options (parsed by `parseLaunchOptions` in `core/.../debug/ScreenshotHarness.kt`
 
 - `--screenshot=<path.png>`: enables the harness. Use an absolute path, because the run task's working dir is `assets/`.
 - `--frames=<N>`: frames to render before capturing (default 180).
-- `--scene=play|menu`: `play` skips the main menu (default), `menu` stays on it.
+- `--scene=play|menu|cleared`: `play` skips the main menu (default), `menu` stays on it, `cleared` opens the between-levels screen.
+- `--menu-page=main|new_game|scenarios|settings`: the main-menu page to open (with `--scene=menu`).
+- `--start-level=N`: the run starts at level N (New game offers 1 and 5).
+- `--scenario=<id>`: plays a built-in scenario (`flight_school`, `combat`, `relativity`, `gravity`; see `scenario/Scenarios.kt`).
 - `--thrust`: hold the thrusters during the run.
 - `--seed=<long>`: seeds all gameplay randomness (one `RandomXS128` in the DI context). Without it the seed comes from the clock. Screenshot runs also use a fixed 1/60 s frame delta, so the same args give byte-identical PNGs.
 - `--near-asteroids=<n>`: additionally places n large asteroids in a ring 8-15 u around the player (seeded RNG), so near-field effects such as the pilot view are visible on level 1.

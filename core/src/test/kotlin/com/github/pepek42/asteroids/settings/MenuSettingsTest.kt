@@ -229,4 +229,13 @@ class MenuSettingsTest {
         d.forcePanel = true
         assertTrue(d.panelAllowed)
     }
+
+    @Test
+    fun runSettingsAreThePhysicsChoicesAndTheRestIsGlobal() {
+        val f = Fixture()
+        val all = menuSettings(f.rel, f.controls, f.dbg, f.display, true, applyFullscreen = {}, sound = f.sound)
+        assertEquals(RUN_SETTING_KEYS, all.runSpecs.map { it.key }.toSet())
+        assertEquals(all.specs.size, all.runSpecs.size + all.globalSpecs.size)
+        assertTrue(all.globalSpecs.none { it.key in RUN_SETTING_KEYS })
+    }
 }

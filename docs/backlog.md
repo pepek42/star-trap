@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-166**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-170**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -29,6 +29,12 @@ M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
 50b. ST-164 Homing missile: relativistic rocket body and computer guidance
 50c. ST-165 Missile lock-on: lock first, then fire
 49h. ST-161 Bring docs in line after M6
+
+Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
+57a. ST-166 Save the run after each cleared level
+57b. ST-167 Shop between levels (owner decision on currency and items)
+57c. ST-168 Level-5 quick start with a prebuilt ship
+57d. ST-169 Scenarios: step-by-step tutorial objectives
 
 Parked:
 51. ST-091 Targeting-trance scheme
@@ -314,6 +320,73 @@ Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/aste
   - [ ] Tests (pure): lock progresses after `MISSILE_LOCK_TIME_S` of steady aim, resets on candidate change, drops when out of the keep cone; fire is refused while not LOCKED
   - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --query="seed=42&play&near-enemies=3"` passes
 - playtest: Press 2, keep the nose on an enemy: the reticle closes and turns red with a tone; click: the missile flies and hits. Click without a lock: nothing flies.
+
+## Menus & runs
+
+Source: owner 2026-11-07 ("After each level there will be save (and buying in shop between levels) ... New game - select level 1, 5th (for quick start later level, with some prebuild once we have shop) ... tutorial like scenarios with some text"). The menu (New game with start level 1/5 and run physics, Scenarios with briefings, global Settings), the restyled `LevelClearedScreen` with a shop placeholder, Esc-to-menu and four scenarios (`scenario/Scenarios.kt`) are done. Web: saves go through libGDX `Preferences` (`KeyValueStore`), never `java.io`.
+
+### ST-166 Save the run after each cleared level
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: —
+- files: `GameState.kt`, new `save/RunSave.kt`, `screen/LevelClearedScreen.kt`, `screen/MainMenuScreen.kt`, `settings/KeyValueStore.kt`, `assets/i18n/messages.properties`; tests
+- refs: CLAUDE.md "Settings"; `ui/MenuStyle.kt`
+- layer: meta (not sim, not assist)
+- goal: A run survives quitting the game: the cleared screen saves it, the main menu offers Continue.
+- spec:
+  - One save slot in `Preferences` under its own key prefix with a version number: next level, run physics (`RUN_SETTING_KEYS` values), and later the loadout/credits (keep the format extensible).
+  - `LevelClearedScreen.show()` writes the save for normal runs (never for scenarios). Death clears it (roguelike: the run is over).
+  - Main page: a primary "Continue (level N)" button above New game while a save exists; New game warns that it overwrites the save (a confirm row on the New-game page, no modal).
+  - Continuing restores the run physics into `RelativitySettings` for the run without overwriting the player's New-game defaults.
+- acceptance:
+  - [ ] Tests: save/load round trip through `MemoryKeyValueStore`; death clears the save; scenarios never save; unknown version is ignored
+  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes; save survives a page reload on web
+- playtest: Clear level 1, quit the game, start it again: Continue (level 2) is on the main page and starts level 2.
+
+### ST-167 Shop between levels (owner decision on currency and items)
+- status: needs-user
+- size: M
+- agent: kotlin-dev
+- depends: ST-166, ST-163
+- files: `screen/LevelClearedScreen.kt` (replace the shop placeholder), new `shop/`, `GameState.kt`, `provider/PlayerEntityProvider.kt`
+- layer: meta (run progression)
+- goal: Spend what the level earned on upgrades before the next level.
+- questions for the owner (recommendation first): currency = credits per destroyed target, scaled by size (rec.) vs a fixed reward per level; items = engine (proper acceleration), hull (health), weapon slots / missiles (rec.: these three first).
+- acceptance:
+  - [ ] Tests: buying deducts credits and changes the next level's player; the purchase is saved (ST-166)
+  - [ ] `scripts/web-check.sh --play` passes
+- playtest: Clear a level, buy an engine upgrade, start the next level: the ship accelerates faster.
+
+### ST-168 Level-5 quick start with a prebuilt ship
+- status: needs-user
+- size: S
+- agent: kotlin-dev
+- depends: ST-167
+- files: `screen/MainMenuScreen.kt`, `GameState.kt`, `shop/`
+- layer: meta
+- goal: Starting at level 5 gives the upgrades a player would roughly have bought by then, so the quick start is fair.
+- spec: a fixed prebuild (or the credits of levels 1–4 to spend in the shop first; rec.: credits, so it reuses the shop). The New-game hint for level 5 says what is included.
+- acceptance:
+  - [ ] Tests: `resetGame(QUICK_START_LEVEL)` grants the prebuild; level 1 grants nothing
+- playtest: New game → Level 5 → Start: the ship has the upgrades.
+
+### ST-169 Scenarios: step-by-step tutorial objectives
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: —
+- files: `scenario/Scenario.kt`, `scenario/Scenarios.kt`, `ui/BriefingPanel.kt`, new `system/ScenarioObjectiveSystem.kt`, `assets/i18n/messages.properties`
+- layer: assist (in-fiction instructor)
+- goal: Tutorials teach one thing at a time instead of one long briefing.
+- spec:
+  - A scenario may list objectives (text key + a predicate on the world: "reach β 0.3", "switch to pilot view", "destroy a rock", "fly within 15 u of the planet"). The briefing panel shows the current one and ticks it when the predicate holds, then shows the next.
+  - Flight school: thrust, turn, fire, clear. Relativity: reach β 0.5, watch γ, toggle V and T. Gravity: orbit the planet once, stay out of the horizon.
+  - Predicates read the true state and input events only; the physics is not changed.
+- acceptance:
+  - [ ] Tests: objectives advance in order when their predicates hold; a scenario without objectives behaves as today
+  - [ ] `scripts/web-check.sh --query=scenario=relativity&play` passes
+- playtest: Scenarios → Relativity: the panel asks for β 0.5, then for V, then T, each ticking as done.
 
 ## Parked (low priority)
 

@@ -9,7 +9,8 @@ import ktx.log.logger
 
 const val DEFAULT_SCREENSHOT_FRAMES = 180
 
-enum class ScreenshotScene { PLAY, MENU }
+/** Screen a screenshot run opens: a level, the main menu, or the between-levels screen after `--start-level` (default 1). */
+enum class ScreenshotScene { PLAY, MENU, CLEARED }
 
 /** Launch options for automated visual checks. [screenshotPath] == null means normal game start. */
 data class LaunchOptions(
@@ -33,6 +34,12 @@ data class LaunchOptions(
     val invulnerable: Boolean = false,
     /** Skips the main menu and starts a level at launch (`--play`; web: `?play`). */
     val play: Boolean = false,
+    /** First level of the run started by `--play` (`--start-level=<n>`; web: `?start-level=5`). */
+    val startLevel: Int? = null,
+    /** Scenario id (`Scenarios.ALL`) that `--play` starts instead of a normal run (`--scenario=<id>`; web: `?scenario=combat`). */
+    val scenario: String? = null,
+    /** Main menu page shown at launch (`--menu-page=main|new_game|scenarios|settings`), for screenshots of each page. */
+    val menuPage: String? = null,
     /** Forces the pilot view at launch (`--pilot-view`; web: `?pilot-view`); wins over the saved perspective setting. */
     val pilotView: Boolean = false,
     /**
@@ -55,7 +62,7 @@ data class LaunchOptions(
 const val HOLE_NEAR_DISTANCE = 25f
 
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--near-enemies=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play`, `--pilot-view`, `--shadow-demo`, `--no-shadows` and `--no-lensing`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu|cleared`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--near-enemies=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play`, `--start-level=<n>`, `--scenario=<id>`, `--menu-page=<page>`, `--pilot-view`, `--shadow-demo`, `--no-shadows` and `--no-lensing`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -77,6 +84,9 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
             "--invulnerable" -> options = options.copy(invulnerable = true)
             "--debug-panel" -> options = options.copy(debugPanel = true)
             "--play" -> options = options.copy(play = true)
+            "--start-level" -> value?.toIntOrNull()?.takeIf { it >= 1 }?.let { options = options.copy(startLevel = it) }
+            "--menu-page" -> if (!value.isNullOrBlank()) options = options.copy(menuPage = value)
+            "--scenario" -> if (!value.isNullOrBlank()) options = options.copy(scenario = value)
             "--pilot-view" -> options = options.copy(pilotView = true)
             "--shadow-demo" -> options = options.copy(shadowDemo = true)
             "--no-shadows" -> options = options.copy(noShadows = true)

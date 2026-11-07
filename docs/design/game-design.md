@@ -87,7 +87,7 @@ Tunables: the speed of light `c` (c = 20 u/s, see §11; it has to fit Box2D's ~9
 - **Starfield**: currently unreadable. It will be redone as camera-relative parallax with distinct star points that carry per-star colour temperature. This is a prerequisite for Doppler/aberration, since those effects need individual stars to shift.
 - **Minimap**: currently unreadable. It will become a framed, semi-transparent corner panel with faction-coloured dots, the camera view rectangle and the arena boundary.
 - Relativistic effects are done through an FBO post-process plus per-sprite shaders (see the architecture doc). Today the pilot view is a CPU projection of sprites (no FBO pass yet), and black hole lensing is a backdrop-only FBO pass (ST-088).
-- **Accretion disk (ST-087, ST-140):** a GPU particle disk per hole with Doppler and blackbody colour. Shown in the world view only; pilot view skips it until ST-089.
+- **Accretion disk (ST-087, ST-140):** a GPU particle disk per hole with Doppler and blackbody colour. In pilot view (ST-089) each particle is light-delayed, aberrated and Doppler-shifted, so the side swinging toward the pilot is bluer and brighter.
 - **Lighting (planned):** the disk, and a distant star light, will light nearby sprites with falloff and direction. Planets and large asteroids will cast shadows. The maths exists (`render/Lighting.kt`, ST-095), but there is no lit-sprite shader, normal map or shadow yet.
 
 ## 10. Milestones

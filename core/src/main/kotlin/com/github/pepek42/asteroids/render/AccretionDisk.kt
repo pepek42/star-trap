@@ -10,11 +10,16 @@ import com.badlogic.gdx.graphics.VertexAttribute
 import com.badlogic.gdx.graphics.VertexAttributes
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.math.RandomXS128
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
+import com.github.pepek42.asteroids.physics.BETA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.BH_RS
+import com.github.pepek42.asteroids.physics.dopplerFactor
 import ktx.log.logger
+import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.pow
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 /** Inner edge of the disk (the ISCO) as a multiple of `r_s`; the world radius is `DISK_INNER_PER_RS * rs` (`3 * BH_RS` = 3 u). */
@@ -99,6 +104,63 @@ fun buildDiskVertices(seed: Long, rs: Float, count: Int = DISK_PARTICLES): Float
     return out
 }
 
+/** Fixed-point iterations of the per-particle light cone in pilot view; each one shrinks the error by about `v/c` (< 0.5 at the ISCO). */
+const val DISK_RETARD_ITERATIONS = 6
+
+/**
+ * Pilot view of one disk particle (ST-089), the reference the vertex shader `accretion_disk.vert` mirrors by hand.
+ *
+ * The hole centre ([cx], [cy]) is already retarded (its light left [tau] seconds ago, at which time the particle's phase is
+ * [phi]); [holeVx], [holeVy] is the hole's arena velocity then. The particle sits at `C + r (cos φ', sin φ')` on its circular
+ * orbit. With [delay], its own emission is `s` seconds before the centre's, solved from `|p(φ − Ω s) − o| = c (τ + s)` by
+ * [DISK_RETARD_ITERATIONS] fixed-point steps on the true circle (the tangent-line formula fails here: Ω·s reaches over a radian
+ * near the ISCO). The particle velocity is `v_hole + Ω r t̂` (Galilean sum, error O(v_hole v_orb / c²)). Writes the apparent
+ * position (boosted by `apparentOffset` when [aberration]) into [out] and returns the Doppler factor `D` toward the observer at
+ * ([ox], [oy]) moving with ([betaX], [betaY]) (fractions of c).
+ */
+fun diskParticleApparent(
+    r: Float, phi: Float, gm: Float, c: Float,
+    ox: Float, oy: Float, betaX: Float, betaY: Float,
+    cx: Float, cy: Float, tau: Float, holeVx: Float, holeVy: Float,
+    delay: Boolean, aberration: Boolean, out: Vector2,
+): Float {
+    val omega = diskOmega(r, gm)
+    var ph = phi
+    if (delay) {
+        var s = 0f
+        repeat(DISK_RETARD_ITERATIONS) {
+            val a = phi - omega * s
+            val dx = cx + r * cos(a) - ox
+            val dy = cy + r * sin(a) - oy
+            s = sqrt(dx * dx + dy * dy) / c - tau
+        }
+        ph = phi - omega * s
+    }
+    val px = cx + r * cos(ph)
+    val py = cy + r * sin(ph)
+    val vOrb = omega * r
+    val bsx = (holeVx - vOrb * sin(ph)) / c
+    val bsy = (holeVy + vOrb * cos(ph)) / c
+    var nx = ox - px
+    var ny = oy - py
+    val len = sqrt(nx * nx + ny * ny)
+    val d = if (len > 0f) {
+        nx /= len
+        ny /= len
+        dopplerFactor(scratchObs.set(betaX, betaY), scratchSrc.set(bsx, bsy), nx, ny)
+    } else {
+        1f
+    }
+    pilotCorner(px, py, ox, oy, betaX, betaY, aberration, out)
+    return d
+}
+
+private val scratchObs = Vector2()
+private val scratchSrc = Vector2()
+
+/** Searchlight brightness of a disk particle at Doppler factor [d]: the sprites' `spriteBrightness`, so both read alike. */
+fun diskBeamBrightness(d: Float): Float = spriteBrightness(d)
+
 /** Two triangles per particle quad: corners 0-1-2 and 2-3-0. */
 fun buildDiskIndices(count: Int = DISK_PARTICLES): ShortArray {
     val idx = ShortArray(count * 6)
@@ -167,7 +229,35 @@ class AccretionDiskShader : Disposable {
         program.setUniformi("u_lut", 0)
     }
 
+    /** World view: the disk at its true centre, no light delay, aberration or Doppler. */
     fun draw(disk: AccretionDisk, centerX: Float, centerY: Float, gm: Float) {
+        program.setUniformf("u_pilot", 0f)
+        drawMesh(disk, centerX, centerY, gm)
+    }
+
+    /**
+     * Pilot view (ST-089): [time] is the centre's emission time (the shader turns the disk to it), [tau] its light age,
+     * ([holeVx], [holeVy]) the hole's arena velocity then; see [diskParticleApparent].
+     */
+    fun drawPilot(
+        disk: AccretionDisk, centerX: Float, centerY: Float, gm: Float, time: Float, tau: Float, holeVx: Float, holeVy: Float,
+        ox: Float, oy: Float, betaX: Float, betaY: Float, c: Float, delay: Boolean, aberration: Boolean,
+    ) {
+        program.setUniformf("u_pilot", 1f)
+        program.setUniformf("u_time", time)
+        program.setUniformf("u_tau", tau)
+        program.setUniformf("u_holeVel", holeVx, holeVy)
+        program.setUniformf("u_observer", ox, oy)
+        program.setUniformf("u_beta", betaX, betaY)
+        program.setUniformf("u_c", c)
+        program.setUniformf("u_delay", if (delay) 1f else 0f)
+        program.setUniformf("u_aberration", if (aberration) 1f else 0f)
+        program.setUniformf("u_beam", BRIGHTNESS_EXPONENT_MVP, B_MIN, B_MAX)
+        program.setUniformf("u_betaMax", BETA_MAX_MASSIVE)
+        drawMesh(disk, centerX, centerY, gm)
+    }
+
+    private fun drawMesh(disk: AccretionDisk, centerX: Float, centerY: Float, gm: Float) {
         program.setUniformf("u_center", centerX, centerY)
         program.setUniformf("u_gm", gm)
         program.setUniformf("u_rs", disk.rs)

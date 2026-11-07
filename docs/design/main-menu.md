@@ -50,7 +50,7 @@ Coming: W/A/S/D + arrows (twin-stick move, ST-061; scheme `TWIN_STICK` only).
 The owner wants two ways to play: "one from player perspective and one from outside".
 
 - **Outside** (default): sprites are drawn at their true arena positions, on top of their Box2D bodies. This is the classic view.
-- **Pilot** (realistic): what the pilot actually sees, with light delay and aberration (ST-074). Sprites drift away from their bodies by roughly β times their distance, and only meet them at the moment of contact. The owner finds it interesting but possibly hard for humans to read, so the polish cards for it (ST-075, ST-077, ST-078, ST-079, ST-080, ST-089) are parked until this mode is worked on.
+- **Pilot** (realistic): what the pilot actually sees, with light delay and aberration (ST-074). Sprites drift away from their bodies by roughly β times their distance, and only meet them at the moment of contact. The owner finds it interesting but possibly hard for humans to read, so the polish cards for it (ST-075, ST-077, ST-078, ST-079, ST-080) are parked; the disk (ST-089) was done on owner request 2026-11-07 until this mode is worked on.
 
 ### Aim modes
 

@@ -54,11 +54,37 @@ class PilotViewProjector(
     private val state = RetardedState()
     private val tmp = Vector2()
     private val contracted = Vector2()
-    private var ox = 0f
-    private var oy = 0f
-    private var betaX = 0f
-    private var betaY = 0f
-    private var now = 0f
+    /** Observer (player) position latched by [begin]. */
+    var ox = 0f
+        private set
+    var oy = 0f
+        private set
+
+    /** Observer velocity over c latched by [begin] (`ObserverState.betaVisual`). */
+    var betaX = 0f
+        private set
+    var betaY = 0f
+        private set
+
+    /** Interpolated arena time latched by [begin]. */
+    var now = 0f
+        private set
+
+    /** Whether the light delay half of the pilot view is on ([RelativitySettings.pilotDelay]). */
+    val delayEnabled: Boolean get() = settings.pilotDelay
+
+    /** Whether the aberration boost is on ([RelativitySettings.pilotAberration]). */
+    val aberrationEnabled: Boolean get() = settings.pilotAberration
+
+    /** Light age `now - t_emit` (s) of the last successful [retardedCentre] call; 0 without the history. */
+    var centreLag = 0f
+        private set
+
+    /** Arena velocity (u/s) of the source at emission in the last successful [retardedCentre] call; 0 without the history. */
+    var centreVx = 0f
+        private set
+    var centreVy = 0f
+        private set
 
     /** Arena position and velocity (u, u/s) of the source drawn by the last successful [project] call: retarded when the history is used. */
     var sourceX = 0f
@@ -108,6 +134,9 @@ class PilotViewProjector(
      * into [out], before the aberration boost. False when its light has not arrived. Call [begin] first. Allocation-free.
      */
     fun retardedCentre(entity: Entity, out: Vector2): Boolean {
+        centreLag = 0f
+        centreVx = 0f
+        centreVy = 0f
         if (playerMapper.has(entity)) return out.set(ox, oy).let { true }
         val h = if (settings.pilotDelay) baseInfoMapper.get(entity)?.let { history.historyOf(it.id) } else null
         val x: Float
@@ -116,6 +145,9 @@ class PilotViewProjector(
             if (!h.retarded(ox, oy, now, settings.c, state)) return false
             x = state.x
             y = state.y
+            centreLag = now - state.t
+            centreVx = state.vx
+            centreVy = state.vy
         } else {
             val pos = entity.transformCmp.interpolatedPosition
             x = pos.x

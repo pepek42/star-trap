@@ -39,7 +39,7 @@ fun drawsHoleRings(kind: GravitySourceKind): Boolean = kind == GravitySourceKind
  * Black hole shadow, photon ring and dashed ISCO ring (ST-085, research E16) with a ShapeRenderer, plus the particle accretion
  * disk (ST-087, research E17). Call outside a SpriteBatch begin/end, after the backdrop and before the sprites. The world view
  * draws at the interpolated transform. In pilot view the hole moves, so it is drawn at its retarded position, every circle point
- * boosted like a sprite corner; the disk is skipped there until ST-089.
+ * boosted like a sprite corner, and every disk particle gets its own light delay, boost and Doppler factor (ST-089).
  */
 class BlackHoleRenderer : Disposable {
     private val shapes = ShapeRenderer()
@@ -86,19 +86,32 @@ class BlackHoleRenderer : Disposable {
             ring(BH_ISCO_PER_RS * rs, pilot, dashes = BH_ISCO_DASHES)
         }
         shapes.end()
-        if (pilot == null && diskShader.ready) renderDisks(camera, holes, worldTime, c)
+        if (diskShader.ready) renderDisks(camera, holes, pilot, worldTime, c)
         releaseGoneDisks(holes)
     }
 
-    private fun renderDisks(camera: Camera, holes: ImmutableArray<Entity>, worldTime: Float, c: Float) {
+    private fun renderDisks(
+        camera: Camera, holes: ImmutableArray<Entity>, pilot: PilotViewProjector?, worldTime: Float, c: Float,
+    ) {
         diskShader.begin(camera, worldTime)
         for (i in 0 until holes.size()) {
             val e = holes[i]
             val source = e.gravitySourceCmp
             if (source.kind != GravitySourceKind.BLACK_HOLE) continue
             val disk = diskFor(e, source.rs)
-            centre.set(e.transformCmp.interpolatedPosition)
-            diskShader.draw(disk, centre.x, centre.y, source.effectiveGm(c))
+            if (pilot == null) {
+                centre.set(e.transformCmp.interpolatedPosition)
+                diskShader.draw(disk, centre.x, centre.y, source.effectiveGm(c))
+            } else {
+                if (!pilot.retardedCentre(e, centre)) continue
+                diskShader.drawPilot(
+                    disk, centre.x, centre.y, source.effectiveGm(c),
+                    time = pilot.now - pilot.centreLag, tau = pilot.centreLag,
+                    holeVx = pilot.centreVx, holeVy = pilot.centreVy,
+                    ox = pilot.ox, oy = pilot.oy, betaX = pilot.betaX, betaY = pilot.betaY, c = c,
+                    delay = pilot.delayEnabled && pilot.centreLag > 0f, aberration = pilot.aberrationEnabled,
+                )
+            }
         }
         diskShader.end()
     }

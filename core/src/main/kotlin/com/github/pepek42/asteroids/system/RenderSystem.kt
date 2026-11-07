@@ -17,6 +17,8 @@ import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.component.AsteroidComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.GravitySourceComponent
+import com.github.pepek42.asteroids.component.GravitySourceKind
+import com.github.pepek42.asteroids.component.gravitySourceCmp
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
@@ -40,6 +42,7 @@ import com.github.pepek42.asteroids.render.BlackHoleRenderer
 import com.github.pepek42.asteroids.render.BlackbodyLut
 import com.github.pepek42.asteroids.render.DOPPLER_MIN_BETA
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
+import com.github.pepek42.asteroids.render.LensingPass
 import com.github.pepek42.asteroids.render.LightSources
 import com.github.pepek42.asteroids.render.LitSpriteRenderer
 import com.github.pepek42.asteroids.render.OccluderPool
@@ -74,6 +77,7 @@ class RenderSystem(
     private val blackHoleRenderer: BlackHoleRenderer = BlackHoleRenderer(),
     private val litSprites: LitSpriteRenderer? = null,
     private val star: StarLight? = null,
+    private val lensing: LensingPass? = null,
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()), Disposable {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
     private var players: ImmutableArray<Entity>? = null
@@ -106,19 +110,16 @@ class RenderSystem(
     override fun update(deltaTime: Float) {
         viewport.apply()
         val camera = viewport.camera as OrthographicCamera
-        batch.use(camera) {
-            // Logical width (not back buffer) keeps star sizes HiDPI independent.
-            backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width, observer)
-        }
-        if (debugSettings.gridEnabled) {
-            gridRenderer.render(camera, camera.zoom, mapProvider.mapWidth, mapProvider.mapHeight)
-        }
         // Pilot view needs the player as the observer; without one (dead, between levels) fall back to the world view.
         val player = players?.let { if (it.size() > 0) it[0] else null }
         pilotViewActive = settings.pilotView && player != null
         if (pilotViewActive) {
             val p = player!!.transformCmp.interpolatedPosition
             pilotView.begin(p.x, p.y)
+        }
+        drawBackdrop(camera)
+        if (debugSettings.gridEnabled) {
+            gridRenderer.render(camera, camera.zoom, mapProvider.mapWidth, mapProvider.mapHeight)
         }
         holes?.let { blackHoleRenderer.render(camera, it, if (pilotViewActive) pilotView else null, observer.worldTime, settings.c) }
         lightingActive = false
@@ -141,7 +142,56 @@ class RenderSystem(
         }
     }
 
+    /**
+     * Draws the nebula and starfield. With a black hole in the level and lensing on (ST-088) they go through [LensingPass]: into an
+     * off-screen buffer, then to the screen with one lens quad per hole; otherwise straight to the screen. Logical width (not back
+     * buffer) keeps star sizes HiDPI independent.
+     */
+    private fun drawBackdrop(camera: OrthographicCamera) {
+        val lens = lensing
+        val lensCount = if (lens != null && lens.ready && settings.lensingEnabled) collectLenses() else 0
+        if (lens != null && lensCount > 0 && lens.beginCapture()) {
+            batch.use(camera) { backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width, observer) }
+            lens.endCapture()
+            viewport.apply()
+            lens.draw(camera, batch, lensCentres, lensRadii, lensCount)
+        } else {
+            batch.use(camera) { backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width, observer) }
+        }
+    }
+
+    /**
+     * Fills [lensCentres] and [lensRadii] with every black hole's lens: the interpolated position in the world view, the apparent
+     * (retarded, boosted) position in pilot view (FAKE: the aberrated backdrop is lensed as if unaberrated, physics-lies row 19).
+     * Returns the number of lenses. Grows the arrays only when a level has more holes than before.
+     */
+    private fun collectLenses(): Int {
+        val list = holes ?: return 0
+        if (lensRadii.size < list.size()) {
+            lensRadii = FloatArray(list.size())
+            lensCentres = FloatArray(list.size() * 2)
+        }
+        var n = 0
+        for (i in 0 until list.size()) {
+            val e = list[i]
+            val source = e.gravitySourceCmp
+            if (source.kind != GravitySourceKind.BLACK_HOLE) continue
+            if (pilotViewActive) {
+                if (!pilotView.retardedCentre(e, tmp)) continue
+                pilotView.apparentPoint(tmp.x, tmp.y, tmp)
+            } else {
+                tmp.set(e.transformCmp.interpolatedPosition)
+            }
+            lensCentres[2 * n] = tmp.x
+            lensCentres[2 * n + 1] = tmp.y
+            lensRadii[n] = source.rs
+            n++
+        }
+        return n
+    }
+
     override fun dispose() {
+        lensing?.dispose()
         fieldShimmerRenderer.dispose()
         gridRenderer.dispose()
         blackHoleRenderer.dispose()
@@ -278,6 +328,8 @@ class RenderSystem(
 
     private val scratch = FloatArray(VERTEX_FLOATS)
     private val tmp = Vector2()
+    private var lensCentres = FloatArray(0)
+    private var lensRadii = FloatArray(0)
     private val betaSrc = Vector2()
     private val rgb = FloatArray(3)
     private val additive = AdditiveSpriteQueue()

@@ -81,6 +81,7 @@ Options (parsed by `parseLaunchOptions` in `core/.../debug/ScreenshotHarness.kt`
 - `--shadow-demo`: shadow test scene (ST-098): a hole 25 u right of the player (as `--hole-near`), a planet 15 u right of the player, an asteroid in the planet's shadow and a control asteroid at the same distance from the hole outside it, all at rest. Use with `--invulnerable --frames=60 --seed=42`; toggle "shadows" in the debug panel (or flip the `shadowsEnabled` default) for an A/B. Web: `?shadow-demo`.
 - `--no-shadows`: starts with shadows off (`RelativitySettings.shadowsEnabled = false`), so `--shadow-demo` can be shot with and without shadows. Harness only. Web: `?shadow-demo&no-shadows`.
 - `--star-angle=<deg>`: overrides the level's rolled star direction (ST-099; the roll still happens, so spawns don't shift). Web: `?star-angle=45`.
+- `--no-lensing`: starts with backdrop lensing off (`RelativitySettings.lensingEnabled = false`, ST-088), for A/B shots. The accretion disk hides the Einstein ring in the world view; add `--pilot-view` (no disk there yet) to see it. Web: `?no-lensing`.
 - `--no-star`: starts with the distant star light off (`RelativitySettings.starLightEnabled = false`), ambient back to 1. Web: `?no-star`.
 
 **Web equivalent.** The web launcher maps the URL query to the same flags (`queryToLaunchArgs`): `index.html?seed=42&play&controls=twin&hole-near`. `screenshot` is ignored on web.

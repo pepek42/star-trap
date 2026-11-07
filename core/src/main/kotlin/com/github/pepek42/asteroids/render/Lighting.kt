@@ -78,7 +78,8 @@ const val MAX_OCCLUDERS = 6
 /** Penumbra half-width floor (u): a point-like light still gets a soft edge, so a shadow never steps. */
 const val MIN_PENUMBRA = 0.05f
 
-private fun smoothstep(e0: Float, e1: Float, x: Float): Float {
+/** GLSL `smoothstep`: 0 below [e0], 1 above [e1], cubic between. */
+fun smoothstep(e0: Float, e1: Float, x: Float): Float {
     val t = MathUtils.clamp((x - e0) / (e1 - e0), 0f, 1f)
     return t * t * (3f - 2f * t)
 }

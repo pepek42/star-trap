@@ -112,6 +112,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
         options.controls?.let { ctx.inject<ControlSettings>().scheme = it }
         if (options.pilotView) ctx.inject<RelativitySettings>().pilotView = true
         if (options.noShadows) ctx.inject<RelativitySettings>().shadowsEnabled = false
+        if (options.noLensing) ctx.inject<RelativitySettings>().lensingEnabled = false
         if (options.noStar) ctx.inject<RelativitySettings>().starLightEnabled = false
 
         // Stage goes first so UI widgets get clicks; it returns true only when a widget handled the event.

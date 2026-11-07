@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-150**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-151**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -17,7 +17,7 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-48. ST-088 Gravitational lensing of the backdrop
+48a. ST-150 Lensing follow-ups: planets drawn as holes?, ring visibility, edge margin
 
 Parked:
 51. ST-091 Targeting-trance scheme
@@ -146,25 +146,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 - note (2026-11-02, owner follow-up, game-design §11 Q1 answered): black holes, planets and decoration **start static** (placed at level start, zero velocity) but are **dynamic and feel gravity**: n-body among the sources, plus the player's pull. **Decision (planner):** sources are Box2D dynamic bodies on the **Newtonian path** (no `RelativisticComponent`): they are heavy and stay far below 0.1 c, so γ ≈ 1 and they need neither `RelativisticDynamics`, nor the γ-mass of ST-047, nor the ship clocks of ST-040. Black holes get a sensor body (no contacts, ignored by the projectile sweep, which already skips sensors); planets get a solid body. Because they have bodies, `BoundaryFieldSystem` (which acts on every `BodyComponent`) keeps them in the arena with no extra code, and `LightHistorySystem` records them for the pilot view. With the physical pull, two holes 60 u apart would collide in about 6 s, so source–source gravity is scaled by `sourceCoupling = 0.1` (declared FAKE, about 19 s), pending ST-092. Holes that touch merge. Counts stay low for performance: at most 2 holes, 2 planets and 6 debris pieces per level.
 - note (2026-11-02): **Lighting** (ST-095 … ST-099) follows the accretion disk: the disk is the emitter (the hole itself emits nothing), plus one distant star per level. Lit sprites use normal maps generated from sprite alpha (or an analytic sphere normal for planets), and planets and large asteroids cast shadows. In pilot view the lighting is computed in the arena frame at each object's retarded time; the exact-vs-FAKE list is on ST-097.
 
-### ST-088 Gravitational lensing of the backdrop
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-085
-- files: create `render/LensingPass.kt`, `assets/shaders/lensing.vert`, `assets/shaders/lensing.frag`; edit `system/RenderSystem.kt`, `provider/BackgroundProvider.kt`; tests
-- goal: Stars behind a black hole bend into an Einstein ring around the shadow (research E18, thin lens, exact for the top-down camera). Only the backdrop is lensed, which is honest (Q12 (a)): sprites sit in the lens plane and aren't distorted, so hitboxes stay readable.
-- spec:
-  - `const val LENS_EINSTEIN_RADIUS_RS = 4f` (`R_E = 4·r_s`), `LENS_QUAD_HALF = 3f` (in units of `R_E`), `LENS_FADE_START = 0.7f` (fraction of the quad half-size).
-  - Pure: `fun lensSourceOffset(rhoX, rhoY, rE, quadHalf, out: Vector2): Boolean`. Returns false inside the shadow (`|ρ| < 2.598·r_s`, drawn black). Otherwise `out = ρ·(1 − w·R_E²/|ρ|²)` with the fade weight `w = 1 − smoothstep(LENS_FADE_START·quadHalf, quadHalf, max(|ρx|, |ρy|))`, so the deflection is zero at the quad edge and there's no seam (FAKE taper, outside the Einstein ring).
-  - `LensingPass`: render the nebula and the starfield into a `FrameBuffer` the size of the backbuffer (recreated on resize), then blit it to the screen. For each black hole, draw a quad of half-size `LENS_QUAD_HALF·R_E` around it with `lensing.frag` sampling the FBO at the hole's position plus the lensed offset (the GLSL mirrors `lensSourceOffset`). The black-hole shadow and rings (ST-085) and the disk (ST-087) draw on top. In pilot view the lens is centred on the hole's apparent position (FAKE: the aberrated backdrop is lensed as if unaberrated).
-  - A setting `lensingEnabled = true` (last param, debug checkbox). When off, render the backdrop directly as before.
-  - Holes spawn at least 60 u apart (ST-085) and a quad's half-size is 24 u, but they drift together under gravity before merging. When two quads overlap, each samples the unlensed FBO, so the second lens doesn't see the first one's image (declared FAKE; it lasts only until the merge). Centre each quad on the hole's interpolated position (world view) or apparent position (pilot view).
-- acceptance:
-  - [ ] Tests: `lensSourceOffset` returns false at `|ρ| = 5` (shadow 5.196 at r_s 2); at `|ρ| = R_E` it maps to (0, 0) (the Einstein ring images the point behind the hole); at the quad edge `out == ρ`; it is continuous along a radial line (no jump > 0.1 u between samples 0.01 u apart outside the shadow)
-  - [ ] Screenshot via the harness (seed 42) viewed by the agent: an Einstein ring of stars around the shadow
-  - [ ] `./gradlew core:test` passes
-- playtest: Fly past a hole: stars smear into arcs and a ring around it. You can spot holes from the backdrop.
-
 ### ST-089 Accretion disk in pilot view, with Doppler beaming
 - status: parked
 - note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
@@ -185,6 +166,21 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 - playtest: Orbit a hole in pilot view: the approaching half of the disk glows blue-white and the other half dims red.
 
 ---
+
+### ST-150 Lensing follow-ups: planets drawn as holes?, ring visibility, edge margin
+- status: ready
+- size: S
+- agent: kotlin-dev
+- layer: sim visuals
+- depends: ST-088
+- files: `render/BlackHoleRenderer.kt`, `render/LensingPass.kt`, `assets/shaders/lensing.frag`; tests
+- refs: ST-088 report and review (2026-11-07)
+- goal: (1) `BlackHoleRenderer.render` draws shadow, photon ring and ISCO for every entity in `holes`, including PLANET gravity sources (only the disk filters on kind). Check whether planets get a black disc and rings under their sprite; if so, filter to BLACK_HOLE and add a test. (2) The Einstein ring is faint because stars are sparse 1-3 px dots. Real lensing conserves surface brightness, so smearing is right, but a point star near R_E is magnified: try a brightness gain `≈ |μ|` (capped) for samples near the ring, and record it as APPROX/FAKE in `physics-lies.md` if it isn't exact. (3) Samples beyond the screen edge clamp (row 19): capture the backdrop with a margin of `LENS_QUAD_HALF·R_E` when a hole is near the screen edge, if cheap; otherwise leave it documented. Also hoist the duplicated `renderBg` call in `RenderSystem` (around lines 154/159).
+- acceptance:
+  - [ ] (1) answered with a screenshot of a planet; fixed and tested if it was a bug
+  - [ ] Pilot-view screenshot `--hole-near=14 --pilot-view` with and without `--no-lensing`: the ring is clearly visible
+  - [ ] `./gradlew core:test` passes, `scripts/web-check.sh --play` PASS
+- playtest: The Einstein ring around a hole is easy to see in pilot view.
 
 ## Parked (low priority)
 

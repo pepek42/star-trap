@@ -38,7 +38,9 @@ import com.github.pepek42.asteroids.provider.PlanetProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
+import com.github.pepek42.asteroids.render.LensingPass
 import com.github.pepek42.asteroids.render.LitSpriteRenderer
+import com.github.pepek42.asteroids.render.SCREEN_CLEAR_GRAY
 import com.github.pepek42.asteroids.debug.HOLE_NEAR_DISTANCE
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.badlogic.gdx.math.MathUtils
@@ -148,6 +150,7 @@ class PlayScreen(
                         gridRenderer, mapProvider, debugSettings, settings,
                         pilotViewProjector, observerState,
                         litSprites = LitSpriteRenderer(game.get<TextureAtlas>()),
+                        lensing = LensingPass(),
                         star = star,
                     )
                 )
@@ -229,7 +232,7 @@ class PlayScreen(
     override fun render(delta: Float) {
         defaultLoggingUtils.onGameLoopTick(delta)
         viewport.apply()
-        ScreenUtils.clear(.1f, .1f, .1f, 1f)
+        ScreenUtils.clear(SCREEN_CLEAR_GRAY, SCREEN_CLEAR_GRAY, SCREEN_CLEAR_GRAY, 1f)
         val baseDelta = if (game.options.screenshotPath != null) SCREENSHOT_FRAME_DELTA else delta
         engine.update(baseDelta * game.get<DebugSettings>().timeScale)
     }

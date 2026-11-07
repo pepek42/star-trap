@@ -196,7 +196,8 @@ Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own pro
 Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/asteroid) and when locked can be shot ... change weapons by 1/2/3 keys"). Planned by the orchestrator, not the planner. Decisions: slot 1 = photon laser (current), slot 2 = homing missile, slot 3 = reserved (empty until a third weapon, e.g. the slug from game-design §7). Missiles are **sim** objects: massive relativistic bodies with a rocket engine (proper acceleration, so never reaching c), hit by gravity and the boundary field like ships. Lock-on and guidance are **assist/computer**: they use the true target state, like all player targeting (game-design Decisions 2026-11-07, physics-lies row 34). Web: watch body counts (cap missiles in flight), no per-frame allocation, new components stay in `component/` (reflection glob) with one public no-arg constructor.
 
 ### ST-164 Homing missile: relativistic rocket body and computer guidance
-- status: ready
+- status: blocked
+- blocker: 2026-11-07 the kotlin-dev (Sonnet) run was stopped by API safeguards (request req_011CgpBwmNBaWvmkstoCG4kN) before it wrote any code; owner to decide how to proceed
 - size: M
 - agent: kotlin-dev
 - depends: ST-163

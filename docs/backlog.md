@@ -20,7 +20,6 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 48b. ST-151 Make the Einstein ring readable (owner decision)
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
-49a. ST-154 Enemy pilot math: pursue to a standoff range (pure)
 49b. ST-155 Enemy ships in the arena (inert targets first)
 49c. ST-156 Enemy AI: light-delayed pursuit and honest fire control
 49d. ST-157 Enemy lasers use the enemy sprite; computer sound for destroyed ships
@@ -178,30 +177,6 @@ Owner decision 2026-11-02: black holes are **1–2 per level**. Gravity bends sh
 ## M6 Enemies
 
 Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
-
-### ST-154 Enemy pilot math: pursue to a standoff range (pure)
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: —
-- files: create `ai/EnemyPilot.kt`, `core/src/test/kotlin/com/github/pepek42/asteroids/ai/EnemyPilotTest.kt`
-- refs: `relativity-effects.md` §E13; `math/Angles.kt` (`shortestAngleDiffRad`)
-- layer: sim
-- goal: The steering law for enemy ships as a pure function, first card of M6: close to a standoff distance from a target estimate, match its velocity, then face it to shoot.
-- spec:
-  - `class PilotCommand { var headingRad = 0f; var thrust = 0f; var aiming = false }` (plain reusable holder, not a component).
-  - `fun pursuitCommand(sx, sy, svx, svy, hullRad, tx, ty, tvx, tvy, standoff, accel, vMax: Float, out: PilotCommand): PilotCommand`:
-    - `r = t − s`, `d = |r|`. If `d < 1e-3`: `aiming = true`, `thrust = 0`, `heading = hullRad`.
-    - `r̂ = r/d`, `w = sv − tv` (Galilean relative velocity: APPROX, fine for a controller; the physics stays exact).
-    - `vDes = sign(d − standoff) · min(vMax, sqrt(2 · accel · ENEMY_BRAKE_MARGIN · |d − standoff|))`, `ENEMY_BRAKE_MARGIN = 0.5f`.
-    - `e = r̂·vDes − w`. If `|e| < ENEMY_VEL_DEADBAND · vMax` (0.1): `aiming = true`, `thrust = 0`, `heading = atan2(r̂)` (the caller swaps in the lead angle). Else `aiming = false`, `heading = atan2(e)`, `thrust = 1` if `|shortestAngleDiffRad(hullRad, heading)| < ENEMY_THRUST_CONE_RAD` (20°), else 0.
-  - Constants with KDoc derivations, all scaled by c at the call site: `ENEMY_STANDOFF_LIGHT_SECONDS = 1f` (standoff = `c · 1 s`), `ENEMY_VMAX_BETA = 0.5f` (vMax = `0.5 c`), `ENEMY_ENGINE_FRACTION = 0.6f` (accel = `0.6 · settings.engineProperAccel`). The braking law ignores γ (APPROX: γ ≤ 1.155 at β ≤ 0.5).
-- acceptance:
-  - [ ] Test: target far ahead along the hull, both at rest: `thrust == 1`, heading toward the target
-  - [ ] Test: at the standoff distance with matched velocities: `aiming == true`, `thrust == 0`
-  - [ ] Test: closing too fast inside the braking distance: heading points away from the target (braking)
-  - [ ] Test: hull 90° off the wanted heading: `thrust == 0`
-  - [ ] `./gradlew core:test` passes
 
 ### ST-155 Enemy ships in the arena (inert targets first)
 - status: ready

@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-172**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-173**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -19,13 +19,13 @@ Audio (owner 2026-11-05):
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
-49f. ST-159 Balance runner with enemies
 
 M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
 50a. ST-163 Weapon slots: switch with 1/2/3
 50b. ST-164 Homing missile: relativistic rocket body and computer guidance
 50c. ST-165 Missile lock-on: lock first, then fire
 49h. ST-161 Bring docs in line after M6
+49i. ST-172 Balance bots that fight enemies, and a full enemy sweep
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 57a. ST-166 Save the run after each cleared level
@@ -158,24 +158,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 
 Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own proper time"), §10 M6, research E13 (AI perceives the past). Planner decisions (2026-11-07): enemy ships are ordinary relativistic bodies, so `MoveSystem`, `RelativisticDynamics`, `WeaponSystem` (cooldown on `properDelta`, i.e. their own proper time), gravity, the boundary field and the light history already handle them. They are faction `ENEMY` (`FactionEnum` bits already exist). The AI is **honest**: it only knows the player's retarded state from `LightHistorySystem` (light that has reached the enemy) and leads it with `leadDirection` (`physics/PhotonAim.kt`), so juking at speed really dodges. No gdx-ai (reflection and TeaVM risk for little gain). Enemy count per level is the owner's call (ST-160); the cards are planned around its recommendation (a).
 
-### ST-159 Balance runner with enemies
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-156
-- files: `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/HeadlessLevel.kt`, `tool/.../BalanceReport.kt`, `tool/.../BalanceBots.kt` (bot targets), `docs/tech/balance.md`; tests in `tool/src/test`
-- refs: `docs/tech/balance.md`
-- layer: infra
-- goal: The headless sweep plays levels with enemies (the AI is already inside `buildGameplaySystems`), so enemy damage and count can be tuned with data, like ST-101 did for asteroids.
-- spec:
-  - `runLevel` spawns enemies with `EnemyShipProvider` after the asteroids (the headless atlas sprite stub works). The bots' target list includes enemy ships. `LevelResult` gains `enemiesKilled` (enemy entities removed, counted in the existing entity-removed listener) and `damageFromEnemies`: the player's per-frame health drop in frames where the listener saw a removed `spent` projectile of faction `ENEMY` (attribution APPROX: a ram in the same frame counts too; note it in `balance.md`).
-  - `summary.md` gets an enemy section per level: clear rate, mean damage from enemies, mean time to kill all enemies.
-  - Run `./gradlew tool:balanceSim -PbalanceArgs="--seeds=8 --levels=2,3,5"` and paste the summary numbers into the card report and `balance.md`. Do not retune constants here; propose changes in the report.
-- acceptance:
-  - [ ] `BalanceSimTest` covers a level-2 run that spawns one enemy and records `enemiesKilled`
-  - [ ] `./gradlew core:test tool:test` passes
-- playtest: —
-
 ### ST-161 Bring docs in line after M6
 - status: ready
 - size: S
@@ -189,6 +171,24 @@ Source: `game-design.md` §7 ("Enemy ships ... their clocks run at their own pro
   - [ ] CLAUDE.md's order list includes "enemy AI" after input; architecture's system table has a row for `EnemyAiSystem`
   - [ ] game-design §7 shows enemy ships as "exists" with a one-line summary
   - [ ] `./gradlew core:test` passes
+
+### ST-172 Balance bots that fight enemies, and a full enemy sweep
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-161
+- files: `tool/src/main/kotlin/com/github/pepek42/asteroids/tool/BalanceBots.kt`, `docs/tech/balance.md`; tests in `tool/src/test`
+- refs: ST-159 report (commit "ST-159: Balance runner with enemies"); `docs/tech/balance.md` "Enemies in the sweep (ST-159)"
+- layer: infra
+- goal: Follow-ups from ST-159. The bots treat enemy ships as rocks (steer away, hunt the nearest) and never dodge lasers, so the enemy numbers understate skilled play. 8-seed rates are about ±15%.
+- spec:
+  - Give the cautious and expert bots enemy-aware behaviour: keep moving sideways (strafe) relative to the nearest enemy while in its range, and prioritise enemies over rocks when one is in range. Keep it deterministic per seed.
+  - Run the full 20-seed sweep (`./gradlew tool:balanceSim`, all c and a0 cells) and refresh `balance.md`, including the stale "Chosen setting in detail" table (levels 3-5 predate enemies).
+  - Do not retune constants; propose enemy damage / fire-rate changes in the report (ST-159 found level 3 with one enemy trivial: 100% clear, 0-8 damage).
+- acceptance:
+  - [ ] Test: a strafing bot's lateral velocity relative to an enemy in range is non-zero after a few seconds
+  - [ ] `./gradlew core:test tool:test` passes
+- playtest: —
 
 ---
 

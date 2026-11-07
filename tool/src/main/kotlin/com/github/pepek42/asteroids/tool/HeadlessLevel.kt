@@ -14,10 +14,15 @@ import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.physics.box2d.World
 import com.github.pepek42.asteroids.component.AsteroidComponent
 import com.github.pepek42.asteroids.component.BodyComponent
+import com.github.pepek42.asteroids.component.BaseInfoComponent
+import com.github.pepek42.asteroids.component.EnemyComponent
 import com.github.pepek42.asteroids.component.HealthComponent
+import com.github.pepek42.asteroids.component.ProjectileComponent
+import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.bodyCmp
+import com.github.pepek42.asteroids.component.projectileCmp
 import com.github.pepek42.asteroids.component.healthCmp
 import com.github.pepek42.asteroids.component.relativisticCmp
 import com.github.pepek42.asteroids.ecs.GameplayDeps
@@ -31,6 +36,9 @@ import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.velocityFromU
 import com.github.pepek42.asteroids.provider.AsteroidProvider
+import com.github.pepek42.asteroids.faction.FactionEnum
+import com.github.pepek42.asteroids.provider.EnemyShipProvider
+import com.github.pepek42.asteroids.provider.enemyCount
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.PLAYER_SPRITE_SIZE_PX
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
@@ -56,6 +64,11 @@ data class LevelSetup(
     /** Pilot-clock seconds before the run counts as a timeout. */
     val maxSeconds: Float,
     val scheme: ControlScheme = ControlScheme.AUTO_AIM,
+    /**
+     * Enemy ships to spawn. The default is the game's rule ([enemyCount]); any other value spawns that many on a ring
+     * around the player ([EnemyShipProvider.spawnNearEnemies]), which tests use to get an enemy on level 2.
+     */
+    val enemies: Int = enemyCount(level),
 )
 
 /** Everything measured in one run. Times are pilot-clock seconds (one frame is [PHYSICS_UPDATE_INTERVAL]). */
@@ -72,6 +85,16 @@ class LevelResult(
     val warpCappedFraction: Float,
     val stepsCappedFraction: Float,
     val stepsPerFrameMean: Float,
+    val enemiesSpawned: Int = 0,
+    /** Enemy entities removed during the run. */
+    val enemiesKilled: Int = 0,
+    /**
+     * Player health lost in frames where a spent enemy projectile was removed (APPROX: a ram in the same frame counts
+     * too, see `docs/tech/balance.md`).
+     */
+    val damageFromEnemies: Float = 0f,
+    /** Pilot seconds until the last enemy died; NaN when there were none or some survived. */
+    val enemyClearSeconds: Float = Float.NaN,
 )
 
 /** Texture-less atlas for the headless runner: sprites only carry the size the providers read, nothing is drawn. */
@@ -132,6 +155,12 @@ fun runLevel(setup: LevelSetup, bot: BalanceBot): LevelResult {
     buildGameplaySystems(deps)
     PlayerEntityProvider(engine, world, mapProvider, atlas, settings).spawnPlayerEntity()
     deps.asteroidProvider.spawnAsteroids(setup.level, mapProvider)
+    val enemyProvider = EnemyShipProvider(engine, world, atlas, settings)
+    if (setup.enemies == enemyCount(setup.level)) {
+        enemyProvider.spawn(setup.level, random, mapProvider, FloatArray(0))
+    } else {
+        enemyProvider.spawnNearEnemies(setup.enemies, mapProvider.playerSpawnLocation())
+    }
 
     var kills = 0
     val asteroidFamily = allOf(AsteroidComponent::class, HealthComponent::class).get()
@@ -141,6 +170,25 @@ fun runLevel(setup: LevelSetup, bot: BalanceBot): LevelResult {
             if (entity.healthCmp.health <= 0f) kills++
         }
     })
+
+    var enemiesKilled = 0
+    var enemyShotRemoved = false
+    val enemyFamily = allOf(EnemyComponent::class, HealthComponent::class).get()
+    val projectileFamily = allOf(ProjectileComponent::class, BaseInfoComponent::class).get()
+    engine.addEntityListener(enemyFamily, object : EntityListener {
+        override fun entityAdded(entity: Entity) = Unit
+        override fun entityRemoved(entity: Entity) {
+            enemiesKilled++
+        }
+    })
+    engine.addEntityListener(projectileFamily, object : EntityListener {
+        override fun entityAdded(entity: Entity) = Unit
+        override fun entityRemoved(entity: Entity) {
+            if (entity.projectileCmp.spent && entity.baseInfoCmp.faction == FactionEnum.ENEMY) enemyShotRemoved = true
+        }
+    })
+    val enemiesSpawned = engine.getEntitiesFor(enemyFamily).size()
+    val enemies = engine.getEntitiesFor(allOf(EnemyComponent::class, BodyComponent::class).get())
 
     val player = engine.getEntitiesFor(allOf(PlayerComponent::class, BodyComponent::class, RelativisticComponent::class).get()).first()
     val asteroids = engine.getEntitiesFor(allOf(AsteroidComponent::class, BodyComponent::class).get())
@@ -160,9 +208,11 @@ fun runLevel(setup: LevelSetup, bot: BalanceBot): LevelResult {
     var frame = 0
     val v = Vector2()
     var healthBefore = player.healthCmp.health
+    var damageFromEnemies = 0f
+    var enemyClearFrame = -1
 
     while (frame < frames && !cleared && !died) {
-        fillView(view, player, asteroids, v, settings.c)
+        fillView(view, player, asteroids, enemies, v, settings.c)
         bot.decide(view, command)
         driver.apply(command, view)
 
@@ -178,7 +228,12 @@ fun runLevel(setup: LevelSetup, bot: BalanceBot): LevelResult {
         if (clock.warpCapped) warpCapped++
         if (clock.stepsCapped) stepsCapped++
         val health = player.healthCmp.health
-        if (health < healthBefore) damage += healthBefore - health
+        if (health < healthBefore) {
+            damage += healthBefore - health
+            if (enemyShotRemoved) damageFromEnemies += healthBefore - health
+        }
+        enemyShotRemoved = false
+        if (enemyClearFrame < 0 && enemiesSpawned > 0 && enemiesKilled >= enemiesSpawned) enemyClearFrame = frame
         healthBefore = health
     }
 
@@ -201,13 +256,17 @@ fun runLevel(setup: LevelSetup, bot: BalanceBot): LevelResult {
         warpCappedFraction = warpCapped.toFloat() / n,
         stepsCappedFraction = stepsCapped.toFloat() / n,
         stepsPerFrameMean = steps.toFloat() / n,
+        enemiesSpawned = enemiesSpawned,
+        enemiesKilled = enemiesKilled,
+        damageFromEnemies = damageFromEnemies,
+        enemyClearSeconds = if (enemyClearFrame < 0) Float.NaN else enemyClearFrame * PHYSICS_UPDATE_INTERVAL,
     )
     clearLevel(engine, world)
     world.dispose()
     return result
 }
 
-private fun fillView(view: BotView, player: Entity, asteroids: Iterable<Entity>, v: Vector2, c: Float) {
+private fun fillView(view: BotView, player: Entity, asteroids: Iterable<Entity>, enemies: Iterable<Entity>, v: Vector2, c: Float) {
     val body = player.bodyCmp.body
     val u = player.relativisticCmp.u
     velocityFromU(u.x, u.y, c, v)
@@ -219,6 +278,11 @@ private fun fillView(view: BotView, player: Entity, asteroids: Iterable<Entity>,
     view.clearAsteroids()
     for (asteroid in asteroids) {
         val p = asteroid.bodyCmp.body.position
+        view.addAsteroid(p.x, p.y)
+    }
+    // Enemy ships are targets too; the bots do not tell them apart from rocks.
+    for (enemy in enemies) {
+        val p = enemy.bodyCmp.body.position
         view.addAsteroid(p.x, p.y)
     }
 }

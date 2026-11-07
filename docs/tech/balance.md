@@ -138,3 +138,24 @@ The full tables for every cell (c × a0 × level × bot) are produced by the tas
 - **Single-threaded sweep.** `BaseInfoComponent.globalCounter` is a plain `@Volatile` int, not atomic, and the runs share it; a parallel sweep would need an atomic counter. It stays single-threaded (about 2 min is fine) and the game code stays free of `java.util.concurrent`, which keeps it web-safe.
 - **Caveats.** The bots are scripted and tuned once; they model a decent but not expert human. Numbers will shift if the bots change. The sweep uses true positions for decisions (an assist), and the auto-aim control scheme; a mouse-hull sweep (`--scheme=mouse`) is possible but the cautious pilot's non-leading shots will clear much less. 20 seeds give about ±10 % on a rate, so the 50 % level-5 target is met with margin of about 15 points only (65 % at 20 seeds, 70 % at 40 seeds).
 - **No physics lie added.** The changed constants are gameplay tunables (asteroid count and speed) and the damage scale already registered as `physics-lies.md` row 35 (now 0.5).
+
+## Enemies in the sweep (ST-159)
+
+`runLevel` spawns the level's enemies (`EnemyShipProvider.spawn`, `enemyCount(level)`: none before level 3, then 1, 2, 3) after the asteroids, with no holes or planets to avoid. `LevelSetup.enemies` overrides the count (any other value puts that many on a ring around the player; tests use it for a level-2 enemy). Enemy ships are plain targets for the bots (same list as the rocks, nearest first). `summary.md` has an "Enemies" table per bot, for levels that spawn them.
+
+Columns: **all killed %** is the share of runs where every enemy died; **dmg from enemies** is the mean over those runs; **t kill all** is the mean pilot time of the last enemy kill over the runs that killed them all. `runs.csv` gains `enemies_spawned, enemies_killed, damage_from_enemies, enemy_clear_seconds`.
+
+Attribution is APPROX: `damageFromEnemies` is the player's health drop in frames where a spent projectile of faction ENEMY was removed, so a ram in the same frame counts too. A dead or removed laser that missed is not counted (only `spent` ones, i.e. hits).
+
+### First numbers (8 seeds, c = 20, default a0, levels 2, 3, 5)
+
+Level 2 has no enemies. Enemy table (all killed % / mean dmg from enemies / t kill all s):
+
+| Bot | Lvl 3 | Lvl 5 |
+|---|---|---|
+| cautious | 100 / 0.0 / 11.8 | 75 / 53.1 / 15.6 |
+| expert | 100 / 7.6 / 13.2 | 63 / 56.5 / 16.9 |
+| aggressive | 88 / 0.0 / 23.4 | 38 / 0.0 / 27.2 |
+| idle | 38 / 111.7 / 7.6 | 0 / 163.0 / - |
+
+Level outcomes (clear / died %): cautious L3 100/0, L5 75/25; expert L3 100/0, L5 50/38; aggressive L3 63/38, L5 0/100; idle L3 0/63, L5 0/100 (idle takes mean 1289 damage per minute on level 5, mostly rocks).

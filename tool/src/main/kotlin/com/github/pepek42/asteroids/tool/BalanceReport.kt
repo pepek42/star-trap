@@ -22,6 +22,13 @@ class BalanceRow(
     val gammaP95: Float,
     val warpCapped: Float,
     val stepsPerFrame: Float,
+    /** Runs that spawned enemies; the enemy columns below only cover these. */
+    val enemyRuns: Int = 0,
+    /** Fraction of the enemy runs in which every enemy died. */
+    val enemyClear: Float = Float.NaN,
+    val damageFromEnemies: Float = Float.NaN,
+    /** Mean pilot seconds until the last enemy died, over the runs that killed them all; NaN when none did. */
+    val timeToKillEnemies: Float = Float.NaN,
 )
 
 private fun List<LevelResult>.fraction(o: Outcome) = count { it.outcome == o }.toFloat() / size
@@ -37,6 +44,7 @@ fun aggregate(results: List<LevelResult>): List<BalanceRow> =
             val minutes = group.sumOf { it.seconds.toDouble() } / 60.0
             val died = group.filter { it.outcome == Outcome.DIED }
             val cleared = group.filter { it.outcome == Outcome.CLEARED }
+            val withEnemies = group.filter { it.enemiesSpawned > 0 }
             BalanceRow(
                 bot = first.bot,
                 c = first.setup.c,
@@ -54,6 +62,10 @@ fun aggregate(results: List<LevelResult>): List<BalanceRow> =
                 gammaP95 = group.meanOf { it.gammaP95 },
                 warpCapped = group.meanOf { it.warpCappedFraction },
                 stepsPerFrame = group.meanOf { it.stepsPerFrameMean },
+                enemyRuns = withEnemies.size,
+                enemyClear = withEnemies.meanOf { if (it.enemyClearSeconds.isNaN()) 0f else 1f },
+                damageFromEnemies = withEnemies.meanOf { it.damageFromEnemies },
+                timeToKillEnemies = withEnemies.filter { !it.enemyClearSeconds.isNaN() }.meanOf { it.enemyClearSeconds },
             )
         }
         .sortedWith(compareBy({ it.bot }, { it.c }, { it.accelPerC }, { it.level }))
@@ -64,11 +76,12 @@ private fun pct(x: Float) = f(x * 100f, 0)
 
 const val RUNS_CSV_HEADER =
     "bot,c,accel_per_c,level,seed,outcome,seconds,damage_taken,kills,gamma_mean,gamma_p95,gamma_max," +
-        "warp_capped_fraction,steps_capped_fraction,steps_per_frame"
+        "warp_capped_fraction,steps_capped_fraction,steps_per_frame,enemies_spawned,enemies_killed,damage_from_enemies,enemy_clear_seconds"
 
 fun LevelResult.csvRow(): String = listOf(
     bot, setup.c, setup.engineAccelPerC, setup.level, setup.seed, outcome, f(seconds, 2), f(damageTaken, 1), kills,
     f(gammaMean, 3), f(gammaP95, 3), f(gammaMax, 3), f(warpCappedFraction, 4), f(stepsCappedFraction, 4), f(stepsPerFrameMean, 3),
+    enemiesSpawned, enemiesKilled, f(damageFromEnemies, 1), f(enemyClearSeconds, 2),
 ).joinToString(",")
 
 /** One markdown table per bot, sorted by c, accel, level. */
@@ -88,6 +101,20 @@ fun summaryMarkdown(rows: List<BalanceRow>, header: String): String = buildStrin
                     "${pct(r.timeout)} | ${f(r.timeToDeath)} | ${f(r.timeToClear)} | ${f(r.damagePerMin)} | ${f(r.killsPerMin)} | " +
                     "${f(r.gammaMean, 2)} | ${f(r.gammaP95, 2)} | ${f(r.warpCapped * 100f)} | ${f(r.stepsPerFrame, 2)} |"
             )
+        }
+        val enemyRows = botRows.filter { it.enemyRuns > 0 }
+        if (enemyRows.isNotEmpty()) {
+            appendLine()
+            appendLine("Enemies ($bot):")
+            appendLine()
+            appendLine("| c | a0/c | lvl | enemy runs | all killed % | dmg from enemies (mean) | t kill all s |")
+            appendLine("|---|---|---|---|---|---|---|")
+            for (r in enemyRows) {
+                appendLine(
+                    "| ${f(r.c, 0)} | ${f(r.accelPerC, 2)} | ${r.level} | ${r.enemyRuns} | ${pct(r.enemyClear)} | " +
+                        "${f(r.damageFromEnemies)} | ${f(r.timeToKillEnemies)} |"
+                )
+            }
         }
     }
 }

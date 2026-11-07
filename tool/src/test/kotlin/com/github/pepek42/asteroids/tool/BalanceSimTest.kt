@@ -104,6 +104,31 @@ class BalanceSimTest {
         assertTrue(r.gammaMax < 1.5f, "bot broke its beta limit, gamma ${r.gammaMax}")
     }
 
+    @Test
+    fun levelTwoRunWithOneEnemyCountsItsKill() {
+        val setup = LevelSetup(SPEED_OF_LIGHT, ENGINE_ACCEL_PER_C, 2, 5L, maxSeconds = 60f, enemies = 1)
+        val r = runLevel(setup, AggressiveBot())
+        assertEquals(1, r.enemiesSpawned)
+        assertTrue(r.enemiesKilled in 0..1)
+        assertEquals(r.enemiesKilled == 1, !r.enemyClearSeconds.isNaN())
+    }
+
+    @Test
+    fun enemyColumnsAggregateOverRunsWithEnemiesOnly() {
+        fun withEnemy(clear: Float, dmg: Float) = LevelResult(
+            LevelSetup(SPEED_OF_LIGHT, ENGINE_ACCEL_PER_C, 3, 1L, 120f), "cautious", Outcome.CLEARED, 50f, dmg, 0,
+            1.5f, 2f, 3f, 0f, 0f, 1.5f, enemiesSpawned = 1, enemiesKilled = if (clear.isNaN()) 0 else 1,
+            damageFromEnemies = dmg, enemyClearSeconds = clear,
+        )
+        val row = aggregate(listOf(withEnemy(30f, 10f), withEnemy(Float.NaN, 30f))).single()
+        assertEquals(2, row.enemyRuns)
+        assertEquals(0.5f, row.enemyClear)
+        assertEquals(20f, row.damageFromEnemies, 1e-4f)
+        assertEquals(30f, row.timeToKillEnemies)
+        assertTrue(summaryMarkdown(listOf(row), "# H").contains("Enemies (cautious)"))
+        assertTrue(aggregate(listOf(result("cautious", Outcome.CLEARED, 10f))).single().enemyRuns == 0)
+    }
+
     companion object {
         @JvmStatic
         @BeforeAll

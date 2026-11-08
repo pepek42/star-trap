@@ -17,6 +17,7 @@ import com.github.pepek42.asteroids.component.tickInactive
 import com.github.pepek42.asteroids.component.WEAPON_SLOT_COUNT
 import com.github.pepek42.asteroids.component.WeaponLoadoutComponent
 import com.github.pepek42.asteroids.environment.AsteroidSize
+import com.github.pepek42.asteroids.weapon.TargetLockState
 import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.scene2d.label
 import ktx.scene2d.progressBar
@@ -69,6 +70,8 @@ class Hud(
     private val weaponRow = HorizontalGroup().apply { space(8f) }
     private var weaponShownActive = -1
     private var weaponShownAmmo = -1
+    private val lockLabel: Label = scene2d.label("").apply { isVisible = false }
+    private var lockShown: TargetLockState? = null
     private var tidalShownPercent = -1
     private var tidalShownRed = false
     private val levelLabel: Label = scene2d.label("")
@@ -111,6 +114,7 @@ class Hud(
         }
         weaponRow.addActor(scene2d.label(i18NBundle.get("hud_weapon")))
         weaponLabels.forEach { weaponRow.addActor(it) }
+        weaponRow.addActor(lockLabel)
         targetsTitle.setText(i18NBundle.get("hud_targets_title"))
         val targetsGroup = VerticalGroup().apply {
             addActor(targetsTitle)
@@ -189,6 +193,7 @@ class Hud(
 
     /** Weapon slots line; the active weapon is highlighted (ST-163) and slot 2 shows its ammo (ST-164). */
     fun updateWeapons(loadout: WeaponLoadoutComponent) {
+        updateLock(loadout.lockState)
         if (loadout.activeSlot == weaponShownActive && loadout.lockOnAmmo == weaponShownAmmo) return
         weaponShownActive = loadout.activeSlot
         weaponShownAmmo = loadout.lockOnAmmo
@@ -206,6 +211,25 @@ class Hud(
                 }
             )
             label.color.set(if (i == weaponShownActive) WEAPON_ACTIVE_COLOR else Color.GRAY)
+        }
+        weaponRow.invalidateHierarchy()
+    }
+
+    /** "Locking…" / "LOCKED" next to the weapon slots (ST-165); rebuilt only when the state changes. */
+    private fun updateLock(state: TargetLockState) {
+        if (state == lockShown) return
+        lockShown = state
+        lockLabel.isVisible = state != TargetLockState.NONE
+        when (state) {
+            TargetLockState.LOCKING -> {
+                lockLabel.setText(i18NBundle.get("hud_lock_locking"))
+                lockLabel.color.set(TARGET_LOCKING_COLOR)
+            }
+            TargetLockState.LOCKED -> {
+                lockLabel.setText(i18NBundle.get("hud_lock_locked"))
+                lockLabel.color.set(TARGET_LOCKED_COLOR)
+            }
+            TargetLockState.NONE -> {}
         }
         weaponRow.invalidateHierarchy()
     }

@@ -2,8 +2,8 @@ package com.github.pepek42.asteroids.audio
 
 import com.badlogic.gdx.physics.box2d.Body
 
-/** What the ship's own hull heard this frame. */
-enum class HullSoundKind { LASER_FIRE, HULL_HIT, HULL_SCRAPE }
+/** What the ship's own hull heard this frame. LOCK_TONE / NO_LOCK are the targeting computer's cockpit beeps (ST-165). */
+enum class HullSoundKind { LASER_FIRE, HULL_HIT, HULL_SCRAPE, LOCK_TONE, NO_LOCK }
 
 /**
  * Fixed-size, allocation-free event queue filled by `ContactSystem` and `WeaponSystem` (inside the physics step) and

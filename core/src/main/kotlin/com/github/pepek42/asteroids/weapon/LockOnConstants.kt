@@ -39,8 +39,17 @@ const val LOCK_ON_LIFETIME = 4f
 /** One hit destroys an enemy ship: [LOCK_ON_DAMAGE] = [ENEMY_HEALTH] (ST-164). */
 const val LOCK_ON_DAMAGE = ENEMY_HEALTH
 
-/** Lock-on shots carried per level. `WeaponLoadoutComponent.reset()` puts this many in slot 2, so every level refills it. */
+/**
+ * Lock-on shots carried per level, also the magazine size for the slow regeneration. `WeaponLoadoutComponent.reset()`
+ * puts this many in slot 2, so every level refills it.
+ */
 const val LOCK_ON_AMMO_PER_LEVEL = 6
+
+/**
+ * Ship proper seconds to regenerate one lock-on shot (owner 2026-11-08: "replenish slowly"). An empty magazine refills
+ * in `LOCK_ON_AMMO_PER_LEVEL × 10 s` = 1 min, so the laser stays the main weapon.
+ */
+const val LOCK_ON_AMMO_REGEN_SECONDS = 10f
 
 /** Most lock-on shots one shooter may have in flight at once; further launches wait for a hit or the lifetime to run out. */
 const val LOCK_ON_MAX_IN_FLIGHT = 4

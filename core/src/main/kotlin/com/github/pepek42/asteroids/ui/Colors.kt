@@ -28,3 +28,9 @@ const val LOCK_RETICLE_ALPHA = 0.9f
 
 /** Target rings (owner 2026-11-07): every level target the player must destroy is circled in this red. */
 val TARGET_RING_COLOR: Color = Color(1f, 0.15f, 0.15f, 1f)
+
+/** Slot-2 target lock in progress (ST-165): amber. */
+val TARGET_LOCKING_COLOR: Color = Color(1f, 0.7f, 0.1f, 1f)
+
+/** Slot-2 target LOCKED (ST-165): solid red. */
+val TARGET_LOCKED_COLOR: Color = Color(1f, 0.1f, 0.1f, 1f)

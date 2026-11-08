@@ -22,9 +22,6 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49j. ST-173 Enemy difficulty tuning (owner decision)
 
-M7 Weapons (owner 2026-11-07: homing lock-on shots, weapon keys 1/2/3):
-50c. ST-165 Lock-on: lock first, then fire
-
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 57e. ST-170 Scenario briefing pauses the game
 57f. ST-171 Settings page with tabs
@@ -187,29 +184,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] The scatter uniforms are filled from a preallocated array (no allocation in `render`)
   - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes (shader change)
 - playtest: Fly through a black hole's disk: it looks calmer than before, the health bar drops while you are inside, and the particles part around the ship and close up behind it.
-
-## M7 Weapons
-
-Source: owner 2026-11-07 ("homing [shot] ... lock on to target (enemy ship/asteroid) and when locked can be shot ... change weapons by 1/2/3 keys"). Planned by the orchestrator, not the planner. Decisions: slot 1 = photon laser (current), slot 2 = homing lock-on shot, slot 3 = reserved (empty until a third weapon, e.g. the slug from game-design §7). Lock-on shots are **sim** objects: massive relativistic bodies with a rocket engine (proper acceleration, so never reaching c), hit by gravity and the boundary field like ships. Lock-on and guidance are **assist/computer**: they use the true target state, like all player targeting (game-design Decisions 2026-11-07, physics-lies row 34). Web: watch body counts (cap lock-on shots in flight), no per-frame allocation, new components stay in `component/` (reflection glob) with one public no-arg constructor.
-
-### ST-165 Lock-on: lock first, then fire
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-164
-- files: new `weapon/TargetLock.kt` (pure state machine), `system/PlayerInputSystem.kt` or a new `system/TargetLockSystem.kt`, `system/WeaponSystem.kt`, `system/TacticalOverlaySystem.kt`, `render/TacticalOverlay.kt`, `audio/` (lock tone), `assets/i18n/messages.properties`, `docs/tech/architecture.md`; tests
-- refs: architecture rows 2 (auto-aim) and 12c (lock reticle, target rings); game-design Decisions 2026-11-07
-- layer: assist (the lock is the targeting computer, true state)
-- goal: With lock-on shots selected the computer must lock a target (enemy ship or asteroid) before a lock-on shot can be fired; the lock-on shot then homes on that target.
-- spec:
-  - Candidate: the level target (`levelTargetFamily()`) nearest the aim direction within `TARGET_LOCK_CONE_RAD` (±15°) of the hull (muzzle direction for turret schemes) and within `TARGET_LOCK_RANGE_LIGHT_SECONDS * c` (3), using **true** positions.
-  - Pure `TargetLock` state: NONE → LOCKING (the same candidate held for `TARGET_LOCK_TIME_S` = 1.0 s of ship proper time) → LOCKED; losing the candidate (out of cone/range, removed) drops back to NONE; switching candidates restarts LOCKING. LOCKED stays while the target is in a wider `TARGET_LOCK_KEEP_CONE_RAD` (±30°) so the lock doesn't flicker.
-  - Fire: LMB with slot 2 fires a lock-on shot only in LOCKED, with `LockOnComponent.target` = the locked entity; otherwise nothing (and a short "no lock" click). Ammo and in-flight cap from ST-164 apply.
-  - Display (tactical overlay, independent of the overlay toggle like the lock reticle): LOCKING = an amber reticle closing in on the target ring over the lock time; LOCKED = a solid red diamond on the true position plus a short tone. A HUD line "LOCKED" / "Locking…" next to the weapon slot.
-- acceptance:
-  - [ ] Tests (pure): lock progresses after `TARGET_LOCK_TIME_S` of steady aim, resets on candidate change, drops when out of the keep cone; fire is refused while not LOCKED
-  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --query="seed=42&play&near-enemies=3"` passes
-- playtest: Press 2, keep the nose on an enemy: the reticle closes and turns red with a tone; click: the lock-on shot flies and hits. Click without a lock: nothing flies.
 
 ## Menus & runs
 

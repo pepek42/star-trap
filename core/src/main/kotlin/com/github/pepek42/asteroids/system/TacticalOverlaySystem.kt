@@ -88,6 +88,12 @@ import com.github.pepek42.asteroids.ui.TACTICAL_ALPHA
 import com.github.pepek42.asteroids.ui.TACTICAL_BORDER_ALPHA
 import com.github.pepek42.asteroids.ui.DAMAGE_UP_COLOR
 import com.github.pepek42.asteroids.ui.DAMAGE_DOWN_COLOR
+import com.github.pepek42.asteroids.component.weaponLoadoutCmpOptional
+import com.github.pepek42.asteroids.ui.TARGET_LOCKED_COLOR
+import com.github.pepek42.asteroids.ui.TARGET_LOCKING_COLOR
+import com.github.pepek42.asteroids.weapon.TargetLockState
+import com.github.pepek42.asteroids.weapon.lockFraction
+import com.github.pepek42.asteroids.weapon.lockReticleRadius
 import ktx.ashley.allOf
 import ktx.ashley.exclude
 import kotlin.math.atan2
@@ -169,6 +175,7 @@ class TacticalOverlaySystem(
         ringTime = (ringTime + deltaTime) % TARGET_RING_PULSE_WRAP_S
         drawTargetRings()
         drawLockReticle()
+        drawTargetLock()
         if (!tacticalOverlayVisible(tactical.mode, relativity.pilotView, tier, tactical.inverted)) return
 
         viewport.apply()
@@ -261,6 +268,44 @@ class TacticalOverlaySystem(
         shape.end()
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         Gdx.gl.glDisable(GL20.GL_BLEND)
+    }
+
+    /**
+     * Slot-2 targeting lock (ST-165), independent of the overlay toggle like the lock reticle, at the target's TRUE
+     * interpolated position: LOCKING = an amber diamond closing in on the target ring over the lock time, LOCKED = a
+     * red double diamond on the ring.
+     */
+    private fun drawTargetLock() {
+        val player = players?.let { if (it.size() > 0) it[0] else null } ?: return
+        val loadout = player.weaponLoadoutCmpOptional ?: return
+        if (loadout.lockState == TargetLockState.NONE) return
+        val target = loadout.lockTarget ?: return
+        if (removeMapper.has(target)) return
+        val bodyCmp = target.bodyCmpOptional ?: return
+        if (bodyCmp.boundingRadius < 0f) bodyCmp.boundingRadius = computeBoundingRadius(bodyCmp.body)
+        viewport.apply()
+        wpp = worldPerPixel(camera.viewportWidth, camera.zoom, viewport.screenWidth)
+        val ring = targetRingRadius(bodyCmp.boundingRadius, wpp)
+        val locked = loadout.lockState == TargetLockState.LOCKED
+        val r = if (locked) ring else lockReticleRadius(ring, loadout.lockFraction())
+        reticlePos.set(target.transformCmp.interpolatedPosition)
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_ZERO, GL20.GL_ONE)
+        shape.projectionMatrix = camera.combined
+        shape.begin(ShapeRenderer.ShapeType.Line)
+        shape.color = if (locked) TARGET_LOCKED_COLOR else TARGET_LOCKING_COLOR
+        diamond(reticlePos.x, reticlePos.y, r)
+        if (locked) diamond(reticlePos.x, reticlePos.y, r + TARGET_LOCK_DIAMOND_GAP_PX * wpp)
+        shape.end()
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+        Gdx.gl.glDisable(GL20.GL_BLEND)
+    }
+
+    private fun diamond(x: Float, y: Float, r: Float) {
+        shape.line(x + r, y, x, y + r)
+        shape.line(x, y + r, x - r, y)
+        shape.line(x - r, y, x, y - r)
+        shape.line(x, y - r, x + r, y)
     }
 
     /**
@@ -476,6 +521,9 @@ class TacticalOverlaySystem(
     private companion object {
         /** Screen-pixel offset of the laser damage label from the target centre. */
         const val LASER_LABEL_OFFSET_PX = 14f
+
+        /** Gap between the two lines of the LOCKED diamond, in screen pixels (WebGL has no wide lines). */
+        const val TARGET_LOCK_DIAMOND_GAP_PX = 2f
 
         /** Inset of the incoming-fire edge arrows from the screen edge, as a fraction of the half height. */
         const val THREAT_EDGE_MARGIN_FRACTION = 0.08f

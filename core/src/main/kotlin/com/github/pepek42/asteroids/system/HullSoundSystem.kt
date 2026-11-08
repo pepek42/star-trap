@@ -48,6 +48,7 @@ class HullSoundSystem(
     private val laserSound = bank[SoundId.LASER_FIRE]
     private val hitSound = bank[SoundId.HULL_HIT]
     private val scrapeSound = bank[SoundId.HULL_SCRAPE]
+    private val lockSound = bank[SoundId.SYNTH_UI_LOCK]
     // Cached too: silence() runs from PlayScreen.dispose, which can happen after the AssetManager is disposed.
     private val allSounds: List<Sound> = SoundId.entries.map { bank[it] }
 
@@ -90,6 +91,9 @@ class HullSoundSystem(
                 HullSoundKind.LASER_FIRE -> laserSound.play(v)
                 HullSoundKind.HULL_HIT -> hitSound.play(v)
                 HullSoundKind.HULL_SCRAPE -> scrapeSound.play(v)
+                HullSoundKind.LOCK_TONE -> lockSound.play(v)
+                // The same synth, an octave down and quieter, reads as a dull "no lock" click.
+                HullSoundKind.NO_LOCK -> lockSound.play(v * NO_LOCK_VOLUME, NO_LOCK_PITCH, 0f)
             }
         }
         queue.clear()
@@ -144,3 +148,9 @@ class HullSoundSystem(
         queue.clear()
     }
 }
+
+/** Volume of the "no lock" click relative to the lock tone (ST-165). */
+private const val NO_LOCK_VOLUME = 0.5f
+
+/** Pitch of the "no lock" click: the lock synth an octave down (ST-165). */
+private const val NO_LOCK_PITCH = 0.5f

@@ -106,7 +106,9 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
         // Enemy pilots write MoveComponent/WeaponComponent like the player's input does, so before MoveSystem and WeaponSystem.
         addSystem(EnemyAiSystem(lightHistory, deps.clock, deps.settings))
         addSystem(moveSystem)
-        addSystem(WeaponSystem(deps.weaponProjectileProvider, deps.clock, deps.hullSounds, deps.lockOnProvider))
+        addSystem(
+            WeaponSystem(deps.weaponProjectileProvider, deps.clock, deps.hullSounds, deps.lockOnProvider, deps.settings)
+        )
         addSystem(contactSystem)
         addSystem(boundaryFieldSystem)
         addSystem(gravitySystem)

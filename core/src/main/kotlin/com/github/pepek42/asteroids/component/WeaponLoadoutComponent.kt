@@ -4,6 +4,7 @@ import com.badlogic.ashley.core.Component
 import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.utils.Pool
 import com.github.pepek42.asteroids.weapon.LOCK_ON_AMMO_PER_LEVEL
+import com.github.pepek42.asteroids.weapon.TargetLockState
 import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.ashley.mapperFor
 import ktx.ashley.optionalPropertyFor
@@ -31,6 +32,19 @@ class WeaponLoadoutComponent : Component, Pool.Poolable {
     /** Lock-on shots left in slot 2 (ST-164). A new level spawns a new player entity, so [reset] refills it. */
     var lockOnAmmo: Int = LOCK_ON_AMMO_PER_LEVEL
 
+    /** Proper seconds collected toward the next regenerated lock-on shot (`regenLockOnAmmo`). */
+    var lockOnRegen: Float = 0f
+
+    /** Targeting-computer lock (ST-165); logic in `weapon/TargetLock.kt`. Uses the true target state. */
+    var lockState: TargetLockState = TargetLockState.NONE
+
+    /** Entity being locked or locked; checked against [lockTargetId] because entities are pooled. */
+    var lockTarget: Entity? = null
+    var lockTargetId: Int = -1
+
+    /** Proper seconds the candidate has been held while LOCKING. */
+    var lockProgress: Float = 0f
+
     override fun reset() {
         type0 = WeaponType.LASER
         type1 = WeaponType.LOCK_ON
@@ -40,6 +54,11 @@ class WeaponLoadoutComponent : Component, Pool.Poolable {
         cooldown2 = 0f
         activeSlot = 0
         lockOnAmmo = LOCK_ON_AMMO_PER_LEVEL
+        lockOnRegen = 0f
+        lockState = TargetLockState.NONE
+        lockTarget = null
+        lockTargetId = -1
+        lockProgress = 0f
     }
 }
 

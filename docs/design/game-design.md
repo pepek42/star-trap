@@ -154,3 +154,4 @@ The planner and auto-dev put new questions here or on `needs-user` backlog cards
 - A "light weapon" fired at exactly c: you can't outrun it, but you can dodge it if you see it coming late.
 - A shield that works by Lorentz-boosting incoming projectiles (flavour).
 - Tactical computer overlay (owner 2026-11-03): realistic light-delayed drawing can be "all over the place"; a ship "supercomputer" (later a shop upgrade) draws a Box2D-debug-like wireframe of the true arena-frame state over the main view, so the player can always orient. Later tiers add shot leads, intercept markers and other info. Owner: "the only thing that makes it playable is box2d debug."
+- Lock-on shot tuning (owner 2026-11-08): lock-on shots should live longer than the current 4 s, and the targeting computer should mark each in-flight lock-on shot's true (arena-frame) position, since the sprite only shows where light says it was.

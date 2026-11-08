@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-176**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-178**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -21,6 +21,8 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49j. ST-173 Enemy difficulty tuning (owner decision)
+49k. ST-176 Lock-on shot lifetime from arena size and burnout speed
+49l. ST-177 Targeting computer: true-position markers on lock-on shots
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 57e. ST-170 Scenario briefing pauses the game
@@ -159,6 +161,48 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew core:test tool:test` passes
 - playtest: Level 3's single enemy is a real threat; level 5 is hard but survivable.
 - note: the bots only weave, they don't dodge individual lasers (would need projectile positions in `BotView`); enemy damage attribution is still APPROX (ST-159).
+
+### ST-176 Lock-on shot lifetime from arena size and burnout speed
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-164, ST-165
+- files: `weapon/LockOnConstants.kt`, `provider/LockOnProvider.kt`, `screen/PlayScreen.kt` (pass `mapProvider`), `docs/tech/architecture.md` ("Homing lock-on shots"); test `weapon/LockOnLifetimeTest.kt`
+- refs: AGENTS.md "Constants are the single source of truth"; architecture.md "Homing lock-on shots (ST-164)"
+- layer: sim
+- goal: Owner 2026-11-08 (game-design §12): lock-on shots die too early at `LOCK_ON_LIFETIME = 4f` (a 4 s life covers ~55 u at v ≈ 0.70c, less than the 60 u lock range plus target motion). Replace the literal with a lifetime derived from c, the engine, the burn and the arena size, computed at launch.
+- spec:
+  - New pure top-level fun in `LockOnConstants.kt`: `lockOnLifetime(c: Float, engineProperAccel: Float, arenaWidth: Float, arenaHeight: Float): Float`. `w = LOCK_ON_ACCEL_FACTOR · engineProperAccel · LOCK_ON_BURN_SECONDS / c` (burnout proper speed in units of c), `beta = max(w / sqrt(1 + w²), LOCK_ON_MIN_COAST_BETA)`, return `LOCK_ON_BURN_SECONDS + LOCK_ON_RANGE_ARENA_FRACTION · max(arenaWidth, arenaHeight) / (beta · c)`.
+  - New consts with KDoc: `LOCK_ON_RANGE_ARENA_FRACTION = 0.5f` (coast covers half the arena's long side: ~7.9 s at the defaults, 200 u arena, c = 20, β ≈ 0.70; c cancels against the default engine, which is a multiple of c), `LOCK_ON_MIN_COAST_BETA = 0.25f` (floor so an engine slider at 0 gives a finite lifetime). Delete `LOCK_ON_LIFETIME`; write the default-value derivation in the KDoc instead.
+  - `LockOnProvider` gets `mapProvider: MapProvider? = null` (last ctor param; null falls back to `MAP_WIDTH`/`MAP_HEIGHT`, so `HeadlessLevel` and tests keep compiling) and sets `remaining`/`total` from `lockOnLifetime(settings.c, settings.engineProperAccel, w, h)` (scenarios use smaller arenas). `PlayScreen` passes its `mapProvider`.
+  - `LOCK_ON_MAX_IN_FLIGHT` stays 4 (at 1 shot/s and 6 ammo it still caps a salvo); update its KDoc and the old "shorter than the arena crossing" rationale: after burnout the shot only coasts in a straight line (no velocity steering), so a long life cannot chase a target.
+- acceptance:
+  - [ ] Test: at `SPEED_OF_LIGHT`, `ENGINE_PROPER_ACCEL`, `MAP_WIDTH`, `MAP_HEIGHT` the lifetime equals the formula above recomputed in the test from the constants, and exceeds `LOCK_ON_BURN_SECONDS + TARGET_LOCK_RANGE_LIGHT_SECONDS · c / v_burnout`
+  - [ ] Test: doubling c together with the engine (engine ∝ c) halves the coast time with the same arena; a half-size arena halves the coast time; `engineProperAccel = 0` gives a finite value from `LOCK_ON_MIN_COAST_BETA`
+  - [ ] No `LOCK_ON_LIFETIME` reference left; architecture.md "Homing lock-on shots" states the new rule
+  - [ ] `./gradlew core:test` passes
+- playtest: Fire a lock-on shot at a distant enemy: it reaches it instead of fading out on the way; a missed shot coasts on for several seconds and then fades.
+
+### ST-177 Targeting computer: true-position markers on lock-on shots
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-164
+- files: `system/TacticalOverlaySystem.kt`, `render/TacticalOverlay.kt` (pure geometry + px consts), `settings/TacticalSettings.kt`, `settings/MenuSettings.kt`, `assets/i18n/messages.properties`, `docs/tech/architecture.md`; tests in `render/TacticalOverlayTest.kt`
+- refs: architecture.md "Homing lock-on shots (ST-164)" and the `TacticalOverlaySystem` row; commit c6e9bc9 (ST-165 `drawTargetLock`, the pattern to copy); physics-lies row 46
+- layer: assist
+- goal: Owner 2026-11-08: in pilot view the lock-on shot sprite is light-delayed, so the player cannot tell where an in-flight shot really is. The targeting computer marks each live lock-on shot at its TRUE interpolated arena position. Draw only, no physics change.
+- spec:
+  - New toggle `TacticalSettings.showLockOnMarkers` (default `TACTICAL_LOCK_ON_MARKERS_DEFAULT = true`), `SettingSpec.Toggle("tactical_lock_on_markers", ...)` next to `tactical_incoming_fire`, i18n `setting_tactical_lock_on_markers` + `_hint` (say it uses the true state, not light).
+  - `drawLockOnMarkers()` is called in `update()` next to `drawTargetLock()`, before the overlay-visible gate (like target rings and the lock, independent of the overlay flip), with its own `shape.begin/end` and blend setup copied from `drawTargetRings`. Family `allOf(LockOnComponent, TransformComponent, BaseInfoComponent).exclude(RemoveComponent)`, fetched in `addedToEngine`.
+  - Marker: an open chevron of constant screen size at `transformCmp.interpolatedPosition`, pointing along `interpolatedRotationDeg`, in `faction.color`. Pure `lockOnChevron(x, y, angleRad, sizeWorld, out: FloatArray): FloatArray` in `TacticalOverlay.kt` returns the 3 points (tip, left, right) for 2 lines; `sizeWorld = LOCK_ON_MARKER_PX · wpp` (new const `LOCK_ON_MARKER_PX = 9f`). If the shot's target is alive (same `targetId` and live `body.userData`, the `LockOnSteeringSystem` check), also draw one faint line (alpha `LOCK_ON_MARKER_LINE_ALPHA = 0.35f`) to the target's interpolated position.
+  - Allocation-free (scratch `FloatArray`, the existing `color`); `ShapeRenderer` lines only (WebGL, no wide lines).
+- acceptance:
+  - [ ] Tests: `lockOnChevron` tip lies `sizeWorld` ahead of `(x, y)` along the angle and the wings are symmetric about the heading (angles 0 and π/2)
+  - [ ] Test (`TacticalOverlaySystemTest` style): with `showLockOnMarkers = false` nothing extra is drawn; a lock-on shot's velocity and position are unchanged after `update`
+  - [ ] Setting shows in the settings menu and persists
+  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes
+- playtest: Pilot view, fire a lock-on shot at a far enemy: a chevron runs ahead of the light-delayed sprite at the shot's real position with a faint line to its target; in the outside view the chevron sits on the sprite.
 
 ---
 

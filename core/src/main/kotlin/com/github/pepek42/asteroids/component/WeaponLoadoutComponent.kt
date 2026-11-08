@@ -3,6 +3,7 @@ package com.github.pepek42.asteroids.component
 import com.badlogic.ashley.core.Component
 import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.utils.Pool
+import com.github.pepek42.asteroids.weapon.LOCK_ON_AMMO_PER_LEVEL
 import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.ashley.mapperFor
 import ktx.ashley.optionalPropertyFor
@@ -12,29 +13,33 @@ const val WEAPON_SLOT_COUNT = 3
 
 /**
  * The player's weapon slots (ST-163). The one [WeaponComponent] stays what `WeaponSystem` reads: [select] copies the
- * slot's type into it and swaps the cooldown, so every slot keeps its own cooldown. Slot parameters other than the
- * type are shared for now (ST-164 gives the missile its own).
+ * slot's type into it and swaps the cooldown, so every slot keeps its own cooldown. The laser still uses the shared
+ * [WeaponComponent] parameters; the lock-on shot has its own rate and [lockOnAmmo] (ST-164).
  *
  * Web: no array fields. A component with an array-typed field lost its constructor from the TeaVM reflection
  * metadata ("missing no-arg constructor", 2026-11-07), so the three slots are plain scalar fields.
  */
 class WeaponLoadoutComponent : Component, Pool.Poolable {
     var type0: WeaponType? = WeaponType.LASER
-    var type1: WeaponType? = WeaponType.MISSILE
+    var type1: WeaponType? = WeaponType.LOCK_ON
     var type2: WeaponType? = null
     var cooldown0 = 0f
     var cooldown1 = 0f
     var cooldown2 = 0f
     var activeSlot: Int = 0
 
+    /** Lock-on shots left in slot 2 (ST-164). A new level spawns a new player entity, so [reset] refills it. */
+    var lockOnAmmo: Int = LOCK_ON_AMMO_PER_LEVEL
+
     override fun reset() {
         type0 = WeaponType.LASER
-        type1 = WeaponType.MISSILE
+        type1 = WeaponType.LOCK_ON
         type2 = null
         cooldown0 = 0f
         cooldown1 = 0f
         cooldown2 = 0f
         activeSlot = 0
+        lockOnAmmo = LOCK_ON_AMMO_PER_LEVEL
     }
 }
 

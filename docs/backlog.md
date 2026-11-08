@@ -22,9 +22,8 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49j. ST-173 Enemy difficulty tuning (owner decision)
 
-M7 Weapons (owner 2026-11-07: homing missiles with lock-on, weapon keys 1/2/3):
-50b. ST-164 Lock-on missile: homing projectile body
-50c. ST-165 Missile lock-on: lock first, then fire
+M7 Weapons (owner 2026-11-07: homing lock-on shots, weapon keys 1/2/3):
+50c. ST-165 Lock-on: lock first, then fire
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 57e. ST-170 Scenario briefing pauses the game
@@ -191,50 +190,26 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 
 ## M7 Weapons
 
-Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/asteroid) and when locked can be shot ... change weapons by 1/2/3 keys"). Planned by the orchestrator, not the planner. Decisions: slot 1 = photon laser (current), slot 2 = homing missile, slot 3 = reserved (empty until a third weapon, e.g. the slug from game-design §7). Missiles are **sim** objects: massive relativistic bodies with a rocket engine (proper acceleration, so never reaching c), hit by gravity and the boundary field like ships. Lock-on and guidance are **assist/computer**: they use the true target state, like all player targeting (game-design Decisions 2026-11-07, physics-lies row 34). Web: watch body counts (cap missiles in flight), no per-frame allocation, new components stay in `component/` (reflection glob) with one public no-arg constructor.
+Source: owner 2026-11-07 ("homing [shot] ... lock on to target (enemy ship/asteroid) and when locked can be shot ... change weapons by 1/2/3 keys"). Planned by the orchestrator, not the planner. Decisions: slot 1 = photon laser (current), slot 2 = homing lock-on shot, slot 3 = reserved (empty until a third weapon, e.g. the slug from game-design §7). Lock-on shots are **sim** objects: massive relativistic bodies with a rocket engine (proper acceleration, so never reaching c), hit by gravity and the boundary field like ships. Lock-on and guidance are **assist/computer**: they use the true target state, like all player targeting (game-design Decisions 2026-11-07, physics-lies row 34). Web: watch body counts (cap lock-on shots in flight), no per-frame allocation, new components stay in `component/` (reflection glob) with one public no-arg constructor.
 
-### ST-164 Lock-on missile: homing projectile body
-- status: blocked
-- blocker: 2026-11-07 flagged by API safeguards twice (req_011CgpBwmNBaWvmkstoCG4kN, then with game-context wording req_011CgpFiWaYFB3NT6UcMXQzS); not retried further, owner decision
-- size: M
-- agent: kotlin-dev
-- depends: ST-163
-- context: Star Trap is a 2D top-down Asteroids-like arcade game. This card adds a classic arcade "homing missile" weapon: a slow projectile sprite that curves toward the enemy ship or asteroid the player picked, like the homing shots in many shoot-'em-ups. It is purely game logic inside the existing ECS.
-- files: new `component/MissileComponent.kt`, new `provider/MissileProvider.kt`, new `system/MissileSteeringSystem.kt` (a `PhysicsStepListener`), new pure `weapon/MissileSteering.kt`, `system/ContactSystem.kt`, `ecs/GameplaySystems.kt`, `raw_assets/` + atlas (missile sprite), `docs/design/physics-lies.md`, `docs/tech/architecture.md`; tests
-- refs: AGENTS.md "Architecture essentials" (physics step), "Constants are the single source of truth"; architecture `RelativisticDynamics`; `physics/PhotonAim.kt` (`photonInterceptDir`, the existing lead-point solve)
-- layer: sim (the projectile is a real body) + assist (homing reads the true target state)
-- goal: Weapon slot 2 gets a game projectile that is a small body with its own little engine and turns toward its target, so it curves on screen instead of flying straight like a laser shot.
-- spec:
-  - `MissileComponent` (fields + `reset()` only, logic in extension functions, see the ST-163 note in `docs/tech/dev-workflow.md`): `target: Entity?`, `burnLeft` (seconds of engine time), `damage`. The entity: small dynamic box body (bullet = true), `RelativisticComponent` (starts with the shooter's `u`), `BaseInfoComponent` with the shooter's faction and `EntityType.MISSILE` (new), `LifetimeComponent`, `HealthComponent` (a laser shot can pop it).
-  - Engine: proper acceleration `MISSILE_PROPER_ACCEL = MISSILE_ACCEL_FACTOR * ENGINE_PROPER_ACCEL` (factor 3, KDoc derivation, so it scales with c) added to `RelativisticComponent.accel` in `beforeStep` while `burnLeft > 0` (decrement by `dt/γ`); afterwards it coasts. It never reaches c, and gravity and the boundary field act on it like any body.
-  - Homing (pure function in `MissileSteering.kt`): aim at the lead point from the target's current position and velocity (reuse the intercept idea of `photonInterceptDir`, with the projectile's own speed), return a unit direction; limit how fast the heading turns (`MISSILE_TURN_RATE`, rad/s); the sprite angle follows the heading. Target gone → keep the current heading until the lifetime ends.
-  - Hit: `ContactSystem`, contact with a body of another faction: apply `damage` (`MISSILE_DAMAGE = ENEMY_HEALTH`, one hit destroys an enemy ship or breaks a large asteroid) and remove the projectile; reuse the existing hit effect.
-  - Limits: `MISSILE_MAX_IN_FLIGHT` (4) per shooter; ammo `MISSILE_AMMO_PER_LEVEL` (6), refilled each level, shown next to slot 2 on the HUD.
-  - physics-lies row: homing reads the true target state (computer, like row 34); constant rest mass, no fuel mass loss (APPROX).
-- acceptance:
-  - [ ] Tests (pure): the homing function brings a projectile onto a constant-velocity target within a few seconds in a headless loop; with a target at 0.9c the projectile speed stays < c at every step
-  - [ ] Tests (World): a projectile fired at a resting enemy ship hits and removes it; after `burnLeft` runs out there is no more acceleration
-  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes
-- playtest: With `--near-enemies=3`, slot 2 shots (temporary debug fire path until ST-165) curve into the enemy ships.
-
-### ST-165 Missile lock-on: lock first, then fire
+### ST-165 Lock-on: lock first, then fire
 - status: ready
 - size: M
 - agent: kotlin-dev
 - depends: ST-164
-- files: new `weapon/MissileLock.kt` (pure state machine), `system/PlayerInputSystem.kt` or a new `system/MissileLockSystem.kt`, `system/WeaponSystem.kt`, `system/TacticalOverlaySystem.kt`, `render/TacticalOverlay.kt`, `audio/` (lock tone), `assets/i18n/messages.properties`, `docs/tech/architecture.md`; tests
+- files: new `weapon/TargetLock.kt` (pure state machine), `system/PlayerInputSystem.kt` or a new `system/TargetLockSystem.kt`, `system/WeaponSystem.kt`, `system/TacticalOverlaySystem.kt`, `render/TacticalOverlay.kt`, `audio/` (lock tone), `assets/i18n/messages.properties`, `docs/tech/architecture.md`; tests
 - refs: architecture rows 2 (auto-aim) and 12c (lock reticle, target rings); game-design Decisions 2026-11-07
 - layer: assist (the lock is the targeting computer, true state)
-- goal: With missiles selected the computer must lock a target (enemy ship or asteroid) before a missile can be fired; the missile then homes on that target.
+- goal: With lock-on shots selected the computer must lock a target (enemy ship or asteroid) before a lock-on shot can be fired; the lock-on shot then homes on that target.
 - spec:
-  - Candidate: the level target (`levelTargetFamily()`) nearest the aim direction within `MISSILE_LOCK_CONE_RAD` (±15°) of the hull (muzzle direction for turret schemes) and within `MISSILE_LOCK_RANGE_LIGHT_SECONDS * c` (3), using **true** positions.
-  - Pure `MissileLock` state: NONE → LOCKING (the same candidate held for `MISSILE_LOCK_TIME_S` = 1.0 s of ship proper time) → LOCKED; losing the candidate (out of cone/range, removed) drops back to NONE; switching candidates restarts LOCKING. LOCKED stays while the target is in a wider `MISSILE_LOCK_KEEP_CONE_RAD` (±30°) so the lock doesn't flicker.
-  - Fire: LMB with slot 2 fires a missile only in LOCKED, with `MissileComponent.target` = the locked entity; otherwise nothing (and a short "no lock" click). Ammo and in-flight cap from ST-164 apply.
+  - Candidate: the level target (`levelTargetFamily()`) nearest the aim direction within `TARGET_LOCK_CONE_RAD` (±15°) of the hull (muzzle direction for turret schemes) and within `TARGET_LOCK_RANGE_LIGHT_SECONDS * c` (3), using **true** positions.
+  - Pure `TargetLock` state: NONE → LOCKING (the same candidate held for `TARGET_LOCK_TIME_S` = 1.0 s of ship proper time) → LOCKED; losing the candidate (out of cone/range, removed) drops back to NONE; switching candidates restarts LOCKING. LOCKED stays while the target is in a wider `TARGET_LOCK_KEEP_CONE_RAD` (±30°) so the lock doesn't flicker.
+  - Fire: LMB with slot 2 fires a lock-on shot only in LOCKED, with `LockOnComponent.target` = the locked entity; otherwise nothing (and a short "no lock" click). Ammo and in-flight cap from ST-164 apply.
   - Display (tactical overlay, independent of the overlay toggle like the lock reticle): LOCKING = an amber reticle closing in on the target ring over the lock time; LOCKED = a solid red diamond on the true position plus a short tone. A HUD line "LOCKED" / "Locking…" next to the weapon slot.
 - acceptance:
-  - [ ] Tests (pure): lock progresses after `MISSILE_LOCK_TIME_S` of steady aim, resets on candidate change, drops when out of the keep cone; fire is refused while not LOCKED
+  - [ ] Tests (pure): lock progresses after `TARGET_LOCK_TIME_S` of steady aim, resets on candidate change, drops when out of the keep cone; fire is refused while not LOCKED
   - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --query="seed=42&play&near-enemies=3"` passes
-- playtest: Press 2, keep the nose on an enemy: the reticle closes and turns red with a tone; click: the missile flies and hits. Click without a lock: nothing flies.
+- playtest: Press 2, keep the nose on an enemy: the reticle closes and turns red with a tone; click: the lock-on shot flies and hits. Click without a lock: nothing flies.
 
 ## Menus & runs
 

@@ -39,7 +39,7 @@ explosion
 bounds:518,478,448,32
 guns
 bounds:260,88,192,64
-missiles
+lock_on_shots
 bounds:260,220,256,64
 player_laser
 index:1
@@ -47,6 +47,8 @@ bounds:825,272,13,6
 player_laser
 index:2
 bounds:503,146,13,6
+player_lock_on
+bounds:108,8,16,16
 player_thruster
 bounds:260,70,64,16
 rocker_thruster

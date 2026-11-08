@@ -122,7 +122,7 @@ class MinimapSystem(
             EntityType.ASTEROID -> asteroidMapper.get(entity)
                 ?.let { (it.asteroidSize.radius * ASTEROID_RADIUS_FACTOR).coerceAtLeast(ASTEROID_MIN_DOT_RADIUS) }
                 ?: ASTEROID_MIN_DOT_RADIUS
-            EntityType.PROJECTILE -> PROJECTILE_DOT_RADIUS
+            EntityType.PROJECTILE, EntityType.LOCK_ON -> PROJECTILE_DOT_RADIUS
             EntityType.BLACK_HOLE -> {
                 drawHole(entity)
                 return

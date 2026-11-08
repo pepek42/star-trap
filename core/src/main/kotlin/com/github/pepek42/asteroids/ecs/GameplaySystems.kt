@@ -13,6 +13,7 @@ import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.provider.LockOnProvider
 import com.github.pepek42.asteroids.provider.PLAYER_START_HEALTH
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.render.ShimmerImpacts
@@ -24,6 +25,7 @@ import com.github.pepek42.asteroids.system.EnemyAiSystem
 import com.github.pepek42.asteroids.system.GravitySystem
 import com.github.pepek42.asteroids.system.LifetimeSystem
 import com.github.pepek42.asteroids.system.LightHistorySystem
+import com.github.pepek42.asteroids.system.LockOnSteeringSystem
 import com.github.pepek42.asteroids.system.MoveSystem
 import com.github.pepek42.asteroids.system.ObserverSystem
 import com.github.pepek42.asteroids.system.PhysicsSystem
@@ -46,6 +48,8 @@ class GameplayDeps(
     val camera: Camera,
     val controlSettings: ControlSettings,
     val weaponProjectileProvider: WeaponProjectileProvider,
+    /** Lock-on shot bodies (ST-164); null in tests and harness runs that never fire slot 2. */
+    val lockOnProvider: LockOnProvider? = null,
     val asteroidProvider: AsteroidProvider,
     val random: RandomXS128,
     /** Shared by the boundary field (emits) and the shimmer renderer (draws). */
@@ -69,8 +73,9 @@ class GameplaySystems(val lightHistory: LightHistorySystem)
 
 /**
  * Registers the gameplay systems on `deps.engine` in the one true execution order (CLAUDE.md): time warp, end level,
- * input, enemy AI, move, weapons, contact, boundary field, gravity, projectile sweep, relativistic dynamics, light history, physics, observer,
- * [presentation], lifetime, death, remove. Registration order is execution order.
+ * input, enemy AI, move, weapons, contact, boundary field, gravity, lock-on steering, projectile sweep, relativistic
+ * dynamics, light history, physics, observer, [presentation], lifetime, death, remove. Registration order is execution
+ * order.
  *
  * [presentation] runs after the observer system and registers camera, render, debug, HUD and minimap systems (needs GL, so
  * the headless balance runner leaves it empty). `PlayScreen.setupEcs()` and `BalanceSim` both call this, so they cannot drift.
@@ -80,6 +85,8 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
     val boundaryFieldSystem = BoundaryFieldSystem(deps.mapProvider, deps.shimmerImpacts, deps.settings)
     // After the boundary field and before the sweep and relativisticDynamics: it adds to accel / applies forces.
     val gravitySystem = GravitySystem(deps.settings)
+    // A lock-on shot adds its engine acceleration in beforeStep like the ship; RelativisticDynamics integrates it last.
+    val lockOnSteeringSystem = LockOnSteeringSystem(deps.settings)
     val projectileSweepSystem = ProjectileSweepSystem(deps.world, deps.settings)
     // Must be the last step listener: it integrates the accelerations the others added.
     val relativisticDynamics = RelativisticDynamics(deps.settings)
@@ -99,17 +106,21 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
         // Enemy pilots write MoveComponent/WeaponComponent like the player's input does, so before MoveSystem and WeaponSystem.
         addSystem(EnemyAiSystem(lightHistory, deps.clock, deps.settings))
         addSystem(moveSystem)
-        addSystem(WeaponSystem(deps.weaponProjectileProvider, deps.clock, deps.hullSounds))
+        addSystem(WeaponSystem(deps.weaponProjectileProvider, deps.clock, deps.hullSounds, deps.lockOnProvider))
         addSystem(contactSystem)
         addSystem(boundaryFieldSystem)
         addSystem(gravitySystem)
+        addSystem(lockOnSteeringSystem)
         addSystem(projectileSweepSystem)
         addSystem(relativisticDynamics)
         addSystem(lightHistory)
         addSystem(
             PhysicsSystem(
                 deps.world, this,
-                listOf(moveSystem, boundaryFieldSystem, gravitySystem, projectileSweepSystem, relativisticDynamics, lightHistory, contactSystem),
+                listOf(
+                    moveSystem, boundaryFieldSystem, gravitySystem, lockOnSteeringSystem, projectileSweepSystem,
+                    relativisticDynamics, lightHistory, contactSystem,
+                ),
                 deps.clock,
             )
         )

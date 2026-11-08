@@ -17,6 +17,7 @@ import com.github.pepek42.asteroids.component.tickInactive
 import com.github.pepek42.asteroids.component.WEAPON_SLOT_COUNT
 import com.github.pepek42.asteroids.component.WeaponLoadoutComponent
 import com.github.pepek42.asteroids.environment.AsteroidSize
+import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.scene2d.label
 import ktx.scene2d.progressBar
 import ktx.scene2d.scene2d
@@ -67,6 +68,7 @@ class Hud(
     private val weaponLabels: Array<Label> = Array(WEAPON_SLOT_COUNT) { scene2d.label("").apply { isVisible = false } }
     private val weaponRow = HorizontalGroup().apply { space(8f) }
     private var weaponShownActive = -1
+    private var weaponShownAmmo = -1
     private var tidalShownPercent = -1
     private var tidalShownRed = false
     private val levelLabel: Label = scene2d.label("")
@@ -185,22 +187,30 @@ class Hud(
         if (key != null) warpLabel.setText(i18NBundle.format(key, warp))
     }
 
-    /** Tidal stress readout (ST-162): hidden at or below [TIDAL_READOUT_MIN]; the text is rebuilt only when the percent changes. */
-    /** Weapon slots line; the active weapon is highlighted (ST-163). */
+    /** Weapon slots line; the active weapon is highlighted (ST-163) and slot 2 shows its ammo (ST-164). */
     fun updateWeapons(loadout: WeaponLoadoutComponent) {
-        if (loadout.activeSlot == weaponShownActive) return
+        if (loadout.activeSlot == weaponShownActive && loadout.lockOnAmmo == weaponShownAmmo) return
         weaponShownActive = loadout.activeSlot
+        weaponShownAmmo = loadout.lockOnAmmo
         for (i in 0 until WEAPON_SLOT_COUNT) {
             val type = loadout.slot(i)
             val label = weaponLabels[i]
             label.isVisible = type != null
             if (type == null) continue
-            label.setText(i18NBundle.format("hud_weapon_slot", i18NBundle.get("weapon_" + type.name.lowercase()), i + 1))
+            val name = i18NBundle.get("weapon_" + type.name.lowercase())
+            label.setText(
+                if (type == WeaponType.LOCK_ON) {
+                    i18NBundle.format("hud_weapon_slot_ammo", name, i + 1, loadout.lockOnAmmo)
+                } else {
+                    i18NBundle.format("hud_weapon_slot", name, i + 1)
+                }
+            )
             label.color.set(if (i == weaponShownActive) WEAPON_ACTIVE_COLOR else Color.GRAY)
         }
         weaponRow.invalidateHierarchy()
     }
 
+    /** Tidal stress readout (ST-162): hidden at or below [TIDAL_READOUT_MIN]; the text is rebuilt only when the percent changes. */
     fun updateTidal(ratio: Float) {
         val percent = tidalReadoutPercent(ratio)
         tidalLabel.isVisible = percent >= 0

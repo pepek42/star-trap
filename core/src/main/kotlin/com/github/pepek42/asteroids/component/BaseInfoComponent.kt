@@ -11,6 +11,8 @@ enum class EntityType {
     SHIP,
     ASTEROID,
     PROJECTILE,
+    /** A guided lock-on shot body (ST-164): a real projectile with an engine, distinct from the sensor-based lasers. */
+    LOCK_ON,
     BLACK_HOLE,
     PLANET,
     DEBRIS,

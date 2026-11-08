@@ -58,11 +58,8 @@ class WeaponProjectileProvider(
                 body = world.body(BodyDef.BodyType.KinematicBody) {
                     this.angle = angle
                     this.position.set(position.x, position.y)
-                    val velocity = when (weaponCmp.weaponType) {
-                        // MISSILE is not spawned yet (ST-164); WeaponSystem skips it.
-                        WeaponType.LASER, WeaponType.MISSILE -> Vector2(photonDir).scl(settings.c)
-                    }
-                    linearVelocity.set(velocity)
+                    // Lasers only: lock-on shots are real bodies built by LockOnProvider (ST-164).
+                    linearVelocity.set(Vector2(photonDir).scl(settings.c))
                     bullet = true
                     circle(
                         radius = weaponCmp.projectileRadius,

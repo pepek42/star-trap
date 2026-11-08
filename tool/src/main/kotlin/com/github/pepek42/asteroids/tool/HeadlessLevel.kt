@@ -40,6 +40,7 @@ import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.provider.EnemyShipProvider
 import com.github.pepek42.asteroids.provider.enemyCount
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.provider.LockOnProvider
 import com.github.pepek42.asteroids.provider.PLAYER_SPRITE_SIZE_PX
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
@@ -146,6 +147,7 @@ fun runLevel(setup: LevelSetup, bot: BalanceBot): LevelResult {
         camera = IdentityCamera(),
         controlSettings = ControlSettings(setup.scheme),
         weaponProjectileProvider = WeaponProjectileProvider(atlas, engine, world, settings),
+        lockOnProvider = LockOnProvider(atlas, engine, world, settings),
         asteroidProvider = AsteroidProvider(atlas, engine, world, random, settings),
         random = random,
         shimmerImpacts = ShimmerImpacts(),

@@ -33,7 +33,7 @@ const val CREDITS_PER_LARGE_ROCK_CHAIN = CREDITS_LARGE_ASTEROID + ASTEROID_FRAGM
 fun typicalCreditsThroughLevel(levels: Int): Int =
     (FIRST_LEVEL..levels).sumOf { asteroidCount(it) * CREDITS_PER_LARGE_ROCK_CHAIN + enemyCount(it) * CREDITS_ENEMY_SHIP }
 
-/** What an upgrade improves. Add a `WEAPON` effect here later (missiles, ST-164). */
+/** What an upgrade improves. Add a `WEAPON` effect here later (lock-on shots, ST-164). */
 enum class UpgradeEffect { ENGINE, HULL }
 
 /**

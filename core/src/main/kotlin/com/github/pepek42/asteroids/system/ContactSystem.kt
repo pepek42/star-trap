@@ -18,6 +18,7 @@ import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.healthCmp
 import com.github.pepek42.asteroids.component.healthMapper
 import com.github.pepek42.asteroids.component.bodyCmpOptional
+import com.github.pepek42.asteroids.component.lockOnCmpOptional
 import com.github.pepek42.asteroids.component.photonCmpOptional
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.projectileCmp
@@ -64,6 +65,19 @@ fun applyProjectileHit(
     if (!projectile.has(removeMapper)) {
         projectile.add(engine.createComponent(RemoveComponent::class.java))
     }
+}
+
+/**
+ * Applies a lock-on shot's [com.github.pepek42.asteroids.component.LockOnComponent.damage] to [target] (if it has health)
+ * and tags the lock-on shot with [RemoveComponent] (ST-164). A lock-on shot already tagged for removal is ignored, so one contact
+ * deals damage at most once. Lasers are handled by [applyProjectileHit] first: a laser hit pops the lock-on shot through its
+ * [com.github.pepek42.asteroids.component.HealthComponent].
+ */
+fun applyLockOnHit(engine: Engine, shot: Entity, target: Entity) {
+    if (shot.has(removeMapper)) return
+    val lockOnCmp = shot.lockOnCmpOptional ?: return
+    if (target.has(healthMapper)) target.healthCmp.health -= lockOnCmp.damage
+    shot.add(engine.createComponent(RemoveComponent::class.java))
 }
 
 /**
@@ -123,9 +137,14 @@ class ContactSystem(
         val entityOne = contact.fixtureA.body.userData as Entity
         val entityTwo = contact.fixtureB.body.userData as Entity
         if (entityOne.baseInfoCmp.entityType == EntityType.PROJECTILE) {
+            // A laser hitting a lock-on shot pops the lock-on shot (the lock-on shot has health), so this branch stays first.
             applyProjectileHit(engine, entityOne, entityTwo, settings)
         } else if (entityTwo.baseInfoCmp.entityType == EntityType.PROJECTILE) {
             applyProjectileHit(engine, entityTwo, entityOne, settings)
+        } else if (entityOne.baseInfoCmp.entityType == EntityType.LOCK_ON) {
+            applyLockOnHit(engine, entityOne, entityTwo)
+        } else if (entityTwo.baseInfoCmp.entityType == EntityType.LOCK_ON) {
+            applyLockOnHit(engine, entityTwo, entityOne)
         } else if (!contact.fixtureA.isSensor && !contact.fixtureB.isSensor) {
             applyRamDamage(entityOne, contact.fixtureA.body, entityTwo, contact.fixtureB.body)
             queueHullSound(entityOne, contact.fixtureA.body, entityTwo, contact.fixtureB.body)

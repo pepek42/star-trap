@@ -34,6 +34,7 @@ import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.BlackHoleProvider
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.MAP_HEIGHT
+import com.github.pepek42.asteroids.provider.LockOnProvider
 import com.github.pepek42.asteroids.provider.MAP_WIDTH
 import com.github.pepek42.asteroids.scenario.ScenarioSpawner
 import com.github.pepek42.asteroids.event.PlayerInputListener
@@ -158,6 +159,7 @@ class PlayScreen(
             camera = camera,
             controlSettings = game.get<ControlSettings>(),
             weaponProjectileProvider = WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world, settings),
+            lockOnProvider = LockOnProvider(game.get<TextureAtlas>(), engine, world, settings),
             asteroidProvider = asteroidProvider,
             random = game.get<RandomXS128>(),
             shimmerImpacts = shimmerImpacts,

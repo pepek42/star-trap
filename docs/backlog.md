@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `.claude/agents/planner.md`. **Never renumber cards.** The next free ID is **ST-176**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-176**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -201,7 +201,7 @@ Source: owner 2026-11-07 ("homing missile ... lock on to target (enemy ship/aste
 - depends: ST-163
 - context: Star Trap is a 2D top-down Asteroids-like arcade game. This card adds a classic arcade "homing missile" weapon: a slow projectile sprite that curves toward the enemy ship or asteroid the player picked, like the homing shots in many shoot-'em-ups. It is purely game logic inside the existing ECS.
 - files: new `component/MissileComponent.kt`, new `provider/MissileProvider.kt`, new `system/MissileSteeringSystem.kt` (a `PhysicsStepListener`), new pure `weapon/MissileSteering.kt`, `system/ContactSystem.kt`, `ecs/GameplaySystems.kt`, `raw_assets/` + atlas (missile sprite), `docs/design/physics-lies.md`, `docs/tech/architecture.md`; tests
-- refs: CLAUDE.md "Physics loop", "Constants are the single source of truth"; architecture `RelativisticDynamics`; `physics/PhotonAim.kt` (`photonInterceptDir`, the existing lead-point solve)
+- refs: AGENTS.md "Architecture essentials" (physics step), "Constants are the single source of truth"; architecture `RelativisticDynamics`; `physics/PhotonAim.kt` (`photonInterceptDir`, the existing lead-point solve)
 - layer: sim (the projectile is a real body) + assist (homing reads the true target state)
 - goal: Weapon slot 2 gets a game projectile that is a small body with its own little engine and turns toward its target, so it curves on screen instead of flying straight like a laser shot.
 - spec:
@@ -260,7 +260,7 @@ Source: owner 2026-11-07 ("After each level there will be save (and buying in sh
 - agent: kotlin-dev
 - depends: —
 - files: `settings/MenuSettings.kt` (`SettingSpec` gains a category), `screen/MainMenuScreen.kt` (`buildSettingsPage`), `ui/MenuStyle.kt` (tab style), `assets/i18n/messages.properties`; tests in `settings/MenuSettingsTest.kt`, `ui/MainMenuLayoutTest.kt`
-- refs: CLAUDE.md "Settings", "Vision" (assists are toggles); `ui/MenuStyle.toggleButton`
+- refs: AGENTS.md "Architecture essentials" (settings), "Vision" (assists are toggles); `ui/MenuStyle.toggleButton`
 - layer: meta (UI)
 - goal (owner 2026-11-07): the Settings page is split into tabs instead of one long scrolling list, with Dev last.
 - spec:

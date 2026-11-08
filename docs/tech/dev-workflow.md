@@ -1,23 +1,33 @@
 # Agent-driven development workflow
 
-Star Trap is developed mostly by Claude Code subagents, and the owner gives as little input as possible. This file explains the setup.
+Star Trap is developed mostly by AI agents, and the owner gives as little input as possible. The setup works in **Claude Code** and **opencode**; this file explains it.
 
-## The team (`.claude/agents/`)
+## Tool layout
 
-| Agent | Model / effort | Role | Writes |
+| What | Source (edit here) | Claude Code | opencode |
 |---|---|---|---|
-| `planner` | Opus / medium | Roadmap + research → small, ordered task cards, routed to the cheapest capable agent | `docs/backlog.md` |
-| `kotlin-dev` | Sonnet / medium (orchestrator may raise it) | Implements size-M cards: systems, components, algorithms, shaders, with tests | code + tests |
-| `junior-dev` | Haiku / low | Size-S mechanical cards with an exact spec | code, config, docs |
-| `verifier` | Haiku / low | Finds the root cause of unclear build/test failures, with file:line. Read-only. `/auto-dev` runs Gradle itself and spawns it only when needed | — |
-| `reviewer` | Sonnet / medium | Reviews the diff against the card, project invariants and physics. Read-only | — |
-| `physics-researcher` | Opus / high | Relativity, gravity and force-field physics → game-ready specs with formulas, cost and verdicts | `docs/research/*.md` |
+| Project instructions | `AGENTS.md` | `CLAUDE.md` imports it (`@AGENTS.md`) | reads `AGENTS.md` directly |
+| Agents | `agents/<name>.md` (neutral: `tier`, `readonly`, `web`) | `.claude/agents/` (generated) | `.opencode/agent/` (generated) |
+| Skills | `.claude/skills/<name>/SKILL.md` | native | native (opencode reads `.claude/skills/`); `/auto-dev` and `/plan-backlog` via `.opencode/command/` (generated) |
 
-Most of the volume goes to Haiku and Sonnet. Opus is used only for planning and physics research, which happen rarely and where mistakes cost the most.
+After editing anything in `agents/`, run `scripts/sync-agents.py` (`--check` reports stale files). Tiers map to models per tool: in Claude Code cheap = Haiku/low, standard = Sonnet/medium, strong = Opus/high (an `effort:` line in the source overrides the default). In opencode the generated agents have no `model:`, so they use the session's model, unless `agents/models.json` maps tiers to opencode model ids, e.g. `{"opencode": {"cheap": "ollama/qwen3.5", "standard": "lmstudio/qwen/qwen3.5-9b"}}`.
+
+## The team (`agents/`)
+
+| Agent | Tier | Role | Writes |
+|---|---|---|---|
+| `planner` | strong (medium effort) | Roadmap + research → small, ordered task cards, routed to the cheapest capable agent | `docs/backlog.md` |
+| `kotlin-dev` | standard (orchestrator may raise it) | Implements size-M cards: systems, components, algorithms, shaders, with tests | code + tests |
+| `junior-dev` | cheap | Size-S mechanical cards with an exact spec | code, config, docs |
+| `verifier` | cheap | Finds the root cause of unclear build/test failures, with file:line. Read-only. auto-dev runs Gradle itself and calls it only when needed | — |
+| `reviewer` | standard | Reviews the diff against the card, project invariants and physics. Read-only | — |
+| `physics-researcher` | strong | Relativity, gravity and force-field physics → game-ready specs with formulas, cost and verdicts | `docs/research/*.md` |
+
+Most of the volume goes to the cheap and standard tiers. The strong tier is used only for planning and physics research, which happen rarely and where mistakes cost the most.
 
 ## Skills (`.claude/skills/`)
 
-- **`/auto-dev [N | ST-xxx]`**: the orchestrator loop. It picks a ready card (`scripts/backlog.py next`) → the implementer → Gradle build → (reviewer for M) → commits `ST-NNN: title` on the `AI-slop` branch → moves lasting facts into the docs and closes (deletes) the card. At the end it reports a playtest checklist and open questions. To run it unattended: `/loop /auto-dev 3`.
+- **`/auto-dev [N | ST-xxx]`**: the orchestrator loop. It picks a ready card (`scripts/backlog.py next`) → the implementer → Gradle build → (reviewer for M) → commits `ST-NNN: title` on the `AI-slop` branch → moves lasting facts into the docs and closes (deletes) the card. At the end it reports a playtest checklist and open questions. Unattended in Claude Code: `/loop /auto-dev 3`.
 - **`/plan-backlog <idea | research doc>`**: has the planner turn something into cards.
 
 ## Lifecycle of a card
@@ -44,10 +54,16 @@ flowchart LR
 
 ## Conventions for agents
 
-- `CLAUDE.md` is loaded automatically. Read only the doc sections a card names on its `refs:` line, plus the parts of `docs/tech/architecture.md` that cover the code you touch.
+- `AGENTS.md` is loaded automatically. Read only the doc sections a card names on its `refs:` line, plus the parts of `docs/tech/architecture.md` that cover the code you touch.
 
 ## Saving tokens
 
+**The biggest cost is a long orchestrator session.** Every model call re-sends the whole conversation. Measured 2026-11-08 from Claude Code session logs: a fresh session starts at about 45k tokens (tool definitions, instructions, memory); sessions that did 6 or more cards ran 150 to 370 calls at about 107k tokens per call and hit the 165k compaction limit, which is 15M to 40M cached tokens per session. Screenshots read for visual checks (up to about 30 per session) stayed in the context for every later call. So:
+- Run `/auto-dev 3`, then clear the context (`/clear`, or a new opencode session) before the next run. The skill stops and says so.
+- The orchestrator opens a screenshot only on a web-check FAIL or for a visual playtest card.
+- Small local models (e.g. a 9B model with a 32k window) can't run the orchestrator; give them junior-dev cards only, through `agents/models.json`.
+
+Other rules:
 - `docs/backlog.md` holds only open cards. Finished cards are closed (deleted): their lasting knowledge goes into the docs, their text stays in git history (`scripts/backlog.py show ST-NNN` lists the commits). Nobody reads the backlog in full: `scripts/backlog.py next | show ST-NNN | list | close [ST-NNN]`.
 - Only cards near the top of the order carry a full spec; far-future cards are short stubs until they come up, so specs don't go stale.
 - Cards carry a `refs:` line naming the doc sections the implementer needs, so nobody reads all of `docs/research/relativity-effects.md`.
@@ -59,7 +75,7 @@ flowchart LR
 
 ## Visual checks
 
-Agents can render the game headlessly-ish (a display is needed) and inspect the result with the image-reading tool:
+Agents can render the game headlessly-ish (a display is needed) and inspect the result with an image-reading tool (each image stays in the context, so look only when needed):
 
 ```bash
 ./gradlew lwjgl3:run --args="--screenshot=/abs/path/st.png --frames=120"

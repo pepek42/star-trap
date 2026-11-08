@@ -1,5 +1,7 @@
 # Star Trap docs
 
+Agent instructions live in [`../AGENTS.md`](../AGENTS.md) (Claude Code reads it through `CLAUDE.md`); agent prompts in [`../agents/`](../agents/).
+
 | Doc | What |
 |---|---|
 | [design/todo.md](design/todo.md) | The owner's raw roadmap and wishes (input) |
@@ -12,4 +14,4 @@
 | [tech/balance.md](tech/balance.md) | Balance pass (ST-101): headless sim sweep, tables, chosen c / engine / asteroid / damage constants |
 | [tech/sound.md](tech/sound.md) | Procedural SFX generator (`tool:generateSounds`), recipes, tuning |
 | [tech/ktx-cheatsheet.md](tech/ktx-cheatsheet.md) | libGDX/KTX/Ashley/Box2D idioms and gotchas |
-| [tech/dev-workflow.md](tech/dev-workflow.md) | The agent team, skills, card lifecycle, and where the owner comes in |
+| [tech/dev-workflow.md](tech/dev-workflow.md) | The agent team (Claude Code + opencode), skills, card lifecycle, token budget, and where the owner comes in |

@@ -1,6 +1,8 @@
 # Star Trap: Technical Architecture
 
-Status: describes the code as of 2026-11-06 (branch `AI-slop`, after M5 gravity, black holes, planets and the pilot view). Keep this file current when the architecture changes. Agents read it before coding.
+Status: describes the code as of 2026-11-08 (branch `AI-slop`). Keep this file current when the architecture changes. `AGENTS.md` "Architecture essentials" has the short list of invariants.
+
+**Don't read this file in full.** Grep for the section or symbol you need and read only that range. Sections: Stack · Runtime structure (DI singletons, input, settings, run save, shop) · ECS system order (one table row per system) · Debug panel · Components · Physics loop details (clock, step listeners, RelativitySettings, black holes, planets, debris, enemies, time dilation, relativistic mass and integration, rotation, speed cap) · Pilot view, gravity settings, death and lighting (pilot view, gravity settings, tidal, scenarios, death flow, lit sprites, shadows, star, lensing) · Collision filtering · Known issues · Testing strategy · Planned architecture.
 
 ## Stack
 
@@ -12,7 +14,7 @@ Status: describes the code as of 2026-11-06 (branch `AI-slop`, after M5 gravity,
 | Physics | Box2D (gdx-box2d), fixed step 1/`PHYSICS_TICK_RATE` s (60 Hz) |
 | Build | Gradle 9.8.1, Kotlin DSL, version catalog `gradle/libs.versions.toml`, convention plugin `build-logic/src/main/kotlin/kotlin-jvm.gradle.kts` |
 | Tests | JUnit 6 (Jupiter) + mockito-kotlin. Test classpath has `assets/` and desktop natives |
-| Modules | `core` (all logic), `lwjgl3` (desktop launcher, construo packaging), `teavm` (experimental web), `tool` (texture packer) |
+| Modules | `core` (all logic), `lwjgl3` (desktop launcher, construo packaging), `teavm` (web, the primary release target), `tool` (texture packer, balance sim, sound generator) |
 
 ## Runtime structure
 
@@ -79,7 +81,7 @@ Systems are registered by `ecs/GameplaySystems.kt` `buildGameplaySystems(deps, p
 
 `BaseInfoComponent` (id, faction, `EntityType`; every entity has one), `BodyComponent` (Box2D body, `boundingRadius` for the boundary field, -1 until computed), `TransformComponent` (prev + interpolated position/rotation), `SpriteComponent`, `MoveComponent` (thrusters −1..1, `targetAngleRad` world angle or null), `WeaponComponent`, `ProjectileComponent` (sealed projectile types, currently `LaserProjectile`; `spent` flag), `GravitySourceComponent` (ST-083: `kind` BLACK_HOLE or PLANET, `rs`, `gm`, `softening`, `radius`, `effectiveGm(c)`; sits on a dynamic body without `RelativisticComponent`), `PhotonComponent` (ST-039: unit flight direction `dir` of a photon laser after muzzle aberration), `HealthComponent`, `AsteroidComponent`, `PlayerComponent` (mapper and `playerCmpOptional`), `ShipHandlingComponent` (per-ship PD gains, defaults from `ShipRotationController`; `engineFactor` scales the engine's proper acceleration, enemies use `ENEMY_ENGINE_FRACTION`), `EnemyComponent` (ST-155: marker for enemy ships, which must be destroyed to clear the level), `WeaponLoadoutComponent` (ST-163: three weapon slots, selected with keys 1/2/3, each with its own cooldown), `LifetimeComponent` (remaining/total, `LifetimeClock` WORLD or PROPER), `RemoveComponent`, `TacticalComputerComponent` (ST-123: `tier`, gates the tactical overlay; player only), `RelativisticComponent` (ST-037: proper velocity `u`, per-step `accel` accumulator, proper time `tau`, `gUsed`, `vSet`, `gammaMax`; added to the player and all asteroids when `RELATIVITY_ENABLED`).
 
-The convention is described in `CLAUDE.md`: a `Poolable` class, `xxxMapper`, and `Entity.xxxCmp`/`xxxCmpOptional`.
+The convention is described in `AGENTS.md`: a `Poolable` class, `xxxMapper`, and `Entity.xxxCmp`/`xxxCmpOptional`.
 
 ## Physics loop details
 
@@ -120,8 +122,6 @@ These are input for the backlog. Card IDs are given where a card exists.
 1. The global id counter in `BaseInfoComponent` is a static mutable. (No card yet.)
 2. Boundary backstop vs. contacts (ST-038): `BoundaryFieldSystem.afterStep` runs before `RelativisticDynamics.afterStep`, so if a contact changes a relativistic body's velocity in the same step as a backstop hit, the backstop reflects the stale `u` and the contact change is lost. Judged very rare (the field repels strongly there). (No card.)
 
-Fixed in M1 and removed from this list: ST-006 (level cleanup in `hide()`), ST-007 (faction filter bits), ST-008 (small asteroid texture), ST-009 (CI on JDK 25), ST-011 (minimap rework), ST-012 (starfield).
-
 ## Testing strategy
 
 - Balance: `./gradlew tool:balanceSim` plays headless levels with scripted pilots (`tool/.../BalanceBots.kt`) through the real systems and writes CSV plus markdown (see `docs/tech/balance.md`). It is not part of `test`.
@@ -131,6 +131,4 @@ Fixed in M1 and removed from this list: ST-006 (level cleanup in `hide()`), ST-0
 
 ## Planned architecture (see `docs/design/game-design.md` and `docs/research/relativity-effects.md`)
 
-- **Relativistic dynamics layer**: our own integration of momentum and proper time per entity, writing velocities into Box2D. Box2D keeps collision detection and response.
-- **Observer-frame rendering**: render the scene to an FBO, then run post-process shaders (aberration, Doppler/searchlight, lensing). Per-sprite shaders handle effects that belong to one object (length contraction, Terrell-like distortion).
-- **Arena boundary field**: implemented as `BoundaryFieldSystem` (see the system table). It replaced the old wrap teleport.
+- **Observer-frame rendering**: render the scene to an FBO, then post-process shaders (aberration, Doppler/searchlight). Per-sprite shaders handle effects that belong to one object (length contraction, Terrell-like distortion). Backdrop lensing (`LensingPass`) already works this way.

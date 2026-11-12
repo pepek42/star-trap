@@ -24,6 +24,7 @@ import com.github.pepek42.asteroids.system.ContactSystem
 import com.github.pepek42.asteroids.system.DeathSystem
 import com.github.pepek42.asteroids.system.EndLevelSystem
 import com.github.pepek42.asteroids.system.EnemyAiSystem
+import com.github.pepek42.asteroids.system.DiskDamageSystem
 import com.github.pepek42.asteroids.system.GravitySystem
 import com.github.pepek42.asteroids.system.LifetimeSystem
 import com.github.pepek42.asteroids.system.LightHistorySystem
@@ -83,7 +84,7 @@ class GameplaySystemsTest {
         assertSame(systems, seen)
         val expected = listOf(
             TimeWarpSystem::class, EndLevelSystem::class, PlayerInputSystem::class, EnemyAiSystem::class, MoveSystem::class, WeaponSystem::class,
-            ContactSystem::class, BoundaryFieldSystem::class, GravitySystem::class, LockOnSteeringSystem::class, ProjectileSweepSystem::class,
+            ContactSystem::class, BoundaryFieldSystem::class, GravitySystem::class, DiskDamageSystem::class, LockOnSteeringSystem::class, ProjectileSweepSystem::class,
             RelativisticDynamics::class, LightHistorySystem::class, PhysicsSystem::class, ObserverSystem::class, PresentationMarker::class,
             LifetimeSystem::class, DeathSystem::class, RemoveSystem::class,
         )
@@ -93,7 +94,7 @@ class GameplaySystemsTest {
     @Test
     fun worksWithoutPresentation() {
         buildGameplaySystems(deps)
-        assertEquals(18, engine.systems.size())
+        assertEquals(19, engine.systems.size())
     }
 
     companion object {

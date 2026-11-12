@@ -2,6 +2,8 @@
 // Pilot view (ST-089, u_pilot = 1): each particle gets its own light delay on its circular orbit, the aberration boost and a
 // Doppler factor toward the pilot, so the side swinging toward the pilot is bluer and brighter. Mirrors the Kotlin reference
 // `diskParticleApparent` (render/AccretionDisk.kt); keep them in sync. With u_pilot = 0 the output equals ST-087.
+// ST-175: up to 4 disturbers (u_disturb0..3 = x, y, reach, strength) push particles radially out of their circle; mirrors the
+// Kotlin reference `diskScatterPush` (render/DiskDisturbers.kt). Strength 0 = unused slot.
 // GLSL ES 1.00 (WebGL 1 compatible). Vertex shaders always have highp in WebGL, which keeps phi precise for a long worldTime.
 #ifdef GL_ES
 precision highp float;
@@ -31,6 +33,11 @@ uniform float u_aberration; // 1: boost into the pilot frame
 uniform vec3 u_beam;        // searchlight: x = exponent, y = min, z = max (spriteBrightness)
 uniform float u_betaMax;    // BETA_MAX_MASSIVE
 
+uniform vec4 u_disturb0;
+uniform vec4 u_disturb1;
+uniform vec4 u_disturb2;
+uniform vec4 u_disturb3;
+
 varying vec2 v_corner;
 varying float v_lutU;
 varying float v_brightness;
@@ -54,13 +61,29 @@ float gammaOf(vec2 beta) {
     return 1.0 / sqrt(1.0 - min(dot(beta, beta), u_betaMax * u_betaMax));
 }
 
+// diskScatterPush: pushes p out of the circle (d.xy, d.z) by (reach - dist) * strength.
+vec2 scatter(vec2 p, vec4 d) {
+    vec2 off = p - d.xy;
+    float dist = length(off);
+    if (d.w <= 0.0 || dist >= d.z) return p;
+    vec2 n = dist > 1e-4 ? off / dist : vec2(1.0, 0.0);
+    return p + n * ((d.z - dist) * d.w);
+}
+
+vec2 scatterAll(vec2 p) {
+    p = scatter(p, u_disturb0);
+    p = scatter(p, u_disturb1);
+    p = scatter(p, u_disturb2);
+    return scatter(p, u_disturb3);
+}
+
 void main() {
     float omega = sqrt(u_gm / (a_r * a_r * a_r));
     float phi = a_phi0 + omega * u_time;
     float g2 = max(1.0 - 1.5 * u_rs / a_r, 0.0); // g^2, so g^4 is its square
     float brightness = g2 * g2;
     float temp = a_temp;
-    vec2 centre = u_center + a_r * vec2(cos(phi), sin(phi));
+    vec2 centre = scatterAll(u_center + a_r * vec2(cos(phi), sin(phi)));
     if (u_pilot > 0.5) {
         if (u_delay > 0.5) {
             float s = 0.0;
@@ -71,7 +94,7 @@ void main() {
             phi -= omega * s;
         }
         vec2 tangent = vec2(-sin(phi), cos(phi));
-        vec2 p = u_center + a_r * vec2(cos(phi), sin(phi));
+        vec2 p = scatterAll(u_center + a_r * vec2(cos(phi), sin(phi)));
         vec2 betaSrc = (u_holeVel + omega * a_r * tangent) / u_c;
         vec2 toObs = u_observer - p;
         float len = length(toObs);

@@ -20,6 +20,7 @@ import com.github.pepek42.asteroids.render.ShimmerImpacts
 import com.github.pepek42.asteroids.system.BoundaryFieldSystem
 import com.github.pepek42.asteroids.system.ContactSystem
 import com.github.pepek42.asteroids.system.DeathSystem
+import com.github.pepek42.asteroids.system.DiskDamageSystem
 import com.github.pepek42.asteroids.system.EndLevelSystem
 import com.github.pepek42.asteroids.system.EnemyAiSystem
 import com.github.pepek42.asteroids.system.GravitySystem
@@ -73,7 +74,7 @@ class GameplaySystems(val lightHistory: LightHistorySystem)
 
 /**
  * Registers the gameplay systems on `deps.engine` in the one true execution order (CLAUDE.md): time warp, end level,
- * input, enemy AI, move, weapons, contact, boundary field, gravity, lock-on steering, projectile sweep, relativistic
+ * input, enemy AI, move, weapons, contact, boundary field, gravity, disk damage, lock-on steering, projectile sweep, relativistic
  * dynamics, light history, physics, observer, [presentation], lifetime, death, remove. Registration order is execution
  * order.
  *
@@ -85,6 +86,8 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
     val boundaryFieldSystem = BoundaryFieldSystem(deps.mapProvider, deps.shimmerImpacts, deps.settings)
     // After the boundary field and before the sweep and relativisticDynamics: it adds to accel / applies forces.
     val gravitySystem = GravitySystem(deps.settings)
+    // Accretion-disk damage (ST-175) runs in afterStep, after gravity has absorbed bodies inside the horizon.
+    val diskDamageSystem = DiskDamageSystem()
     // A lock-on shot adds its engine acceleration in beforeStep like the ship; RelativisticDynamics integrates it last.
     val lockOnSteeringSystem = LockOnSteeringSystem(deps.settings)
     val projectileSweepSystem = ProjectileSweepSystem(deps.world, deps.settings)
@@ -112,6 +115,7 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
         addSystem(contactSystem)
         addSystem(boundaryFieldSystem)
         addSystem(gravitySystem)
+        addSystem(diskDamageSystem)
         addSystem(lockOnSteeringSystem)
         addSystem(projectileSweepSystem)
         addSystem(relativisticDynamics)
@@ -120,7 +124,7 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
             PhysicsSystem(
                 deps.world, this,
                 listOf(
-                    moveSystem, boundaryFieldSystem, gravitySystem, lockOnSteeringSystem, projectileSweepSystem,
+                    moveSystem, boundaryFieldSystem, gravitySystem, diskDamageSystem, lockOnSteeringSystem, projectileSweepSystem,
                     relativisticDynamics, lightHistory, contactSystem,
                 ),
                 deps.clock,

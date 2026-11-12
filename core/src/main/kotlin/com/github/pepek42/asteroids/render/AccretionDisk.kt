@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.math.RandomXS128
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
+import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.physics.BETA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.BH_RS
 import com.github.pepek42.asteroids.physics.dopplerFactor
@@ -25,8 +26,8 @@ import kotlin.math.sqrt
 /** Inner edge of the disk (the ISCO) as a multiple of `r_s`; the world radius is `DISK_INNER_PER_RS * rs` (`3 * BH_RS` = 3 u). */
 const val DISK_INNER_PER_RS = 3f
 
-/** Outer edge of the disk as a multiple of `r_s`; `12 * BH_RS` = 12 u. */
-const val DISK_OUTER_PER_RS = 12f
+/** Outer edge of the disk as a multiple of `r_s`; `10.2 * BH_RS` = 10.2 u (12 u before ST-175, 15 % smaller). */
+const val DISK_OUTER_PER_RS = 10.2f
 
 /** Inner edge of the default disk (a hole with `r_s` = [BH_RS]). */
 const val DISK_INNER = DISK_INNER_PER_RS * BH_RS
@@ -40,8 +41,12 @@ const val DISK_PARTICLES = 3000
 /** Peak temperature of the disk (K), reached at `r = 49/36 * r_in`, before the gravitational redshift. */
 const val DISK_T_PEAK = 6000f
 
-/** Half-size of a particle quad (world units) for a hole with `r_s` = [BH_RS]; scales with `r_s`. */
-const val DISK_PARTICLE_SIZE = 0.25f
+/**
+ * Half-size of a particle quad (world units) for a hole with `r_s` = [BH_RS]; scales with `r_s`. ST-175: 0.25 -> 0.2 with
+ * [DISK_ALPHA] 1 -> 0.7; the smaller annulus packs the same 3000 particles tighter, so the mean brightness per area drops by
+ * about `(0.2 / 0.25)^2 * 0.7 * (135 / 95)` = 0.64, i.e. roughly -35 %.
+ */
+const val DISK_PARTICLE_SIZE = 0.2f
 
 /** Position of the temperature peak of a thin disk in units of the inner radius: `x = 49/36`. */
 const val DISK_PEAK_X = 49f / 36f
@@ -49,11 +54,22 @@ const val DISK_PEAK_X = 49f / 36f
 /** Floats per vertex: `a_corner` (2), `a_r`, `a_phi0`, `a_size`, `a_temp`. */
 const val DISK_VERTEX_FLOATS = 6
 
-private const val DISK_ALPHA = 1f
+private const val DISK_ALPHA = 0.7f
 private const val VERTEX_SHADER = "shaders/accretion_disk.vert"
 private const val FRAGMENT_SHADER = "shaders/accretion_disk.frag"
 private const val CORNERS_X = "-++-"
 private const val CORNERS_Y = "--++"
+
+/** True when the body at ([dx], [dy]) from the hole centre is inside the disk annulus `[3 rs, DISK_OUTER_PER_RS rs]` (ST-175). */
+fun inDiskAnnulus(dx: Float, dy: Float, rs: Float): Boolean {
+    val rIn = DISK_INNER_PER_RS * rs
+    val rOut = DISK_OUTER_PER_RS * rs
+    val d2 = dx * dx + dy * dy
+    return d2 >= rIn * rIn && d2 <= rOut * rOut
+}
+
+/** Bodies the disk hurts and scatters particles around: ships (player and enemies) and asteroids; not projectiles, debris or the hole. */
+fun diskAffects(type: EntityType): Boolean = type == EntityType.SHIP || type == EntityType.ASTEROID
 
 /** `x^(-3/4) (1 - x^(-1/2))^(1/4)` of the Novikov-Thorne thin disk, without the scale `T*`. */
 private fun diskShape(x: Float): Float = x.pow(-0.75f) * (1f - x.pow(-0.5f)).pow(0.25f)
@@ -213,8 +229,11 @@ class AccretionDiskShader : Disposable {
 
     val ready: Boolean get() = program.isCompiled
 
-    /** Binds the program and the per-frame uniforms (additive blending); call [draw] for each hole, then [end]. */
-    fun begin(camera: Camera, time: Float) {
+    /**
+     * Binds the program and the per-frame uniforms (additive blending); call [draw] for each hole, then [end]. [disturbers] is
+     * [DiskDisturbers.uniforms] (x, y, reach, strength per slot), uploaded without allocating.
+     */
+    fun begin(camera: Camera, time: Float, disturbers: FloatArray) {
         Gdx.gl.glEnable(GL20.GL_BLEND)
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE)
         program.bind()
@@ -227,6 +246,10 @@ class AccretionDiskShader : Disposable {
         )
         lut.bind(0)
         program.setUniformi("u_lut", 0)
+        for (i in 0 until DISK_DISTURBERS) {
+            val o = i * DISK_DISTURBER_FLOATS
+            program.setUniformf(DISTURB_UNIFORMS[i], disturbers[o], disturbers[o + 1], disturbers[o + 2], disturbers[o + 3])
+        }
     }
 
     /** World view: the disk at its true centre, no light delay, aberration or Doppler. */
@@ -291,5 +314,6 @@ class AccretionDiskShader : Disposable {
 
     private companion object {
         val logger = logger<AccretionDiskShader>()
+        val DISTURB_UNIFORMS = Array(DISK_DISTURBERS) { "u_disturb$it" }
     }
 }

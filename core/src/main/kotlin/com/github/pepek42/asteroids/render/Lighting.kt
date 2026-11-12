@@ -27,7 +27,7 @@ const val LIGHT_AMBIENT_NO_STAR = 1f
 const val MAX_LIGHTS_PER_SPRITE = 4
 
 /** Accretion-disk light (FAKE: the disk annulus is one soft point light of size [DISK_LIGHT_SIZE] at the hole centre). */
-const val DISK_LIGHT_INTENSITY = 8f
+const val DISK_LIGHT_INTENSITY = 5.6f
 const val DISK_LIGHT_SIZE = DISK_OUTER
 const val DISK_LIGHT_RANGE = 120f
 

@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-178**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-179**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -17,7 +17,7 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-48z. ST-175 Black hole disk: tone down, damage, scatter on hit
+48z1. ST-178 Disk hazard follow-ups: damage scaling and pilot-view scatter
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49j. ST-173 Enemy difficulty tuning (owner decision)
@@ -208,26 +208,24 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 
 ## M5 Gravity & black holes
 
-### ST-175 Black hole disk: tone down, damage, scatter on hit
+### ST-178 Disk hazard follow-ups: damage scaling and pilot-view scatter
 - status: ready
-- size: M
+- size: S
 - agent: kotlin-dev
-- depends: none
-- files: `render/AccretionDisk.kt`, `render/BlackHoleRenderer.kt`, new `system/DiskDamageSystem.kt` (or a `GravitySystem` step-listener hook), `ecs/GameplaySystems.kt`, `docs/design/physics-lies.md`, `docs/tech/architecture.md`; tests
-- refs: architecture "Gravity, pilot view and death" and the accretion-disk section; physics-lies rows 18, 26, 38; `render/AccretionDisk.kt` (static mesh, GPU rotation)
-- layer: sim (disk damage) + visual
-- assumption: "the ring" = the accretion disk particle ring around the black hole (owner 2026-11-07: "a bit too much"); the dashed Einstein-ring assist only gets its alpha checked, not removed
-- goal: The disk reads as a hazard instead of a glare: dimmer and a bit smaller, it hurts what flies through it, and the particles are knocked aside where something hits them.
+- depends: ST-175
+- files: `system/DiskDamageSystem.kt`, `render/BlackHoleRenderer.kt`, `docs/design/physics-lies.md`; tests
+- refs: architecture accretion-disk paragraph ("Disk hazard"); physics-lies rows 18, 46
+- layer: sim (damage) + visual
+- goal: The disk stays equally lethal when the hole's `rs` or runtime c changes, and in pilot view the scatter sits where the light-delayed disk shows the body.
 - spec:
-  - Tone down: lower the disk brightness and light (`DISK_LIGHT_INTENSITY` and the particle alpha/size, roughly −30 %) and the outer radius `DISK_OUTER` by about 15 %; keep every value derived from `rs` as today. Check the Einstein-ring alpha (0.9) still reads on top; lower it to ~0.6 if it now dominates.
-  - Damage: a body (player, asteroid, enemy; not projectiles, not the hole) whose true position is inside the disk annulus takes `DISK_DAMAGE_PER_SECOND` × `dt` (proper time of the body, so scaled by `1/γ`); disk drag on bodies is out of scope. Tune it so crossing the disk once costs about a quarter of `PLAYER_START_HEALTH`; KDoc the derivation. The death path stays `DeathSystem`.
-  - Scatter: where a body overlaps the disk, the nearby particles are pushed out of its way and drift back over ~1–2 s. Keep it cheap and web-safe: no per-frame allocation, no mesh rebuild per frame — e.g. pass up to 4 "disturber" positions + radii as shader uniforms and offset particles radially in the vertex shader with a decaying strength (GLSL ES 1.00).
-  - physics-lies: the disk now does damage (a stand-in for heating/impact by disk gas, APPROX) and the scatter is visual only (the particles still have no dynamics, row 18).
+  - Derive the damage rate at runtime from the hole's current `DISK_INNER`/`DISK_OUTER` (from `rs`) and `settings.c`, keeping the "one crossing at 0.4 c costs a quarter of `PLAYER_START_HEALTH`" rule; KDoc the derivation.
+  - In pilot view, place each disturber at the body's retarded position (same `PilotViewProjector` path the sprites use) instead of the true interpolated position.
+  - Update physics-lies rows 18 and 46.
 - acceptance:
-  - [ ] Tests: a body resting inside the annulus loses health at the expected rate (pure helper + one World/engine test); a body outside it loses none; projectiles are ignored
-  - [ ] The scatter uniforms are filled from a preallocated array (no allocation in `render`)
-  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes (shader change)
-- playtest: Fly through a black hole's disk: it looks calmer than before, the health bar drops while you are inside, and the particles part around the ship and close up behind it.
+  - [ ] Test: doubling `rs` (or halving c) keeps the damage of one crossing at about a quarter of `PLAYER_START_HEALTH`
+  - [ ] No per-frame allocation in the disturber path
+  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes
+- playtest: After a black-hole merge the disk still costs about a quarter of health per crossing; in pilot view the parted particles line up with the displayed ship.
 
 ## Menus & runs
 

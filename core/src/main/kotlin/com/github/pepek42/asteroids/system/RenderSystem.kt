@@ -15,6 +15,8 @@ import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.github.pepek42.asteroids.Game
 import com.github.pepek42.asteroids.component.AsteroidComponent
+import com.github.pepek42.asteroids.component.BaseInfoComponent
+import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.GravitySourceComponent
 import com.github.pepek42.asteroids.component.GravitySourceKind
@@ -86,6 +88,7 @@ class RenderSystem(
     private var players: ImmutableArray<Entity>? = null
     private var holes: ImmutableArray<Entity>? = null
     private var asteroids: ImmutableArray<Entity>? = null
+    private var diskBodies: ImmutableArray<Entity>? = null
     private var pilotViewActive = false
     private val lightSources = LightSources()
     private val occluders = OccluderPool()
@@ -108,6 +111,10 @@ class RenderSystem(
         players = engine.getEntitiesFor(allOf(PlayerComponent::class, TransformComponent::class).get())
         holes = engine.getEntitiesFor(allOf(GravitySourceComponent::class, TransformComponent::class).get())
         asteroids = engine.getEntitiesFor(allOf(AsteroidComponent::class, BodyComponent::class, TransformComponent::class).get())
+        // Bodies that push accretion-disk particles aside (ST-175); BlackHoleRenderer filters by type.
+        diskBodies = engine.getEntitiesFor(
+            allOf(BaseInfoComponent::class, BodyComponent::class, TransformComponent::class, HealthComponent::class).get()
+        )
     }
 
     override fun update(deltaTime: Float) {
@@ -124,7 +131,7 @@ class RenderSystem(
         if (debugSettings.gridEnabled) {
             gridRenderer.render(camera, camera.zoom, mapProvider.mapWidth, mapProvider.mapHeight)
         }
-        holes?.let { blackHoleRenderer.render(camera, it, if (pilotViewActive) pilotView else null, observer.worldTime, settings.c, debugSettings.einsteinRingEnabled) }
+        holes?.let { blackHoleRenderer.render(camera, it, if (pilotViewActive) pilotView else null, observer.worldTime, settings.c, debugSettings.einsteinRingEnabled, diskBodies) }
         lightingActive = false
         if (settings.lightingEnabled && litSprites?.ready == true) {
             holes?.let { lightSources.rebuild(it, if (settings.starLightEnabled) star else null) }

@@ -11,7 +11,11 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.ObjectMap
 import com.github.pepek42.asteroids.component.GravitySourceKind
+import com.github.pepek42.asteroids.component.baseInfoCmp
+import com.github.pepek42.asteroids.component.bodyCmp
+import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.component.gravitySourceCmp
+import com.github.pepek42.asteroids.component.playerMapper
 import com.github.pepek42.asteroids.component.transformCmp
 
 /** Radius of the black shadow as a multiple of `r_s`: the photon capture cross-section `3 sqrt(3) / 2 r_s`. */
@@ -40,7 +44,8 @@ const val BH_RING_POINTS = 64
 
 private const val PHOTON_RING_ALPHA = 0.6f
 private const val ISCO_ALPHA = 0.4f
-private const val EINSTEIN_RING_ALPHA = 0.9f
+/** Lowered from 0.9 in ST-175: over the dimmer disk the ring would dominate. */
+private const val EINSTEIN_RING_ALPHA = 0.6f
 /** Spacing of the three lines of the Einstein ring, as a fraction of `R_E`. */
 private const val EINSTEIN_RING_STEP_PER_RE = 0.012f
 private const val EINSTEIN_RING_R = 0.5f
@@ -64,12 +69,18 @@ class BlackHoleRenderer : Disposable {
     private val diskShader = AccretionDiskShader()
     private val disks = ObjectMap<Entity, AccretionDisk>()
     private var diskSeed = 0L
+    private val disturbers = DiskDisturbers()
 
     /**
      * Draws every entity of [holes] (each with a gravity source and transform). [pilot] is non-null in pilot view. [einsteinRing] adds the dashed Einstein ring assist. [worldTime] is
-     * `GameClock.worldTime` (turns the disk) and [c] the light speed (gives the disk `GM`).
+     * `GameClock.worldTime` (turns the disk) and [c] the light speed (gives the disk `GM`). [bodies] (entities with a body and a
+     * transform, e.g. ships and asteroids) push disk particles aside where they overlap the disk (ST-175); the push uses their
+     * true interpolated positions, also in pilot view (visual only).
      */
-    fun render(camera: Camera, holes: ImmutableArray<Entity>, pilot: PilotViewProjector?, worldTime: Float, c: Float, einsteinRing: Boolean = false) {
+    fun render(
+        camera: Camera, holes: ImmutableArray<Entity>, pilot: PilotViewProjector?, worldTime: Float, c: Float,
+        einsteinRing: Boolean = false, bodies: ImmutableArray<Entity>? = null,
+    ) {
         if (holes.size() == 0) {
             releaseGoneDisks(holes)
             return
@@ -101,7 +112,7 @@ class BlackHoleRenderer : Disposable {
             ring(BH_ISCO_PER_RS * rs, pilot, dashes = BH_ISCO_DASHES)
         }
         shapes.end()
-        if (diskShader.ready) renderDisks(camera, holes, pilot, worldTime, c)
+        if (diskShader.ready) renderDisks(camera, holes, bodies, pilot, worldTime, c)
         if (einsteinRing) renderEinsteinRings(holes, pilot)
         releaseGoneDisks(holes)
     }
@@ -120,10 +131,39 @@ class BlackHoleRenderer : Disposable {
         shapes.end()
     }
 
+    /** Feeds [disturbers] with every ship or asteroid overlapping a hole's disk, the player first so it gets the live slot. */
+    private fun collectDisturbers(holes: ImmutableArray<Entity>, bodies: ImmutableArray<Entity>?, worldTime: Float) {
+        disturbers.begin(worldTime)
+        if (bodies != null) {
+            for (pass in 0..1) {
+                for (b in 0 until bodies.size()) {
+                    val body = bodies[b]
+                    if (playerMapper.has(body) != (pass == 0) || !diskAffects(body.baseInfoCmp.entityType)) continue
+                    val bc = body.bodyCmp
+                    if (bc.boundingRadius < 0f) bc.boundingRadius = computeBoundingRadius(bc.body)
+                    val pos = body.transformCmp.interpolatedPosition
+                    for (i in 0 until holes.size()) {
+                        val hole = holes[i]
+                        val source = hole.gravitySourceCmp
+                        if (source.kind != GravitySourceKind.BLACK_HOLE) continue
+                        val hp = hole.transformCmp.interpolatedPosition
+                        val reach = diskScatterReach(bc.boundingRadius, source.rs)
+                        if (!diskOverlaps(pos.x - hp.x, pos.y - hp.y, source.rs, reach)) continue
+                        disturbers.touch(pos.x, pos.y, reach)
+                        break
+                    }
+                }
+            }
+        }
+        disturbers.end()
+    }
+
     private fun renderDisks(
-        camera: Camera, holes: ImmutableArray<Entity>, pilot: PilotViewProjector?, worldTime: Float, c: Float,
+        camera: Camera, holes: ImmutableArray<Entity>, bodies: ImmutableArray<Entity>?, pilot: PilotViewProjector?,
+        worldTime: Float, c: Float,
     ) {
-        diskShader.begin(camera, worldTime)
+        collectDisturbers(holes, bodies, worldTime)
+        diskShader.begin(camera, worldTime, disturbers.uniforms)
         for (i in 0 until holes.size()) {
             val e = holes[i]
             val source = e.gravitySourceCmp

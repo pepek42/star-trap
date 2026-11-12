@@ -87,6 +87,7 @@ Options (parsed by `parseLaunchOptions` in `core/.../debug/ScreenshotHarness.kt`
 - `--frames=<N>`: frames to render before capturing (default 180).
 - `--scene=play|menu|cleared`: `play` skips the main menu (default), `menu` stays on it, `cleared` opens the between-levels screen.
 - `--menu-page=main|new_game|scenarios|settings`: the main-menu page to open (with `--scene=menu`).
+- `--settings-tab=controls|ship_computer|graphics|audio|dev`: the Settings tab to open (with `--menu-page=settings`).
 - `--start-level=N`: the run starts at level N (New game offers 1 and 5).
 - `--scenario=<id>`: plays a built-in scenario (`flight_school`, `combat`, `relativity`, `gravity`; see `scenario/Scenarios.kt`).
 - `--thrust`: hold the thrusters during the run.

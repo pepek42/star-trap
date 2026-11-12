@@ -22,7 +22,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49j. ST-173 Enemy difficulty tuning (owner decision)
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
-57f. ST-171 Settings page with tabs
 
 Parked:
 51. ST-091 Targeting-trance scheme
@@ -159,36 +158,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - note: the bots only weave, they don't dodge individual lasers (would need projectile positions in `BotView`); enemy damage attribution is still APPROX (ST-159).
 
 ---
-
-## Menus & runs
-
-Source: owner 2026-11-07 ("After each level there will be save (and buying in shop between levels) ... New game - select level 1, 5th (for quick start later level, with some prebuild once we have shop) ... tutorial like scenarios with some text"). The menu (New game with start level 1/5 and run physics, Scenarios with briefings, global Settings), the restyled `LevelClearedScreen` with a shop placeholder, Esc-to-menu and four scenarios (`scenario/Scenarios.kt`) are done. Web: saves go through libGDX `Preferences` (`KeyValueStore`), never `java.io`.
-
-### ST-171 Settings page with tabs
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: —
-- files: `settings/MenuSettings.kt` (`SettingSpec` gains a category), `screen/MainMenuScreen.kt` (`buildSettingsPage`), `ui/MenuStyle.kt` (tab style), `assets/i18n/messages.properties`; tests in `settings/MenuSettingsTest.kt`, `ui/MainMenuLayoutTest.kt`
-- refs: AGENTS.md "Architecture essentials" (settings), "Vision" (assists are toggles); `ui/MenuStyle.toggleButton`
-- layer: meta (UI)
-- goal (owner 2026-11-07): the Settings page is split into tabs instead of one long scrolling list, with Dev last.
-- spec:
-  - `SettingSpec` gets a `category: SettingCategory` (enum, in tab order); the tabs are built from the enum, so a new setting only names its category. Run settings (`RUN_SETTING_KEYS`) stay on the New-game page and are in no tab.
-  - Tabs and today's settings (global specs only):
-    1. **Controls**: `aim_mode`, plus the key/mouse bindings list (moves here from the right column).
-    2. **Ship computer** (UI / HUD assists): `tactical_overlay`, `tactical_laser_damage`, `tactical_target_rings`, `tactical_intercept_markers`, `target_pointers`, `grid`.
-    3. **Graphics**: `fullscreen` (desktop only), `perspective`. Later quality toggles (shadows, lensing, starfield) go here.
-    4. **Audio**: `master_volume`, `hull_sound_volume`, `computer_sounds`, `computer_sound_volume`.
-    5. **Dev** (always last): `debug_mode` only.
-  - Tab bar: a row of `MenuStyle.toggleButton`s in a `ButtonGroup` at the top of the panel; the selected tab is lit. The page keeps its fixed panel size when switching tabs (size it to the largest tab), so the buttons don't jump.
-  - "Reset defaults" resets the **current tab** only (hint text says so). The Audiowide credit line stays at the bottom of the panel.
-  - The last open tab is remembered for the session (not persisted).
-  - Web: no new reflection, no per-frame allocation (tabs are built once and swapped, like the menu pages).
-- acceptance:
-  - [ ] Tests: every global spec has a category; `debug_mode` is the only Dev spec and Dev is the last category; no run setting has a tab; reset of one category leaves the others unchanged; all tab i18n keys exist
-  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh` passes; screenshots of each tab (`--scene=menu --menu-page=settings`, add a `--settings-tab=` flag) fit at 800×600 without scrolling
-- playtest: Settings → click through the tabs: each shows only its own options, Dev is last with Debug mode, Reset defaults on Audio resets only the volumes.
 
 ## Parked (low priority)
 

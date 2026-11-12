@@ -45,6 +45,7 @@ import com.github.pepek42.asteroids.scenario.Scenarios
 import com.github.pepek42.asteroids.scenario.applyScenarioPhysics
 import com.github.pepek42.asteroids.settings.KeyValueStore
 import com.github.pepek42.asteroids.settings.MenuSettings
+import com.github.pepek42.asteroids.settings.SettingCategory
 import com.github.pepek42.asteroids.settings.SettingSpec
 import com.github.pepek42.asteroids.settings.loadSettings
 import com.github.pepek42.asteroids.settings.resetSettings
@@ -81,6 +82,8 @@ private const val TEXT_WIDTH = 440f
 private const val SCENARIO_BUTTON_WIDTH = 240f
 /** Vertical room (px) the Settings and Scenarios pages keep for their title and button rows outside the scroll panes. */
 private const val PAGE_CHROME_HEIGHT = 230f
+/** Vertical room (px) the tab bar takes in the Settings panel (button height plus its gap). */
+private const val TAB_BAR_HEIGHT = MENU_BUTTON_HEIGHT + ROW_SPACE
 private val WARNING_COLOR = Color(1f, 0.55f, 0.4f, 1f)
 
 /** Main menu pages. */
@@ -120,6 +123,9 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
 
     /** The page [show] opens; reset to [MenuPage.MAIN] after use. Set before switching to this screen. */
     var nextPage: MenuPage = MenuPage.MAIN
+
+    /** The open Settings tab. The screen is a singleton, so it is kept for the session (not persisted). */
+    var settingsTab: SettingCategory = SettingCategory.entries.first()
 
     /** Scroll panes take the stage height minus the page's title and button rows. */
     private val scrollMaxHeight = object : Value() {
@@ -315,34 +321,60 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         val panel = style.panel()
         val t = panel.panelContent
         t.defaults().top().left()
-        t.add(Label(i18n["menu_settings"], style.title)).colspan(2).padBottom(ROW_SPACE).row()
-        t.add(style.paragraph(i18n["menu_settings_hint"], TEXT_WIDTH * 1.5f, style.muted)).width(TEXT_WIDTH * 1.5f).colspan(2).padBottom(SECTION_SPACE).row()
-        // A ScrollPane cell may be shrunk below its content's width; the content table then
-        // shrinks around its centre and clips labels on the left. Pin each pane to its content width.
-        val settings = Table().also { addSettingRows(it, menuSettings.globalSpecs) }
-        val controlsList = buildControls()
-        val columns = listOf(settings, controlsList)
-        for (content in columns) {
-            val w = content.prefWidth + SCROLLBAR_ALLOWANCE
-            t.add(scrolled(content)).width(w).minWidth(w).maxHeight(scrollMaxHeight)
-                .padRight(if (content === columns.first()) COLUMN_SPACE else 0f)
-        }
+        t.add(Label(i18n["menu_settings"], style.title)).padBottom(ROW_SPACE).row()
+        t.add(style.paragraph(i18n["menu_settings_hint"], TEXT_WIDTH * 1.5f, style.muted)).width(TEXT_WIDTH * 1.5f).padBottom(ROW_SPACE).row()
+
+        // Tabs are built once; switching swaps the actor in one cell. The cell is sized to the largest tab so the
+        // buttons below don't jump. A ScrollPane cell may be shrunk below its content's width, and the content
+        // table then shrinks around its centre and clips labels on the left, so the width is pinned to the content.
+        val tabs = SettingCategory.entries.associateWith { tabContent(it) }
+        val panes = tabs.mapValues { scrolled(it.value) }
+        val paneWidth = tabs.values.maxOf { it.prefWidth } + SCROLLBAR_ALLOWANCE
+        val paneHeight = tabs.values.maxOf { it.prefHeight }
+        val bar = Table()
+        val group = ButtonGroup<TextButton>().apply { setMinCheckCount(1); setMaxCheckCount(1) }
+        val tabButtons = SettingCategory.entries.associateWith { TextButton(i18n[it.labelKey], style.tabButton) }
+        t.add(bar).left().padBottom(ROW_SPACE).row()
+        val body = t.add().width(paneWidth).minWidth(paneWidth).height(object : Value() {
+            override fun get(context: Actor?): Float = minOf(paneHeight, stage.height - PAGE_CHROME_HEIGHT - TAB_BAR_HEIGHT)
+        }).left().top()
         t.row()
+        for (category in SettingCategory.entries) {
+            val b = tabButtons.getValue(category)
+            b.onChange {
+                if (!b.isChecked) return@onChange
+                settingsTab = category
+                body.setActor(panes.getValue(category))
+            }
+            group.add(b)
+            bar.add(b).height(MENU_BUTTON_HEIGHT).padRight(ROW_SPACE)
+        }
+        syncs.add { tabButtons.getValue(settingsTab).isChecked = true }
+
         t.add(buttonRow(
             button("menu_back") { open(MenuPage.MAIN) },
             button("menu_reset_defaults") {
-                resetSettings(menuSettings.globalSpecs)
+                resetSettings(menuSettings.specsIn(settingsTab))
                 saveSettings(store, specs)
                 syncAll()
             }.also { it.addListener(hintTooltip(i18n["menu_reset_defaults_hint"], tooltips, skin)) },
-        )).colspan(2).growX().padTop(SECTION_SPACE).row()
-        t.add(style.label(i18n["credits_fonts"], style.muted)).colspan(2).left().padTop(SECTION_SPACE).row()
+        )).growX().padTop(SECTION_SPACE).row()
+        t.add(style.label(i18n["credits_fonts"], style.muted)).left().padTop(SECTION_SPACE).row()
         return panel
+    }
+
+    /** The content of one Settings tab: its setting rows, and for Controls the key bindings list below them. */
+    private fun tabContent(category: SettingCategory): Table = Table().also {
+        it.top().left()
+        it.defaults().top().left()
+        addSettingRows(it, menuSettings.specsIn(category))
+        if (category == SettingCategory.CONTROLS) it.add(buildControls()).colspan(2).padTop(ROW_SPACE).row()
     }
 
     private fun buildControls(): Table {
         val t = Table()
-        t.defaults().left().pad(ROW_SPACE / 2)
+        t.top().left()
+        t.defaults().left().pad(ROW_SPACE / 4)
         val tr = { key: String -> i18n[key] }
         fun rows(includeDebug: Boolean): List<Pair<String, String>> =
             controlsRows(InputBindings.DEFAULT, controls.scheme, includeDebug, tr)
@@ -354,18 +386,19 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
             shownScheme = controls.scheme
             shownDebug = debug.panelAllowed
             t.clearChildren()
-            t.add(Label(i18n["menu_controls"], style.heading)).colspan(2).padBottom(ROW_SPACE).row()
-            for (row in rows(false)) {
-                t.add(Label(row.first, style.muted)).padRight(COLUMN_SPACE / 2)
-                t.add(Label(row.second, style.body)).row()
-            }
-            if (debug.panelAllowed) {
+            t.add(Label(i18n["menu_controls"], style.heading)).colspan(4).padBottom(ROW_SPACE).row()
+            // Two side-by-side columns of bindings, so the Controls tab fits the panel without scrolling.
+            val all = rows(false) + if (debug.panelAllowed) {
                 val plain = rows(false).toSet()
-                t.add(Label(i18n["menu_controls_debug"], style.heading)).colspan(2).padTop(BUTTON_SPACE).row()
-                for (row in rows(true).filter { it !in plain }) {
+                rows(true).filter { it !in plain }
+            } else emptyList()
+            val perColumn = (all.size + 1) / 2
+            for (i in 0 until perColumn) {
+                for (row in listOfNotNull(all[i], all.getOrNull(i + perColumn))) {
                     t.add(Label(row.first, style.muted)).padRight(COLUMN_SPACE / 2)
-                    t.add(Label(row.second, style.body)).row()
+                    t.add(Label(row.second, style.body)).padRight(COLUMN_SPACE)
                 }
+                t.row()
             }
         }
         fill()

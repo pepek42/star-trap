@@ -40,6 +40,8 @@ data class LaunchOptions(
     val scenario: String? = null,
     /** Main menu page shown at launch (`--menu-page=main|new_game|scenarios|settings`), for screenshots of each page. */
     val menuPage: String? = null,
+    /** Settings tab open at launch (`--settings-tab=controls|ship_computer|graphics|audio|dev`; web: `?settings-tab=`), for screenshots of each tab. */
+    val settingsTab: String? = null,
     /** Forces the pilot view at launch (`--pilot-view`; web: `?pilot-view`); wins over the saved perspective setting. */
     val pilotView: Boolean = false,
     /**
@@ -62,7 +64,7 @@ data class LaunchOptions(
 const val HOLE_NEAR_DISTANCE = 25f
 
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu|cleared`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--near-enemies=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play`, `--start-level=<n>`, `--scenario=<id>`, `--menu-page=<page>`, `--pilot-view`, `--shadow-demo`, `--no-shadows` and `--no-lensing`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu|cleared`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--near-enemies=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play`, `--start-level=<n>`, `--scenario=<id>`, `--menu-page=<page>`, `--settings-tab=<tab>`, `--pilot-view`, `--shadow-demo`, `--no-shadows` and `--no-lensing`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -86,6 +88,7 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
             "--play" -> options = options.copy(play = true)
             "--start-level" -> value?.toIntOrNull()?.takeIf { it >= 1 }?.let { options = options.copy(startLevel = it) }
             "--menu-page" -> if (!value.isNullOrBlank()) options = options.copy(menuPage = value)
+            "--settings-tab" -> if (!value.isNullOrBlank()) options = options.copy(settingsTab = value)
             "--scenario" -> if (!value.isNullOrBlank()) options = options.copy(scenario = value)
             "--pilot-view" -> options = options.copy(pilotView = true)
             "--shadow-demo" -> options = options.copy(shadowDemo = true)

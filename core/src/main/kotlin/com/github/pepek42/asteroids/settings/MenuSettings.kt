@@ -23,21 +23,41 @@ const val SETTINGS_VERSION = 1
 const val PERSPECTIVE_OUTSIDE = "outside"
 const val PERSPECTIVE_PILOT = "pilot"
 
-/** One player-facing setting. The menu, persistence and "Reset defaults" all iterate a list of these. */
-sealed class SettingSpec(val key: String, val enabled: () -> Boolean = { true }) {
+/**
+ * Tabs of the Settings page, in tab order (Dev stays last). The page builds its tabs from this enum, so a new
+ * setting only names its category. The tab title is the i18n key [labelKey].
+ */
+enum class SettingCategory {
+    CONTROLS, SHIP_COMPUTER, GRAPHICS, AUDIO, DEV;
+
+    val labelKey: String get() = "settings_tab_${name.lowercase()}"
+
+    companion object {
+        /** The tab named [flag] (case-insensitive, e.g. `audio`, `ship_computer`), or null. */
+        fun fromFlag(flag: String?): SettingCategory? = entries.firstOrNull { it.name.equals(flag, ignoreCase = true) }
+    }
+}
+
+/**
+ * One player-facing setting. The menu, persistence and "Reset defaults" all iterate a list of these.
+ * [category] is the Settings tab; it is null only for run settings ([RUN_SETTING_KEYS]), which live on the New game page.
+ */
+sealed class SettingSpec(val key: String, val category: SettingCategory?, val enabled: () -> Boolean = { true }) {
     val labelKey: String get() = "setting_$key"
     val hintKey: String get() = "setting_${key}_hint"
 
     class Toggle(
         key: String,
+        category: SettingCategory?,
         val default: Boolean,
         val get: () -> Boolean,
         val set: (Boolean) -> Unit,
         enabled: () -> Boolean = { true },
-    ) : SettingSpec(key, enabled)
+    ) : SettingSpec(key, category, enabled)
 
     class Slider(
         key: String,
+        category: SettingCategory?,
         val min: Float,
         val max: Float,
         val step: Float,
@@ -46,17 +66,18 @@ sealed class SettingSpec(val key: String, val enabled: () -> Boolean = { true })
         val get: () -> Float,
         val set: (Float) -> Unit,
         enabled: () -> Boolean = { true },
-    ) : SettingSpec(key, enabled)
+    ) : SettingSpec(key, category, enabled)
 
     class Choice(
         key: String,
+        category: SettingCategory?,
         val options: List<String>,
         val optionLabelKeys: List<String>,
         val default: String,
         val get: () -> String,
         val set: (String) -> Unit,
         enabled: () -> Boolean = { true },
-    ) : SettingSpec(key, enabled)
+    ) : SettingSpec(key, category, enabled)
 }
 
 /**
@@ -72,6 +93,9 @@ class MenuSettings(val specs: List<SettingSpec>) {
 
     /** Global settings shown on the Settings page. */
     val globalSpecs: List<SettingSpec> = specs.filter { it.key !in RUN_SETTING_KEYS }
+
+    /** The global settings of one Settings tab, in list order. */
+    fun specsIn(category: SettingCategory): List<SettingSpec> = globalSpecs.filter { it.category == category }
 }
 
 fun menuSettings(
@@ -90,7 +114,7 @@ fun menuSettings(
         listOfNotNull(
             ControlScheme.selectable().let { schemes ->
                 SettingSpec.Choice(
-                    "aim_mode",
+                    "aim_mode", SettingCategory.CONTROLS,
                     schemes.map { it.flag },
                     schemes.map { "scheme_${it.flag}" },
                     ControlScheme.AUTO_AIM.flag,
@@ -99,7 +123,7 @@ fun menuSettings(
                 )
             },
             SettingSpec.Choice(
-                "perspective",
+                "perspective", SettingCategory.GRAPHICS,
                 listOf(PERSPECTIVE_OUTSIDE, PERSPECTIVE_PILOT),
                 listOf("perspective_outside", "perspective_pilot"),
                 if (PILOT_VIEW_DEFAULT) PERSPECTIVE_PILOT else PERSPECTIVE_OUTSIDE,
@@ -107,7 +131,7 @@ fun menuSettings(
                 { relativity.pilotView = it == PERSPECTIVE_PILOT },
             ),
             SettingSpec.Choice(
-                "tactical_overlay",
+                "tactical_overlay", SettingCategory.SHIP_COMPUTER,
                 TacticalOverlayMode.entries.map { it.flag },
                 TacticalOverlayMode.entries.map { "tactical_overlay_${it.flag}" },
                 TACTICAL_OVERLAY_DEFAULT_MODE.flag,
@@ -120,66 +144,66 @@ fun menuSettings(
                 },
             ),
             SettingSpec.Toggle(
-                "tactical_laser_damage", TACTICAL_LASER_DAMAGE_DEFAULT,
+                "tactical_laser_damage", SettingCategory.SHIP_COMPUTER, TACTICAL_LASER_DAMAGE_DEFAULT,
                 { tactical.showLaserDamage }, { tactical.showLaserDamage = it }, relativityOn,
             ),
             SettingSpec.Toggle(
-                "tactical_target_rings", TACTICAL_TARGET_RINGS_DEFAULT,
+                "tactical_target_rings", SettingCategory.SHIP_COMPUTER, TACTICAL_TARGET_RINGS_DEFAULT,
                 { tactical.showTargetRings }, { tactical.showTargetRings = it },
             ),
             SettingSpec.Toggle(
-                "tactical_intercept_markers", TACTICAL_INTERCEPT_MARKERS_DEFAULT,
+                "tactical_intercept_markers", SettingCategory.SHIP_COMPUTER, TACTICAL_INTERCEPT_MARKERS_DEFAULT,
                 { tactical.showInterceptMarkers }, { tactical.showInterceptMarkers = it },
             ),
             SettingSpec.Toggle(
-                "tactical_incoming_fire", TACTICAL_INCOMING_FIRE_DEFAULT,
+                "tactical_incoming_fire", SettingCategory.SHIP_COMPUTER, TACTICAL_INCOMING_FIRE_DEFAULT,
                 { tactical.showIncomingFire }, { tactical.showIncomingFire = it },
             ),
             SettingSpec.Toggle(
-                "tactical_lock_on_markers", TACTICAL_LOCK_ON_MARKERS_DEFAULT,
+                "tactical_lock_on_markers", SettingCategory.SHIP_COMPUTER, TACTICAL_LOCK_ON_MARKERS_DEFAULT,
                 { tactical.showLockOnMarkers }, { tactical.showLockOnMarkers = it },
             ),
             SettingSpec.Toggle(
-                "relativity", RELATIVITY_ENABLED,
+                "relativity", null, RELATIVITY_ENABLED,
                 { relativity.relativityEnabled }, { relativity.relativityEnabled = it },
             ),
             SettingSpec.Slider(
-                "speed_of_light", C_MIN, C_MAX_BOX2D_SAFE, 1f, 0, SPEED_OF_LIGHT,
+                "speed_of_light", null, C_MIN, C_MAX_BOX2D_SAFE, 1f, 0, SPEED_OF_LIGHT,
                 { relativity.c }, { relativity.c = it }, relativityOn,
             ),
             SettingSpec.Toggle(
-                "time_warp", TIME_WARP_ENABLED,
+                "time_warp", null, TIME_WARP_ENABLED,
                 { relativity.timeWarpEnabled }, { relativity.timeWarpEnabled = it }, relativityOn,
             ),
             SettingSpec.Toggle(
-                "target_pointers", TARGET_POINTERS_ENABLED,
+                "target_pointers", SettingCategory.SHIP_COMPUTER, TARGET_POINTERS_ENABLED,
                 { debug.targetPointersEnabled }, { debug.targetPointersEnabled = it },
             ),
             SettingSpec.Toggle(
-                "einstein_ring", EINSTEIN_RING_ENABLED,
+                "einstein_ring", SettingCategory.SHIP_COMPUTER, EINSTEIN_RING_ENABLED,
                 { debug.einsteinRingEnabled }, { debug.einsteinRingEnabled = it },
             ),
-            SettingSpec.Toggle("grid", GRID_ENABLED, { debug.gridEnabled }, { debug.gridEnabled = it }),
+            SettingSpec.Toggle("grid", SettingCategory.SHIP_COMPUTER, GRID_ENABLED, { debug.gridEnabled }, { debug.gridEnabled = it }),
             SettingSpec.Slider(
-                "master_volume", 0f, 1f, 0.05f, 2, MASTER_VOLUME_DEFAULT,
+                "master_volume", SettingCategory.AUDIO, 0f, 1f, 0.05f, 2, MASTER_VOLUME_DEFAULT,
                 { sound.masterVolume }, { sound.masterVolume = it },
             ),
             SettingSpec.Slider(
-                "hull_sound_volume", 0f, 1f, 0.05f, 2, HULL_SOUND_VOLUME_DEFAULT,
+                "hull_sound_volume", SettingCategory.AUDIO, 0f, 1f, 0.05f, 2, HULL_SOUND_VOLUME_DEFAULT,
                 { sound.hullSoundVolume }, { sound.hullSoundVolume = it },
             ),
             SettingSpec.Toggle(
-                "computer_sounds", COMPUTER_SOUNDS_DEFAULT,
+                "computer_sounds", SettingCategory.AUDIO, COMPUTER_SOUNDS_DEFAULT,
                 { sound.computerSounds }, { sound.computerSounds = it },
             ),
             SettingSpec.Slider(
-                "computer_sound_volume", 0f, 1f, 0.05f, 2, COMPUTER_SOUND_VOLUME_DEFAULT,
+                "computer_sound_volume", SettingCategory.AUDIO, 0f, 1f, 0.05f, 2, COMPUTER_SOUND_VOLUME_DEFAULT,
                 { sound.computerSoundVolume }, { sound.computerSoundVolume = it },
                 { sound.computerSounds },
             ),
             if (includeFullscreen) {
                 SettingSpec.Toggle(
-                    "fullscreen", false,
+                    "fullscreen", SettingCategory.GRAPHICS, false,
                     { display.fullscreen },
                     {
                         display.fullscreen = it
@@ -188,7 +212,7 @@ fun menuSettings(
                 )
             } else null,
             SettingSpec.Toggle(
-                "debug_mode", DEBUG_MODE_DEFAULT,
+                "debug_mode", SettingCategory.DEV, DEBUG_MODE_DEFAULT,
                 { debug.debugMode },
                 {
                     debug.debugMode = it

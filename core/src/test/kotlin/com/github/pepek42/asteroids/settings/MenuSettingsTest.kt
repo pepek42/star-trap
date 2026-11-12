@@ -103,6 +103,49 @@ class MenuSettingsTest {
     }
 
     @Test
+    fun everyGlobalSpecHasACategoryAndRunSpecsHaveNone() {
+        val settings = Fixture().let { menuSettings(it.rel, it.controls, it.dbg, it.display, true) }
+        assertTrue(settings.globalSpecs.all { it.category != null }, "global spec without a tab")
+        assertTrue(settings.runSpecs.all { it.category == null }, "run setting with a tab")
+        assertEquals(RUN_SETTING_KEYS, settings.runSpecs.map { it.key }.toSet())
+    }
+
+    @Test
+    fun devIsLastAndHoldsOnlyDebugMode() {
+        assertEquals(SettingCategory.DEV, SettingCategory.entries.last())
+        val settings = Fixture().let { menuSettings(it.rel, it.controls, it.dbg, it.display, true) }
+        assertEquals(listOf("debug_mode"), settings.specsIn(SettingCategory.DEV).map { it.key })
+    }
+
+    @Test
+    fun everyTabHasSettingsAndKnownKeysLandWhereSpecified() {
+        val settings = Fixture().let { menuSettings(it.rel, it.controls, it.dbg, it.display, true) }
+        SettingCategory.entries.forEach { assertTrue(settings.specsIn(it).isNotEmpty(), "empty tab $it") }
+        assertEquals(SettingCategory.CONTROLS, settings.specs.first { it.key == "aim_mode" }.category)
+        assertEquals(SettingCategory.GRAPHICS, settings.specs.first { it.key == "perspective" }.category)
+        assertEquals(SettingCategory.SHIP_COMPUTER, settings.specs.first { it.key == "tactical_lock_on_markers" }.category)
+        assertEquals(SettingCategory.AUDIO, settings.specs.first { it.key == "master_volume" }.category)
+    }
+
+    @Test
+    fun resettingOneCategoryLeavesTheOthers() {
+        val f = Fixture()
+        val settings = menuSettings(f.rel, f.controls, f.dbg, f.display, true, sound = f.sound)
+        f.sound.masterVolume = 0.1f
+        f.dbg.gridEnabled = !f.dbg.gridEnabled
+        val gridChanged = f.dbg.gridEnabled
+        resetSettings(settings.specsIn(SettingCategory.AUDIO))
+        assertEquals(MASTER_VOLUME_DEFAULT, f.sound.masterVolume)
+        assertEquals(gridChanged, f.dbg.gridEnabled)
+    }
+
+    @Test
+    fun tabI18nKeysExist() {
+        val missing = SettingCategory.entries.map { it.labelKey } - i18nKeys("messages.properties")
+        assertTrue(missing.isEmpty(), "Missing tab keys: $missing")
+    }
+
+    @Test
     fun relativityDependentSettingsDisableWithRelativity() {
         val f = Fixture()
         f.rel.relativityEnabled = true

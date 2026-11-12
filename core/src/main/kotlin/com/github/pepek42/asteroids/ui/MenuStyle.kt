@@ -31,6 +31,9 @@ private const val PANEL_EDGE_PX = 2f
 private const val BUTTON_PAD_X = 24f
 private const val BUTTON_PAD_Y = 10f
 
+/** Inner horizontal padding (px) of tab buttons: tighter than [BUTTON_PAD_X] so five tabs fit an 800 px screen. */
+private const val TAB_PAD_X = 14f
+
 /** Inner padding (px) of a panel. */
 const val MENU_PANEL_PAD = 28f
 
@@ -69,19 +72,25 @@ class MenuStyle(private val skin: Skin) {
         checkedOver = padded(fill(PRIMARY_OVER))
     }
 
-    private fun buttonStyle(up: Color, over: Color, down: Color) = TextButton.TextButtonStyle().apply {
-        this.up = padded(fill(up))
-        this.over = padded(fill(over))
-        this.down = padded(fill(down))
-        this.disabled = padded(fill(BUTTON_DOWN))
+    /** A tab of a tab bar: a [toggleButton] with tighter side padding. */
+    val tabButton = buttonStyle(BUTTON_UP, BUTTON_OVER, BUTTON_DOWN, TAB_PAD_X).apply {
+        checked = padded(fill(PRIMARY_UP), TAB_PAD_X)
+        checkedOver = padded(fill(PRIMARY_OVER), TAB_PAD_X)
+    }
+
+    private fun buttonStyle(up: Color, over: Color, down: Color, padX: Float = BUTTON_PAD_X) = TextButton.TextButtonStyle().apply {
+        this.up = padded(fill(up), padX)
+        this.over = padded(fill(over), padX)
+        this.down = padded(fill(down), padX)
+        this.disabled = padded(fill(BUTTON_DOWN), padX)
         font = skin.getFont("window")
         fontColor = Color.WHITE
         disabledFontColor = DISABLED_TEXT
     }
 
-    private fun padded(d: Drawable): Drawable = d.apply {
-        leftWidth = BUTTON_PAD_X
-        rightWidth = BUTTON_PAD_X
+    private fun padded(d: Drawable, padX: Float = BUTTON_PAD_X): Drawable = d.apply {
+        leftWidth = padX
+        rightWidth = padX
         topHeight = BUTTON_PAD_Y
         bottomHeight = BUTTON_PAD_Y
     }

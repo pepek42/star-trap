@@ -31,6 +31,7 @@ import com.github.pepek42.asteroids.render.PlanetTextures
 import com.github.pepek42.asteroids.screen.LevelClearedScreen
 import com.github.pepek42.asteroids.screen.MainMenuScreen
 import com.github.pepek42.asteroids.screen.MenuPage
+import com.github.pepek42.asteroids.settings.SettingCategory
 import com.github.pepek42.asteroids.scenario.Scenarios
 import com.github.pepek42.asteroids.scenario.applyScenarioPhysics
 import com.github.pepek42.asteroids.screen.PlayScreen
@@ -151,6 +152,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
         } else {
             MenuPage.entries.firstOrNull { it.name.equals(options.menuPage, ignoreCase = true) }
                 ?.let { ctx.inject<MainMenuScreen>().nextPage = it }
+            SettingCategory.fromFlag(options.settingsTab)?.let { ctx.inject<MainMenuScreen>().settingsTab = it }
             setScreen<MainMenuScreen>()
         }
     }

@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-192**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-193**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -24,7 +24,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-60. ST-182 Auto-aim for dumb rockets
 61. ST-183 Weapon unlock progression
 62. ST-185 Physics fidelity audit before release
 63. ST-075 Pilot view: per-corner retarded time (Terrell rotation)
@@ -148,25 +147,24 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - note (owner 2026-11-12): "I want soon to wrap this project up and ship it to main. Simplify scope. I want all the physics to be as close as possible." Decisions: the roguelike is cut to a weapon unlock (start with lasers; after level 1 pick dumb rockets or the lock-on shot; after level 2 get the other one; a quick start at level 5 gets all weapons). Mouse control schemes go. The UI gets simplified, but only after the owner's decisions (ST-188). Physics and graphics have priority; the game stays as realistic as possible. Owner correction (2026-11-12): the targeting computer already makes the game easy, so the pilot view can carry much more physics (a confusing visual layer is fine, the computer reads it for you). ST-184 was dropped; the parked pilot-view realism cards ST-075, ST-077, ST-079 and ST-080 (no outlines) are unparked into M7, ST-078 and ST-091 are closed as out of scope. Outside stays the default perspective; Pilot is the realistic option. The lock-on improvements (ST-186, ST-187) come after the rocket and progression work.
 - note: every card with questions is `needs-user` until the owner fills the `A:` lines; the specs are written around the recommended answers (marked "Rec").
 
-### ST-182 Auto-aim for dumb rockets
+### ST-192 Rocket fire control: Newtonian branch and gravity-aware planning
 - status: ready
 - size: M
 - agent: kotlin-dev
-- depends: ST-181
-- files: create `weapon/RocketIntercept.kt`; edit `input/AutoAimStrategy.kt`, `system/TacticalOverlaySystem.kt` (intercept marker for the active weapon); tests
-- refs: `physics/PhotonAim.kt` (`trueLeadDirection`), `weapon/LockOnSteering.kt` (`lockOnLeadDirection`), `architecture.md` row 12c (ST-125 intercept markers)
+- depends: ST-182
+- files: `weapon/RocketIntercept.kt`, `input/AutoAimStrategy.kt`, `system/TacticalOverlaySystem.kt`, tests
+- refs: `weapon/RocketIntercept.kt` KDoc (ST-182), `physics/RelativitySettings.kt` `relativityEnabled`, `system/GravitySystem.kt`
 - layer: assist
-- goal: When the player switches to rockets, the auto-aim must aim them. A rocket accelerates from the ship's velocity, so neither the photon lead nor a constant-speed lead hits; the computer solves the intercept for the real rocket flight, using the true target state (computer targeting, physics-lies row 34).
+- goal: Follow-up from ST-182. The rocket probe models the relativistic motor only: with `relativityEnabled` off the rocket integrates Newtonian, and near a planet or black hole `GravitySystem` adds accel the probe does not see, so the aim and the intercept ring point at a straight-line meeting point the rocket never reaches.
 - spec:
-  - Pure, allocation-free `fun rocketInterceptDir(shipX, shipY, shipUx, shipUy, tx, ty, tvx, tvy, properAccel, burn, c, maxTime, out: Vector2): Float` returning the hit time (NaN when there is none). The rocket path for an aim direction is integrated with the same proper-velocity update as `RelativisticDynamics` at the physics step `dt` (no literal; pass it in). Solve by fixed-point iteration on the hit time (start from the straight-line time at the burnout speed, aim at the target extrapolated to that time, re-measure the rocket's time to the target's distance), at most `ROCKET_INTERCEPT_ITERATIONS` iterations, stop below a tolerance derived from the rocket size.
-  - `AutoAimStrategy`: when the active weapon is `ROCKET`, use `rocketInterceptDir` instead of `trueLeadDirection`, and only set `doAttack` when a solution exists within the rocket lifetime.
-  - The ST-125 intercept marker uses the active weapon's solver, so with rockets the ring shows where the rockets will meet the target.
+  - Pick the probe's per-step velocity update with the same `relativityEnabled` switch `RelativisticDynamics` uses (pass the flag in; no new setting).
+  - Fold the gravity accel (`Gravity.kt` pull, `GravitySystem` settings) at the probe position into the probe. If evaluating the field per probe step is too costly, use the assist fallback: no ring and no fire while the plan runs within a `GRAVITY_PLAN_...` radius of a source, named in the KDoc.
+  - Tests for both: relativity off hits the β = 0.5 moving-target case; near a planet the solved plan follows the bent path (or the fallback holds fire and hides the ring).
 - acceptance:
-  - [ ] Test: static target straight ahead, ship at rest: the direction points at the target
-  - [ ] Integration test (real `World`, physics + `RelativisticDynamics`): ship at β = 0.5 along +x, an asteroid 30 u away along +y moving (5, 0): a rocket fired along `rocketInterceptDir` hits it
-  - [ ] Test: a target faster than the rocket that runs away returns NaN and no rocket is fired
+  - [ ] Test: with `relativityEnabled = false`, a rocket fired along `rocketInterceptDir` hits a moving asteroid
+  - [ ] Test: near a gravity source the aim (or the fallback) never sends the rocket where it cannot meet the target
   - [ ] `./gradlew test` passes
-- playtest: With rockets selected, auto-aim salvos hit moving asteroids; the intercept ring sits where the rockets meet the target.
+- playtest: Rockets still hit near a planet or hole, and the intercept ring lines up with the real meeting point.
 
 ### ST-183 Weapon unlock progression
 - status: ready

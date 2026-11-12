@@ -30,6 +30,9 @@ import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaFromV
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
+import com.github.pepek42.asteroids.weapon.ROCKET_ACCEL_FACTOR
+import com.github.pepek42.asteroids.weapon.ROCKET_BURN_SECONDS
+import com.github.pepek42.asteroids.weapon.WeaponType
 import com.github.pepek42.asteroids.system.ContactSystem
 import com.github.pepek42.asteroids.system.LightHistorySystem
 import com.github.pepek42.asteroids.system.PhysicsSystem
@@ -47,6 +50,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import kotlin.math.tanh
 
 /** Real `World`: a ship near c, an asteroid ahead of its hull, and the computer (true-state) fire-control chain. */
 class AutoAimStrategyTest {
@@ -206,6 +210,30 @@ class AutoAimStrategyTest {
         s.weapon.aimAngleRad = null
         provider.spawnProjectile(s.weapon, s.ship)
         assertFalse(hitWithin(s, 3f))
+    }
+
+    @Test
+    fun rocketAimOpensFireOnlyWhenTheRocketCanReachTheTarget() {
+        val s = scenario()
+        s.weapon.weaponType = WeaponType.ROCKET
+        runStrategy(s)
+        assertTrue(s.weapon.doAttack, "the rocket can catch the slow asteroid")
+        assertEquals(s.asteroid, s.strategy.target)
+        assertNotNull(s.weapon.aimAngleRad)
+    }
+
+    @Test
+    fun rocketAimHoldsFireWhenTheTargetOutrunsTheRocket() {
+        val s = scenario()
+        s.weapon.weaponType = WeaponType.ROCKET
+        // Faster than any rocket this ship can launch (beta = 0.8 along +x) can ever fly, running straight away: the
+        // solver must report no hit, so the guns stay shut and the stale target is dropped.
+        val burnoutSpeed = c * tanh(ROCKET_ACCEL_FACTOR * settings.engineProperAccel * ROCKET_BURN_SECONDS / c)
+        s.asteroid.bodyOf().setLinearVelocity(0f, 1.15f * burnoutSpeed)
+        runStrategy(s)
+        assertFalse(s.weapon.doAttack)
+        assertNull(s.strategy.target)
+        assertNull(s.weapon.aimAngleRad)
     }
 
     @Test

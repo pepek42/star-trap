@@ -39,6 +39,7 @@ import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.trueLeadDirection
+import com.github.pepek42.asteroids.physics.uFromV
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.LASER_DAMAGE_LABEL_MIN_FACTOR
 import com.github.pepek42.asteroids.render.displayedPhotonFactor
@@ -96,8 +97,14 @@ import com.github.pepek42.asteroids.component.weaponLoadoutCmpOptional
 import com.github.pepek42.asteroids.ui.TARGET_LOCKED_COLOR
 import com.github.pepek42.asteroids.ui.TARGET_LOCKING_COLOR
 import com.github.pepek42.asteroids.weapon.TargetLockState
+import com.github.pepek42.asteroids.weapon.ROCKET_ACCEL_FACTOR
+import com.github.pepek42.asteroids.weapon.ROCKET_BURN_SECONDS
+import com.github.pepek42.asteroids.weapon.ROCKET_INTERCEPT_MAX_SECONDS
+import com.github.pepek42.asteroids.weapon.WeaponType
 import com.github.pepek42.asteroids.weapon.lockFraction
 import com.github.pepek42.asteroids.weapon.lockReticleRadius
+import com.github.pepek42.asteroids.weapon.rocketInterceptDir
+import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import ktx.ashley.allOf
 import ktx.ashley.exclude
 import kotlin.math.cos
@@ -146,6 +153,7 @@ class TacticalOverlaySystem(
     private val leadIndex = IntArray(TACTICAL_LEAD_MAX)
     private val leadDir = Vector2()
     private val muzzle = Vector2()
+    private val shipU = Vector2()
     private val reticlePos = Vector2()
     private val ringPos = Vector2()
     private var levelTargets: ImmutableArray<Entity>? = null
@@ -404,8 +412,10 @@ class TacticalOverlaySystem(
     }
 
     /**
-     * Intercept markers (ST-125): ring at the point to aim at so a photon hits each of the nearest [TACTICAL_LEAD_MAX]
-     * targets, with a line from the target. Uses the true state of shooter and targets. Must run inside the shape `Line` batch.
+     * Intercept markers (ST-125): ring at the point to aim at so the selected weapon hits each of the nearest
+     * [TACTICAL_LEAD_MAX] targets, with a line from the target. Uses the true state of shooter and targets. Photon
+     * lasers use [trueLeadDirection]; with the pod rocket selected (ST-182) the ring shows where the rocket's real
+     * accelerating flight meets the target ([rocketInterceptDir]). Must run inside the shape `Line` batch.
      */
     private fun drawInterceptMarkers() {
         val player = players?.let { if (it.size() > 0) it[0] else null } ?: return
@@ -433,18 +443,37 @@ class TacticalOverlaySystem(
         val pv = player.relativisticCmpOptional?.vSet ?: player.bodyCmp.body.linearVelocity
         val bx = if (relOn) pv.x / c else 0f
         val by = if (relOn) pv.y / c else 0f
+        val rockets = player.weaponCmpOptional?.weaponType == WeaponType.ROCKET
+        if (rockets) {
+            val rel = player.relativisticCmpOptional
+            if (rel != null) {
+                shipU.set(rel.u)
+            } else {
+                uFromV(pv.x, pv.y, c, relativity.betaMaxMassive, shipU)
+            }
+        }
+        val rocketAccel = ROCKET_ACCEL_FACTOR * relativity.engineProperAccel
         val ringRadius = TACTICAL_LEAD_RING_PX * wpp
         for (k in 0 until n) {
             val target = list[leadIndex[k]]
             val tPos = target.transformCmp.interpolatedPosition
             val tv = target.relativisticCmpOptional?.vSet ?: target.bodyCmp.body.linearVelocity
-            val t = trueLeadDirection(sx, sy, bx, by, tPos.x, tPos.y, tv.x, tv.y, c, leadDir)
+            val t = if (rockets) {
+                rocketInterceptDir(
+                    sx, sy, shipU.x, shipU.y, tPos.x, tPos.y, tv.x, tv.y, rocketAccel, ROCKET_BURN_SECONDS, c,
+                    ROCKET_INTERCEPT_MAX_SECONDS, PHYSICS_UPDATE_INTERVAL, leadDir,
+                )
+            } else {
+                trueLeadDirection(sx, sy, bx, by, tPos.x, tPos.y, tv.x, tv.y, c, leadDir)
+            }
             if (t.isNaN()) continue
             val hitX = tPos.x + tv.x * t
             val hitY = tPos.y + tv.y * t
             val range = hypot(hitX - sx, hitY - sy)
-            val mx = sx + leadDir.x * range
-            val my = sy + leadDir.y * range
+            // A rocket path bends, so the meeting point is not on the launch ray; a photon's is (that is what leadDir
+            // encodes), and the photon marker keeps the ST-125 ray placement unchanged.
+            val mx = if (rockets) hitX else sx + leadDir.x * range
+            val my = if (rockets) hitY else sy + leadDir.y * range
             color.set(target.baseInfoCmp.faction.color).a = TACTICAL_ALPHA
             shape.color = color
             shape.circle(mx, my, ringRadius, TACTICAL_LEAD_RING_SEGMENTS)

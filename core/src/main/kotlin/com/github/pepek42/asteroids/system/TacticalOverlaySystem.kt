@@ -37,10 +37,7 @@ import com.github.pepek42.asteroids.component.removeMapper
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
-import com.github.pepek42.asteroids.input.ControlScheme
-import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.RelativitySettings
-import com.github.pepek42.asteroids.physics.pilotHullToWorld
 import com.github.pepek42.asteroids.physics.trueLeadDirection
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.LASER_DAMAGE_LABEL_MIN_FACTOR
@@ -102,7 +99,6 @@ import com.github.pepek42.asteroids.weapon.lockFraction
 import com.github.pepek42.asteroids.weapon.lockReticleRadius
 import ktx.ashley.allOf
 import ktx.ashley.exclude
-import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -123,7 +119,6 @@ class TacticalOverlaySystem(
     private val relativity: RelativitySettings,
     private val tactical: TacticalSettings,
     private val gameEventManager: GameEventManager,
-    private val controls: ControlSettings,
     private val shape: ShapeRenderer = ShapeRenderer(),
     private val batch: SpriteBatch? = null,
     private val font: BitmapFont? = null,
@@ -401,8 +396,6 @@ class TacticalOverlaySystem(
         val pv = player.relativisticCmpOptional?.vSet ?: player.bodyCmp.body.linearVelocity
         val bx = if (relOn) pv.x / c else 0f
         val by = if (relOn) pv.y / c else 0f
-        val aimsTurret = relativity.pilotHullTransform || controls.scheme == ControlScheme.AUTO_AIM ||
-            controls.scheme == ControlScheme.TWIN_STICK
         val ringRadius = TACTICAL_LEAD_RING_PX * wpp
         for (k in 0 until n) {
             val target = list[leadIndex[k]]
@@ -413,16 +406,8 @@ class TacticalOverlaySystem(
             val hitX = tPos.x + tv.x * t
             val hitY = tPos.y + tv.y * t
             val range = hypot(hitX - sx, hitY - sy)
-            var dirX = leadDir.x
-            var dirY = leadDir.y
-            if (!aimsTurret) {
-                // Outside view + mouse-hull fires along worldHullToPilot(hull), so the cursor must sit on the W hull angle.
-                val hull = pilotHullToWorld(atan2(dirY, dirX), bx, by)
-                dirX = cos(hull)
-                dirY = sin(hull)
-            }
-            val mx = sx + dirX * range
-            val my = sy + dirY * range
+            val mx = sx + leadDir.x * range
+            val my = sy + leadDir.y * range
             color.set(target.baseInfoCmp.faction.color).a = TACTICAL_ALPHA
             shape.color = color
             shape.circle(mx, my, ringRadius, TACTICAL_LEAD_RING_SEGMENTS)

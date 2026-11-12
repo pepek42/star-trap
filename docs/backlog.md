@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-179**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-191**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -22,6 +22,19 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49j. ST-173 Enemy difficulty tuning (owner decision)
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
+
+M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
+58. ST-180 Cut the shop, credits and upgrades
+59. ST-181 Dumb-rocket pod weapon
+60. ST-182 Auto-aim for dumb rockets
+61. ST-183 Weapon unlock progression
+62. ST-185 Physics fidelity audit before release
+63. ST-184 Pilot view made playable by the targeting computer
+64. ST-186 Lock-on shot: booster, sustainer and side-thruster turning
+65. ST-187 Lock-on shot: visible booster, sustainer and RCS plumes
+66. ST-189 Rebalance after the weapon changes
+67. ST-188 Simplify the UI (owner decisions)
+68. ST-190 Release prep: merge AI-slop to master
 
 Parked:
 51. ST-091 Targeting-trance scheme
@@ -156,6 +169,283 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew core:test tool:test` passes
 - playtest: Level 3's single enemy is a real threat; level 5 is hard but survivable.
 - note: the bots only weave, they don't dodge individual lasers (would need projectile positions in `BotView`); enemy damage attribution is still APPROX (ST-159).
+
+---
+
+## M7 Ship it
+
+- note (owner 2026-11-12): "I want soon to wrap this project up and ship it to main. Simplify scope. I want all the physics to be as close as possible." Decisions: the roguelike is cut to a weapon unlock (start with lasers; after level 1 pick dumb rockets or the lock-on shot; after level 2 get the other one; a quick start at level 5 gets all weapons). Mouse control schemes go. The UI gets simplified, but only after the owner's decisions (ST-188). Physics and graphics have priority; the game stays as realistic as possible. With the targeting computer the game should be easier, also in pilot view (ST-184). The lock-on improvements (ST-186, ST-187) come after the rocket and progression work.
+- note: every card with questions is `needs-user` until the owner fills the `A:` lines; the specs are written around the recommended answers (marked "Rec").
+
+### ST-180 Cut the shop, credits and upgrades
+- status: needs-user
+- size: M
+- agent: kotlin-dev
+- depends: —
+- files: delete `shop/Shop.kt`, `shop/Upgrades.kt` (keep any constant still used elsewhere by moving it); edit `GameState.kt`, `save/RunSave.kt`, `screen/LevelClearedScreen.kt`, `screen/PlayScreen.kt`, `screen/MainMenuScreen.kt`, `ui/Hud.kt`, `system/HudSystem.kt`, `system/DeathSystem.kt` (credit awards), `provider/PlayerEntityProvider.kt` (start health, engine factor), `component/ShipHandlingComponent.kt`, `assets/i18n/messages.properties`, `tool/` balance runner; tests; docs `game-design.md` §3, §10
+- refs: `architecture.md` "Screens", `balance.md` (the runner's shop handling)
+- layer: infra
+- goal: The roguelike is cut (owner 2026-11-12). Credits, the shop, rerolls and the engine/hull upgrades go away; the cleared screen keeps only the result and "Next level" until ST-183 adds the weapon pick.
+- questions:
+* Q1: Remove the engine and hull upgrades completely, so every run flies the same ship (Rec), or keep a fixed small bonus per level?
+  * A:Remove them. Shop will have 2 options, no money. Just one pick per level.
+* Q2: Keep the run save (Continue from the main menu at the next level)? Rec: yes, it then stores the level, the run physics and (ST-183) the unlocked weapons; `RUN_SAVE_VERSION` bumps, so old saves are ignored.
+  * A:Yes
+* Q3: The quick start at level 5 stays on the New game page (it gives all weapons, ST-183)? Rec: yes.
+  * A:Yes
+- spec (Rec answers): Remove `GameState.credits`, `runSeed` use for the shop, `pendingShop`, `quickStart` shop logic and `upgrades`; the player starts every level with `PLAYER_START_HEALTH` and engine factor 1. `RunSave` keeps `nextLevel` + run physics; bump `RUN_SAVE_VERSION`. Drop the HUD credits line, the cleared-screen shop section and all `shop_*` / `credits_*` i18n keys. The balance runner stops buying upgrades.
+- acceptance:
+  - [ ] `grep -ri "credits\|ShopItem\|RunUpgrades" core/src tool/src` finds nothing
+  - [ ] Test: a save written with the new version restores the level and run physics; a version-1 save is ignored
+  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
+- playtest: Clear level 1: the cleared screen shows the result and "Next level" only; Continue from the menu resumes at level 2.
+
+### ST-181 Dumb-rocket pod weapon
+- status: needs-user
+- size: M
+- agent: kotlin-dev
+- depends: —
+- files: `weapon/WeaponType.kt` (+`ROCKET`), create `weapon/RocketConstants.kt`, `component/RocketComponent.kt`, `provider/RocketProvider.kt`; edit `system/WeaponSystem.kt`, `component/WeaponLoadoutComponent.kt` (pod state as scalar fields, web rule), `system/ContactSystem.kt`, `system/RenderSystem.kt` (plume), `ui/Hud.kt` (pod / reload readout), `raw_assets/` sprite + `tool:packTextures`, `docs/design/physics-lies.md`; tests
+- refs: `architecture.md` "Physics loop details", `LockOnProvider.kt` / `LockOnSteeringSystem.kt` (copy the relativistic body setup and the engine burn), physics-lies rows 46-48
+- layer: sim
+- goal: A new unguided weapon: a pod of 5 dumb rockets. A rocket leaves the ship with the ship's velocity, then its motor burns along its fixed launch heading (constant proper acceleration, so it never reaches c) and it coasts after burnout. Holding fire empties the pod quickly; then the pod reloads.
+- questions:
+* Q1: Which way does a rocket launch? (a) from a gimballed pod along the computer's aim direction, like the laser turret, so auto-aim works without turning the ship (Rec); (b) only along the hull; the auto-aim then fires only when the hull points at the intercept.
+  * A:A
+* Q2: Pod numbers (Rec, all derived from constants): 5 rockets, 0.15 s between rockets, 4 s reload of the whole pod (ship proper time); no ammo limit beyond the reload. OK or other values?
+  * A:Ok
+* Q3: Motor (Rec): proper acceleration 2 × `ENGINE_PROPER_ACCEL` for 1.5 s of the rocket's own clock (burnout β ≈ 0.78 at defaults), lifetime = burn + a coast across half the arena (like `lockOnLifetime`). OK?
+  * A:Lets start with proposed. Lifetime can be detonate at arena boundry
+* Q4: Damage per rocket (Rec): `ENEMY_HEALTH / 2` on a direct hit (two rockets kill a ship; a large asteroid at 150 HP takes three). Add a blast radius (more realistic warhead, splash on nearby bodies with an impulse) or direct hit only (Rec: direct hit for now)?
+  * A:Recommended
+* Q5: Can the laser shoot rockets down like lock-on shots (1 HP)? Rec: yes, same rule for enemies later.
+  * A:Yes
+- spec (Rec answers):
+  - `RocketConstants.kt`: `ROCKET_POD_SIZE = 5`, `ROCKET_SALVO_INTERVAL`, `ROCKET_RELOAD_SECONDS`, `ROCKET_ACCEL_FACTOR = 2f` (× `settings.engineProperAccel` at runtime), `ROCKET_BURN_SECONDS`, `ROCKET_DAMAGE = ENEMY_HEALTH / 2`, sizes and density like the lock-on shot; `rocketLifetime(c, a0, arenaW, arenaH)` mirrors `lockOnLifetime`. KDoc each derivation.
+  - `RocketProvider`: a small dynamic Box2D box with `RelativisticComponent` whose proper velocity `u` is the ship's `u` (the rocket starts at rest relative to the ship), placed just outside the hull along the launch direction, faction bits like the player's projectiles, `RocketComponent(burnLeft)`.
+  - Motor: a `PhysicsStepListener` (extend `LockOnSteeringSystem` or a sibling `RocketMotorSystem`) adds `thrustAccelWorld(properAccel, heading, v, γ)` while `burnLeft > 0`, and ticks `burnLeft` by `dt/γ`. The heading never changes.
+  - Pod: in the loadout, `rocketsInPod`, `rocketSalvoCooldown`, `rocketReloadLeft` (scalar fields). Fire while `rocketsInPod > 0` and the salvo cooldown is 0; at 0 rockets start the reload; a full reload refills the pod. All on ship proper time, like the laser cooldown (ST-040).
+  - Contact: a hit deals `ROCKET_DAMAGE` and removes the rocket (via `RemoveComponent`); pilot view draws the rocket from light history like any massive body.
+  - Physics-lies: add a row for the rocket motor (no fuel use or reaction mass, like row 47).
+- acceptance:
+  - [ ] Test: holding fire launches exactly 5 rockets `ROCKET_SALVO_INTERVAL` apart, then none until `ROCKET_RELOAD_SECONDS` have passed, then 5 more
+  - [ ] Integration test (real `World`, `PhysicsSystem`, `RelativisticDynamics`): a rocket launched from a ship moving at β = 0.5 keeps its launch heading, speeds up, stays below c and has the burnout speed from the formula within 2 %
+  - [ ] Test: a rocket hit removes `ROCKET_DAMAGE` health and the rocket
+  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
+- playtest: Select the rockets (slot key) and hold fire: five rockets ripple out, accelerate visibly in straight lines and the HUD shows the reload.
+
+### ST-182 Auto-aim for dumb rockets
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-181
+- files: create `weapon/RocketIntercept.kt`; edit `input/AutoAimStrategy.kt`, `system/TacticalOverlaySystem.kt` (intercept marker for the active weapon); tests
+- refs: `physics/PhotonAim.kt` (`trueLeadDirection`), `weapon/LockOnSteering.kt` (`lockOnLeadDirection`), `architecture.md` row 12c (ST-125 intercept markers)
+- layer: assist
+- goal: When the player switches to rockets, the auto-aim must aim them. A rocket accelerates from the ship's velocity, so neither the photon lead nor a constant-speed lead hits; the computer solves the intercept for the real rocket flight, using the true target state (computer targeting, physics-lies row 34).
+- spec:
+  - Pure, allocation-free `fun rocketInterceptDir(shipX, shipY, shipUx, shipUy, tx, ty, tvx, tvy, properAccel, burn, c, maxTime, out: Vector2): Float` returning the hit time (NaN when there is none). The rocket path for an aim direction is integrated with the same proper-velocity update as `RelativisticDynamics` at the physics step `dt` (no literal; pass it in). Solve by fixed-point iteration on the hit time (start from the straight-line time at the burnout speed, aim at the target extrapolated to that time, re-measure the rocket's time to the target's distance), at most `ROCKET_INTERCEPT_ITERATIONS` iterations, stop below a tolerance derived from the rocket size.
+  - `AutoAimStrategy`: when the active weapon is `ROCKET`, use `rocketInterceptDir` instead of `trueLeadDirection`, and only set `doAttack` when a solution exists within the rocket lifetime.
+  - The ST-125 intercept marker uses the active weapon's solver, so with rockets the ring shows where the rockets will meet the target.
+- acceptance:
+  - [ ] Test: static target straight ahead, ship at rest: the direction points at the target
+  - [ ] Integration test (real `World`, physics + `RelativisticDynamics`): ship at β = 0.5 along +x, an asteroid 30 u away along +y moving (5, 0): a rocket fired along `rocketInterceptDir` hits it
+  - [ ] Test: a target faster than the rocket that runs away returns NaN and no rocket is fired
+  - [ ] `./gradlew test` passes
+- playtest: With rockets selected, auto-aim salvos hit moving asteroids; the intercept ring sits where the rockets meet the target.
+
+### ST-183 Weapon unlock progression
+- status: needs-user
+- size: M
+- agent: kotlin-dev
+- depends: ST-180, ST-181
+- files: `GameState.kt` (unlocked weapons), `component/WeaponLoadoutComponent.kt` (slots from the unlocked set), `provider/PlayerEntityProvider.kt`, `screen/LevelClearedScreen.kt` (pick panel), `save/RunSave.kt`, `scenario/Scenario.kt`, `ui/Hud.kt` (slot strip), `tool/` balance runner, `assets/i18n/messages.properties`; tests; `game-design.md` §3
+- refs: `architecture.md` "Screens"
+- layer: infra
+- goal: Replace the shop with a simple unlock (owner 2026-11-12): level 1 = laser only; after level 1 the cleared screen offers dumb rockets or the lock-on shot; after level 2 the player gets the other one; a quick start at level 5 starts with all weapons.
+- questions:
+* Q1: Slot keys: fixed per weapon (1 = laser, 2 = rockets, 3 = lock-on; a locked slot is empty) (Rec), or in unlock order?
+  * A:
+* Q2: After level 2 the second weapon is given automatically, with a "New weapon: X" line on the cleared screen (Rec)?
+  * A:
+* Q3: Scenarios: all weapons unlocked (Rec), or each scenario lists its own?
+  * A:
+* Q4: Does a run end? (a) endless levels until death, as now (Rec, smallest scope); (b) a final level (e.g. 10) with a victory screen.
+  * A:
+- spec (Rec answers): `GameState.unlockedWeapons` (laser at start; all for a start at `QUICK_START_LEVEL` or above and in scenarios). The player's loadout fills slot 1 laser, slot 2 rockets, slot 3 lock-on when unlocked, else null. `LevelClearedScreen` after level 1 shows two buttons with a one-line description each; "Next level" is enabled only after a pick. After level 2 it unlocks the remaining weapon and says so. `RunSave` stores the unlocked set (bump the version). The HUD shows the three slots (locked ones dim) with the active one highlighted and lock-on ammo / pod count. Balance bots get the weapons a player would have at that level.
+- acceptance:
+  - [ ] Test: a new run has only the laser; picking rockets after L1 gives laser + rockets; after L2 all three
+  - [ ] Test: a start at `QUICK_START_LEVEL` and every scenario have all three
+  - [ ] Test: the unlocked set survives a save/restore
+  - [ ] Test: selecting a locked slot does nothing
+  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
+- playtest: Clear level 1, pick lock-on, play level 2 with keys 1 and 3; clear it and get the rockets.
+
+### ST-184 Pilot view made playable by the targeting computer
+- status: needs-user
+- size: M
+- agent: kotlin-dev
+- depends: ST-179, ST-182
+- files: `system/TacticalOverlaySystem.kt`, `render/TacticalOverlay.kt`, `settings/TacticalSettings.kt`, `settings/MenuSettings.kt`; tests; `main-menu.md` "Perspective"
+- refs: `architecture.md` row 12c, `relativity-effects.md` §E8/E9, physics-lies row 34
+- layer: assist
+- goal: Owner 2026-11-12: "with targeting computer playing the game should be easier, even in pilot view." The pilot view stays honest (light-delayed, aberrated sprites); the ship's computer adds what the pilot needs to fight in it, so the pilot view becomes a real way to play, not a curiosity.
+- questions:
+* Q1: What makes pilot view hardest today? Rec assumption: you cannot tell which delayed sprite is which true target, you do not see where your own shots will go, and steering the hull by the cursor feels off when the sprites are aberrated.
+  * A:
+* Q2: Which assists should the card add? Rec: (a) a faint "light-delay tether" from each target's displayed sprite to its true-position ring; (b) the intercept ring for the active weapon (laser, rockets, lock-on) always on in pilot view; (c) a hull-heading line and a velocity-vector marker (where you are drifting) at the ship; (d) the auto-aim's chosen target highlighted. All toggles under the Ship computer tab.
+  * A:
+* Q3: Unpark the realistic pilot-view polish cards ST-075 (Terrell rotation), ST-077 (aberrated starfield and field band), ST-079 (ghosts of removed entities) and ST-080 (searchlight k = 2, with floor and outlines) after this card? Rec: yes for 075, 077 and 079; 080 without the outlines, since the target rings already mark things.
+  * A:
+* Q4: Close ST-078 (honest lead markers from light-delayed data) and ST-091 (targeting trance) as out of scope? Rec: yes; the computer intercept rings replace ST-078, and the trance is a control scheme.
+  * A:
+* Q5: Make Pilot the default perspective at release once this lands? Rec: no, keep Outside default and offer Pilot as "realistic".
+  * A:
+- spec (Rec answers): add `TacticalSettings.showLightDelayTether` (default on) and `showFlightMarkers` (default on); in pilot view draw (a) a 1 px line, alpha 0.35, from each target's displayed (retarded, aberrated) position to its true ring, only when they are more than the ring radius apart; (b) the intercept ring for the active weapon's solver; (c) the velocity marker at `o + v·FLIGHT_MARKER_SECONDS`, projected through the pilot boost; (d) a thicker ring on the auto-aim target. Pure helpers for the positions, tested. No physics changes.
+- acceptance:
+  - [ ] Tests for each pure helper (tether endpoints, velocity marker position at β = 0 and β = 0.8)
+  - [ ] Screenshot (`--seed=42 --thrust --frames=150 --pilot-view` or the equivalent flags) viewed by the agent: tethers, rings and markers are visible and not cluttered
+  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
+- playtest: Fly a level in pilot view at high β with auto-aim: you can tell which sprite is which target and where your shots will land.
+
+### ST-185 Physics fidelity audit before release
+- status: needs-user
+- size: M
+- agent: physics-researcher
+- depends: —
+- files: `docs/design/physics-lies.md`, create `docs/research/release-fidelity-audit.md`, `docs/backlog.md` (follow-up cards)
+- refs: `docs/design/physics-lies.md` (all rows), `relativity-effects.md` §4
+- layer: sim
+- goal: Owner 2026-11-12: "I want all the physics to be as close as possible." Go through every FAKE/APPROX row and decide per row: remove now (cost and risk), keep because the engine forces it (Box2D, float, perf on web), or keep for gameplay (owner decides). Turn the "remove now" rows into small follow-up cards.
+- questions:
+* Q1: Braking boost (row 7: engines push up to 3× harder against your motion). Remove it for realism (Rec: yes; it makes braking slower, so the balance pass ST-189 rechecks levels)?
+  * A:
+* Q2: Fuel / reaction mass (row 6): add a rocket equation with fuel for the ship? Rec: no for release (big gameplay change); keep the row.
+  * A:
+* Q3: Length-contraction floor at 25 % (row 31) and the clamped starfield Doppler/brightness (row 33): move toward the true values with the floors only as a safety (Rec: floor 10 %, brightness D³ clamped wider)?
+  * A:
+* Q4: Source-source gravity at 0.1 (row 14): try physical coupling with stable initial orbits (the parking-lot idea) for release? Rec: research only, card only if cheap.
+  * A:
+* Q5: Laser damage clamp [0.25, 4] (row 36): widen or remove? Rec: widen to [0.1, 10].
+  * A:
+- spec: For each row: tag (keep-engine / keep-gameplay / remove), cost estimate, web performance risk, and the exact formula that replaces the lie. Recommend the 3-6 most visible wins. Add follow-up cards (`kotlin-dev` or `junior-dev`, size S/M) to M7 after ST-184, `needs-user` where the owner's answer above is not enough.
+- acceptance:
+  - [ ] `release-fidelity-audit.md` has a table covering every physics-lies row
+  - [ ] Follow-up cards are in the backlog and in the implementation order
+  - [ ] No code changes in this card
+- playtest: —
+
+### ST-186 Lock-on shot: booster, sustainer and side-thruster turning
+- status: needs-user
+- size: M
+- agent: kotlin-dev
+- depends: ST-183
+- files: `weapon/LockOnConstants.kt`, `weapon/LockOnSteering.kt`, `system/LockOnSteeringSystem.kt`, `component/LockOnComponent.kt`, `provider/LockOnProvider.kt`, `docs/design/physics-lies.md` rows 46-47; tests
+- refs: physics-lies rows 46-48, `architecture.md` "Physics loop details", `ShipRotationController.kt` (PD turning), commit ST-164
+- layer: sim
+- goal: Owner 2026-11-12: lock-ons need to be more dynamic and fly like the real thing. After launch a booster gives a big speed boost for a short time; then the regular (sustainer) engine takes over. The shot turns with side thrusters (a torque, finite angular acceleration), not by setting its angle, and the main engines only push along the hull, so the path curves because the hull turns.
+- questions:
+* Q1: Booster (Rec): proper acceleration 8 × `ENGINE_PROPER_ACCEL` for 0.3 s of the shot's clock, along the launch heading, no steering during the boost. OK?
+  * A:
+* Q2: Sustainer (Rec): the current 3 × engine accel for 2 s, then coast; the sustainer throttles down when the hull is more than 30° off the guidance direction (so it does not push the wrong way). Or should it burn until it hits (longer chase)?
+  * A:
+* Q3: Guidance (Rec): proportional navigation (N = 3) on the target's true state, replacing the current "lead point" solver; it is what real missiles use and curves more naturally. OK?
+  * A:
+* Q4: Side thrusters (Rec): angular acceleration limit 20 rad/s², max turn rate kept at `LOCK_ON_TURN_RATE`, turning by a PD controller through Box2D torque. OK?
+  * A:
+- spec (Rec answers): `LockOnComponent` gets a `phase` (BOOST, SUSTAIN, COAST) and the burn timers (proper time, ticked by `dt/γ`). Thrust is always along the body angle (`thrustAccelWorld` with the hull heading, never the guidance direction). Turning: the guidance gives a desired heading; a PD controller applies `body.applyTorque` limited by `LOCK_ON_RCS_ANGULAR_ACCEL · I`; no `setTransform`. Expose the current RCS command (−1..1) and phase on the component for ST-187. Update `lockOnLifetime` for the new burn and physics-lies rows 46-47.
+- acceptance:
+  - [ ] Test: the angle changes only through angular velocity (no `setTransform` after launch), and |dω/dt| never exceeds the RCS limit
+  - [ ] Test: the speed after the boost matches the formula within 2 %; during the boost the heading does not change
+  - [ ] Integration test: a shot launched 90° off a target at 40 u hits it within its lifetime
+  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
+- playtest: A lock-on leaps off the rail, then visibly swings its nose around and curves onto the target.
+
+### ST-187 Lock-on shot: visible booster, sustainer and RCS plumes
+- status: ready
+- size: M
+- agent: kotlin-dev
+- depends: ST-186, ST-181
+- files: `system/RenderSystem.kt` (or a new `render/ExhaustRenderer.kt` shared with the rockets and the ship), `raw_assets/` plume sprites + `tool:packTextures`; tests
+- refs: `render/RelativityVisuals.kt` (Doppler tint), `render/PilotView.kt`, physics-lies row 20
+- layer: sim
+- goal: "It should be all visible" (owner 2026-11-12): a big, bright booster plume, a smaller sustainer plume and short side puffs when the RCS fires, drawn for lock-on shots (and the main plume for dumb rockets), so the player can read what each missile is doing. Plumes are light like any sprite: light-delayed and aberrated in pilot view, Doppler-tinted.
+- spec: An additive plume quad behind the body, length and alpha from the phase (BOOST large, SUSTAIN medium, COAST none); two RCS puff quads at the nose sides, alpha from the RCS command of ST-186 (left/right by its sign). Plumes use the entity's displayed transform (retarded in pilot view) and the same Doppler tint as the body. No allocation per frame; pure helper `plumeGeometry(phase, rcs, out)` tested.
+- acceptance:
+  - [ ] Test: `plumeGeometry` gives the BOOST > SUSTAIN > COAST (zero) lengths and the RCS puff on the correct side for a positive and a negative command
+  - [ ] Screenshot (harness) viewed by the agent: a just-launched lock-on shows the booster flame, a turning one shows side puffs
+  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
+- playtest: You can tell at a glance which missiles are boosting, cruising or coasting, and which way they are turning.
+
+### ST-188 Simplify the UI (owner decisions)
+- status: needs-user
+- size: M
+- agent: kotlin-dev
+- depends: ST-179, ST-180, ST-183
+- files: `screen/MainMenuScreen.kt`, `ui/MainMenuLayout.kt`, `settings/MenuSettings.kt`, `ui/Hud.kt`, `screen/LevelClearedScreen.kt`, `ui/DebugPanel.kt`, `assets/i18n/messages.properties`; `main-menu.md`
+- refs: `main-menu.md`
+- layer: infra
+- goal: Owner 2026-11-12: simplify the UI before release, blocked on the owner's decisions. This card collects them; the spec is written once they are answered (it may split into S cards).
+- questions:
+* Q1: Main menu: which entries stay? Rec: Continue, New game (level 1 / quick start level 5), Scenarios, Settings, Controls, Exit (desktop only).
+  * A:
+* Q2: Settings: which stay for players? Rec keep: Perspective, Speed of light c, Time warp, Ship-computer toggles (target rings, intercept rings, tethers, overlay mode), Sound volume, Fullscreen. Move to the debug panel only: Relativity off (Newtonian), engine slider, field and gravity tuning, grid.
+  * A:
+* Q3: Keep the scenarios (Flight school, Combat, Relativity, Gravity) in the release? Rec: yes, they teach the physics.
+  * A:
+* Q4: HUD: what stays? Rec: health, β and γ, ship time τ and arena time t, weapon slots with ammo/reload, targets left, the warp cap warning. Remove anything else (credits are gone with ST-180).
+  * A:
+* Q5: Debug panel (F1) in the release build: hidden unless `--debug-panel` (Rec), or removed?
+  * A:
+* Q6: Anything else on screen that bothers you (minimap, edge arrows, briefings)?
+  * A:
+- spec: written after the answers.
+- acceptance:
+  - [ ] Owner answers recorded; spec and acceptance filled in (or split into cards)
+- playtest: —
+
+### ST-189 Rebalance after the weapon changes
+- status: needs-user
+- size: S
+- agent: kotlin-dev
+- depends: ST-183, ST-185
+- files: `tool/` balance runner and bots, `provider/EnemyShipProvider.kt`, `docs/tech/balance.md`
+- refs: `balance.md` (ST-101, ST-172 sections), ST-173
+- layer: sim (balance)
+- goal: The shop (upgrades) is gone, rockets and the unlock exist, and ST-185 may remove the braking boost. Re-run the headless sweep so levels 1-5 stay winnable without upgrades, and settle enemy difficulty (ST-173).
+- questions:
+* Q1: Fold ST-173 (enemy difficulty, needs-user) into this card and use its recommended option (a), enemy damage scaled per level? Rec: yes, and close ST-173.
+  * A:
+* Q2: Targets stay as before: a cautious bot clears levels 1-3 in ≥ 90 % and level 5 in ≥ 50 % of runs? Rec: yes.
+  * A:
+- spec (Rec answers): bots use the weapons a player has at that level (rockets picked after L1 in half the seeds, lock-on in the other half). Tune only derived spawn/enemy constants (no literals), re-run `./gradlew tool:balanceSim`, record the table in `balance.md`.
+- acceptance:
+  - [ ] The targets in Q2 hold; numbers recorded in `balance.md`
+  - [ ] `./gradlew test tool:test` passes
+- playtest: A fresh run to level 5 feels hard but fair with no shop.
+
+### ST-190 Release prep: merge AI-slop to master
+- status: needs-user
+- size: S
+- agent: junior-dev
+- depends: ST-188, ST-189
+- files: `README.md`, `docs/design/game-design.md` (§1 pitch, §3 loop, §4 controls, §10 milestones), `docs/README.md`, `CREDITS.md`, `AGENTS.md`, `docs/backlog.md`
+- refs: `dev-workflow.md` "Web check"
+- layer: infra
+- goal: Get the branch ready for the owner to merge to `master`: docs describe the shipped game, dead code and stale docs are gone, the web build and tests pass. Agents never commit to or push `master`; the owner merges.
+- questions:
+* Q1: Version label for the release (e.g. `1.0`, `0.9-redshift`)? Where should it show (main menu corner, Rec)?
+  * A:
+* Q2: Merge style: the owner merges `AI-slop` into `master` as is (Rec), or squash per milestone?
+  * A:
+* Q3: Is the web bundle deployed somewhere as part of release (e.g. GitHub Pages), or only built?
+  * A:
+- spec: Update the docs listed above to the shipped scope (no roguelike, auto-aim only, weapon unlock). Check `CREDITS.md` lists every asset. Remove unused code found by a search for unreferenced classes and i18n keys. Run `./gradlew clean test` and `scripts/web-check.sh --play`; record the results in the commit body.
+- acceptance:
+  - [ ] `./gradlew clean test` passes and `scripts/web-check.sh --play` reports OK
+  - [ ] GDD §1/§3/§4/§10 match the shipped game
+  - [ ] The owner's merge command is written in the final message (not run)
+- playtest: Full run from the main menu to level 3 on the web build.
 
 ---
 

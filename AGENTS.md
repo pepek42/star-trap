@@ -6,7 +6,7 @@ Instructions for AI coding agents (Claude Code, opencode, and others) working in
 
 Star Trap: Redshift is a proof-of-concept, physics-based 2D space shooter (Asteroids-like, heading toward an action roguelike). It is built with libGDX + Kotlin + KTX, Ashley ECS and Box2D. "Redshift" has been the in-game name since 2026-11-07. The repo, Gradle projects, packages and the `star-trap-settings` preferences keep the old names, and `TITLE` in `Config.kt` is the only source of the displayed name. The Kotlin package is `com.github.pepek42.asteroids` (not `startrap`).
 
-Controls: by default auto-aim (the mouse steers the hull and the guns pick targets; LMB also fires), RMB fires the thrusters, the mouse wheel zooms, and Esc quits to the menu. `--controls=mouse|twin|auto` picks the scheme.
+Controls: by default auto-aim (the mouse steers the hull and the guns pick targets; LMB also fires), RMB fires the thrusters, the mouse wheel zooms, and Esc quits to the menu. `--controls=twin|auto` picks the scheme.
 
 **The web build (TeaVM) is the primary release target.** Desktop (`lwjgl3`) is the fast dev and test loop, but a feature isn't shipped until it works in the browser (see "Web first").
 

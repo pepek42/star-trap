@@ -25,7 +25,6 @@ import com.github.pepek42.asteroids.input.AutoAimStrategy
 import com.github.pepek42.asteroids.input.ControlScheme
 import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.input.ControlStrategy
-import com.github.pepek42.asteroids.input.MouseHullStrategy
 import com.github.pepek42.asteroids.input.PlayerInputState
 import com.github.pepek42.asteroids.input.TwinStickStrategy
 import com.github.pepek42.asteroids.physics.GameClock
@@ -61,14 +60,11 @@ class PlayerInputSystem(
     /** Arena direction of the auto-aim shot; valid while [autoAimTarget] is not null. */
     val autoAimDir: Vector2 get() = autoAim?.aimDir ?: input.aimWorld
 
-    private val mouseHull = MouseHullStrategy()
-
     // AUTO_AIM is registered in addedToEngine, when the
-    // target family exists (and falls back too if no light history or clock was given).
+    // target family exists (until then, and if no light history or clock was given, it steers the hull without targeting).
     private val strategies: MutableMap<ControlScheme, ControlStrategy> = mutableMapOf(
-        ControlScheme.MOUSE_HULL to mouseHull,
         ControlScheme.TWIN_STICK to TwinStickStrategy(),
-        ControlScheme.AUTO_AIM to mouseHull,
+        ControlScheme.AUTO_AIM to AutoAimStrategy(null, observer, null, settings),
     )
 
     override fun addedToEngine(engine: Engine?) {
@@ -105,9 +101,6 @@ class PlayerInputSystem(
         val scheme = controlSettings.scheme
         val strategy = strategies.getValue(scheme)
         if (scheme != lastScheme) {
-            if (strategy === mouseHull && scheme != ControlScheme.MOUSE_HULL) {
-                logger.info { "Control scheme $scheme is not implemented yet, falling back to mouse-hull" }
-            }
             strategy.onActivate(move, weapon, body.angle)
             input.moveAxis.set(0f, 0f)
             lastScheme = scheme

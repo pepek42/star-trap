@@ -12,17 +12,17 @@ class MainMenuLayoutTest {
 
     @Test
     fun controlsRowsInTableOrder() {
-        val rows = controlsRows(InputBindings.DEFAULT, ControlScheme.MOUSE_HULL, false, i18n)
+        val rows = controlsRows(InputBindings.DEFAULT, ControlScheme.AUTO_AIM, false, i18n)
         assertEquals(12, rows.size)
         assertEquals("T" to i18n("action_tactical_overlay"), rows[5])
         assertEquals("R-Ctrl" to i18n("action_block"), rows[6])
         assertEquals(rows[7].second, i18n("action_quit_to_menu"))
-        assertEquals(i18n("input_lmb") to i18n("action_fire"), rows[1])
+        assertEquals(i18n("input_lmb") to i18n("action_fire_manual"), rows[1])
     }
 
     @Test
     fun debugRowLast() {
-        val rows = controlsRows(InputBindings.DEFAULT, ControlScheme.MOUSE_HULL, true, i18n)
+        val rows = controlsRows(InputBindings.DEFAULT, ControlScheme.AUTO_AIM, true, i18n)
         assertEquals("F1" to i18n("action_debug_panel"), rows.last())
     }
 

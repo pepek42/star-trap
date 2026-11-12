@@ -29,8 +29,6 @@ import com.github.pepek42.asteroids.component.tacticalComputerCmp
 import com.github.pepek42.asteroids.component.weaponCmp
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.event.GameEventManager
-import com.github.pepek42.asteroids.input.ControlScheme
-import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.MapProvider
@@ -64,7 +62,6 @@ class TacticalOverlaySystemTest {
     // Target rings have their own test below; off here so the shape-call counts cover only the overlay.
     private val tactical = TacticalSettings().apply { showTargetRings = false }
     private val shape = mock<ShapeRenderer>()
-    private val controls = ControlSettings()
     private val viewport = mock<Viewport> { on { screenWidth } doReturn 1280 }
     private val map = MapProvider(mock<GameEventManager>(), 200f, 200f)
     private val texture = mock<Texture> {
@@ -77,7 +74,7 @@ class TacticalOverlaySystemTest {
         on { createSprite("spaceship/disc_green") } doReturn sprite
         on { createSprite("player_lock_on") } doReturn sprite
     }
-    private val system = TacticalOverlaySystem(OrthographicCamera(48f, 27f), viewport, map, settings, tactical, GameEventManager(), controls, shape)
+    private val system = TacticalOverlaySystem(OrthographicCamera(48f, 27f), viewport, map, settings, tactical, GameEventManager(), shape)
 
     init {
         PlayerEntityProvider(engine, world, map, atlas, settings).spawnPlayerEntity()
@@ -175,9 +172,8 @@ class TacticalOverlaySystemTest {
 
     @Test
     fun markerRingSitsOnTheLineToAStaticTarget() {
-        // Shooter and target at rest: n' points at the target, so the ring is at the target (outside view, mouse-hull too).
+        // Shooter and target at rest: n' points at the target, so the ring is at the target (outside view, the same for every aim scheme).
         moveAsteroidNearPlayer()
-        controls.scheme = ControlScheme.MOUSE_HULL
         org.mockito.Mockito.clearInvocations(shape)
         system.update(0.016f)
         val circle = org.mockito.Mockito.mockingDetails(shape).invocations.first { it.method.name == "circle" }
@@ -189,7 +185,6 @@ class TacticalOverlaySystemTest {
     fun markerRingSitsOnTheMuzzleToTargetLine() {
         // ST-137: the shooter point is the muzzle (hull centre + weaponPosition), not the hull centre.
         moveAsteroidNearPlayer()
-        controls.scheme = ControlScheme.MOUSE_HULL
         val weaponOffset = Vector2(0f, 2f)
         player().weaponCmp.weaponPosition.set(weaponOffset)
         val playerTr = player().transformCmp

@@ -210,7 +210,7 @@ class PlayScreen(
                 )
                 addSystem(computerSoundSystem)
                 addSystem(DebugVectorSystem(camera, settings, debugSettings))
-                addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>(), gameEventManager, game.get<ControlSettings>(), batch = spriteBatch, font = game.get<Skin>().getFont("font")))
+                addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>(), gameEventManager, batch = spriteBatch, font = game.get<Skin>().getFont("font")))
                 addSystem(DebugSystem(world, engine, camera, debugSettings))
                 addSystem(DebugPanelSystem(debugPanel, observerState, clock))
                 addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock, creditsSource = { if (gameState.scenario == null) gameState.credits else null }))

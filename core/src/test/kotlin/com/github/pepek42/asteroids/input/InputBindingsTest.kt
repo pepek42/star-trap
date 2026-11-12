@@ -41,15 +41,15 @@ class InputBindingsTest {
 
     @Test
     fun forMenuFiltersDebugAndSchemes() {
-        val noDebug = InputBindings.DEFAULT.forMenu(ControlScheme.MOUSE_HULL, includeDebug = false)
-        assertEquals(InputBindings.DEFAULT.filter { !it.debugOnly && ControlScheme.MOUSE_HULL in it.schemes }, noDebug)
+        val noDebug = InputBindings.DEFAULT.forMenu(ControlScheme.AUTO_AIM, includeDebug = false)
+        assertEquals(InputBindings.DEFAULT.filter { !it.debugOnly && ControlScheme.AUTO_AIM in it.schemes }, noDebug)
         assertEquals(12, noDebug.size)
-        val withDebug = InputBindings.DEFAULT.forMenu(ControlScheme.MOUSE_HULL, includeDebug = true)
+        val withDebug = InputBindings.DEFAULT.forMenu(ControlScheme.AUTO_AIM, includeDebug = true)
         assertEquals(InputAction.DEBUG_PANEL, withDebug.last().action)
         assertEquals(13, withDebug.size)
 
         val twin = Binding(InputAction.AIM, InputTrigger.MouseMove, "x", schemes = setOf(ControlScheme.TWIN_STICK))
-        assertFalse(listOf(twin).forMenu(ControlScheme.MOUSE_HULL, true).contains(twin))
+        assertFalse(listOf(twin).forMenu(ControlScheme.AUTO_AIM, true).contains(twin))
     }
 
     @Test
@@ -86,7 +86,7 @@ class InputBindingsTest {
 
     @Test
     fun selectableSchemes() {
-        assertEquals(listOf(ControlScheme.MOUSE_HULL, ControlScheme.TWIN_STICK, ControlScheme.AUTO_AIM), ControlScheme.selectable())
+        assertEquals(listOf(ControlScheme.TWIN_STICK, ControlScheme.AUTO_AIM), ControlScheme.selectable())
     }
 
     @Test
@@ -94,7 +94,6 @@ class InputBindingsTest {
         fun fireLabels(scheme: ControlScheme) =
             InputBindings.DEFAULT.forMenu(scheme, includeDebug = false).filter { it.action == InputAction.FIRE }.map { it.labelKey }
         assertEquals(listOf("action_fire_manual"), fireLabels(ControlScheme.AUTO_AIM))
-        assertEquals(listOf("action_fire"), fireLabels(ControlScheme.MOUSE_HULL))
         assertEquals(listOf("action_fire"), fireLabels(ControlScheme.TWIN_STICK))
         // Dispatch ignores schemes, so LMB still resolves to FIRE.
         assertEquals(InputAction.FIRE, InputBindings.DEFAULT.buttonAction(Input.Buttons.LEFT))

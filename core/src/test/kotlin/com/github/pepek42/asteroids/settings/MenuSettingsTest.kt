@@ -227,24 +227,31 @@ class MenuSettingsTest {
         assertEquals(ControlScheme.AUTO_AIM, ControlSettings().scheme)
         assertEquals(ControlScheme.AUTO_AIM.flag, choice.default)
         assertEquals(ControlScheme.AUTO_AIM.flag, choice.get())
-        choice.set(ControlScheme.MOUSE_HULL.flag)
-        assertEquals(ControlScheme.MOUSE_HULL, a.controls.scheme)
+        choice.set(ControlScheme.TWIN_STICK.flag)
+        assertEquals(ControlScheme.TWIN_STICK, a.controls.scheme)
         val store = MemoryKeyValueStore()
         saveSettings(store, a.specs)
 
         val b = Fixture()
         loadSettings(store, b.specs)
-        assertEquals(ControlScheme.MOUSE_HULL, b.controls.scheme)
+        assertEquals(ControlScheme.TWIN_STICK, b.controls.scheme)
 
         assertTrue("twin" in choice.options)
+        assertFalse("mouse" in choice.options)
+        // The removed mouse-hull scheme: a saved "mouse" is ignored and auto-aim stays selected.
+        val d = Fixture()
+        store.putString("aim_mode", "mouse")
+        loadSettings(store, d.specs)
+        assertEquals(ControlScheme.AUTO_AIM, d.controls.scheme)
+
         val c = Fixture()
         store.putString("aim_mode", ControlScheme.TWIN_STICK.flag)
         loadSettings(store, c.specs)
         assertEquals(ControlScheme.TWIN_STICK, c.controls.scheme)
-        // Game.create applies --controls after loading, so the flag wins over the saved value.
+        // Game.create applies --controls after loading, so the flag wins over the saved value; "mouse" is no flag any more.
         com.github.pepek42.asteroids.debug.parseLaunchOptions(arrayOf("--controls=mouse")).controls
             ?.let { c.controls.scheme = it }
-        assertEquals(ControlScheme.MOUSE_HULL, c.controls.scheme)
+        assertEquals(ControlScheme.TWIN_STICK, c.controls.scheme)
     }
 
     @Test

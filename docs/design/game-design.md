@@ -28,7 +28,7 @@ A run ends on death. Meta progression is out of scope for the POC.
 
 | Input | Action |
 |---|---|
-| Mouse position | Steers the hull (auto-aim and mouse-hull schemes): the ship rotates toward the cursor using thrusters/torque, not instantly. In twin-stick the mouse aims an independent turret instead |
+| Mouse position | Steers the hull (auto-aim scheme): the ship rotates toward the cursor using thrusters/torque, not instantly. In twin-stick the mouse aims an independent turret instead |
 | WASD / arrow keys | Twin-stick scheme only: move direction (world frame in outside view, screen frame in pilot view); the hull turns toward it and the engine fires as it lines up |
 | RMB | Main thrusters (not in twin-stick) |
 | LMB | Fire (in auto-aim the guns also fire on their own at the nearest target in the cone) |
@@ -41,7 +41,7 @@ A run ends on death. Meta progression is out of scope for the POC.
 
 The source of truth is `input/InputBindings.kt`; the main menu lists it.
 
-The default control scheme is **auto-aim** (owner 2026-11-03, ST-063): the mouse steers the hull and RMB thrusts as above, and the guns pick the nearest target in a 90° wide forward cone and fire on their own (LMB still fires manually). Mouse-hull aiming is selectable in the main menu (Aim mode) or with `--controls=mouse`.
+The default control scheme is **auto-aim** (owner 2026-11-03, ST-063): the mouse steers the hull and RMB thrusts as above, and the guns pick the nearest target in a 90° wide forward cone and fire on their own (LMB still fires manually). The other scheme, twin-stick, is selectable in the main menu (Aim mode) or with `--controls=twin`. The mouse-hull scheme (mouse steers, LMB fires by hand, no guns on their own) was removed on 2026-11-12 (ST-179).
 
 Rotation is a PD controller (`ShipRotationController`) that takes the shortest way round; it replaced the old long-way-round algorithm in M1. Target feel: responsive but with inertia. The ship turns at up to about 1 rev/s, with a slight settle and no visible overshoot.
 
@@ -142,6 +142,8 @@ The planner and auto-dev put new questions here or on `needs-user` backlog cards
 - 2026-11-05 (ST-126): Tactical computer overlay is shown **always** by default, in both perspectives (revisit to "Pilot view only" when the shop sells the computer). Velocity arrows are **arena-frame** for now; ship-relative arrows can be a tier-2 option.
 - 2026-11-05 (ST-023): Field damping is tuned to **4.5 1/s**, so a bounce keeps 95.2 % of the normal speed (about 4.8 % lost), and the backstop restitution is 0.95. Owner: "field should reflect 100% of speed. We can try 95% also, to slow down game a little bit."
 - 2026-11-02: The backdrop should be calmer, with orientation aids (reference grid, pointer to the arena centre), ST-100. Code-generated planet sprites are fine as placeholders.
+- 2026-11-12 (owner, M7 "Ship it"): **Wrap up and ship to master with a smaller scope.** The roguelike (shop, credits, upgrades) is cut. Instead there's a weapon unlock: start with lasers; after level 1, pick dumb rockets (a 5-rocket pod with a reload, straight-line acceleration, works with auto-aim) or the lock-on shot; after level 2, get the other one; a quick start at level 5 gets all weapons. The mouse control schemes go. The UI is simplified per the owner's decisions. Physics and graphics have priority, and the physics should be as realistic as possible. The targeting computer should make the game easier, also in pilot view. Later: lock-on shots get a booster, a sustainer and side-thruster turning, all visible. Cards ST-179 … ST-190.
+- 2026-11-12 (ST-179): **The mouse-hull scheme is removed.** Auto-aim (default) and twin-stick stay selectable, and `--controls=` and the Aim mode setting stay. Auto-aim's hull steering (the mouse faces the cursor, RMB thrusts) lives in `AutoAimStrategy`. A saved or flag `mouse` falls back to auto-aim.
 - 2026-11-07: **All player targeting is computer targeting on the true position.** Auto-aim (target pick and lead), lock reticle, target rings and edge arrows use the true state, in both views; only sprites show what light delivers. Sprites themselves are never highlighted. (Enemy pilots stay honest, light-delayed, physics-lies row 45.)
 
 ## 12. Ideas parking lot

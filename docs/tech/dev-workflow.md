@@ -95,7 +95,7 @@ Options (parsed by `parseLaunchOptions` in `core/.../debug/ScreenshotHarness.kt`
 - `--near-asteroids=<n>`: additionally places n large asteroids in a ring 8-15 u around the player (seeded RNG), so near-field effects such as the pilot view are visible on level 1.
 - `--near-enemies=<n>`: places n enemy ships evenly on a 12 u circle around the player (starting straight above), so enemies and their markers are in view on any level. Web: `?near-enemies=2`.
 - `--hole-near[=<u>]`: places the first black hole `<u>` (default 25, `HOLE_NEAR_DISTANCE`) right of the player spawn so the hole and its disk are in view. `--invulnerable` keeps the player alive (also past the horizon) for long runs near a hole. Harness only; normal spawning and death are unchanged. Web: `?hole-near=18&invulnerable`.
-- `--controls=mouse|twin|auto`: picks the control scheme (`ControlScheme.fromFlag`); wins over the saved menu setting. Also works outside screenshot runs.
+- `--controls=twin|auto`: picks the control scheme (`ControlScheme.fromFlag`); wins over the saved menu setting. Also works outside screenshot runs.
 - `--debug-panel`: allows the F1 debug panel even when the "Debug mode" setting is off. Also works outside screenshot runs.
 - `--play`: skips the main menu and starts a level, also outside screenshot runs.
 - `--pilot-view`: starts in the Pilot view (light-delayed, lit sprites) instead of the saved or default perspective. Web: `?pilot-view`.

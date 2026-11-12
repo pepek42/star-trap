@@ -54,14 +54,15 @@ The owner wants two ways to play: "one from player perspective and one from outs
 
 ### Aim modes
 
-`input/ControlScheme.kt` has three entries, but only one has its own strategy:
+`input/ControlScheme.kt` has two entries (ST-179 removed the mouse-hull scheme):
 
 | Scheme | Flag | State |
 |---|---|---|
-| `MOUSE_HULL` | `mouse` | implemented (`MouseHullStrategy`) |
-| `TWIN_STICK` | `twin` | falls back to mouse-hull until ST-061 (WASD thrust direction, mouse turret) |
-| `AUTO_AIM` | `auto` | implemented (ST-062): mouse-hull movement, guns auto-target in a forward cone with honest fire control; ST-063 decides the default |
+| `TWIN_STICK` | `twin` | implemented (ST-061): WASD thrust direction, mouse turret |
+| `AUTO_AIM` | `auto` | default (ST-063): the mouse steers the hull and RMB thrusts (`AutoAimStrategy`); guns auto-target in a forward cone with honest fire control (ST-062) |
 | (trance) | — | parked, ST-091 |
+
+A `mouse` flag or a saved `aim_mode=mouse` is not a scheme any more, so it falls back to auto-aim.
 
 ST-114 adds `ControlScheme.implemented`. **Owner 2026-11-03: the menu has no aim-mode selector until there is a second mode to pick.** That came with ST-062 (auto-aim): the `aim_mode` Choice over `ControlScheme.selectable()` is on the menu, and the controls list rebuilds when the mode changes. ST-061 (twin-stick) only flips `implemented` to join it. The debug panel keeps listing all schemes.
 
@@ -70,7 +71,7 @@ ST-114 adds `ControlScheme.implemented`. **Owner 2026-11-03: the menu has no aim
 | Setting | Backing field | Type / range | Default | Where |
 |---|---|---|---|---|
 | Perspective | `RelativitySettings.pilotView` | choice: Outside (false) / Pilot, realistic (true); V switches in game | `PILOT_VIEW_DEFAULT` (outside) | **menu** |
-| Aim mode | `ControlSettings.scheme` | choice of implemented `ControlScheme`s | auto-aim (ST-063) | **menu** (Mouse / Auto-aim) |
+| Aim mode | `ControlSettings.scheme` | choice of implemented `ControlScheme`s | auto-aim (ST-063) | **menu** (Auto-aim / Twin-stick) |
 | Relativity (off = Newtonian) | `RelativitySettings.relativityEnabled` | toggle | `RELATIVITY_ENABLED` (true) | **menu** |
 | Speed of light c | `RelativitySettings.c` | slider `C_MIN`…`C_MAX_BOX2D_SAFE`, step 1 | `SPEED_OF_LIGHT` (20) | **menu**, disabled when relativity is off |
 | Time warp (arena runs on ship time) | `RelativitySettings.timeWarpEnabled` | toggle | `TIME_WARP_ENABLED` (true) | **menu**, disabled when relativity is off |

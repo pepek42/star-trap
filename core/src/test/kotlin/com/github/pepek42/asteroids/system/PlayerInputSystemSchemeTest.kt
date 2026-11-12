@@ -27,7 +27,7 @@ class PlayerInputSystemSchemeTest {
 
     private val world = World(Vector2.Zero, true)
     private val engine = Engine()
-    private val controls = ControlSettings(ControlScheme.MOUSE_HULL)
+    private val controls = ControlSettings(ControlScheme.AUTO_AIM)
     private val system = PlayerInputSystem(mock<GameEventManager>(), mock<Camera>(), controls)
 
     @AfterEach
@@ -46,7 +46,8 @@ class PlayerInputSystemSchemeTest {
             Entity().add(PlayerComponent()).add(move).add(BodyComponent().apply { this.body = body })
         )
 
-        // MOUSE_HULL passes the held thrust through and turns toward the cursor (at the origin here).
+        // AUTO_AIM passes the held thrust through and turns toward the cursor (at the origin here).
+        // No light history in this engine, so it does not pick targets.
         system.movement(1f)
         engine.update(0.016f)
         assertEquals(1f, move.thrusters, 1e-6f)
@@ -72,7 +73,7 @@ class PlayerInputSystemSchemeTest {
         )
         engine.update(0.016f)
 
-        // Axis pressed in MOUSE_HULL, then the scheme switches: the stale axis must not steer TWIN_STICK.
+        // Axis pressed in AUTO_AIM, then the scheme switches: the stale axis must not steer TWIN_STICK.
         system.moveAxis(0f, 1f)
         controls.scheme = ControlScheme.TWIN_STICK
         engine.update(0.016f)

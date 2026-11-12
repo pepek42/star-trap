@@ -1,7 +1,6 @@
 package com.github.pepek42.asteroids.input
 
 enum class ControlScheme(val flag: String, val implemented: Boolean) {
-    MOUSE_HULL("mouse", true),
     TWIN_STICK("twin", true),
     AUTO_AIM("auto", true);
 

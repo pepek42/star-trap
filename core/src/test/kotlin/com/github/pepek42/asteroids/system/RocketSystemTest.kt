@@ -44,6 +44,7 @@ import com.github.pepek42.asteroids.weapon.ROCKET_DAMAGE
 import com.github.pepek42.asteroids.weapon.ROCKET_POD_SIZE
 import com.github.pepek42.asteroids.weapon.ROCKET_RELOAD_SECONDS
 import com.github.pepek42.asteroids.weapon.ROCKET_SALVO_INTERVAL
+import com.github.pepek42.asteroids.weapon.rocketBurnoutBeta
 import com.github.pepek42.asteroids.weapon.WeaponType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -195,6 +196,22 @@ class RocketSystemTest {
         val coastU = rel.u.x
         repeat(30) { step() }
         assertEquals(coastU, rel.u.x, 1e-3f)
+    }
+
+    @Test
+    fun burnoutSpeedOfARocketLaunchedAtRestMatchesRocketBurnoutBeta() {
+        // Shooter at rest: the burn adds exactly the formula's rapidity, so the last (partial) step must not overshoot.
+        val shooter = addShooter(10f, ARENA / 2f, beta = 0f, aim = 0f)
+        val rocket = provider.spawnRocket(shooter, shooter.weaponCmp)
+        var steps = 0
+        val maxSteps = (5f / PhysicsSystem.PHYSICS_UPDATE_INTERVAL).toInt()
+        while (rocket.rocketCmp.burnLeft > 0f && steps < maxSteps) {
+            step()
+            steps++
+        }
+        assertEquals(0f, rocket.rocketCmp.burnLeft)
+        val beta = rocket.bodyCmp.body.linearVelocity.x / c
+        assertEquals(rocketBurnoutBeta(c, settings.engineProperAccel), beta, 0.005f * beta, "burnout beta $beta")
     }
 
     @Test

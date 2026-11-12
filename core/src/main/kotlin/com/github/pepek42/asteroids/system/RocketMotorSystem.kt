@@ -56,16 +56,18 @@ class RocketMotorSystem(
             if (rocket.burnLeft <= 0f) continue
             val rel = entity.relativisticCmp
             val gamma = gammaFromU(rel.u.x, rel.u.y, c)
+            // The motor runs on the rocket's own clock (proper time): this step burns dt/γ. On the last step only the
+            // remaining burnLeft is burnt, so the thrust is scaled by min(1, burnLeft·γ/dt) and the burn is exact.
+            val fraction = minOf(1f, rocket.burnLeft * gamma / dt)
             if (settings.relativityEnabled) {
                 velocityFromU(rel.u.x, rel.u.y, c, velocity)
-                thrustAccelWorld(properAccel, rocket.headingX, rocket.headingY, velocity.x, velocity.y, gamma, accel)
+                thrustAccelWorld(properAccel * fraction, rocket.headingX, rocket.headingY, velocity.x, velocity.y, gamma, accel)
                 rel.accel.add(accel)
             } else {
                 // Newtonian fallback, mirroring MoveSystem: a force of mass · a0 along the heading.
-                val force = entity.bodyCmp.body.mass * properAccel
+                val force = entity.bodyCmp.body.mass * properAccel * fraction
                 entity.bodyCmp.body.applyForceToCenter(rocket.headingX * force, rocket.headingY * force, true)
             }
-            // The motor runs on the rocket's own clock (proper time): dt/γ. It can never burn past zero.
             rocket.burnLeft = (rocket.burnLeft - dt / gamma).coerceAtLeast(0f)
         }
     }

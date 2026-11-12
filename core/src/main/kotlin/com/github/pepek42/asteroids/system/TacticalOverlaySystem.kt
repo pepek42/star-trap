@@ -72,6 +72,7 @@ import com.github.pepek42.asteroids.render.threatAlpha
 import com.github.pepek42.asteroids.component.ProjectileComponent
 import com.github.pepek42.asteroids.render.insertNearest
 import com.github.pepek42.asteroids.component.LockOnComponent
+import com.github.pepek42.asteroids.component.RocketComponent
 import com.github.pepek42.asteroids.component.lockOnCmp
 import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.render.LOCK_ON_MARKER_LINE_ALPHA
@@ -151,6 +152,7 @@ class TacticalOverlaySystem(
     private var ringTime = 0f
     private var projectiles: ImmutableArray<Entity>? = null
     private var lockOnShots: ImmutableArray<Entity>? = null
+    private var rockets: ImmutableArray<Entity>? = null
     private val chevron = FloatArray(CHEVRON_FLOATS)
     private val miss = Vector2()
     private val edgePos = Vector2()
@@ -166,6 +168,9 @@ class TacticalOverlaySystem(
         )
         lockOnShots = engine.getEntitiesFor(
             allOf(LockOnComponent::class, TransformComponent::class, BaseInfoComponent::class).exclude(RemoveComponent::class).get(),
+        )
+        rockets = engine.getEntitiesFor(
+            allOf(RocketComponent::class, TransformComponent::class, BaseInfoComponent::class).exclude(RemoveComponent::class).get(),
         )
         gameEventManager.addInputListener(this)
     }
@@ -186,6 +191,7 @@ class TacticalOverlaySystem(
         drawLockReticle()
         drawTargetLock()
         drawLockOnMarkers()
+        drawRocketMarkers()
         if (!tacticalOverlayVisible(tactical.mode, relativity.pilotView, tier, tactical.inverted)) return
 
         viewport.apply()
@@ -343,6 +349,37 @@ class TacticalOverlaySystem(
             color.set(faction).a = LOCK_ON_MARKER_LINE_ALPHA
             shape.color = color
             shape.line(pos.x, pos.y, tPos.x, tPos.y)
+        }
+        shape.end()
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+        Gdx.gl.glDisable(GL20.GL_BLEND)
+    }
+
+    /**
+     * Pod rocket markers (ST-191): the same open chevron as the lock-on shot markers, at the TRUE interpolated position of
+     * every rocket in flight, along its heading, in its faction colour. Rockets have no target, so no line. Same toggle
+     * as [drawLockOnMarkers] (`tactical.showLockOnMarkers`). Draw only, allocation-free.
+     */
+    private fun drawRocketMarkers() {
+        if (!tactical.showLockOnMarkers) return
+        val list = rockets ?: return
+        if (list.size() == 0) return
+        viewport.apply()
+        wpp = worldPerPixel(camera.viewportWidth, camera.zoom, viewport.screenWidth)
+        val size = LOCK_ON_MARKER_PX * wpp
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_ZERO, GL20.GL_ONE)
+        shape.projectionMatrix = camera.combined
+        shape.begin(ShapeRenderer.ShapeType.Line)
+        for (i in 0 until list.size()) {
+            val e = list[i]
+            val tr = e.transformCmp
+            val pos = tr.interpolatedPosition
+            lockOnChevron(pos.x, pos.y, tr.interpolatedRotationDeg * MathUtils.degreesToRadians, size, chevron)
+            color.set(e.baseInfoCmp.faction.color).a = 1f
+            shape.color = color
+            shape.line(chevron[0], chevron[1], chevron[2], chevron[3])
+            shape.line(chevron[0], chevron[1], chevron[4], chevron[5])
         }
         shape.end()
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)

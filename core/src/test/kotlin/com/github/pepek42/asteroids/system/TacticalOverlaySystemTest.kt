@@ -73,6 +73,7 @@ class TacticalOverlaySystemTest {
         on { createSprite(AsteroidSize.LARGE.textureRegionName) } doReturn sprite
         on { createSprite("spaceship/disc_green") } doReturn sprite
         on { createSprite("player_lock_on") } doReturn sprite
+        on { createSprite("player_rocket") } doReturn sprite
     }
     private val system = TacticalOverlaySystem(OrthographicCamera(48f, 27f), viewport, map, settings, tactical, GameEventManager(), shape)
 
@@ -301,6 +302,17 @@ class TacticalOverlaySystemTest {
         assertEquals(3, markerLines())
         assertEquals(pos, shot.transformCmp.interpolatedPosition)
         assertEquals(v, shot.bodyCmp.body.linearVelocity)
+    }
+
+    @Test
+    fun rocketInFlightGetsATrueFlightMarkerOnlyWhenTheOverlayIsOn() {
+        val p = player()
+        com.github.pepek42.asteroids.provider.RocketProvider(atlas, engine, world, settings).spawnRocket(p, p.weaponCmp)
+        tactical.showLockOnMarkers = false
+        assertEquals(0, markerLines())
+        tactical.showLockOnMarkers = true
+        // One chevron: two lines, no target line (rockets are unguided).
+        assertEquals(2, markerLines())
     }
 
     @Test

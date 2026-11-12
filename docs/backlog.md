@@ -24,7 +24,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-59a. ST-191 Rocket follow-ups: computer marker, exact burnout, lies numbering
 60. ST-182 Auto-aim for dumb rockets
 61. ST-183 Weapon unlock progression
 62. ST-185 Physics fidelity audit before release
@@ -148,22 +147,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 
 - note (owner 2026-11-12): "I want soon to wrap this project up and ship it to main. Simplify scope. I want all the physics to be as close as possible." Decisions: the roguelike is cut to a weapon unlock (start with lasers; after level 1 pick dumb rockets or the lock-on shot; after level 2 get the other one; a quick start at level 5 gets all weapons). Mouse control schemes go. The UI gets simplified, but only after the owner's decisions (ST-188). Physics and graphics have priority; the game stays as realistic as possible. Owner correction (2026-11-12): the targeting computer already makes the game easy, so the pilot view can carry much more physics (a confusing visual layer is fine, the computer reads it for you). ST-184 was dropped; the parked pilot-view realism cards ST-075, ST-077, ST-079 and ST-080 (no outlines) are unparked into M7, ST-078 and ST-091 are closed as out of scope. Outside stays the default perspective; Pilot is the realistic option. The lock-on improvements (ST-186, ST-187) come after the rocket and progression work.
 - note: every card with questions is `needs-user` until the owner fills the `A:` lines; the specs are written around the recommended answers (marked "Rec").
-
-### ST-191 Rocket follow-ups: computer marker, exact burnout, lies numbering
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: —
-- files: `system/TacticalOverlaySystem.kt`, `system/RocketMotorSystem.kt`, `docs/design/physics-lies.md`; tests
-- refs: ST-177 commit `ef48a99` (true-position markers on lock-on shots), `architecture.md` row 12c
-- layer: assist
-- goal: Loose ends from ST-181. (1) The tactical overlay draws true-position markers only for `LockOnComponent` shots; give rockets in flight the same marker so the computer shows where they really are in the pilot view. (2) `RocketMotorSystem` applies a full step of thrust even when `burnLeft < dt/γ`; scale the last step by `min(1, burnLeft·γ/dt)` so the burn is exactly `ROCKET_BURN_SECONDS`. (3) `physics-lies.md` has two rows numbered 46; renumber without changing other references (grep the repo for "row 4" mentions and fix them).
-- acceptance:
-  - [ ] Test: a rocket in flight gets a true-position marker when the overlay is on, and none when it is off
-  - [ ] Test: burnout β matches `rocketBurnoutBeta` within 0.5 %
-  - [ ] physics-lies row numbers are unique and repo references still point at the right rows
-  - [ ] `./gradlew test` passes
-- playtest: With the tactical overlay on, fire rockets: each has a computer marker at its true position.
 
 ### ST-182 Auto-aim for dumb rockets
 - status: ready

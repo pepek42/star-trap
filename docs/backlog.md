@@ -20,7 +20,6 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49j. ST-173 Enemy difficulty tuning (owner decision)
-49l. ST-177 Targeting computer: true-position markers on lock-on shots
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 57e. ST-170 Scenario briefing pauses the game
@@ -159,27 +158,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew core:test tool:test` passes
 - playtest: Level 3's single enemy is a real threat; level 5 is hard but survivable.
 - note: the bots only weave, they don't dodge individual lasers (would need projectile positions in `BotView`); enemy damage attribution is still APPROX (ST-159).
-
-### ST-177 Targeting computer: true-position markers on lock-on shots
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-164
-- files: `system/TacticalOverlaySystem.kt`, `render/TacticalOverlay.kt` (pure geometry + px consts), `settings/TacticalSettings.kt`, `settings/MenuSettings.kt`, `assets/i18n/messages.properties`, `docs/tech/architecture.md`; tests in `render/TacticalOverlayTest.kt`
-- refs: architecture.md "Homing lock-on shots (ST-164)" and the `TacticalOverlaySystem` row; commit c6e9bc9 (ST-165 `drawTargetLock`, the pattern to copy); physics-lies row 46
-- layer: assist
-- goal: Owner 2026-11-08: in pilot view the lock-on shot sprite is light-delayed, so the player cannot tell where an in-flight shot really is. The targeting computer marks each live lock-on shot at its TRUE interpolated arena position. Draw only, no physics change.
-- spec:
-  - New toggle `TacticalSettings.showLockOnMarkers` (default `TACTICAL_LOCK_ON_MARKERS_DEFAULT = true`), `SettingSpec.Toggle("tactical_lock_on_markers", ...)` next to `tactical_incoming_fire`, i18n `setting_tactical_lock_on_markers` + `_hint` (say it uses the true state, not light).
-  - `drawLockOnMarkers()` is called in `update()` next to `drawTargetLock()`, before the overlay-visible gate (like target rings and the lock, independent of the overlay flip), with its own `shape.begin/end` and blend setup copied from `drawTargetRings`. Family `allOf(LockOnComponent, TransformComponent, BaseInfoComponent).exclude(RemoveComponent)`, fetched in `addedToEngine`.
-  - Marker: an open chevron of constant screen size at `transformCmp.interpolatedPosition`, pointing along `interpolatedRotationDeg`, in `faction.color`. Pure `lockOnChevron(x, y, angleRad, sizeWorld, out: FloatArray): FloatArray` in `TacticalOverlay.kt` returns the 3 points (tip, left, right) for 2 lines; `sizeWorld = LOCK_ON_MARKER_PX · wpp` (new const `LOCK_ON_MARKER_PX = 9f`). If the shot's target is alive (same `targetId` and live `body.userData`, the `LockOnSteeringSystem` check), also draw one faint line (alpha `LOCK_ON_MARKER_LINE_ALPHA = 0.35f`) to the target's interpolated position.
-  - Allocation-free (scratch `FloatArray`, the existing `color`); `ShapeRenderer` lines only (WebGL, no wide lines).
-- acceptance:
-  - [ ] Tests: `lockOnChevron` tip lies `sizeWorld` ahead of `(x, y)` along the angle and the wings are symmetric about the heading (angles 0 and π/2)
-  - [ ] Test (`TacticalOverlaySystemTest` style): with `showLockOnMarkers = false` nothing extra is drawn; a lock-on shot's velocity and position are unchanged after `update`
-  - [ ] Setting shows in the settings menu and persists
-  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes
-- playtest: Pilot view, fire a lock-on shot at a far enemy: a chevron runs ahead of the light-delayed sprite at the shot's real position with a faint line to its target; in the outside view the chevron sits on the sprite.
 
 ---
 

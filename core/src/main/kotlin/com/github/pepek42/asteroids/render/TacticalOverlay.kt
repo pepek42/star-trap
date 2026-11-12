@@ -248,3 +248,27 @@ fun closestApproach(
     out.set(drx + dvx * t, dry + dvy * t)
     return t
 }
+
+/** Side length of the lock-on shot chevron marker in screen pixels (ST-177). */
+const val LOCK_ON_MARKER_PX = 9f
+
+/** Alpha of the faint line from a lock-on shot marker to its live target (ST-177). */
+const val LOCK_ON_MARKER_LINE_ALPHA = 0.35f
+
+/** Angle between the heading and each chevron wing, measured from the tip back toward the wing (rad, about 145 degrees). */
+const val LOCK_ON_CHEVRON_WING_RAD = 2.5f
+
+/**
+ * Open chevron for a lock-on shot at ([x], [y]) pointing along [angleRad] (ST-177). Writes 6 floats into [out]:
+ * tip (`sizeWorld` ahead of the centre), left wing, right wing. Draw it as the two lines tip-left and tip-right.
+ * Wings are the centre plus `sizeWorld` at heading `angle +- LOCK_ON_CHEVRON_WING_RAD`, so they mirror about the heading.
+ */
+fun lockOnChevron(x: Float, y: Float, angleRad: Float, sizeWorld: Float, out: FloatArray): FloatArray {
+    out[0] = x + cos(angleRad) * sizeWorld
+    out[1] = y + sin(angleRad) * sizeWorld
+    out[2] = x + cos(angleRad + LOCK_ON_CHEVRON_WING_RAD) * sizeWorld
+    out[3] = y + sin(angleRad + LOCK_ON_CHEVRON_WING_RAD) * sizeWorld
+    out[4] = x + cos(angleRad - LOCK_ON_CHEVRON_WING_RAD) * sizeWorld
+    out[5] = y + sin(angleRad - LOCK_ON_CHEVRON_WING_RAD) * sizeWorld
+    return out
+}

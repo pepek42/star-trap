@@ -74,6 +74,12 @@ import com.github.pepek42.asteroids.render.edgePointer
 import com.github.pepek42.asteroids.render.threatAlpha
 import com.github.pepek42.asteroids.component.ProjectileComponent
 import com.github.pepek42.asteroids.render.insertNearest
+import com.github.pepek42.asteroids.component.LockOnComponent
+import com.github.pepek42.asteroids.component.lockOnCmp
+import com.github.pepek42.asteroids.component.baseInfoMapper
+import com.github.pepek42.asteroids.render.LOCK_ON_MARKER_LINE_ALPHA
+import com.github.pepek42.asteroids.render.LOCK_ON_MARKER_PX
+import com.github.pepek42.asteroids.render.lockOnChevron
 import com.github.pepek42.asteroids.render.tacticalLeadRange
 import com.github.pepek42.asteroids.render.outlineVertices
 import com.github.pepek42.asteroids.render.tacticalArrowScale
@@ -100,6 +106,9 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
+
+/** Floats in a lock-on chevron: tip, left wing, right wing (x, y each). */
+private const val CHEVRON_FLOATS = 6
 
 /**
  * Tactical computer overlay (ST-123): thin outlines of every body at its true interpolated arena position, with
@@ -146,6 +155,8 @@ class TacticalOverlaySystem(
     private var levelTargets: ImmutableArray<Entity>? = null
     private var ringTime = 0f
     private var projectiles: ImmutableArray<Entity>? = null
+    private var lockOnShots: ImmutableArray<Entity>? = null
+    private val chevron = FloatArray(CHEVRON_FLOATS)
     private val miss = Vector2()
     private val edgePos = Vector2()
 
@@ -157,6 +168,9 @@ class TacticalOverlaySystem(
         levelTargets = engine.getEntitiesFor(levelTargetFamily())
         projectiles = engine.getEntitiesFor(
             allOf(ProjectileComponent::class, BaseInfoComponent::class, BodyComponent::class, TransformComponent::class).get(),
+        )
+        lockOnShots = engine.getEntitiesFor(
+            allOf(LockOnComponent::class, TransformComponent::class, BaseInfoComponent::class).exclude(RemoveComponent::class).get(),
         )
         gameEventManager.addInputListener(this)
     }
@@ -176,6 +190,7 @@ class TacticalOverlaySystem(
         drawTargetRings()
         drawLockReticle()
         drawTargetLock()
+        drawLockOnMarkers()
         if (!tacticalOverlayVisible(tactical.mode, relativity.pilotView, tier, tactical.inverted)) return
 
         viewport.apply()
@@ -299,6 +314,54 @@ class TacticalOverlaySystem(
         shape.end()
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         Gdx.gl.glDisable(GL20.GL_BLEND)
+    }
+
+    /**
+     * Lock-on shot markers (ST-177): an open chevron at the TRUE interpolated position of every live lock-on shot, pointing
+     * along its heading, in its faction colour, plus a faint line to its target while that is still alive (same check as
+     * `LockOnSteeringSystem`). Computer assist for pilot view, where the shot sprite is light-delayed. Independent of the
+     * overlay toggle. Draw only, allocation-free.
+     */
+    private fun drawLockOnMarkers() {
+        if (!tactical.showLockOnMarkers) return
+        val shots = lockOnShots ?: return
+        if (shots.size() == 0) return
+        viewport.apply()
+        wpp = worldPerPixel(camera.viewportWidth, camera.zoom, viewport.screenWidth)
+        val size = LOCK_ON_MARKER_PX * wpp
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_ZERO, GL20.GL_ONE)
+        shape.projectionMatrix = camera.combined
+        shape.begin(ShapeRenderer.ShapeType.Line)
+        for (i in 0 until shots.size()) {
+            val e = shots[i]
+            val tr = e.transformCmp
+            val pos = tr.interpolatedPosition
+            val faction = e.baseInfoCmp.faction.color
+            lockOnChevron(pos.x, pos.y, tr.interpolatedRotationDeg * MathUtils.degreesToRadians, size, chevron)
+            color.set(faction).a = 1f
+            shape.color = color
+            shape.line(chevron[0], chevron[1], chevron[2], chevron[3])
+            shape.line(chevron[0], chevron[1], chevron[4], chevron[5])
+            val target = liveLockOnTarget(e.lockOnCmp) ?: continue
+            val tPos = target.transformCmp.interpolatedPosition
+            color.set(faction).a = LOCK_ON_MARKER_LINE_ALPHA
+            shape.color = color
+            shape.line(pos.x, pos.y, tPos.x, tPos.y)
+        }
+        shape.end()
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+        Gdx.gl.glDisable(GL20.GL_BLEND)
+    }
+
+    /** The shot's target while it is the same live entity (id guard and `body.userData` identity), else null. */
+    private fun liveLockOnTarget(shot: LockOnComponent): Entity? {
+        val target = shot.target ?: return null
+        if (removeMapper.has(target)) return null
+        val info = baseInfoMapper.get(target) ?: return null
+        if (info.id != shot.targetId) return null
+        val body = target.bodyCmpOptional?.body ?: return null
+        return if (body.userData === target) target else null
     }
 
     private fun diamond(x: Float, y: Float, r: Float) {

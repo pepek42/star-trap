@@ -75,6 +75,7 @@ class TacticalOverlaySystemTest {
     private val atlas = mock<TextureAtlas> {
         on { createSprite(AsteroidSize.LARGE.textureRegionName) } doReturn sprite
         on { createSprite("spaceship/disc_green") } doReturn sprite
+        on { createSprite("player_lock_on") } doReturn sprite
     }
     private val system = TacticalOverlaySystem(OrthographicCamera(48f, 27f), viewport, map, settings, tactical, GameEventManager(), controls, shape)
 
@@ -278,5 +279,39 @@ class TacticalOverlaySystemTest {
         tactical.mode = com.github.pepek42.asteroids.render.TacticalOverlayMode.OFF
         engine.update(1f / 60f)
         assertEquals(0, org.mockito.Mockito.mockingDetails(shape).invocations.count { it.method.name == "circle" })
+    }
+
+    private fun spawnShot(): Entity {
+        val p = player()
+        return com.github.pepek42.asteroids.provider.LockOnProvider(atlas, engine, world, settings, map)
+            .spawnLockOn(p, asteroid(), p.weaponCmp)
+    }
+
+    private fun markerLines(): Int {
+        tactical.mode = TacticalOverlayMode.OFF
+        org.mockito.Mockito.clearInvocations(shape)
+        system.update(0.016f)
+        return lineCalls()
+    }
+
+    @Test
+    fun lockOnMarkerDrawsChevronAndTargetLineWithoutMovingTheShot() {
+        val shot = spawnShot()
+        val pos = Vector2(shot.transformCmp.interpolatedPosition)
+        val v = Vector2(shot.bodyCmp.body.linearVelocity)
+        tactical.showLockOnMarkers = false
+        assertEquals(0, markerLines())
+        tactical.showLockOnMarkers = true
+        // Two chevron lines plus one faint line to the live target.
+        assertEquals(3, markerLines())
+        assertEquals(pos, shot.transformCmp.interpolatedPosition)
+        assertEquals(v, shot.bodyCmp.body.linearVelocity)
+    }
+
+    @Test
+    fun lockOnMarkerHasNoTargetLineWhenTargetIsGone() {
+        val shot = spawnShot()
+        shot.getComponent(com.github.pepek42.asteroids.component.LockOnComponent::class.java).targetId = -99
+        assertEquals(2, markerLines())
     }
 }

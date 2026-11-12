@@ -110,4 +110,24 @@ class TacticalOverlayTest {
         assertEquals(listOf(1f, 2f, 3f), keys.toList())
         assertEquals(listOf(1, 5, 3), ids.toList())
     }
+
+    @Test
+    fun lockOnChevronTipIsAheadAndWingsAreSymmetric() {
+        val out = FloatArray(6)
+        for (angle in listOf(0f, (PI / 2).toFloat())) {
+            lockOnChevron(3f, -2f, angle, 2f, out)
+            val hx = kotlin.math.cos(angle)
+            val hy = kotlin.math.sin(angle)
+            assertEquals(3f + 2f * hx, out[0], 1e-5f)
+            assertEquals(-2f + 2f * hy, out[1], 1e-5f)
+            // Wings mirror about the heading: equal along-heading component, opposite across-heading component.
+            val la = (out[2] - 3f) * hx + (out[3] + 2f) * hy
+            val ra = (out[4] - 3f) * hx + (out[5] + 2f) * hy
+            val lc = -(out[2] - 3f) * hy + (out[3] + 2f) * hx
+            val rc = -(out[4] - 3f) * hy + (out[5] + 2f) * hx
+            assertEquals(la, ra, 1e-5f)
+            assertEquals(lc, -rc, 1e-5f)
+            assertTrue(la < 0f)
+        }
+    }
 }

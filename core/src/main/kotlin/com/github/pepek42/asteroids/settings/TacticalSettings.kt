@@ -17,10 +17,13 @@ const val TACTICAL_TARGET_RINGS_DEFAULT = true
 /** Default of [TacticalSettings.showIncomingFire] (ST-158). */
 const val TACTICAL_INCOMING_FIRE_DEFAULT = true
 
+/** Default of [TacticalSettings.showLockOnMarkers] (ST-177). */
+const val TACTICAL_LOCK_ON_MARKERS_DEFAULT = true
+
 /**
  * Tactical overlay preferences: [mode], the in-game flip [inverted], the laser damage multiplier label [showLaserDamage]
  * the intercept markers [showInterceptMarkers] (tier 2 only)
- * the target rings [showTargetRings] and the incoming fire warning [showIncomingFire].
+ * the target rings [showTargetRings] the incoming fire warning [showIncomingFire] and the true-position lock-on shot markers [showLockOnMarkers].
  */
 class TacticalSettings(
     var mode: TacticalOverlayMode = TACTICAL_OVERLAY_DEFAULT_MODE,
@@ -29,4 +32,5 @@ class TacticalSettings(
     var showInterceptMarkers: Boolean = TACTICAL_INTERCEPT_MARKERS_DEFAULT,
     var showTargetRings: Boolean = TACTICAL_TARGET_RINGS_DEFAULT,
     var showIncomingFire: Boolean = TACTICAL_INCOMING_FIRE_DEFAULT,
+    var showLockOnMarkers: Boolean = TACTICAL_LOCK_ON_MARKERS_DEFAULT,
 )

@@ -66,6 +66,8 @@ class BlackHoleRenderer : Disposable {
     private val centre = Vector2()
     private val pt = Vector2()
     private val prevPt = Vector2()
+    private val bodyPos = Vector2()
+    private val holePos = Vector2()
     private val diskShader = AccretionDiskShader()
     private val disks = ObjectMap<Entity, AccretionDisk>()
     private var diskSeed = 0L
@@ -75,7 +77,7 @@ class BlackHoleRenderer : Disposable {
      * Draws every entity of [holes] (each with a gravity source and transform). [pilot] is non-null in pilot view. [einsteinRing] adds the dashed Einstein ring assist. [worldTime] is
      * `GameClock.worldTime` (turns the disk) and [c] the light speed (gives the disk `GM`). [bodies] (entities with a body and a
      * transform, e.g. ships and asteroids) push disk particles aside where they overlap the disk (ST-175); the push uses their
-     * true interpolated positions, also in pilot view (visual only).
+     * interpolated positions, in pilot view the retarded ones (where the displayed sprite and the displayed disk are, visual only).
      */
     fun render(
         camera: Camera, holes: ImmutableArray<Entity>, pilot: PilotViewProjector?, worldTime: Float, c: Float,
@@ -132,7 +134,7 @@ class BlackHoleRenderer : Disposable {
     }
 
     /** Feeds [disturbers] with every ship or asteroid overlapping a hole's disk, the player first so it gets the live slot. */
-    private fun collectDisturbers(holes: ImmutableArray<Entity>, bodies: ImmutableArray<Entity>?, worldTime: Float) {
+    private fun collectDisturbers(holes: ImmutableArray<Entity>, bodies: ImmutableArray<Entity>?, pilot: PilotViewProjector?, worldTime: Float) {
         disturbers.begin(worldTime)
         if (bodies != null) {
             for (pass in 0..1) {
@@ -141,15 +143,15 @@ class BlackHoleRenderer : Disposable {
                     if (playerMapper.has(body) != (pass == 0) || !diskAffects(body.baseInfoCmp.entityType)) continue
                     val bc = body.bodyCmp
                     if (bc.boundingRadius < 0f) bc.boundingRadius = computeBoundingRadius(bc.body)
-                    val pos = body.transformCmp.interpolatedPosition
+                    if (!displayedPosition(body, pilot, bodyPos)) continue
                     for (i in 0 until holes.size()) {
                         val hole = holes[i]
                         val source = hole.gravitySourceCmp
                         if (source.kind != GravitySourceKind.BLACK_HOLE) continue
-                        val hp = hole.transformCmp.interpolatedPosition
+                        if (!displayedPosition(hole, pilot, holePos)) continue
                         val reach = diskScatterReach(bc.boundingRadius, source.rs)
-                        if (!diskOverlaps(pos.x - hp.x, pos.y - hp.y, source.rs, reach)) continue
-                        disturbers.touch(pos.x, pos.y, reach)
+                        if (!diskOverlaps(bodyPos.x - holePos.x, bodyPos.y - holePos.y, source.rs, reach)) continue
+                        disturbers.touch(bodyPos.x, bodyPos.y, reach)
                         break
                     }
                 }
@@ -158,11 +160,18 @@ class BlackHoleRenderer : Disposable {
         disturbers.end()
     }
 
+    /** Writes the arena position [e] is displayed at: retarded in pilot view (false when its light has not arrived), else interpolated. */
+    private fun displayedPosition(e: Entity, pilot: PilotViewProjector?, out: Vector2): Boolean {
+        if (pilot != null) return pilot.retardedCentre(e, out)
+        out.set(e.transformCmp.interpolatedPosition)
+        return true
+    }
+
     private fun renderDisks(
         camera: Camera, holes: ImmutableArray<Entity>, bodies: ImmutableArray<Entity>?, pilot: PilotViewProjector?,
         worldTime: Float, c: Float,
     ) {
-        collectDisturbers(holes, bodies, worldTime)
+        collectDisturbers(holes, bodies, pilot, worldTime)
         diskShader.begin(camera, worldTime, disturbers.uniforms)
         for (i in 0 until holes.size()) {
             val e = holes[i]

@@ -87,7 +87,7 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
     // After the boundary field and before the sweep and relativisticDynamics: it adds to accel / applies forces.
     val gravitySystem = GravitySystem(deps.settings)
     // Accretion-disk damage (ST-175) runs in afterStep, after gravity has absorbed bodies inside the horizon.
-    val diskDamageSystem = DiskDamageSystem()
+    val diskDamageSystem = DiskDamageSystem(deps.settings)
     // A lock-on shot adds its engine acceleration in beforeStep like the ship; RelativisticDynamics integrates it last.
     val lockOnSteeringSystem = LockOnSteeringSystem(deps.settings)
     val projectileSweepSystem = ProjectileSweepSystem(deps.world, deps.settings)

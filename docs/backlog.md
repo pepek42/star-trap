@@ -17,7 +17,6 @@ M4 Relativistic view:
 Audio (owner 2026-11-05):
 
 M5 Gravity & black holes (gravity → black holes/planets → disk → lighting → lensing):
-48z1. ST-178 Disk hazard follow-ups: damage scaling and pilot-view scatter
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49j. ST-173 Enemy difficulty tuning (owner decision)
@@ -205,27 +204,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - playtest: Pilot view, fire a lock-on shot at a far enemy: a chevron runs ahead of the light-delayed sprite at the shot's real position with a faint line to its target; in the outside view the chevron sits on the sprite.
 
 ---
-
-## M5 Gravity & black holes
-
-### ST-178 Disk hazard follow-ups: damage scaling and pilot-view scatter
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-175
-- files: `system/DiskDamageSystem.kt`, `render/BlackHoleRenderer.kt`, `docs/design/physics-lies.md`; tests
-- refs: architecture accretion-disk paragraph ("Disk hazard"); physics-lies rows 18, 46
-- layer: sim (damage) + visual
-- goal: The disk stays equally lethal when the hole's `rs` or runtime c changes, and in pilot view the scatter sits where the light-delayed disk shows the body.
-- spec:
-  - Derive the damage rate at runtime from the hole's current `DISK_INNER`/`DISK_OUTER` (from `rs`) and `settings.c`, keeping the "one crossing at 0.4 c costs a quarter of `PLAYER_START_HEALTH`" rule; KDoc the derivation.
-  - In pilot view, place each disturber at the body's retarded position (same `PilotViewProjector` path the sprites use) instead of the true interpolated position.
-  - Update physics-lies rows 18 and 46.
-- acceptance:
-  - [ ] Test: doubling `rs` (or halving c) keeps the damage of one crossing at about a quarter of `PLAYER_START_HEALTH`
-  - [ ] No per-frame allocation in the disturber path
-  - [ ] `./gradlew core:test` passes; `scripts/web-check.sh --play` passes
-- playtest: After a black-hole merge the disk still costs about a quarter of health per crossing; in pilot view the parted particles line up with the displayed ship.
 
 ## Menus & runs
 

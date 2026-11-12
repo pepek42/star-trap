@@ -19,6 +19,7 @@ import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.physics.BH_RS
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.provider.PLAYER_START_HEALTH
 import com.github.pepek42.asteroids.render.DISK_INNER
 import com.github.pepek42.asteroids.render.DISK_OUTER
@@ -88,6 +89,7 @@ class DiskDamageSystemTest {
 
     private fun runSeconds(seconds: Float) = repeat((seconds / PHYSICS_UPDATE_INTERVAL).toInt()) { physics.update(PHYSICS_UPDATE_INTERVAL) }
 
+    private val rate = diskDamagePerSecond(BH_RS, RelativitySettings().c)
     private val midDisk = (DISK_INNER + DISK_OUTER) / 2f
 
     @Test
@@ -100,10 +102,15 @@ class DiskDamageSystemTest {
         assertTrue(inDiskAnnulus(2f * midDisk, 0f, 2f * BH_RS))
     }
 
+    private fun crossingCost(rs: Float, c: Float): Float =
+        diskDamagePerSecond(rs, c) * diskCrossingLength(rs) / (DISK_CROSSING_SPEED_PER_C * c)
+
     @Test
     fun damagePerSecondCostsAQuarterOfStartHealthPerReferenceCrossing() {
-        val crossingSeconds = DISK_CROSSING_LENGTH / (DISK_CROSSING_SPEED_PER_C * com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT)
-        assertEquals(0.25f * PLAYER_START_HEALTH, DISK_DAMAGE_PER_SECOND * crossingSeconds, 1e-3f)
+        val c = RelativitySettings().c
+        for (pair in listOf(BH_RS to c, 2f * BH_RS to c, BH_RS to c / 2f, 0.5f * BH_RS to 1.5f * c)) {
+            assertEquals(0.25f * PLAYER_START_HEALTH, crossingCost(pair.first, pair.second), 1e-3f, "rs=${pair.first} c=${pair.second}")
+        }
     }
 
     @Test
@@ -111,7 +118,7 @@ class DiskDamageSystemTest {
         hole()
         val health = entity(EntityType.SHIP, midDisk)
         runSeconds(1f)
-        assertEquals(PLAYER_START_HEALTH - DISK_DAMAGE_PER_SECOND, health.health, DISK_DAMAGE_PER_SECOND * 0.03f)
+        assertEquals(PLAYER_START_HEALTH - rate, health.health, rate * 0.03f)
     }
 
     @Test
@@ -149,7 +156,7 @@ class DiskDamageSystemTest {
         hole()
         val health = entity(EntityType.SHIP, midDisk, gamma = 2f)
         runSeconds(1f)
-        assertEquals(PLAYER_START_HEALTH - DISK_DAMAGE_PER_SECOND / 2f, health.health, DISK_DAMAGE_PER_SECOND * 0.02f)
+        assertEquals(PLAYER_START_HEALTH - rate / 2f, health.health, rate * 0.02f)
     }
 
     @Test

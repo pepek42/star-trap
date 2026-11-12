@@ -20,7 +20,6 @@ M5 Gravity & black holes (gravity → black holes/planets → disk → lighting 
 
 M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49j. ST-173 Enemy difficulty tuning (owner decision)
-49k. ST-176 Lock-on shot lifetime from arena size and burnout speed
 49l. ST-177 Targeting computer: true-position markers on lock-on shots
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
@@ -160,27 +159,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew core:test tool:test` passes
 - playtest: Level 3's single enemy is a real threat; level 5 is hard but survivable.
 - note: the bots only weave, they don't dodge individual lasers (would need projectile positions in `BotView`); enemy damage attribution is still APPROX (ST-159).
-
-### ST-176 Lock-on shot lifetime from arena size and burnout speed
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: ST-164, ST-165
-- files: `weapon/LockOnConstants.kt`, `provider/LockOnProvider.kt`, `screen/PlayScreen.kt` (pass `mapProvider`), `docs/tech/architecture.md` ("Homing lock-on shots"); test `weapon/LockOnLifetimeTest.kt`
-- refs: AGENTS.md "Constants are the single source of truth"; architecture.md "Homing lock-on shots (ST-164)"
-- layer: sim
-- goal: Owner 2026-11-08 (game-design §12): lock-on shots die too early at `LOCK_ON_LIFETIME = 4f` (a 4 s life covers ~55 u at v ≈ 0.70c, less than the 60 u lock range plus target motion). Replace the literal with a lifetime derived from c, the engine, the burn and the arena size, computed at launch.
-- spec:
-  - New pure top-level fun in `LockOnConstants.kt`: `lockOnLifetime(c: Float, engineProperAccel: Float, arenaWidth: Float, arenaHeight: Float): Float`. `w = LOCK_ON_ACCEL_FACTOR · engineProperAccel · LOCK_ON_BURN_SECONDS / c` (burnout proper speed in units of c), `beta = max(w / sqrt(1 + w²), LOCK_ON_MIN_COAST_BETA)`, return `LOCK_ON_BURN_SECONDS + LOCK_ON_RANGE_ARENA_FRACTION · max(arenaWidth, arenaHeight) / (beta · c)`.
-  - New consts with KDoc: `LOCK_ON_RANGE_ARENA_FRACTION = 0.5f` (coast covers half the arena's long side: ~7.9 s at the defaults, 200 u arena, c = 20, β ≈ 0.70; c cancels against the default engine, which is a multiple of c), `LOCK_ON_MIN_COAST_BETA = 0.25f` (floor so an engine slider at 0 gives a finite lifetime). Delete `LOCK_ON_LIFETIME`; write the default-value derivation in the KDoc instead.
-  - `LockOnProvider` gets `mapProvider: MapProvider? = null` (last ctor param; null falls back to `MAP_WIDTH`/`MAP_HEIGHT`, so `HeadlessLevel` and tests keep compiling) and sets `remaining`/`total` from `lockOnLifetime(settings.c, settings.engineProperAccel, w, h)` (scenarios use smaller arenas). `PlayScreen` passes its `mapProvider`.
-  - `LOCK_ON_MAX_IN_FLIGHT` stays 4 (at 1 shot/s and 6 ammo it still caps a salvo); update its KDoc and the old "shorter than the arena crossing" rationale: after burnout the shot only coasts in a straight line (no velocity steering), so a long life cannot chase a target.
-- acceptance:
-  - [ ] Test: at `SPEED_OF_LIGHT`, `ENGINE_PROPER_ACCEL`, `MAP_WIDTH`, `MAP_HEIGHT` the lifetime equals the formula above recomputed in the test from the constants, and exceeds `LOCK_ON_BURN_SECONDS + TARGET_LOCK_RANGE_LIGHT_SECONDS · c / v_burnout`
-  - [ ] Test: doubling c together with the engine (engine ∝ c) halves the coast time with the same arena; a half-size arena halves the coast time; `engineProperAccel = 0` gives a finite value from `LOCK_ON_MIN_COAST_BETA`
-  - [ ] No `LOCK_ON_LIFETIME` reference left; architecture.md "Homing lock-on shots" states the new rule
-  - [ ] `./gradlew core:test` passes
-- playtest: Fire a lock-on shot at a distant enemy: it reaches it instead of fading out on the way; a missed shot coasts on for several seconds and then fades.
 
 ### ST-177 Targeting computer: true-position markers on lock-on shots
 - status: ready

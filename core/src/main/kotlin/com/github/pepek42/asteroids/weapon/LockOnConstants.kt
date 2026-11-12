@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.weapon
 
 import com.github.pepek42.asteroids.physics.ENGINE_PROPER_ACCEL
 import com.github.pepek42.asteroids.provider.ENEMY_HEALTH
+import kotlin.math.sqrt
 
 /**
  * Engine proper acceleration of the lock-on shot as a multiple of the ship's [ENGINE_PROPER_ACCEL] (ST-164). The lock-on shot
@@ -31,10 +32,29 @@ const val LOCK_ON_BURN_SECONDS = 0.8f
 const val LOCK_ON_TURN_RATE = 4f
 
 /**
- * Arena lifetime (s) of a lock-on shot: enough for the burn plus a long coast at the default c, but shorter than the
- * arena crossing so a missed shot cannot chase a target forever. `LifetimeSystem` fades the sprite near the end.
+ * Share of the arena's long side that the lock-on shot's coast covers (ST-176). At the defaults (200 u arena, c = 20,
+ * β ≈ 0.70 after burnout) half the side is 100 u, about 7.1 s of coast; the burn adds [LOCK_ON_BURN_SECONDS] for a total
+ * of about 7.9 s. A coast this long reaches a target past the 60 u lock range ([TARGET_LOCK_RANGE_LIGHT_SECONDS] · c).
  */
-const val LOCK_ON_LIFETIME = 4f
+const val LOCK_ON_RANGE_ARENA_FRACTION = 0.5f
+
+/**
+ * Floor on the burnout speed β used for the coast (ST-176). An engine slider at 0 gives a zero burnout speed, which would
+ * make the coast infinite; this floor keeps the lifetime finite (at β = 0.25 and the default arena, a 20 s coast).
+ */
+const val LOCK_ON_MIN_COAST_BETA = 0.25f
+
+/**
+ * Arena lifetime (s) of a lock-on shot, computed at launch by [lockOnLifetime] (ST-176): the burn plus a coast across
+ * [LOCK_ON_RANGE_ARENA_FRACTION] of the arena's long side at the burnout speed. After burnout the shot only coasts in a
+ * straight line (no velocity steering), so the coast is the lifetime of a missed shot, not a chase. `LifetimeSystem`
+ * fades the sprite near the end.
+ */
+fun lockOnLifetime(c: Float, engineProperAccel: Float, arenaWidth: Float, arenaHeight: Float): Float {
+    val w = LOCK_ON_ACCEL_FACTOR * engineProperAccel * LOCK_ON_BURN_SECONDS / c
+    val beta = maxOf(w / sqrt(1f + w * w), LOCK_ON_MIN_COAST_BETA)
+    return LOCK_ON_BURN_SECONDS + LOCK_ON_RANGE_ARENA_FRACTION * maxOf(arenaWidth, arenaHeight) / (beta * c)
+}
 
 /** One hit destroys an enemy ship: [LOCK_ON_DAMAGE] = [ENEMY_HEALTH] (ST-164). */
 const val LOCK_ON_DAMAGE = ENEMY_HEALTH
@@ -51,7 +71,11 @@ const val LOCK_ON_AMMO_PER_LEVEL = 6
  */
 const val LOCK_ON_AMMO_REGEN_SECONDS = 10f
 
-/** Most lock-on shots one shooter may have in flight at once; further launches wait for a hit or the lifetime to run out. */
+/**
+ * Most lock-on shots one shooter may have in flight at once; further launches wait for a hit or the lifetime to run out.
+ * At 1 shot/s and [LOCK_ON_AMMO_PER_LEVEL] ammo this still caps a salvo. The lifetime is long now ([lockOnLifetime]), so
+ * this is the only brake on a salvo; a long life cannot chase a target because the shot only coasts after burnout.
+ */
 const val LOCK_ON_MAX_IN_FLIGHT = 4
 
 /**

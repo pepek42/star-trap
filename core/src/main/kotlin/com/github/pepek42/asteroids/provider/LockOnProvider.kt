@@ -28,9 +28,9 @@ import com.github.pepek42.asteroids.weapon.LOCK_ON_DAMAGE
 import com.github.pepek42.asteroids.weapon.LOCK_ON_DENSITY
 import com.github.pepek42.asteroids.weapon.LOCK_ON_HEALTH
 import com.github.pepek42.asteroids.weapon.LOCK_ON_LENGTH
-import com.github.pepek42.asteroids.weapon.LOCK_ON_LIFETIME
 import com.github.pepek42.asteroids.weapon.LOCK_ON_SPRITE_LENGTH
 import com.github.pepek42.asteroids.weapon.LOCK_ON_WIDTH
+import com.github.pepek42.asteroids.weapon.lockOnLifetime
 import ktx.ashley.entity
 import ktx.ashley.with
 import ktx.box2d.body
@@ -48,6 +48,8 @@ class LockOnProvider(
     private val engine: Engine,
     private val world: World,
     private val settings: RelativitySettings = RelativitySettings(),
+    /** Arena the lifetime is sized for (ST-176); null uses the default [MAP_WIDTH] x [MAP_HEIGHT]. */
+    private val mapProvider: MapProvider? = null,
 ) {
     /**
      * Launches a lock-on shot from [shooter] at [target] (null = no lock, the lock-on shot keeps its launch heading). [weaponCmp]
@@ -117,8 +119,14 @@ class LockOnProvider(
                 damage = LOCK_ON_DAMAGE
             }
             with<LifetimeComponent> {
-                remaining = LOCK_ON_LIFETIME
-                total = LOCK_ON_LIFETIME
+                val lifetime = lockOnLifetime(
+                    settings.c,
+                    settings.engineProperAccel,
+                    mapProvider?.mapWidth ?: MAP_WIDTH,
+                    mapProvider?.mapHeight ?: MAP_HEIGHT,
+                )
+                remaining = lifetime
+                total = lifetime
                 clock = LifetimeClock.WORLD
             }
             with<HealthComponent> {

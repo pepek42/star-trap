@@ -103,4 +103,33 @@ class GameEventManagerTest {
 
     private var lastX = -1f
     private var lastY = -1f
+
+    @Test
+    fun whileWorldPausedOnlyEscAndEnterReachListeners() {
+        val manager = GameEventManager()
+        var quits = 0
+        var dismisses = 0
+        var fires = 0
+        var pilotToggles = 0
+        manager.addInputListener(object : PlayerInputListener {
+            override fun quitToMenu() { quits++ }
+            override fun dismissBriefing() { dismisses++ }
+            override fun fire(fire: Boolean) { if (fire) fires++ }
+            override fun togglePilotView() { pilotToggles++ }
+        })
+        manager.setWorldPaused(true)
+
+        assertFalse(manager.touchDown(0, 0, 0, com.badlogic.gdx.Input.Buttons.LEFT))
+        assertFalse(manager.keyDown(Keys.V))
+        assertTrue(manager.keyDown(Keys.ENTER))
+        assertTrue(manager.keyDown(Keys.ESCAPE))
+        assertEquals(0, fires)
+        assertEquals(0, pilotToggles)
+        assertEquals(1, dismisses)
+        assertEquals(1, quits)
+
+        manager.setWorldPaused(false)
+        assertTrue(manager.keyDown(Keys.V))
+        assertEquals(1, pilotToggles)
+    }
 }

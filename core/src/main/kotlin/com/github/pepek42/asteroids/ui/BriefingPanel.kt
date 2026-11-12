@@ -20,9 +20,10 @@ private const val BRIEFING_EDGE_GAP = 12f
 
 /**
  * A scenario's briefing, shown in the bottom-left corner (clear of the ship at the centre and the minimap) while the scenario runs, until the player hides it.
- * The game keeps running underneath; the same text is on the Scenarios page before the start.
+ * While the text is open the arena is frozen ([onDismiss] fires when it closes; `PlayScreen` pauses and resumes world time, ST-170).
+ * The same text is on the Scenarios page before the start.
  */
-class BriefingPanel(skin: Skin, hideText: String) {
+class BriefingPanel(skin: Skin, hideText: String, private val onDismiss: () -> Unit = {}) {
     private val style = MenuStyle(skin)
     private val title = Label("", style.heading)
     private val text = style.paragraph("", BRIEFING_WIDTH)
@@ -34,6 +35,10 @@ class BriefingPanel(skin: Skin, hideText: String) {
     private val objectivesCell: Cell<*>
     private val briefingCell: Cell<*>
     private var hasObjectives = false
+
+    /** True while the briefing text is on screen. */
+    var open = false
+        private set
 
     init {
         val t = briefingPanel.panelContent
@@ -58,6 +63,7 @@ class BriefingPanel(skin: Skin, hideText: String) {
         title.setText(titleText)
         text.setText(briefing)
         briefingCell.setActor(briefingPanel)
+        open = true
         refreshObjectivesCell()
         column.invalidateHierarchy()
         stage.addActor(root)
@@ -77,12 +83,16 @@ class BriefingPanel(skin: Skin, hideText: String) {
 
     /** "Got it": hides the briefing text but keeps the checklist on screen. */
     fun hide() {
+        val wasOpen = open
+        open = false
         briefingCell.setActor(null)
         column.invalidateHierarchy()
+        if (wasOpen) onDismiss()
     }
 
     /** Removes everything (leaving the level). */
     fun close() {
+        open = false
         root.remove()
     }
 }

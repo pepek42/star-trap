@@ -27,6 +27,7 @@ import com.github.pepek42.asteroids.system.HullSoundSystem
 import com.github.pepek42.asteroids.ecs.clearLevel
 import com.github.pepek42.asteroids.ecs.GameplayDeps
 import com.github.pepek42.asteroids.ecs.buildGameplaySystems
+import com.github.pepek42.asteroids.ecs.setWorldPaused
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.input.ControlSettings
 import com.github.pepek42.asteroids.physics.RelativitySettings
@@ -112,9 +113,16 @@ class PlayScreen(
     ) { visible -> Gdx.graphics.setSystemCursor(if (visible) SystemCursor.Arrow else SystemCursor.Crosshair) }
 
     private val i18n = game.get<I18NBundle>()
-    private val briefing = BriefingPanel(game.get<Skin>(), i18n["briefing_hide"])
+    private val briefing = BriefingPanel(game.get<Skin>(), i18n["briefing_hide"]) { freezeWorld(false) }
     private val quitListener = object : PlayerInputListener {
         override fun quitToMenu() = game.quitRun()
+        override fun dismissBriefing() { if (briefing.open) briefing.hide() }
+    }
+
+    /** Freezes world time and gates player input (briefing open, ST-170); see `setWorldPaused`. */
+    private fun freezeWorld(frozen: Boolean) {
+        setWorldPaused(engine, clock, frozen)
+        game.get<GameEventManager>().setWorldPaused(frozen)
     }
 
     private lateinit var objectiveSystem: ScenarioObjectiveSystem
@@ -296,6 +304,7 @@ class PlayScreen(
         if (scenario != null) {
             hud.updateTitle(i18n[scenario.titleKey])
             briefing.show(game.get<Stage>(), i18n[scenario.titleKey], i18n[scenario.briefingKey])
+            freezeWorld(true)
         } else {
             hud.updateLevel(gameState.level)
         }
@@ -343,6 +352,7 @@ class PlayScreen(
         Gdx.graphics.setSystemCursor(SystemCursor.Arrow)
         hud.toggleHud(show = false)
         briefing.close()
+        freezeWorld(false)
         game.get<GameEventManager>().removeInputListener(quitListener)
         game.get<GameEventManager>().removeInputListener(objectiveSystem)
         objectiveSystem.stop()

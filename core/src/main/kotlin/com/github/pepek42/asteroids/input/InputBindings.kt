@@ -3,7 +3,7 @@ package com.github.pepek42.asteroids.input
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Input.Keys
 
-enum class InputAction { AIM, FIRE, THRUST, ZOOM, TOGGLE_PILOT_VIEW, TOGGLE_TACTICAL_OVERLAY, BLOCK, QUIT_TO_MENU, DEBUG_PANEL, MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, SELECT_WEAPON_1, SELECT_WEAPON_2, SELECT_WEAPON_3 }
+enum class InputAction { AIM, FIRE, THRUST, ZOOM, TOGGLE_PILOT_VIEW, TOGGLE_TACTICAL_OVERLAY, BLOCK, QUIT_TO_MENU, DISMISS_BRIEFING, DEBUG_PANEL, MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT, SELECT_WEAPON_1, SELECT_WEAPON_2, SELECT_WEAPON_3 }
 
 /** 0-based weapon slot of a select-weapon action, or -1 for any other action. */
 fun InputAction.weaponSlot(): Int = when (this) {
@@ -60,6 +60,7 @@ object InputBindings {
         Binding(InputAction.TOGGLE_TACTICAL_OVERLAY, InputTrigger.Key(Keys.T), "action_tactical_overlay"),
         Binding(InputAction.BLOCK, InputTrigger.Key(Keys.CONTROL_RIGHT), "action_block"),
         Binding(InputAction.QUIT_TO_MENU, InputTrigger.Key(Keys.ESCAPE), "action_quit_to_menu"),
+        Binding(InputAction.DISMISS_BRIEFING, InputTrigger.Key(Keys.ENTER), "action_dismiss_briefing"),
         Binding(InputAction.SELECT_WEAPON_1, InputTrigger.Key(Keys.NUM_1), "action_weapon_1"),
         Binding(InputAction.SELECT_WEAPON_2, InputTrigger.Key(Keys.NUM_2), "action_weapon_2"),
         Binding(InputAction.SELECT_WEAPON_3, InputTrigger.Key(Keys.NUM_3), "action_weapon_3"),

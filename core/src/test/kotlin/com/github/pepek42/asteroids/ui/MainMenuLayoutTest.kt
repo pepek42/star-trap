@@ -13,7 +13,7 @@ class MainMenuLayoutTest {
     @Test
     fun controlsRowsInTableOrder() {
         val rows = controlsRows(InputBindings.DEFAULT, ControlScheme.MOUSE_HULL, false, i18n)
-        assertEquals(11, rows.size)
+        assertEquals(12, rows.size)
         assertEquals("T" to i18n("action_tactical_overlay"), rows[5])
         assertEquals("R-Ctrl" to i18n("action_block"), rows[6])
         assertEquals(rows[7].second, i18n("action_quit_to_menu"))

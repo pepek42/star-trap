@@ -69,6 +69,28 @@ class GameplayDeps(
     val invulnerableHealth: () -> Float = { PLAYER_START_HEALTH },
 )
 
+/**
+ * Systems that stop while the arena is frozen (ST-170): everything that advances world state or reads input. Left running:
+ * time warp (zeroes the clock), `PhysicsSystem` (worldDt 0 means no steps, but it still interpolates the transforms the renderer reads), observer, camera, render, HUD and the other presentation systems, removal and death (they only
+ * act on pending flags), so the frozen scene and the UI keep drawing.
+ */
+private val FROZEN_WHILE_PAUSED = listOf(
+    EndLevelSystem::class.java, PlayerInputSystem::class.java, EnemyAiSystem::class.java, MoveSystem::class.java,
+    WeaponSystem::class.java, ContactSystem::class.java, BoundaryFieldSystem::class.java, GravitySystem::class.java,
+    DiskDamageSystem::class.java, LockOnSteeringSystem::class.java, ProjectileSweepSystem::class.java,
+    RelativisticDynamics::class.java, LightHistorySystem::class.java, LifetimeSystem::class.java,
+)
+
+/**
+ * Freezes or resumes world time: no physics steps, AI, weapon cooldowns or lifetime ticks, while the render and UI systems
+ * keep running on the frozen state. Sets [GameClock.paused] (so `TimeWarpSystem` reports zero time) and stops the systems in
+ * [FROZEN_WHILE_PAUSED]. Used by the scenario briefing (ST-170) and later by objective "read this first" steps (ST-169).
+ */
+fun setWorldPaused(engine: Engine, clock: GameClock, paused: Boolean) {
+    clock.paused = paused
+    for (type in FROZEN_WHILE_PAUSED) engine.getSystem(type)?.setProcessing(!paused)
+}
+
 /** Systems the presentation layer needs a handle on. */
 class GameplaySystems(val lightHistory: LightHistorySystem)
 

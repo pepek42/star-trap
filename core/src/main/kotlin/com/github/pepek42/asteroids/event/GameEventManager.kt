@@ -16,6 +16,7 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
     private val mapEventListener = GdxArray<MapEventListener>()
     private val debugListeners = GdxArray<DebugInputListener>()
     private var ignoreInput = false
+    private var worldPaused = false
     private var up = false
     private var down = false
     private var left = false
@@ -46,6 +47,22 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
         dispatchMoveAxis()
     }
 
+    /**
+     * While the arena is frozen (scenario briefing, ST-170) only Esc, Enter and the debug panel key get through; held keys and
+     * buttons are released so nothing is still pressed when the world resumes.
+     */
+    fun setWorldPaused(paused: Boolean) {
+        worldPaused = paused
+        if (!paused) return
+        up = false
+        down = false
+        left = false
+        right = false
+        dispatchMoveAxis()
+        fire(false)
+        thrusters(0f)
+    }
+
     fun enablePlayerInputs() {
         ignoreInput = false
     }
@@ -57,6 +74,17 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
             return true
         }
         if (ignoreInput) return false
+        if (worldPaused) return when (action) {
+            InputAction.QUIT_TO_MENU -> {
+                playerInputListeners.forEach { it.quitToMenu() }
+                true
+            }
+            InputAction.DISMISS_BRIEFING -> {
+                playerInputListeners.forEach { it.dismissBriefing() }
+                true
+            }
+            else -> false
+        }
         return when (action) {
             InputAction.BLOCK -> {
                 block()
@@ -74,6 +102,10 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
                 playerInputListeners.forEach { it.quitToMenu() }
                 true
             }
+            InputAction.DISMISS_BRIEFING -> {
+                playerInputListeners.forEach { it.dismissBriefing() }
+                true
+            }
             InputAction.SELECT_WEAPON_1, InputAction.SELECT_WEAPON_2, InputAction.SELECT_WEAPON_3 -> {
                 playerInputListeners.forEach { it.onSelectWeapon(action.weaponSlot()) }
                 true
@@ -86,7 +118,7 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
     }
 
     override fun keyUp(keycode: Int): Boolean {
-        if (ignoreInput) return false
+        if (ignoreInput || worldPaused) return false
         return when (val action = bindings.keyAction(keycode)) {
             InputAction.MOVE_UP, InputAction.MOVE_DOWN, InputAction.MOVE_LEFT, InputAction.MOVE_RIGHT ->
                 setMoveKey(action, false)
@@ -117,13 +149,13 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
     }
 
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
-        if (ignoreInput) return false
+        if (ignoreInput || worldPaused) return false
         aimPoint(screenX, screenY)
         return true
     }
 
     override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
-        if (ignoreInput) return false
+        if (ignoreInput || worldPaused) return false
         when (bindings.buttonAction(button)) {
             InputAction.FIRE -> fire(true)
             InputAction.THRUST -> thrusters(1f)
@@ -134,13 +166,13 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
     }
 
     override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
-        if (ignoreInput) return false
+        if (ignoreInput || worldPaused) return false
         aimPoint(screenX, screenY)
         return true
     }
 
     override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
-        if (ignoreInput) return false
+        if (ignoreInput || worldPaused) return false
         when (bindings.buttonAction(button)) {
             InputAction.FIRE -> fire(false)
             InputAction.THRUST -> thrusters(0f)
@@ -151,7 +183,7 @@ class GameEventManager(private val bindings: List<Binding> = InputBindings.DEFAU
     }
 
     override fun scrolled(amountX: Float, amountY: Float): Boolean {
-        if (ignoreInput) return false
+        if (ignoreInput || worldPaused) return false
 
         playerInputListeners.forEach { it.zoom(amountY) }
         defaultLoggingUtils.tryLogging { logger.debug { "scrolled X: $amountX Y: $amountY" } }

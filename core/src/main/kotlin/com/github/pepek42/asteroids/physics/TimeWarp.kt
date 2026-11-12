@@ -27,6 +27,9 @@ class GameClock {
     /** Arena time to simulate this frame. */
     var worldDt = 0f
 
+    /** True while the arena is frozen (scenario briefing, ST-170): [TimeWarpSystem] then yields `realDt = worldDt = 0`. */
+    var paused = false
+
     /** True when the warp was clamped by its maximum. */
     var warpCapped = false
 
@@ -46,6 +49,7 @@ class GameClock {
         warpCapped = false
         stepsCapped = false
         worldTime = 0f
+        paused = false
         interpolationAlpha = 0f
     }
 }

@@ -53,5 +53,10 @@ class TimeWarpSystem(
         )
         clock.worldDt = worldDelta(deltaTime, clock.warp, maxWorld)
         clock.stepsCapped = deltaTime * clock.warp > maxWorld + STEPS_CAPPED_EPSILON
+        if (clock.paused) {
+            clock.realDt = 0f
+            clock.worldDt = 0f
+            clock.stepsCapped = false
+        }
     }
 }

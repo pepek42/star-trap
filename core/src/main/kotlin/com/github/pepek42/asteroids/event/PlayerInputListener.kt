@@ -23,4 +23,7 @@ interface PlayerInputListener {
 
     /** Leave the run and go back to the main menu. */
     fun quitToMenu() = Unit
+
+    /** Enter: closes the scenario briefing, which unfreezes the arena (ST-170). */
+    fun dismissBriefing() = Unit
 }

@@ -22,7 +22,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 49j. ST-173 Enemy difficulty tuning (owner decision)
 
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
-57e. ST-170 Scenario briefing pauses the game
 57f. ST-171 Settings page with tabs
 
 Parked:
@@ -164,20 +163,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 ## Menus & runs
 
 Source: owner 2026-11-07 ("After each level there will be save (and buying in shop between levels) ... New game - select level 1, 5th (for quick start later level, with some prebuild once we have shop) ... tutorial like scenarios with some text"). The menu (New game with start level 1/5 and run physics, Scenarios with briefings, global Settings), the restyled `LevelClearedScreen` with a shop placeholder, Esc-to-menu and four scenarios (`scenario/Scenarios.kt`) are done. Web: saves go through libGDX `Preferences` (`KeyValueStore`), never `java.io`.
-
-### ST-170 Scenario briefing pauses the game
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: —
-- files: `ui/BriefingPanel.kt`, `screen/PlayScreen.kt`, `physics/GameClock` / `system/TimeWarpSystem.kt`
-- layer: meta (UI)
-- goal (owner 2026-11-07): while a scenario's briefing is open, the arena is frozen; "Got it" (or Enter) starts it.
-- spec: freeze world time (no physics steps, no AI, no weapon cooldowns, no lifetime ticks) but keep rendering the frozen scene and the UI. Player input other than closing the briefing and Esc is ignored while paused. ST-169 objective panels later reuse the same pause for "read this first" steps.
-- acceptance:
-  - [ ] Tests: world time does not advance while the briefing is shown, and advances after it is hidden
-  - [ ] `scripts/web-check.sh --query=scenario=relativity&play` passes (the screenshot shows the briefing and ship time 0)
-- playtest: Scenarios → Relativity → Start: nothing moves until Got it.
 
 ### ST-171 Settings page with tabs
 - status: ready

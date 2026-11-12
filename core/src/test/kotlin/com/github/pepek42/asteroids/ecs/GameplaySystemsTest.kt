@@ -40,7 +40,9 @@ import com.github.pepek42.asteroids.system.TimeWarpSystem
 import com.github.pepek42.asteroids.system.WeaponSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertSame
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
@@ -95,6 +97,39 @@ class GameplaySystemsTest {
     fun worksWithoutPresentation() {
         buildGameplaySystems(deps)
         assertEquals(19, engine.systems.size())
+    }
+
+    @Test
+    fun worldTimeStandsStillWhilePausedAndAdvancesAfterResume() {
+        buildGameplaySystems(deps)
+        val clock = deps.clock
+        val dt = PhysicsSystem.PHYSICS_UPDATE_INTERVAL
+        setWorldPaused(engine, clock, true)
+        repeat(10) { engine.update(dt) }
+        assertEquals(0f, clock.worldTime)
+        assertEquals(0f, clock.worldDt)
+        assertEquals(0f, clock.realDt)
+        assertEquals(0f, deps.observerState.worldTime)
+
+        // PlayerInputSystem needs a GL camera; the unpaused half of this test only needs the clock and physics.
+        engine.removeSystem(engine.getSystem(PlayerInputSystem::class.java))
+        setWorldPaused(engine, clock, false)
+        repeat(10) { engine.update(dt) }
+        assertEquals(10 * dt, clock.worldTime, 1e-4f)
+    }
+
+    @Test
+    fun pauseOnlyStopsWorldSystems() {
+        val marker = PresentationMarker()
+        buildGameplaySystems(deps) { engine.addSystem(marker) }
+        setWorldPaused(engine, deps.clock, true)
+        assertFalse(engine.getSystem(EnemyAiSystem::class.java).checkProcessing())
+        assertTrue(engine.getSystem(PhysicsSystem::class.java).checkProcessing())
+        assertFalse(engine.getSystem(WeaponSystem::class.java).checkProcessing())
+        assertFalse(engine.getSystem(LifetimeSystem::class.java).checkProcessing())
+        assertTrue(engine.getSystem(TimeWarpSystem::class.java).checkProcessing())
+        assertTrue(engine.getSystem(PresentationMarker::class.java).checkProcessing())
+        assertTrue(engine.getSystem(RemoveSystem::class.java).checkProcessing())
     }
 
     companion object {

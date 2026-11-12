@@ -53,29 +53,16 @@ class GameStateTest {
 
 class QuickStartTest {
     @Test
-    fun levelOneGrantsNothing() {
+    fun levelOneStartsBeforeLevelOne() {
         val state = GameState()
         state.resetGame(FIRST_LEVEL)
-        assertEquals(0, state.credits)
-        assertTrue(!state.quickStart)
+        assertEquals(FIRST_LEVEL - 1, state.level)
     }
 
     @Test
-    fun quickStartGrantsLevelsOneToFourCreditsAndOpensShop() {
+    fun quickStartSetsTheLevelBeforeIt() {
         val state = GameState()
         state.resetGame(QUICK_START_LEVEL)
-        assertEquals(
-            com.github.pepek42.asteroids.shop.typicalCreditsThroughLevel(QUICK_START_LEVEL - 1),
-            state.credits,
-        )
-        assertTrue(state.credits > 0)
-        assertTrue(state.quickStart)
         assertEquals(QUICK_START_LEVEL - 1, state.level)
-    }
-
-    @Test
-    fun creditsMatchHandCount() {
-        // Levels 1..4: 2+5+10+17 large rocks (9 credits each with fragments) + 1 + 2 enemies (20 each); assumes current balance.
-        assertEquals(34 * 9 + 3 * 20, com.github.pepek42.asteroids.shop.typicalCreditsThroughLevel(4))
     }
 }

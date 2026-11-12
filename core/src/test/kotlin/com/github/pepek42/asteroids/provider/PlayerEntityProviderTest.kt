@@ -15,8 +15,6 @@ import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.healthCmp
 import com.github.pepek42.asteroids.component.shipHandlingCmp
-import com.github.pepek42.asteroids.shop.RunUpgrades
-import com.github.pepek42.asteroids.shop.ShopItem
 import com.github.pepek42.asteroids.event.GameEventManager
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -56,14 +54,13 @@ class PlayerEntityProviderTest {
     }
 
     @Test
-    fun upgradesChangeTheSpawnedPlayer() {
+    fun playerSpawnsWithStartHealthAndBaseEngine() {
         val map = MapProvider(mock<GameEventManager>(), 200f, 200f)
-        val upgrades = RunUpgrades().apply { add(ShopItem.ENGINE_TUNING); add(ShopItem.HULL_PLATING) }
-        PlayerEntityProvider(engine, world, map, textureAtlas).spawnPlayerEntity(upgrades)
+        PlayerEntityProvider(engine, world, map, textureAtlas).spawnPlayerEntity()
 
         val player = engine.entities.first { it.getComponent(PlayerComponent::class.java) != null }
-        assertEquals(1f + ShopItem.ENGINE_TUNING.bonus, player.shipHandlingCmp.engineFactor, 1e-6f)
-        assertEquals(PLAYER_START_HEALTH + ShopItem.HULL_PLATING.bonus, player.healthCmp.health, 1e-6f)
+        assertEquals(1f, player.shipHandlingCmp.engineFactor)
+        assertEquals(PLAYER_START_HEALTH, player.healthCmp.health)
     }
 
     companion object {

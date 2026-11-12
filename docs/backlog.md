@@ -24,26 +24,19 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-58. ST-180 Cut the shop, credits and upgrades
 59. ST-181 Dumb-rocket pod weapon
 60. ST-182 Auto-aim for dumb rockets
 61. ST-183 Weapon unlock progression
 62. ST-185 Physics fidelity audit before release
-63. ST-184 Pilot view made playable by the targeting computer
+63. ST-075 Pilot view: per-corner retarded time (Terrell rotation)
+63a. ST-077 Pilot view: starfield, field band and shimmer through the boost
+63b. ST-079 Pilot view: ghosts of removed entities until their light runs out
+63c. ST-080 Searchlight k = 2 in pilot view, with a brightness floor
 64. ST-186 Lock-on shot: booster, sustainer and side-thruster turning
 65. ST-187 Lock-on shot: visible booster, sustainer and RCS plumes
 66. ST-189 Rebalance after the weapon changes
 67. ST-188 Simplify the UI (owner decisions)
 68. ST-190 Release prep: merge AI-slop to master
-
-Parked:
-51. ST-091 Targeting-trance scheme
-Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the default; revive when the pilot perspective mode is worked on):
-52. ST-078 Lead markers
-53. ST-075 Pilot view: Terrell rotation
-54. ST-077 Pilot view: starfield, field band and shimmer
-55. ST-079 Ghosts of removed entities
-56. ST-080 Searchlight k = 2 in pilot view
 
 ---
 
@@ -55,8 +48,8 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - note (2026-11-02, owner interview, game-design.md §11): **The game is perceived from the pilot's frame.** The game clock is the pilot's proper time (research E21): the arena advances `γ·dt_real` per frame, capped at about 10× (declared FAKE past the cap, shown on the HUD), and the player's guns and turning run on real time (ST-068, ST-069, ST-040). **Pilot view is the main rendering** and is pulled forward from M4 into this milestone (E8 light delay + E9 aberration: ST-070 … ST-078, default on). The minimap stays true arena positions ("tactical computer"). Aim help is a lead marker (ST-078). Also decided: braking boost (ST-066), shots leave the arena instead of bouncing (ST-067, reworks ST-039), ramming yes (ST-033), photon laser default (ST-034). The alternative control modes (auto-aim + auto-shoot, targeting trance) are **parked** at the end of the backlog.
 
 ### ST-075 Pilot view: per-corner retarded time (Terrell rotation)
-- status: parked
-- note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
+- status: ready
+- note (owner 2026-11-12): unparked into M7. The spec dates from 2026-11-03: check every file and symbol it names against the current code (pilot view, `PilotViewProjector`, `LightHistorySystem`) before starting, and adapt it.
 - size: S
 - agent: kotlin-dev
 - depends: ST-074
@@ -72,8 +65,8 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
 - playtest: Fast asteroids crossing close by look slightly skewed. No flicker or corner jitter.
 
 ### ST-077 Pilot view: starfield, field band and shimmer through the boost
-- status: parked
-- note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
+- status: ready
+- note (owner 2026-11-12): unparked into M7. The spec dates from 2026-11-03: check every file and symbol it names against the current code (pilot view, `PilotViewProjector`, `LightHistorySystem`) before starting, and adapt it.
 - size: M
 - agent: kotlin-dev
 - depends: ST-043, ST-074
@@ -90,26 +83,6 @@ Pilot-perspective polish (owner 2026-11-03: parked while the outside view is the
   - [ ] `./gradlew core:test` passes
 - playtest: Near c the sky shrinks into a bright forward cone and the arena wall bulges. Shimmer ripples still appear where shots cross the band.
 
-### ST-078 Lead markers: where to aim so a photon hits
-- status: parked
-- note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
-- size: M
-- agent: kotlin-dev
-- depends: ST-039, ST-071, ST-073, ST-074, ST-076
-- files: create `system/LeadMarkerSystem.kt`; edit `physics/PhotonAim.kt`, `input/ControlSettings.kt`, `ui/DebugPanel.kt`, `screen/PlayScreen.kt`; tests
-- goal: Near c, aiming at what you see misses, because you see the past and your own shots aberrate. Mark, for nearby targets, the cursor direction that makes a photon hit. It uses honest fire control: only light that has reached the pilot (the retarded state), extrapolated at constant velocity. It never peeks at true positions.
-- spec:
-  - Add to `PhotonAim.kt`: `fun leadDirection(sx, sy, betaX, betaY, ret: RetardedState, now: Float, c: Float, out: Vector2): Boolean`. Extrapolate `x_e = ret.x + ret.vx·(now − ret.t)` (same for y); `photonInterceptDir(x_e − s, ret.v, c, nW)`; `out = muzzleDirForWorldDir(β, nW)` (the shooter-frame direction n̂'). Return false when the intercept fails.
-  - `LeadMarkerSystem(lightHistory, observer, clock, settings, controlSettings, shapeRenderer, camera)`, registered right after `RenderSystem`. For non-player entities with `HealthComponent` and a history, take the nearest `LEAD_MARKER_MAX = 8` within `LEAD_MARKER_RANGE = 60` u (by retarded distance). For each, `leadDirection`. Screen direction: `n̂'` if pilot view is on or the active scheme aims a turret (`TWIN_STICK`, `AUTO_AIM`); otherwise (world view + mouse-hull) the hull W angle `pilotHullToWorld(n̂', β)`, because the hull fallback fires along `worldHullToPilot(hull)` (ST-076). Draw a ring (radius 0.6 u, line width 1) at `o + dir·dist`, with `dist` = the target's on-screen distance from `o` (its apparent distance in pilot view, its true one in world view), and a thin line from the target's drawn position to the ring. Colour: faction-tinted, alpha 0.7.
-  - `ControlSettings.leadMarkers: Boolean = true`. Debug checkbox "lead markers".
-- acceptance:
-  - [ ] Test: `leadDirection` at β = 0 for a static target returns r̂
-  - [ ] Integration test (real `World` with `PhysicsSystem`, `RelativisticDynamics`, `ProjectileSweepSystem` and `LightHistorySystem`): a ship moving at β = 0.8 along +x, an asteroid 20 u away along +y moving (10, 0), histories warmed up for 1 s; set `aimAngleRad = atan2(leadDirection(...))` and fire. The photon's sweep hits the asteroid within 1 s
-  - [ ] `./gradlew core:test` passes
-- playtest: At speed, aim at the ring instead of the asteroid and the shots hit. Check whether 8 markers clutter the screen.
-- note: (2026-11-03) ST-125 is the tactical-computer variant using the true state (`trueLeadDirection`). When this honest variant is unparked, share its drawing and target selection with `TacticalOverlaySystem` instead of a separate `LeadMarkerSystem`.
-- note: (2026-11-03, from ST-062) when unparked, also highlight the auto-aim target in the AUTO_AIM scheme; `leadDirection` already exists in `physics/PhotonAim.kt`.
-
 ---
 
 ## M4 Relativistic view
@@ -118,8 +91,8 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - result: `RelativitySettings.pilotHullTransform` (pilotView && relativityEnabled && pilotAberration) now gates both the drawn player hull in `PilotView.project()` and the `PlayerInputSystem` cursor mapping.
 
 ### ST-079 Pilot view: ghosts of removed entities until their light runs out
-- status: parked
-- note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
+- status: ready
+- note (owner 2026-11-12): unparked into M7. The spec dates from 2026-11-03: check every file and symbol it names against the current code (pilot view, `PilotViewProjector`, `LightHistorySystem`) before starting, and adapt it.
 - size: S
 - agent: kotlin-dev
 - depends: ST-074
@@ -136,22 +109,21 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew core:test` passes
 - playtest: Shoot a distant asteroid in pilot view: the shot reaches it, and it breaks a moment later, as seen. No asteroid pops out of existence early.
 
-### ST-080 Searchlight k = 2 in pilot view, with a brightness floor and outlines
-- status: parked
-- note (owner 2026-11-03): parked. The outside (world) view is the default; this card only matters for the optional pilot perspective. On ST-078 the owner said: "lets go with realism but I am afraid this might be hard to process for humans."
-- note (2026-11-03): the tactical computer overlay (ST-123) already outlines every body at its true position. When unparked, decide whether the dim-entity outlines here are still needed.
+### ST-080 Searchlight k = 2 in pilot view, with a brightness floor
+- status: ready
+- note (owner 2026-11-12): unparked into M7. The spec dates from 2026-11-03: check every file and symbol it names against the current code (pilot view, `PilotViewProjector`, `LightHistorySystem`) before starting, and adapt it.
+- note (owner 2026-11-12): no outlines. The target rings and the tactical overlay already mark dim targets at their true position. The 25 % floor may be lowered by the ST-185 audit (its Q3).
 - size: S
 - agent: kotlin-dev
 - depends: ST-043, ST-045, ST-074
 - files: `render/RelativityVisuals.kt`, `render/Starfield.kt`, `system/RenderSystem.kt`; tests
-- goal: Full relativistic beaming in the pilot view (research E10, k = 2): things ahead blaze and things behind dim. Q14 is planned around the recommendation (b), so behind you nothing goes below 25 %, and dim hostiles and asteroids get an outline.
+- goal: Full relativistic beaming in the pilot view (research E10, k = 2): things ahead blaze and things behind dim. Q14 is planned around the recommendation (b), so behind you nothing goes below 25 %.
 - spec:
   - `const val BRIGHTNESS_EXPONENT_PILOT = 2f`. Starfield and sprite tint use `B = clamp(D^k, B_MIN, B_MAX)` with `k = BRIGHTNESS_EXPONENT_PILOT` in pilot view and `BRIGHTNESS_EXPONENT_MVP` in world view. Pull it into `fun beamBrightness(d: Float, pilotView: Boolean): Float`.
-  - Outlines: for non-player entities with `HealthComponent`, in pilot view, when `B < OUTLINE_B_THRESHOLD = 0.6f`, draw a `ShapeRenderer` circle (line, 24 segments) at the entity's apparent centre with radius `boundingRadius·1.1`, in the faction colour at alpha `0.5·(1 − B/OUTLINE_B_THRESHOLD)`. One `ShapeRenderer.begin/end` per frame, after the sprite batch ends.
 - acceptance:
   - [ ] Tests: `beamBrightness(2f, true) == 3f` (clamped from 4); `beamBrightness(0.3f, true) == 0.25f` (floor); `beamBrightness(0.6f, false) == 0.6f`; `beamBrightness(1f, true) == 1f`
   - [ ] `./gradlew core:test` passes
-- playtest: At speed the view ahead is bright, and asteroids behind you are dim but outlined. Check whether the outline is too strong.
+- playtest: At speed the view ahead is bright, and asteroids behind you are dim; the target rings still show where they are.
 
 ### ST-173 Enemy difficulty tuning (owner decision)
 - status: needs-user
@@ -174,34 +146,11 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 
 ## M7 Ship it
 
-- note (owner 2026-11-12): "I want soon to wrap this project up and ship it to main. Simplify scope. I want all the physics to be as close as possible." Decisions: the roguelike is cut to a weapon unlock (start with lasers; after level 1 pick dumb rockets or the lock-on shot; after level 2 get the other one; a quick start at level 5 gets all weapons). Mouse control schemes go. The UI gets simplified, but only after the owner's decisions (ST-188). Physics and graphics have priority; the game stays as realistic as possible. With the targeting computer the game should be easier, also in pilot view (ST-184). The lock-on improvements (ST-186, ST-187) come after the rocket and progression work.
+- note (owner 2026-11-12): "I want soon to wrap this project up and ship it to main. Simplify scope. I want all the physics to be as close as possible." Decisions: the roguelike is cut to a weapon unlock (start with lasers; after level 1 pick dumb rockets or the lock-on shot; after level 2 get the other one; a quick start at level 5 gets all weapons). Mouse control schemes go. The UI gets simplified, but only after the owner's decisions (ST-188). Physics and graphics have priority; the game stays as realistic as possible. Owner correction (2026-11-12): the targeting computer already makes the game easy, so the pilot view can carry much more physics (a confusing visual layer is fine, the computer reads it for you). ST-184 was dropped; the parked pilot-view realism cards ST-075, ST-077, ST-079 and ST-080 (no outlines) are unparked into M7, ST-078 and ST-091 are closed as out of scope. Outside stays the default perspective; Pilot is the realistic option. The lock-on improvements (ST-186, ST-187) come after the rocket and progression work.
 - note: every card with questions is `needs-user` until the owner fills the `A:` lines; the specs are written around the recommended answers (marked "Rec").
 
-### ST-180 Cut the shop, credits and upgrades
-- status: needs-user
-- size: M
-- agent: kotlin-dev
-- depends: —
-- files: delete `shop/Shop.kt`, `shop/Upgrades.kt` (keep any constant still used elsewhere by moving it); edit `GameState.kt`, `save/RunSave.kt`, `screen/LevelClearedScreen.kt`, `screen/PlayScreen.kt`, `screen/MainMenuScreen.kt`, `ui/Hud.kt`, `system/HudSystem.kt`, `system/DeathSystem.kt` (credit awards), `provider/PlayerEntityProvider.kt` (start health, engine factor), `component/ShipHandlingComponent.kt`, `assets/i18n/messages.properties`, `tool/` balance runner; tests; docs `game-design.md` §3, §10
-- refs: `architecture.md` "Screens", `balance.md` (the runner's shop handling)
-- layer: infra
-- goal: The roguelike is cut (owner 2026-11-12). Credits, the shop, rerolls and the engine/hull upgrades go away; the cleared screen keeps only the result and "Next level" until ST-183 adds the weapon pick.
-- questions:
-* Q1: Remove the engine and hull upgrades completely, so every run flies the same ship (Rec), or keep a fixed small bonus per level?
-  * A:Remove them. Shop will have 2 options, no money. Just one pick per level.
-* Q2: Keep the run save (Continue from the main menu at the next level)? Rec: yes, it then stores the level, the run physics and (ST-183) the unlocked weapons; `RUN_SAVE_VERSION` bumps, so old saves are ignored.
-  * A:Yes
-* Q3: The quick start at level 5 stays on the New game page (it gives all weapons, ST-183)? Rec: yes.
-  * A:Yes
-- spec (Rec answers): Remove `GameState.credits`, `runSeed` use for the shop, `pendingShop`, `quickStart` shop logic and `upgrades`; the player starts every level with `PLAYER_START_HEALTH` and engine factor 1. `RunSave` keeps `nextLevel` + run physics; bump `RUN_SAVE_VERSION`. Drop the HUD credits line, the cleared-screen shop section and all `shop_*` / `credits_*` i18n keys. The balance runner stops buying upgrades.
-- acceptance:
-  - [ ] `grep -ri "credits\|ShopItem\|RunUpgrades" core/src tool/src` finds nothing
-  - [ ] Test: a save written with the new version restores the level and run physics; a version-1 save is ignored
-  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
-- playtest: Clear level 1: the cleared screen shows the result and "Next level" only; Continue from the menu resumes at level 2.
-
 ### ST-181 Dumb-rocket pod weapon
-- status: needs-user
+- status: ready
 - size: M
 - agent: kotlin-dev
 - depends: —
@@ -221,16 +170,18 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 * Q5: Can the laser shoot rockets down like lock-on shots (1 HP)? Rec: yes, same rule for enemies later.
   * A:Yes
 - spec (Rec answers):
-  - `RocketConstants.kt`: `ROCKET_POD_SIZE = 5`, `ROCKET_SALVO_INTERVAL`, `ROCKET_RELOAD_SECONDS`, `ROCKET_ACCEL_FACTOR = 2f` (× `settings.engineProperAccel` at runtime), `ROCKET_BURN_SECONDS`, `ROCKET_DAMAGE = ENEMY_HEALTH / 2`, sizes and density like the lock-on shot; `rocketLifetime(c, a0, arenaW, arenaH)` mirrors `lockOnLifetime`. KDoc each derivation.
+  - `RocketConstants.kt`: `ROCKET_POD_SIZE = 5`, `ROCKET_SALVO_INTERVAL`, `ROCKET_RELOAD_SECONDS`, `ROCKET_ACCEL_FACTOR = 2f` (× `settings.engineProperAccel` at runtime), `ROCKET_BURN_SECONDS`, `ROCKET_DAMAGE = ENEMY_HEALTH / 2`, sizes and density like the lock-on shot. KDoc each derivation. No lifetime timer (owner Q3): a rocket lives until it hits something or crosses the arena wall.
   - `RocketProvider`: a small dynamic Box2D box with `RelativisticComponent` whose proper velocity `u` is the ship's `u` (the rocket starts at rest relative to the ship), placed just outside the hull along the launch direction, faction bits like the player's projectiles, `RocketComponent(burnLeft)`.
   - Motor: a `PhysicsStepListener` (extend `LockOnSteeringSystem` or a sibling `RocketMotorSystem`) adds `thrustAccelWorld(properAccel, heading, v, γ)` while `burnLeft > 0`, and ticks `burnLeft` by `dt/γ`. The heading never changes.
   - Pod: in the loadout, `rocketsInPod`, `rocketSalvoCooldown`, `rocketReloadLeft` (scalar fields). Fire while `rocketsInPod > 0` and the salvo cooldown is 0; at 0 rockets start the reload; a full reload refills the pod. All on ship proper time, like the laser cooldown (ST-040).
   - Contact: a hit deals `ROCKET_DAMAGE` and removes the rocket (via `RemoveComponent`); pilot view draws the rocket from light history like any massive body.
+  - Arena wall (owner Q3): the boundary field must not push rockets back (skip them like projectiles in `BoundaryFieldSystem.beforeStep`); when a rocket's true position crosses the wall it detonates: `RemoveComponent` plus one shimmer ripple at the crossing point (reuse the projectile exit ripple). No splash damage (Q4).
   - Physics-lies: add a row for the rocket motor (no fuel use or reaction mass, like row 47).
 - acceptance:
   - [ ] Test: holding fire launches exactly 5 rockets `ROCKET_SALVO_INTERVAL` apart, then none until `ROCKET_RELOAD_SECONDS` have passed, then 5 more
   - [ ] Integration test (real `World`, `PhysicsSystem`, `RelativisticDynamics`): a rocket launched from a ship moving at β = 0.5 keeps its launch heading, speeds up, stays below c and has the burnout speed from the formula within 2 %
   - [ ] Test: a rocket hit removes `ROCKET_DAMAGE` health and the rocket
+  - [ ] Test: a rocket flying out of the arena is not slowed by the boundary field and gets `RemoveComponent` once it crosses the wall
   - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
 - playtest: Select the rockets (slot key) and hold fire: five rockets ripple out, accelerate visibly in straight lines and the HUD shows the reload.
 
@@ -255,7 +206,7 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - playtest: With rockets selected, auto-aim salvos hit moving asteroids; the intercept ring sits where the rockets meet the target.
 
 ### ST-183 Weapon unlock progression
-- status: needs-user
+- status: ready
 - size: M
 - agent: kotlin-dev
 - depends: ST-180, ST-181
@@ -265,14 +216,17 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - goal: Replace the shop with a simple unlock (owner 2026-11-12): level 1 = laser only; after level 1 the cleared screen offers dumb rockets or the lock-on shot; after level 2 the player gets the other one; a quick start at level 5 starts with all weapons.
 - questions:
 * Q1: Slot keys: fixed per weapon (1 = laser, 2 = rockets, 3 = lock-on; a locked slot is empty) (Rec), or in unlock order?
-  * A:
+  * A:locked slot is empty
 * Q2: After level 2 the second weapon is given automatically, with a "New weapon: X" line on the cleared screen (Rec)?
-  * A:
+  * A:Rockets and lock-on is proposed, user can choose either
 * Q3: Scenarios: all weapons unlocked (Rec), or each scenario lists its own?
-  * A:
+  * A:All
 * Q4: Does a run end? (a) endless levels until death, as now (Rec, smallest scope); (b) a final level (e.g. 10) with a victory screen.
-  * A:
+  * A:A
+* Q5: (from your ST-180 answer "2 options, just one pick per level") With 3 weapons, a pick exists only after level 1 (rockets or lock-on). What do the 2 options offer from level 2 on? (a) after L2 the other weapon is given automatically and later levels have no pick (Rec, matches Q2); (b) a pick on every level from small free run bonuses (e.g. +1 lock-on ammo or +1 rocket per pod vs. +25 % max health), which needs a list of bonuses; (c) something else.
+  * A:A
 - spec (Rec answers): `GameState.unlockedWeapons` (laser at start; all for a start at `QUICK_START_LEVEL` or above and in scenarios). The player's loadout fills slot 1 laser, slot 2 rockets, slot 3 lock-on when unlocked, else null. `LevelClearedScreen` after level 1 shows two buttons with a one-line description each; "Next level" is enabled only after a pick. After level 2 it unlocks the remaining weapon and says so. `RunSave` stores the unlocked set (bump the version). The HUD shows the three slots (locked ones dim) with the active one highlighted and lock-on ammo / pod count. Balance bots get the weapons a player would have at that level.
+- note (owner answers 2026-11-12): Q1 fixed slots, a locked slot is empty; Q2 "Rockets and lock-on is proposed, user can choose either" = the level 1 pick, and Q5 (a) confirms the other weapon is given after level 2 with no later picks; Q3 all weapons in scenarios; Q4 (a) endless.
 - acceptance:
   - [ ] Test: a new run has only the laser; picking rockets after L1 gives laser + rockets; after L2 all three
   - [ ] Test: a start at `QUICK_START_LEVEL` and every scenario have all three
@@ -280,33 +234,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] Test: selecting a locked slot does nothing
   - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
 - playtest: Clear level 1, pick lock-on, play level 2 with keys 1 and 3; clear it and get the rockets.
-
-### ST-184 Pilot view made playable by the targeting computer
-- status: needs-user
-- size: M
-- agent: kotlin-dev
-- depends: ST-179, ST-182
-- files: `system/TacticalOverlaySystem.kt`, `render/TacticalOverlay.kt`, `settings/TacticalSettings.kt`, `settings/MenuSettings.kt`; tests; `main-menu.md` "Perspective"
-- refs: `architecture.md` row 12c, `relativity-effects.md` §E8/E9, physics-lies row 34
-- layer: assist
-- goal: Owner 2026-11-12: "with targeting computer playing the game should be easier, even in pilot view." The pilot view stays honest (light-delayed, aberrated sprites); the ship's computer adds what the pilot needs to fight in it, so the pilot view becomes a real way to play, not a curiosity.
-- questions:
-* Q1: What makes pilot view hardest today? Rec assumption: you cannot tell which delayed sprite is which true target, you do not see where your own shots will go, and steering the hull by the cursor feels off when the sprites are aberrated.
-  * A:
-* Q2: Which assists should the card add? Rec: (a) a faint "light-delay tether" from each target's displayed sprite to its true-position ring; (b) the intercept ring for the active weapon (laser, rockets, lock-on) always on in pilot view; (c) a hull-heading line and a velocity-vector marker (where you are drifting) at the ship; (d) the auto-aim's chosen target highlighted. All toggles under the Ship computer tab.
-  * A:
-* Q3: Unpark the realistic pilot-view polish cards ST-075 (Terrell rotation), ST-077 (aberrated starfield and field band), ST-079 (ghosts of removed entities) and ST-080 (searchlight k = 2, with floor and outlines) after this card? Rec: yes for 075, 077 and 079; 080 without the outlines, since the target rings already mark things.
-  * A:
-* Q4: Close ST-078 (honest lead markers from light-delayed data) and ST-091 (targeting trance) as out of scope? Rec: yes; the computer intercept rings replace ST-078, and the trance is a control scheme.
-  * A:
-* Q5: Make Pilot the default perspective at release once this lands? Rec: no, keep Outside default and offer Pilot as "realistic".
-  * A:
-- spec (Rec answers): add `TacticalSettings.showLightDelayTether` (default on) and `showFlightMarkers` (default on); in pilot view draw (a) a 1 px line, alpha 0.35, from each target's displayed (retarded, aberrated) position to its true ring, only when they are more than the ring radius apart; (b) the intercept ring for the active weapon's solver; (c) the velocity marker at `o + v·FLIGHT_MARKER_SECONDS`, projected through the pilot boost; (d) a thicker ring on the auto-aim target. Pure helpers for the positions, tested. No physics changes.
-- acceptance:
-  - [ ] Tests for each pure helper (tether endpoints, velocity marker position at β = 0 and β = 0.8)
-  - [ ] Screenshot (`--seed=42 --thrust --frames=150 --pilot-view` or the equivalent flags) viewed by the agent: tethers, rings and markers are visible and not cluttered
-  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
-- playtest: Fly a level in pilot view at high β with auto-aim: you can tell which sprite is which target and where your shots will land.
 
 ### ST-185 Physics fidelity audit before release
 - status: needs-user
@@ -328,7 +255,7 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   * A:
 * Q5: Laser damage clamp [0.25, 4] (row 36): widen or remove? Rec: widen to [0.1, 10].
   * A:
-- spec: For each row: tag (keep-engine / keep-gameplay / remove), cost estimate, web performance risk, and the exact formula that replaces the lie. Recommend the 3-6 most visible wins. Add follow-up cards (`kotlin-dev` or `junior-dev`, size S/M) to M7 after ST-184, `needs-user` where the owner's answer above is not enough.
+- spec: For each row: tag (keep-engine / keep-gameplay / remove), cost estimate, web performance risk, and the exact formula that replaces the lie. Recommend the 3-6 most visible wins. Add follow-up cards (`kotlin-dev` or `junior-dev`, size S/M) to M7 after ST-080, `needs-user` where the owner's answer above is not enough.
 - acceptance:
   - [ ] `release-fidelity-audit.md` has a table covering every physics-lies row
   - [ ] Follow-up cards are in the backlog and in the implementation order
@@ -446,31 +373,4 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] GDD §1/§3/§4/§10 match the shipped game
   - [ ] The owner's merge command is written in the final message (not run)
 - playtest: Full run from the main menu to level 3 on the web build.
-
----
-
-## Parked (low priority)
-
-Owner 2026-11-02: control modes for later (game-design §12). Keep them ready but behind all other milestones.
-
-### ST-091 Targeting-trance control scheme (hold LMB: slow-mo aim, release: one shot)
-- status: parked
-- size: M
-- agent: kotlin-dev
-- depends: ST-058, ST-069, ST-078
-- files: `input/ControlScheme.kt`, create `input/TranceStrategy.kt`; edit `physics/TimeWarp.kt` (`GameClock`), `component/MoveComponent.kt`, `system/PhysicsSystem.kt`, `system/PlayerInputSystem.kt`, `system/LeadMarkerSystem.kt`, `screen/PlayScreen.kt`; tests
-- goal: Owner's parked mode (b): holding LMB strongly slows time (a declared FAKE "targeting trance"), shows the lead indicators and turns the ship instantly toward the aim. **Releasing LMB fires a single shot**, followed by a cooldown of at least 1 s (owner 2026-11-02). Single shots fit the owner's wish for fewer asteroids and enemies on the map (performance). Continuous fire while held could be revisited if entity counts grow.
-- spec:
-  - `ControlScheme.TRANCE("trance")`. `GameClock.slowMo = 1f` (reset to 1). `PlayScreen.render` multiplies the delta passed to `engine.update` by `clock.slowMo` (after the debug time scale), so the pilot and the world slow together.
-  - `const val TRANCE_TIME_SCALE = 0.2f`, `const val TRANCE_SHOT_COOLDOWN = 1f` (seconds of the pilot's real time = proper time τ, the clock the player's guns run on, ST-040). KDoc both.
-  - `TranceStrategy(clock)` with `cooldownLeft = 0f`: movement as in `MouseHullStrategy`. Each `apply`: `cooldownLeft = max(0, cooldownLeft − dt)`. The trance can only start when `cooldownLeft == 0`, so during the cooldown `slowMo == 1` and the strategy's `dt` is unscaled real time. While `fireHeld` (and off cooldown): `clock.slowMo = TRANCE_TIME_SCALE`, `move.instantTurn = true`, no firing. On the frame LMB is released after a trance: `doAttack = true` for that frame only (exactly one shot), `slowMo = 1`, `instantTurn = false`, `cooldownLeft = max(TRANCE_SHOT_COOLDOWN, weapon cooldown)`. Holding LMB during the cooldown does nothing until it ends, then the trance starts. `onActivate` resets `slowMo`, `instantTurn` and `cooldownLeft`.
-  - `MoveComponent.instantTurn = false` (reset false). `PhysicsSystem.applyRotation`: if set and `targetAngleRad != null`, `body.setTransform(body.position, target)` and `angularVelocity = 0` instead of the PD impulse (FAKE).
-  - `LeadMarkerSystem` draws the markers while the trance is active, even if `controlSettings.leadMarkers` is off.
-- acceptance:
-  - [ ] Test: with LMB held the clock's `slowMo == 0.2` and no shot is fired over 1 s; on release exactly one shot fires and `slowMo == 1`
-  - [ ] Test: pressing and releasing again 0.5 s after a shot fires nothing and doesn't slow time; LMB held from 0.5 s to 1.5 s enters the trance at 1.0 s and the release at 1.5 s fires the second shot
-  - [ ] Test: `instantTurn` sets the body angle to the target in one step with zero angular velocity
-  - [ ] Test: switching away from the scheme mid-trance resets `slowMo` to 1
-  - [ ] `./gradlew core:test` passes
-- playtest: With `--controls=trance`, hold LMB: time crawls, the markers appear and the nose snaps to the cursor; release to fire one shot, then wait a second. Does the 1 s cooldown feel right?
 

@@ -69,7 +69,7 @@ scripts/web-check.sh --play          # build web + headless Firefox smoke test; 
 
 Full detail is in `docs/tech/architecture.md`. These are the invariants every change must respect:
 
-- **DI.** `Game` (a `KtxGame`) loads assets, then registers singletons in a `ktx.inject.Context`. Fetch them with `game.get<T>()`. Gameplay randomness uses the one seeded `RandomXS128` from the context. Screens: `MainMenuScreen` → `PlayScreen` → `LevelClearedScreen` (shop and run save). Menus share `ui/MenuStyle`.
+- **DI.** `Game` (a `KtxGame`) loads assets, then registers singletons in a `ktx.inject.Context`. Fetch them with `game.get<T>()`. Gameplay randomness uses the one seeded `RandomXS128` from the context. Screens: `MainMenuScreen` → `PlayScreen` → `LevelClearedScreen` (result and run save). Menus share `ui/MenuStyle`.
 - **ECS order.** Systems are registered by `buildGameplaySystems` (`ecs/GameplaySystems.kt`, shared with the headless balance runner). **Registration order is execution order:** time warp → end level → input → enemy AI → move → weapons → contact → boundary field → projectile sweep → relativistic dynamics → light history → physics step → observer → scenario objectives → camera → render → debug/HUD/minimap → lifetime → death → remove.
 - **Components.** Each component file defines the class (usually `Pool.Poolable` with a complete `reset()`), `xxxMapper = mapperFor<...>()`, and `Entity.xxxCmp` / `Entity.xxxCmpOptional` via `propertyFor`. Every entity has a `BaseInfoComponent` (id, faction, `EntityType`).
 - **Entity creation.** Providers in `provider/` use `engine.entity { with<...> {} }` and `world.body {}`. A body's `userData` is its `Entity` (`ContactSystem` relies on that cast). Collision bits come from `FactionEnum`.

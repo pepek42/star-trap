@@ -37,9 +37,7 @@ import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.save.RunSave
 import com.github.pepek42.asteroids.save.applyRunSave
 import com.github.pepek42.asteroids.save.clearRunSave
-import com.github.pepek42.asteroids.save.continueOpensShop
 import com.github.pepek42.asteroids.save.readRunSave
-import com.github.pepek42.asteroids.save.restoreRunProgress
 import com.github.pepek42.asteroids.scenario.Scenario
 import com.github.pepek42.asteroids.scenario.Scenarios
 import com.github.pepek42.asteroids.scenario.applyScenarioPhysics
@@ -245,9 +243,8 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         // Run physics come from the save; the player's New-game defaults in the store stay untouched.
         applyRunSave(store, menuSettings.runSpecs)
         gameState.resetGame(save.nextLevel)
-        restoreRunProgress(save, gameState)
-        // level = nextLevel - 1 is the "between levels" state the cleared screen expects; Next level then plays nextLevel.
-        if (continueOpensShop(gameState)) game.setScreen<LevelClearedScreen>() else game.setScreen<PlayScreen>()
+        // PlayScreen.show advances level (nextLevel - 1) to nextLevel before spawning.
+        game.setScreen<PlayScreen>()
     }
 
     private fun startRun() {
@@ -260,8 +257,7 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         clearRunSave(store)
         saveSettings(store, specs)
         gameState.resetGame(startLevel)
-        // A quick start opens the shop first (level = startLevel - 1 is the "between levels" state, as for Continue).
-        if (gameState.quickStart) game.setScreen<LevelClearedScreen>() else game.setScreen<PlayScreen>()
+        game.setScreen<PlayScreen>()
     }
 
     // ---- Scenarios page --------------------------------------------------------------------------------------
@@ -359,7 +355,7 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
                 syncAll()
             }.also { it.addListener(hintTooltip(i18n["menu_reset_defaults_hint"], tooltips, skin)) },
         )).growX().padTop(SECTION_SPACE).row()
-        t.add(style.label(i18n["credits_fonts"], style.muted)).left().padTop(SECTION_SPACE).row()
+        t.add(style.label(i18n["fonts_attribution"], style.muted)).left().padTop(SECTION_SPACE).row()
         return panel
     }
 

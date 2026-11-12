@@ -63,9 +63,7 @@ class GameplayDeps(
     val computerSounds: ComputerSoundQueue? = null,
     /** Harness flag `--invulnerable`: the player never dies. */
     val invulnerablePlayer: Boolean = false,
-    /** Credits earned by a destroyed target (ST-167); the balance runner ignores them. */
-    val onCredits: (Int) -> Unit = {},
-    /** Health `--invulnerable` heals the player to (upgraded start health). */
+    /** Health `--invulnerable` heals the player to (the start health). */
     val invulnerableHealth: () -> Float = { PLAYER_START_HEALTH },
 )
 
@@ -155,7 +153,7 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
         addSystem(ObserverSystem(deps.observerState, deps.settings, deps.clock))
         presentation(systems)
         addSystem(LifetimeSystem(deps.clock))
-        addSystem(DeathSystem(this, deps.asteroidProvider, deps.random, deps.computerSounds, deps.clock, deps.invulnerablePlayer, deps.onCredits, deps.invulnerableHealth, deps.onPlayerDeath))
+        addSystem(DeathSystem(this, deps.asteroidProvider, deps.random, deps.computerSounds, deps.clock, deps.invulnerablePlayer, deps.invulnerableHealth, deps.onPlayerDeath))
         addSystem(RemoveSystem(deps.world, deps.mapProvider))
     }
     return systems

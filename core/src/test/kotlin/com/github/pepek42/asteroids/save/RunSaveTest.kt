@@ -68,6 +68,14 @@ class RunSaveTest {
     }
 
     @Test
+    fun versionOneSaveIsIgnored() {
+        val store = MemoryKeyValueStore()
+        writeRunSave(store, 2, runSpecs)
+        store.putFloat(RUN_SAVE_PREFIX + "version", 1f)
+        assertNull(readRunSave(store))
+    }
+
+    @Test
     fun unknownVersionIsIgnored() {
         val store = MemoryKeyValueStore()
         writeRunSave(store, 2, runSpecs)

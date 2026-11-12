@@ -37,8 +37,6 @@ class HudSystem(
     private val pointerRenderer: ReferenceGridRenderer,
     private val observer: ObserverState,
     private val clock: GameClock,
-    /** The run's credits for the HUD, or null to hide the line (scenarios). */
-    private val creditsSource: () -> Int? = { null },
 ) : IteratingSystem(allOf(PlayerComponent::class, TransformComponent::class, BodyComponent::class).get()) {
 
     /** Only level targets get arrows (owner 2026-11-07): every asteroid and enemy ship, nothing else. */
@@ -57,7 +55,6 @@ class HudSystem(
         super.update(deltaTime)
         countLevelTargets(engine.getEntitiesFor(targetFamily), targetCounts)
         hud.updateTargets(targetCounts)
-        hud.updateCredits(creditsSource())
         updateTargetPointers()
         hud.updateAndRender(deltaTime)
     }

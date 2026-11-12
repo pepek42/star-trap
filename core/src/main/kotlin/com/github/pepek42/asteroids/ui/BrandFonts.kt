@@ -8,7 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 
 /**
  * The brand font: Audiowide by Astigmatic, SIL Open Font License 1.1 (license text next to the TTF in
- * `assets/fonts/`, credit in `CREDITS.md` and on the Settings page). "Audiowide" is a Reserved Font Name, so the
+ * `assets/fonts/`, attribution in the third-party asset list and on the Settings page). "Audiowide" is a Reserved Font Name, so the
  * TTF ships unmodified (no subsetting or renaming); rasterising it at runtime is fine.
  */
 const val BRAND_FONT_PATH = "fonts/Audiowide-Regular.ttf"

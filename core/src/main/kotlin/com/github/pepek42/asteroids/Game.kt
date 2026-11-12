@@ -79,7 +79,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
 
         ctx.register {
             bindSingleton(RandomXS128(options.seed ?: System.nanoTime()))
-            bindSingleton(GameState().apply { runSeed = options.seed ?: System.nanoTime() })
+            bindSingleton(GameState())
             bindSingleton(RelativitySettings())
             bindSingleton(ControlSettings(options.controls ?: ControlScheme.AUTO_AIM))
             bindSingleton(DebugSettings(panelVisible = options.debugPanel, forcePanel = options.debugPanel))

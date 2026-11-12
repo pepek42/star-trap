@@ -83,19 +83,6 @@ class DeathSystemTest {
     }
 
     @Test
-    fun deadEnemyAndAsteroidEarnCredits() {
-        var credits = 0
-        engine.addSystem(DeathSystem(engine, provider, RandomXS128(1), onCredits = { credits += it }))
-        engine.addEntity(engine.createEntity().apply {
-            add(EnemyComponent())
-            add(HealthComponent().apply { this.health = 0f })
-            add(BodyComponent().apply { body = body() })
-        })
-        engine.update(0.016f)
-        assertEquals(com.github.pepek42.asteroids.shop.CREDITS_ENEMY_SHIP, credits)
-    }
-
-    @Test
     fun deadEnemyPushesOneComputerSoundAndIsRemoved() {
         val queue = ComputerSoundQueue(SoundSettings().apply { computerSounds = true })
         engine.addSystem(DeathSystem(engine, provider, RandomXS128(1), computerSounds = queue) { deaths++ })

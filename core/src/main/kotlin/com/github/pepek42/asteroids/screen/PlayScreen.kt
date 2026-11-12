@@ -47,8 +47,6 @@ import com.github.pepek42.asteroids.provider.DecorationProvider
 import com.github.pepek42.asteroids.provider.EnemyShipProvider
 import com.github.pepek42.asteroids.provider.PlanetProvider
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
-import com.github.pepek42.asteroids.provider.PLAYER_START_HEALTH
-import com.github.pepek42.asteroids.shop.RunUpgrades
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.render.FieldShimmerRenderer
 import com.github.pepek42.asteroids.render.LensingPass
@@ -176,11 +174,9 @@ class PlayScreen(
                 game.finishLevel()
             },
             onPlayerDeath = { game.endRun() },
-            onCredits = { gameState.addCredits(it) },
             hullSounds = hullSounds,
             computerSounds = computerSounds,
             invulnerablePlayer = game.options.invulnerable,
-            invulnerableHealth = { if (gameState.scenario == null) gameState.upgrades.startHealth() else PLAYER_START_HEALTH },
         )
         // Execution order lives in buildGameplaySystems (shared with the headless balance runner); the presentation
         // systems below are inserted between the observer and the lifetime system.
@@ -201,7 +197,7 @@ class PlayScreen(
                         litSprites = LitSpriteRenderer(game.get<TextureAtlas>()),
                         lensing = LensingPass(),
                         star = star,
-                    )
+        )
                 )
                 hullSoundSystem = HullSoundSystem(game.get<SoundBank>(), hullSounds, game.get<SoundSettings>(), settings)
                 addSystem(hullSoundSystem)
@@ -213,7 +209,7 @@ class PlayScreen(
                 addSystem(TacticalOverlaySystem(camera, viewport, mapProvider, settings, game.get<TacticalSettings>(), gameEventManager, batch = spriteBatch, font = game.get<Skin>().getFont("font")))
                 addSystem(DebugSystem(world, engine, camera, debugSettings))
                 addSystem(DebugPanelSystem(debugPanel, observerState, clock))
-                addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock, creditsSource = { if (gameState.scenario == null) gameState.credits else null }))
+                addSystem(HudSystem(hud, camera, viewport, debugSettings, gridRenderer, observerState, clock))
                 addSystem(MinimapSystem(viewport, minimapViewport, camera, mapProvider, debugSettings, settings, panelWidthPx = { debugPanel.widthInScreenPx() }, star = star))
             }
         }
@@ -293,7 +289,7 @@ class PlayScreen(
         gameState.nextLevel()
         val scenario = gameState.scenario
         mapProvider.loadMap(scenario?.arenaSize ?: MAP_WIDTH, scenario?.arenaSize ?: MAP_HEIGHT)
-        playerEntityProvider.spawnPlayerEntity(if (scenario == null) gameState.upgrades else RunUpgrades())
+        playerEntityProvider.spawnPlayerEntity()
         if (scenario != null) {
             scenario.spawn(ProviderSpawner(mapProvider.playerSpawnLocation()))
             star.roll(game.get<RandomXS128>())

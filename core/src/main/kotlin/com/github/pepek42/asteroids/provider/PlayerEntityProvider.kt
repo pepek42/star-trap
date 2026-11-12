@@ -22,7 +22,6 @@ import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.component.WeaponLoadoutComponent
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.RelativitySettings
-import com.github.pepek42.asteroids.shop.RunUpgrades
 import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.ashley.add
 import ktx.ashley.entity
@@ -53,7 +52,7 @@ class PlayerEntityProvider(
     private val textureAtlas: TextureAtlas,
     private val settings: RelativitySettings = RelativitySettings(),
 ) {
-    fun spawnPlayerEntity(upgrades: RunUpgrades = RunUpgrades()) {
+    fun spawnPlayerEntity() {
         val playerSprite = textureAtlas.createSprite("spaceship/disc_green")
         val worldUnitsWidth = playerSprite.width / UNIT_SCALE
         val worldUnitsHeight = playerSprite.height / UNIT_SCALE
@@ -92,7 +91,7 @@ class PlayerEntityProvider(
                 with<RelativisticComponent> { // starts at rest: u = 0
                     captureRestMass(this@entity.entity.bodyCmp.body)
                 }
-                with<ShipHandlingComponent> { engineFactor = upgrades.engineFactor() }
+                with<ShipHandlingComponent>()
                 with<PlayerComponent>()
                 with<TacticalComputerComponent> { tier = TACTICAL_COMPUTER_DEFAULT_TIER }
                 with<WeaponLoadoutComponent>()
@@ -110,7 +109,7 @@ class PlayerEntityProvider(
                     faction = FactionEnum.PLAYER
                     entityType = EntityType.SHIP
                 }
-                with<HealthComponent> { health = upgrades.startHealth() }
+                with<HealthComponent> { health = PLAYER_START_HEALTH }
             }
         }
     }

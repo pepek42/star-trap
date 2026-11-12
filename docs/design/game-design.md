@@ -19,7 +19,7 @@ The long-term aim is an **action roguelike**, in the vein of Nova Drift, plus th
 
 ```
 Spawn in arena → clear threats (asteroids → enemy ships) → level cleared
-  → upgrade choice (roguelike pick-1-of-3) → next level: more mass, more hazards, new effect
+  → result screen (a free 2-option weapon pick from ST-183) → next level: more mass, more hazards, new effect
 ```
 
 A run ends on death. Meta progression is out of scope for the POC.
@@ -75,7 +75,7 @@ Tunables: the speed of light `c` (c = 20 u/s, see §11; it has to fit Box2D's ~9
 | Planets | exists (ST-093) | Solid gravity wells, placed at spawn, pulled by the other sources and the player, eaten by a black hole. Mild gravitational time dilation (ST-086). Static until the gravity pull moves them |
 | Black holes | exists (ST-085) | 1 per level (2 from level 3), fixed at spawn and then pulled by gravity. Horizon kills, horizons merge, bright accretion disk and rings. Backdrop lensing (ST-088) |
 | Debris | exists (ST-094) | Small drifting pieces, not counted for level clear, no gravity pull. Not a target for auto-aim |
-| Pickups/upgrades | planned | Roguelike choices between levels |
+| Weapon unlocks | planned | One free pick of 2 weapons after a level (ST-183); no money, no shop |
 
 ## 8. Game modes
 
@@ -108,7 +108,7 @@ Regenerate it with `--frames=130 --seed=42 --invulnerable --near-asteroids=3 --n
 | M4 | Relativistic view | Aberration, searchlight, light delay, length contraction |
 | M5 | Gravity & black holes | Gravity wells, black hole with lensing and accretion disk |
 | M6 | Enemies | AI ships with their own proper time. Done: enemy ships exist (ST-154..ST-160), see §7 |
-| M7 | Roguelike & modes | Upgrades between levels. Race-mode prototype |
+| M7 | Ship it | Shop, credits and upgrades cut (ST-180); weapon unlock pick between levels (ST-183). Race-mode prototype |
 
 ## 11. Open questions (owner)
 

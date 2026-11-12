@@ -15,6 +15,7 @@ import com.github.pepek42.asteroids.provider.AsteroidProvider
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.provider.LockOnProvider
 import com.github.pepek42.asteroids.provider.PLAYER_START_HEALTH
+import com.github.pepek42.asteroids.provider.RocketProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.render.ShimmerImpacts
 import com.github.pepek42.asteroids.system.BoundaryFieldSystem
@@ -34,6 +35,7 @@ import com.github.pepek42.asteroids.system.PlayerInputSystem
 import com.github.pepek42.asteroids.system.ProjectileSweepSystem
 import com.github.pepek42.asteroids.system.RelativisticDynamics
 import com.github.pepek42.asteroids.system.RemoveSystem
+import com.github.pepek42.asteroids.system.RocketMotorSystem
 import com.github.pepek42.asteroids.system.TimeWarpSystem
 import com.github.pepek42.asteroids.system.WeaponSystem
 
@@ -51,6 +53,8 @@ class GameplayDeps(
     val weaponProjectileProvider: WeaponProjectileProvider,
     /** Lock-on shot bodies (ST-164); null in tests and harness runs that never fire slot 2. */
     val lockOnProvider: LockOnProvider? = null,
+    /** Rocket bodies (ST-181); null in tests and harness runs that never fire slot 3. */
+    val rocketProvider: RocketProvider? = null,
     val asteroidProvider: AsteroidProvider,
     val random: RandomXS128,
     /** Shared by the boundary field (emits) and the shimmer renderer (draws). */
@@ -75,8 +79,8 @@ class GameplayDeps(
 private val FROZEN_WHILE_PAUSED = listOf(
     EndLevelSystem::class.java, PlayerInputSystem::class.java, EnemyAiSystem::class.java, MoveSystem::class.java,
     WeaponSystem::class.java, ContactSystem::class.java, BoundaryFieldSystem::class.java, GravitySystem::class.java,
-    DiskDamageSystem::class.java, LockOnSteeringSystem::class.java, ProjectileSweepSystem::class.java,
-    RelativisticDynamics::class.java, LightHistorySystem::class.java, LifetimeSystem::class.java,
+    DiskDamageSystem::class.java, LockOnSteeringSystem::class.java, RocketMotorSystem::class.java,
+    ProjectileSweepSystem::class.java, RelativisticDynamics::class.java, LightHistorySystem::class.java, LifetimeSystem::class.java,
 )
 
 /**
@@ -94,7 +98,7 @@ class GameplaySystems(val lightHistory: LightHistorySystem)
 
 /**
  * Registers the gameplay systems on `deps.engine` in the one true execution order (CLAUDE.md): time warp, end level,
- * input, enemy AI, move, weapons, contact, boundary field, gravity, disk damage, lock-on steering, projectile sweep, relativistic
+ * input, enemy AI, move, weapons, contact, boundary field, gravity, disk damage, lock-on steering, rocket motor, projectile sweep, relativistic
  * dynamics, light history, physics, observer, [presentation], lifetime, death, remove. Registration order is execution
  * order.
  *
@@ -110,6 +114,8 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
     val diskDamageSystem = DiskDamageSystem(deps.settings)
     // A lock-on shot adds its engine acceleration in beforeStep like the ship; RelativisticDynamics integrates it last.
     val lockOnSteeringSystem = LockOnSteeringSystem(deps.settings)
+    // Rocket motors burn in beforeStep too (ST-181), right after the lock-on shots.
+    val rocketMotorSystem = RocketMotorSystem(deps.settings)
     val projectileSweepSystem = ProjectileSweepSystem(deps.world, deps.settings)
     // Must be the last step listener: it integrates the accelerations the others added.
     val relativisticDynamics = RelativisticDynamics(deps.settings)
@@ -130,13 +136,14 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
         addSystem(EnemyAiSystem(lightHistory, deps.clock, deps.settings))
         addSystem(moveSystem)
         addSystem(
-            WeaponSystem(deps.weaponProjectileProvider, deps.clock, deps.hullSounds, deps.lockOnProvider, deps.settings)
+            WeaponSystem(deps.weaponProjectileProvider, deps.clock, deps.hullSounds, deps.lockOnProvider, deps.settings, deps.rocketProvider)
         )
         addSystem(contactSystem)
         addSystem(boundaryFieldSystem)
         addSystem(gravitySystem)
         addSystem(diskDamageSystem)
         addSystem(lockOnSteeringSystem)
+        addSystem(rocketMotorSystem)
         addSystem(projectileSweepSystem)
         addSystem(relativisticDynamics)
         addSystem(lightHistory)
@@ -144,7 +151,8 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
             PhysicsSystem(
                 deps.world, this,
                 listOf(
-                    moveSystem, boundaryFieldSystem, gravitySystem, diskDamageSystem, lockOnSteeringSystem, projectileSweepSystem,
+                    moveSystem, boundaryFieldSystem, gravitySystem, diskDamageSystem, lockOnSteeringSystem, rocketMotorSystem,
+                    projectileSweepSystem,
                     relativisticDynamics, lightHistory, contactSystem,
                 ),
                 deps.clock,

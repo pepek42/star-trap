@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-191**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-192**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -24,7 +24,7 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-59. ST-181 Dumb-rocket pod weapon
+59a. ST-191 Rocket follow-ups: computer marker, exact burnout, lies numbering
 60. ST-182 Auto-aim for dumb rockets
 61. ST-183 Weapon unlock progression
 62. ST-185 Physics fidelity audit before release
@@ -149,41 +149,21 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - note (owner 2026-11-12): "I want soon to wrap this project up and ship it to main. Simplify scope. I want all the physics to be as close as possible." Decisions: the roguelike is cut to a weapon unlock (start with lasers; after level 1 pick dumb rockets or the lock-on shot; after level 2 get the other one; a quick start at level 5 gets all weapons). Mouse control schemes go. The UI gets simplified, but only after the owner's decisions (ST-188). Physics and graphics have priority; the game stays as realistic as possible. Owner correction (2026-11-12): the targeting computer already makes the game easy, so the pilot view can carry much more physics (a confusing visual layer is fine, the computer reads it for you). ST-184 was dropped; the parked pilot-view realism cards ST-075, ST-077, ST-079 and ST-080 (no outlines) are unparked into M7, ST-078 and ST-091 are closed as out of scope. Outside stays the default perspective; Pilot is the realistic option. The lock-on improvements (ST-186, ST-187) come after the rocket and progression work.
 - note: every card with questions is `needs-user` until the owner fills the `A:` lines; the specs are written around the recommended answers (marked "Rec").
 
-### ST-181 Dumb-rocket pod weapon
+### ST-191 Rocket follow-ups: computer marker, exact burnout, lies numbering
 - status: ready
-- size: M
-- agent: kotlin-dev
+- size: S
+- agent: junior-dev
 - depends: —
-- files: `weapon/WeaponType.kt` (+`ROCKET`), create `weapon/RocketConstants.kt`, `component/RocketComponent.kt`, `provider/RocketProvider.kt`; edit `system/WeaponSystem.kt`, `component/WeaponLoadoutComponent.kt` (pod state as scalar fields, web rule), `system/ContactSystem.kt`, `system/RenderSystem.kt` (plume), `ui/Hud.kt` (pod / reload readout), `raw_assets/` sprite + `tool:packTextures`, `docs/design/physics-lies.md`; tests
-- refs: `architecture.md` "Physics loop details", `LockOnProvider.kt` / `LockOnSteeringSystem.kt` (copy the relativistic body setup and the engine burn), physics-lies rows 46-48
-- layer: sim
-- goal: A new unguided weapon: a pod of 5 dumb rockets. A rocket leaves the ship with the ship's velocity, then its motor burns along its fixed launch heading (constant proper acceleration, so it never reaches c) and it coasts after burnout. Holding fire empties the pod quickly; then the pod reloads.
-- questions:
-* Q1: Which way does a rocket launch? (a) from a gimballed pod along the computer's aim direction, like the laser turret, so auto-aim works without turning the ship (Rec); (b) only along the hull; the auto-aim then fires only when the hull points at the intercept.
-  * A:A
-* Q2: Pod numbers (Rec, all derived from constants): 5 rockets, 0.15 s between rockets, 4 s reload of the whole pod (ship proper time); no ammo limit beyond the reload. OK or other values?
-  * A:Ok
-* Q3: Motor (Rec): proper acceleration 2 × `ENGINE_PROPER_ACCEL` for 1.5 s of the rocket's own clock (burnout β ≈ 0.78 at defaults), lifetime = burn + a coast across half the arena (like `lockOnLifetime`). OK?
-  * A:Lets start with proposed. Lifetime can be detonate at arena boundry
-* Q4: Damage per rocket (Rec): `ENEMY_HEALTH / 2` on a direct hit (two rockets kill a ship; a large asteroid at 150 HP takes three). Add a blast radius (more realistic warhead, splash on nearby bodies with an impulse) or direct hit only (Rec: direct hit for now)?
-  * A:Recommended
-* Q5: Can the laser shoot rockets down like lock-on shots (1 HP)? Rec: yes, same rule for enemies later.
-  * A:Yes
-- spec (Rec answers):
-  - `RocketConstants.kt`: `ROCKET_POD_SIZE = 5`, `ROCKET_SALVO_INTERVAL`, `ROCKET_RELOAD_SECONDS`, `ROCKET_ACCEL_FACTOR = 2f` (× `settings.engineProperAccel` at runtime), `ROCKET_BURN_SECONDS`, `ROCKET_DAMAGE = ENEMY_HEALTH / 2`, sizes and density like the lock-on shot. KDoc each derivation. No lifetime timer (owner Q3): a rocket lives until it hits something or crosses the arena wall.
-  - `RocketProvider`: a small dynamic Box2D box with `RelativisticComponent` whose proper velocity `u` is the ship's `u` (the rocket starts at rest relative to the ship), placed just outside the hull along the launch direction, faction bits like the player's projectiles, `RocketComponent(burnLeft)`.
-  - Motor: a `PhysicsStepListener` (extend `LockOnSteeringSystem` or a sibling `RocketMotorSystem`) adds `thrustAccelWorld(properAccel, heading, v, γ)` while `burnLeft > 0`, and ticks `burnLeft` by `dt/γ`. The heading never changes.
-  - Pod: in the loadout, `rocketsInPod`, `rocketSalvoCooldown`, `rocketReloadLeft` (scalar fields). Fire while `rocketsInPod > 0` and the salvo cooldown is 0; at 0 rockets start the reload; a full reload refills the pod. All on ship proper time, like the laser cooldown (ST-040).
-  - Contact: a hit deals `ROCKET_DAMAGE` and removes the rocket (via `RemoveComponent`); pilot view draws the rocket from light history like any massive body.
-  - Arena wall (owner Q3): the boundary field must not push rockets back (skip them like projectiles in `BoundaryFieldSystem.beforeStep`); when a rocket's true position crosses the wall it detonates: `RemoveComponent` plus one shimmer ripple at the crossing point (reuse the projectile exit ripple). No splash damage (Q4).
-  - Physics-lies: add a row for the rocket motor (no fuel use or reaction mass, like row 47).
+- files: `system/TacticalOverlaySystem.kt`, `system/RocketMotorSystem.kt`, `docs/design/physics-lies.md`; tests
+- refs: ST-177 commit `ef48a99` (true-position markers on lock-on shots), `architecture.md` row 12c
+- layer: assist
+- goal: Loose ends from ST-181. (1) The tactical overlay draws true-position markers only for `LockOnComponent` shots; give rockets in flight the same marker so the computer shows where they really are in the pilot view. (2) `RocketMotorSystem` applies a full step of thrust even when `burnLeft < dt/γ`; scale the last step by `min(1, burnLeft·γ/dt)` so the burn is exactly `ROCKET_BURN_SECONDS`. (3) `physics-lies.md` has two rows numbered 46; renumber without changing other references (grep the repo for "row 4" mentions and fix them).
 - acceptance:
-  - [ ] Test: holding fire launches exactly 5 rockets `ROCKET_SALVO_INTERVAL` apart, then none until `ROCKET_RELOAD_SECONDS` have passed, then 5 more
-  - [ ] Integration test (real `World`, `PhysicsSystem`, `RelativisticDynamics`): a rocket launched from a ship moving at β = 0.5 keeps its launch heading, speeds up, stays below c and has the burnout speed from the formula within 2 %
-  - [ ] Test: a rocket hit removes `ROCKET_DAMAGE` health and the rocket
-  - [ ] Test: a rocket flying out of the arena is not slowed by the boundary field and gets `RemoveComponent` once it crosses the wall
-  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
-- playtest: Select the rockets (slot key) and hold fire: five rockets ripple out, accelerate visibly in straight lines and the HUD shows the reload.
+  - [ ] Test: a rocket in flight gets a true-position marker when the overlay is on, and none when it is off
+  - [ ] Test: burnout β matches `rocketBurnoutBeta` within 0.5 %
+  - [ ] physics-lies row numbers are unique and repo references still point at the right rows
+  - [ ] `./gradlew test` passes
+- playtest: With the tactical overlay on, fire rockets: each has a computer marker at its true position.
 
 ### ST-182 Auto-aim for dumb rockets
 - status: ready

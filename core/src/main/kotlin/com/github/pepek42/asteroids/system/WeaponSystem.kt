@@ -20,6 +20,7 @@ import com.github.pepek42.asteroids.component.weaponLoadoutCmpOptional
 import com.github.pepek42.asteroids.ecs.levelTargetFamily
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.provider.LockOnProvider
+import com.github.pepek42.asteroids.provider.RocketProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
 import com.github.pepek42.asteroids.weapon.LOCK_ON_MAX_IN_FLIGHT
 import com.github.pepek42.asteroids.weapon.LOCK_ON_SHOTS_PER_SECOND
@@ -38,7 +39,10 @@ import com.github.pepek42.asteroids.weapon.advanceLock
 import com.github.pepek42.asteroids.weapon.clearLock
 import com.github.pepek42.asteroids.weapon.lockOffAxis
 import com.github.pepek42.asteroids.weapon.lockedTarget
+import com.github.pepek42.asteroids.weapon.canFireRocket
+import com.github.pepek42.asteroids.weapon.consumeRocket
 import com.github.pepek42.asteroids.weapon.regenLockOnAmmo
+import com.github.pepek42.asteroids.weapon.tickRocketPod
 import ktx.ashley.allOf
 
 class WeaponSystem(
@@ -50,6 +54,8 @@ class WeaponSystem(
     private val lockOnProvider: LockOnProvider? = null,
     /** Runtime c for the lock range (ST-165); null = [SPEED_OF_LIGHT]. */
     private val relativity: RelativitySettings? = null,
+    /** Creates rocket bodies (ST-181); null in tests that never fire slot 3. */
+    private val rocketProvider: RocketProvider? = null,
 ) : IteratingSystem(allOf(WeaponComponent::class, BodyComponent::class).get()) {
     private val lockOnShots = allOf(LockOnComponent::class).get()
     private val targets = levelTargetFamily()
@@ -62,6 +68,7 @@ class WeaponSystem(
         if (loadout != null) {
             loadout.tickInactive(dt)
             loadout.regenLockOnAmmo(dt)
+            loadout.tickRocketPod(dt)
             if (weaponCmp.weaponType == WeaponType.LOCK_ON) updateLock(entity, weaponCmp, loadout, dt)
             else if (loadout.lockState != TargetLockState.NONE) loadout.clearLock()
         }
@@ -70,6 +77,7 @@ class WeaponSystem(
         when (weaponCmp.weaponType) {
             WeaponType.LASER -> fireLaser(weaponCmp, entity)
             WeaponType.LOCK_ON -> fireLockOn(weaponCmp, entity)
+            WeaponType.ROCKET -> fireRocket(weaponCmp, entity)
         }
     }
 
@@ -96,6 +104,18 @@ class WeaponSystem(
         weaponCmp.cooldown = 1 / LOCK_ON_SHOTS_PER_SECOND
         provider.spawnLockOn(entity, target, weaponCmp)
         loadout.lockOnAmmo--
+    }
+
+    /**
+     * Slot 3 (ST-181): launches one unguided rocket along the aim while the pod has one and the salvo cooldown is over.
+     * The pod state and its cooldowns live in the loadout, on ship proper time, so they tick while another slot is selected.
+     */
+    private fun fireRocket(weaponCmp: WeaponComponent, entity: Entity) {
+        val provider = rocketProvider ?: return
+        val loadout = entity.weaponLoadoutCmpOptional ?: return
+        if (!loadout.canFireRocket()) return
+        provider.spawnRocket(entity, weaponCmp)
+        loadout.consumeRocket()
     }
 
     /** Lock-on shots of [shooter] that are still alive; ones already tagged for removal do not count. */

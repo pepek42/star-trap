@@ -1,3 +1,3 @@
 package com.github.pepek42.asteroids.weapon
 
-enum class WeaponType { LASER, LOCK_ON }
+enum class WeaponType { LASER, LOCK_ON, ROCKET }

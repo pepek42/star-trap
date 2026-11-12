@@ -13,6 +13,8 @@ enum class EntityType {
     PROJECTILE,
     /** A guided lock-on shot body (ST-164): a real projectile with an engine, distinct from the sensor-based lasers. */
     LOCK_ON,
+    /** An unguided pod rocket (ST-181): a real body with a fixed-heading motor and one health point. */
+    ROCKET,
     BLACK_HOLE,
     PLANET,
     DEBRIS,

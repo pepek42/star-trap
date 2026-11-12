@@ -20,6 +20,7 @@ import com.github.pepek42.asteroids.component.healthMapper
 import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.lockOnCmpOptional
 import com.github.pepek42.asteroids.component.photonCmpOptional
+import com.github.pepek42.asteroids.component.rocketCmpOptional
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.projectileCmp
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
@@ -78,6 +79,19 @@ fun applyLockOnHit(engine: Engine, shot: Entity, target: Entity) {
     val lockOnCmp = shot.lockOnCmpOptional ?: return
     if (target.has(healthMapper)) target.healthCmp.health -= lockOnCmp.damage
     shot.add(engine.createComponent(RemoveComponent::class.java))
+}
+
+/**
+ * Applies a rocket's [com.github.pepek42.asteroids.component.RocketComponent.damage] to [target] (if it has health) and tags
+ * the rocket with [RemoveComponent] (ST-181): direct hit only, no splash (owner Q4). A rocket already tagged for removal is
+ * ignored, so one contact deals damage at most once. A laser hit pops the rocket through its health first
+ * ([applyProjectileHit]).
+ */
+fun applyRocketHit(engine: Engine, rocket: Entity, target: Entity) {
+    if (rocket.has(removeMapper)) return
+    val rocketCmp = rocket.rocketCmpOptional ?: return
+    if (target.has(healthMapper)) target.healthCmp.health -= rocketCmp.damage
+    rocket.add(engine.createComponent(RemoveComponent::class.java))
 }
 
 /**
@@ -145,6 +159,10 @@ class ContactSystem(
             applyLockOnHit(engine, entityOne, entityTwo)
         } else if (entityTwo.baseInfoCmp.entityType == EntityType.LOCK_ON) {
             applyLockOnHit(engine, entityTwo, entityOne)
+        } else if (entityOne.baseInfoCmp.entityType == EntityType.ROCKET) {
+            applyRocketHit(engine, entityOne, entityTwo)
+        } else if (entityTwo.baseInfoCmp.entityType == EntityType.ROCKET) {
+            applyRocketHit(engine, entityTwo, entityOne)
         } else if (!contact.fixtureA.isSensor && !contact.fixtureB.isSensor) {
             applyRamDamage(entityOne, contact.fixtureA.body, entityTwo, contact.fixtureB.body)
             queueHullSound(entityOne, contact.fixtureA.body, entityTwo, contact.fixtureB.body)

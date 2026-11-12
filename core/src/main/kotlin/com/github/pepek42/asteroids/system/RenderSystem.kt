@@ -9,6 +9,8 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
@@ -29,6 +31,7 @@ import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.playerMapper
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
+import com.github.pepek42.asteroids.component.rocketCmp
 import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.debug.DebugSettings
@@ -39,6 +42,8 @@ import com.github.pepek42.asteroids.physics.dopplerFactor
 import com.github.pepek42.asteroids.physics.gammaFromV
 import com.github.pepek42.asteroids.provider.BackgroundProvider
 import com.github.pepek42.asteroids.provider.MapProvider
+import com.github.pepek42.asteroids.provider.ROCKET_BURN_REGION
+import com.github.pepek42.asteroids.provider.ROCKET_REGION
 import com.github.pepek42.asteroids.render.AdditiveSpriteQueue
 import com.github.pepek42.asteroids.render.BlackHoleRenderer
 import com.github.pepek42.asteroids.render.BlackbodyLut
@@ -85,6 +90,10 @@ class RenderSystem(
     private val lensing: LensingPass? = null,
 ) : IteratingSystem(allOf(SpriteComponent::class, TransformComponent::class).get()), Disposable {
     private val backgroundProvider: BackgroundProvider = game.get<BackgroundProvider>()
+
+    /** Rocket sprite with and without the motor plume (ST-181); same size, so [applyRocketPlume] only swaps the UVs. */
+    private val rocketRegion: TextureRegion? = game.get<TextureAtlas>().findRegion(ROCKET_REGION)
+    private val rocketBurnRegion: TextureRegion? = game.get<TextureAtlas>().findRegion(ROCKET_BURN_REGION)
     private var players: ImmutableArray<Entity>? = null
     private var holes: ImmutableArray<Entity>? = null
     private var asteroids: ImmutableArray<Entity>? = null
@@ -215,6 +224,7 @@ class RenderSystem(
         }
         val isPlayer = playerMapper.has(entity)
         val type = baseInfoMapper.get(entity)?.entityType ?: EntityType.UNKNOWN
+        if (type == EntityType.ROCKET) applyRocketPlume(entity, sprite)
         if (pilotViewActive) {
             if (!pilotView.project(entity, scratch)) return
             if (!isPlayer) {
@@ -289,6 +299,16 @@ class RenderSystem(
         if (tinted) tintAndQueue(sprite, type, cx, cy, vx, vy)
         batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
         endLit()
+    }
+
+    /**
+     * Shows the motor plume on a rocket while its motor burns (ST-181) by swapping the sprite to the plume image and back at
+     * burnout. The plume follows the true `burnLeft`, so in the pilot view a distant rocket's plume is not light-delayed
+     * (physics-lies row 49).
+     */
+    private fun applyRocketPlume(entity: Entity, sprite: Sprite) {
+        val region = (if (entity.rocketCmp.burnLeft > 0f) rocketBurnRegion else rocketRegion) ?: return
+        if (sprite.u != region.u || sprite.v != region.v) sprite.setRegion(region)
     }
 
     /**

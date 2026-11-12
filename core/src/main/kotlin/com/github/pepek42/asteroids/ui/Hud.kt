@@ -23,6 +23,7 @@ import ktx.scene2d.label
 import ktx.scene2d.progressBar
 import ktx.scene2d.scene2d
 import kotlin.math.acosh
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /** Rapidity at which the HUD bar is full: beta = tanh(acosh(10)) = 0.995. */
@@ -67,6 +68,7 @@ class Hud(
     private val weaponRow = HorizontalGroup().apply { space(8f) }
     private var weaponShownActive = -1
     private var weaponShownAmmo = -1
+    private var weaponShownRocketKey = Int.MIN_VALUE
     private val lockLabel: Label = scene2d.label("").apply { isVisible = false }
     private var lockShown: TargetLockState? = null
     private var tidalShownPercent = -1
@@ -188,9 +190,11 @@ class Hud(
     /** Weapon slots line; the active weapon is highlighted (ST-163) and slot 2 shows its ammo (ST-164). */
     fun updateWeapons(loadout: WeaponLoadoutComponent) {
         updateLock(loadout.lockState)
-        if (loadout.activeSlot == weaponShownActive && loadout.lockOnAmmo == weaponShownAmmo) return
+        val rocketKey = rocketReadoutKey(loadout.rocketsInPod, loadout.rocketReloadLeft)
+        if (loadout.activeSlot == weaponShownActive && loadout.lockOnAmmo == weaponShownAmmo && rocketKey == weaponShownRocketKey) return
         weaponShownActive = loadout.activeSlot
         weaponShownAmmo = loadout.lockOnAmmo
+        weaponShownRocketKey = rocketKey
         for (i in 0 until WEAPON_SLOT_COUNT) {
             val type = loadout.slot(i)
             val label = weaponLabels[i]
@@ -200,6 +204,12 @@ class Hud(
             label.setText(
                 if (type == WeaponType.LOCK_ON) {
                     i18NBundle.format("hud_weapon_slot_ammo", name, i + 1, loadout.lockOnAmmo)
+                } else if (type == WeaponType.ROCKET) {
+                    if (loadout.rocketsInPod > 0) {
+                        i18NBundle.format("hud_weapon_slot_ammo", name, i + 1, loadout.rocketsInPod)
+                    } else {
+                        i18NBundle.format("hud_weapon_slot_reload", name, i + 1, ceil(loadout.rocketReloadLeft).toInt())
+                    }
                 } else {
                     i18NBundle.format("hud_weapon_slot", name, i + 1)
                 }
@@ -208,6 +218,13 @@ class Hud(
         }
         weaponRow.invalidateHierarchy()
     }
+
+    /**
+     * Change key of the rocket readout (ST-181): the rocket count while the pod has some, else minus the reload seconds
+     * left (rounded up) minus one, so the label is rebuilt when the count or the displayed second changes, not every frame.
+     */
+    private fun rocketReadoutKey(rockets: Int, reloadLeft: Float): Int =
+        if (rockets > 0) rockets else -1 - ceil(reloadLeft).toInt()
 
     /** "Locking…" / "LOCKED" next to the weapon slots (ST-165); rebuilt only when the state changes. */
     private fun updateLock(state: TargetLockState) {

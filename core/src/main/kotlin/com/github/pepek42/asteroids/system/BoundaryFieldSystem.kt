@@ -10,6 +10,7 @@ import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.utils.Array
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.ProjectileComponent
+import com.github.pepek42.asteroids.component.RemoveComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.baseInfoMapper
@@ -17,6 +18,8 @@ import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.projectileCmpOptional
 import com.github.pepek42.asteroids.component.projectileMapper
 import com.github.pepek42.asteroids.component.relativisticMapper
+import com.github.pepek42.asteroids.component.removeMapper
+import com.github.pepek42.asteroids.component.rocketMapper
 import com.github.pepek42.asteroids.component.computeBoundingRadius
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
 import com.github.pepek42.asteroids.physics.FIELD_BACKSTOP_RESTITUTION
@@ -65,6 +68,8 @@ class BoundaryFieldSystem(
             if (body.type == BodyDef.BodyType.StaticBody) continue
             // Projectiles are ignored by the field: they leave the arena and leave one ripple.
             if (projectileMapper.has(entities[i])) continue
+            // Rockets (ST-181) are not pushed back either: they detonate at the wall in afterStep.
+            if (rocketMapper.has(entities[i])) continue
             if (bodyCmp.boundingRadius < 0f) bodyCmp.boundingRadius = computeBoundingRadius(body)
             val pos = body.position
             val rel = relativisticOf(entities[i])
@@ -100,6 +105,10 @@ class BoundaryFieldSystem(
                 emitProjectileExit(id, projectile, body)
                 continue
             }
+            if (rocketMapper.has(entities[i])) {
+                detonateRocketAtWall(id, entities[i], body)
+                continue
+            }
             emitFieldImpact(id, body, bodyCmp.boundingRadius)
             enforceBackstop(id, body, bodyCmp.boundingRadius, relativisticOf(entities[i]))
         }
@@ -123,6 +132,22 @@ class BoundaryFieldSystem(
         if (x >= 0f && x <= w && y >= 0f && y <= h) return
         impacts.emit(id, x.coerceIn(0f, w), y.coerceIn(0f, h), PROJECTILE_EXIT_RIPPLE_STRENGTH, force = true)
         projectile.exitRippleEmitted = true
+    }
+
+    /**
+     * A rocket (ST-181) whose true position crosses the wall detonates: [RemoveComponent] plus one ripple at the crossing
+     * point, the same ripple a laser leaves when it exits. No splash damage (owner Q4). Skipped once tagged, so a rocket
+     * outside the wall for several steps (before `RemoveSystem` runs) rings only once.
+     */
+    private fun detonateRocketAtWall(id: Int, rocket: Entity, body: Body) {
+        if (removeMapper.has(rocket)) return
+        val w = mapProvider.mapWidth
+        val h = mapProvider.mapHeight
+        val x = body.position.x
+        val y = body.position.y
+        if (x >= 0f && x <= w && y >= 0f && y <= h) return
+        impacts.emit(id, x.coerceIn(0f, w), y.coerceIn(0f, h), PROJECTILE_EXIT_RIPPLE_STRENGTH, force = true)
+        rocket.add(engine.createComponent(RemoveComponent::class.java))
     }
 
     private fun emitFieldImpact(id: Int, body: Body, rBody: Float) {

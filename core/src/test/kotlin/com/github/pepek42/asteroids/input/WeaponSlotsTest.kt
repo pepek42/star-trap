@@ -21,14 +21,14 @@ class WeaponSlotsTest {
     }
 
     @Test
-    fun selectingSlotTwoActivatesLockOnAndSlotThreeKeepsIt() {
+    fun selectingSlotsActivatesLockOnAndThenRockets() {
         val loadout = WeaponLoadoutComponent()
         val weapon = WeaponComponent()
         loadout.select(1, weapon)
         assertEquals(WeaponType.LOCK_ON, weapon.weaponType)
         loadout.select(2, weapon)
-        assertEquals(WeaponType.LOCK_ON, weapon.weaponType)
-        assertEquals(1, loadout.activeSlot)
+        assertEquals(WeaponType.ROCKET, weapon.weaponType)
+        assertEquals(2, loadout.activeSlot)
     }
 
     @Test
@@ -46,10 +46,10 @@ class WeaponSlotsTest {
 
 class WeaponLoadoutDefaultsTest {
     @Test
-    fun defaultSlotsAreLaserLockOnEmpty() {
+    fun defaultSlotsAreLaserLockOnRockets() {
         val l = WeaponLoadoutComponent()
         assertEquals(WeaponType.LASER, l.slot(0))
         assertEquals(WeaponType.LOCK_ON, l.slot(1))
-        assertEquals(null, l.slot(2))
+        assertEquals(WeaponType.ROCKET, l.slot(2))
     }
 }

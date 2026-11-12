@@ -16,6 +16,8 @@ import com.github.pepek42.asteroids.component.MoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.moveCmp
+import com.github.pepek42.asteroids.component.removeMapper
+import com.github.pepek42.asteroids.component.transformMapper
 import com.github.pepek42.asteroids.component.weaponCmpOptional
 import com.github.pepek42.asteroids.component.weaponLoadoutCmpOptional
 import com.github.pepek42.asteroids.debug.LoggingUtils.Companion.defaultLoggingUtils
@@ -55,7 +57,14 @@ class PlayerInputSystem(
     val aimWorld: Vector2 get() = input.aimWorld
 
     /** The auto-aim target when the auto-aim scheme is active and has one (ST-133), else null. */
-    val autoAimTarget: Entity? get() = if (controlSettings.scheme == ControlScheme.AUTO_AIM) autoAim?.target else null
+    val autoAimTarget: Entity?
+        get() {
+            if (controlSettings.scheme != ControlScheme.AUTO_AIM) return null
+            val target = autoAim?.target ?: return null
+            // The target was picked in an earlier frame if input was frozen (pause) or the player ship is gone; it may have
+            // been removed since (pooled entity, components cleared), so never hand out a stale entity.
+            return if (transformMapper.has(target) && !removeMapper.has(target)) target else null
+        }
 
     /** Arena direction of the auto-aim shot; valid while [autoAimTarget] is not null. */
     val autoAimDir: Vector2 get() = autoAim?.aimDir ?: input.aimWorld
@@ -91,6 +100,8 @@ class PlayerInputSystem(
         input.aimWorld.set(unprojected.x, unprojected.y)
         input.betaShip.set(observer.betaVisual)
         input.pilotView = settings.pilotHullTransform
+        // Re-picked by the strategy while the player ship is processed; no ship this frame means no target.
+        autoAim?.clearTarget()
         super.update(deltaTime)
     }
 

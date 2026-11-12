@@ -49,6 +49,11 @@ class AutoAimStrategy(
     var target: Entity? = null
         private set
 
+    /** Drops the current target; [apply] picks a new one. */
+    fun clearTarget() {
+        target = null
+    }
+
     /** Arena direction of the last lead shot, valid while [target] is not null. */
     val aimDir = Vector2()
 

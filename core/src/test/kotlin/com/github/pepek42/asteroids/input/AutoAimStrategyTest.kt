@@ -156,6 +156,17 @@ class AutoAimStrategyTest {
         assertNull(s.strategy.target)
     }
 
+    @Test
+    fun clearTargetDropsTheStaleTarget() {
+        // PlayerInputSystem clears the target every frame, so a target removed while no player ship is processed
+        // (death, pause) is never handed to the overlay (NPE in drawLockReticle, 2026-11-12).
+        val s = scenario()
+        runStrategy(s)
+        assertEquals(s.asteroid, s.strategy.target)
+        s.strategy.clearTarget()
+        assertNull(s.strategy.target)
+    }
+
     private fun Entity.bodyOf(): Body = getComponent(BodyComponent::class.java).body
 
     private fun runStrategy(s: Scenario) {

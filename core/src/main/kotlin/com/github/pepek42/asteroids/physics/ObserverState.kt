@@ -17,6 +17,9 @@ class ObserverState {
     var worldTime = 0f
     var rapidity = 0f
 
+    /** The player's gravitational clock factor (`RelativisticComponent.gravFactor`, 1 without one); not smoothed (ST-195). */
+    var gravFactor = 1f
+
     fun reset() {
         position.setZero()
         betaRaw.setZero()
@@ -26,6 +29,7 @@ class ObserverState {
         tau = 0f
         worldTime = 0f
         rapidity = 0f
+        gravFactor = 1f
     }
 }
 

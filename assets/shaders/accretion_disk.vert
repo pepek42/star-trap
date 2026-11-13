@@ -2,6 +2,8 @@
 // Pilot view (ST-089, u_pilot = 1): each particle gets its own light delay on its circular orbit, the aberration boost and a
 // Doppler factor toward the pilot, so the side swinging toward the pilot is bluer and brighter. Mirrors the Kotlin reference
 // `diskParticleApparent` (render/AccretionDisk.kt); keep them in sync. With u_pilot = 0 the output equals ST-087.
+// ST-195: a_temp already holds the face-on g (transverse Doppler and gravity), so the pilot factor drops the source gamma and
+// divides by the pilot's own clock factor: d = gamma_o (1 - beta_o.n) / (g_o (1 - beta_src.n)), D_disk = g d, brightness D_disk^k.
 // ST-175: up to 4 disturbers (u_disturb0..3 = x, y, reach, strength) push particles radially out of their circle; mirrors the
 // Kotlin reference `diskScatterPush` (render/DiskDisturbers.kt). Strength 0 = unused slot.
 // GLSL ES 1.00 (WebGL 1 compatible). Vertex shaders always have highp in WebGL, which keeps phi precise for a long worldTime.
@@ -27,6 +29,7 @@ uniform float u_tau;        // light age of the (retarded) centre, s
 uniform vec2 u_holeVel;     // hole arena velocity at emission, u/s
 uniform vec2 u_observer;    // pilot position
 uniform vec2 u_beta;        // pilot velocity / c
+uniform float u_gObs;       // pilot gravitational clock factor (RelativisticComponent.gravFactor)
 uniform float u_c;
 uniform float u_delay;      // 1: per-particle light delay
 uniform float u_aberration; // 1: boost into the pilot frame
@@ -82,6 +85,7 @@ void main() {
     float phi = a_phi0 + omega * u_time;
     float g2 = max(1.0 - 1.5 * u_rs / a_r, 0.0); // g^2, so g^4 is its square
     float brightness = g2 * g2;
+    float g = sqrt(g2);
     float temp = a_temp;
     vec2 centre = scatterAll(u_center + a_r * vec2(cos(phi), sin(phi)));
     if (u_pilot > 0.5) {
@@ -101,11 +105,11 @@ void main() {
         float d = 1.0;
         if (len > 0.0) {
             vec2 n = toObs / len;
-            float den = gammaOf(betaSrc) * (1.0 - dot(betaSrc, n));
+            float den = u_gObs * (1.0 - dot(betaSrc, n));
             if (den > 1e-6) d = gammaOf(u_beta) * (1.0 - dot(u_beta, n)) / den;
         }
         temp *= d;
-        brightness *= clamp(pow(max(d, 1e-6), u_beam.x), u_beam.y, u_beam.z);
+        brightness = clamp(pow(max(g * d, 1e-6), u_beam.x), u_beam.y, u_beam.z); // D_disk^k replaces g^4 D^k
         centre = u_aberration > 0.5 ? u_observer + apparentOffset(p - u_observer, u_beta) : p;
     }
     vec2 pos = centre + a_corner * a_size;

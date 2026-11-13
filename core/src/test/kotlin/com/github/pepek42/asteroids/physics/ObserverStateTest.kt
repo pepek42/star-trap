@@ -22,7 +22,9 @@ class ObserverStateTest {
         val s = ObserverState()
         s.gammaRaw = 3f
         s.betaVisual.set(1f, 1f)
+        s.gravFactor = 0.4f
         s.reset()
+        assertEquals(1f, s.gravFactor)
         assertEquals(1f, s.gammaRaw)
         assertEquals(0f, s.betaVisual.x)
     }

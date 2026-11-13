@@ -34,6 +34,7 @@ class ObserverSystem(
         state.worldTime = clock?.worldTime ?: (state.worldTime + deltaTime)
         state.position.set(entity.transformCmp.interpolatedPosition)
         val rel = entity.relativisticCmpOptional
+        state.gravFactor = rel?.gravFactor ?: 1f
         if (rel != null) {
             velocityFromU(rel.u.x, rel.u.y, c, v)
             state.gammaRaw = gammaFromU(rel.u.x, rel.u.y, c)

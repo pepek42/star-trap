@@ -146,6 +146,10 @@ class PilotViewProjector(
     var betaY = 0f
         private set
 
+    /** Observer gravitational clock factor latched by [begin] (`ObserverState.gravFactor`, ST-195). */
+    var gravObs = 1f
+        private set
+
     /** Interpolated arena time latched by [begin]. */
     var now = 0f
         private set
@@ -190,6 +194,7 @@ class PilotViewProjector(
         oy = playerY
         betaX = observer.betaVisual.x
         betaY = observer.betaVisual.y
+        gravObs = observer.gravFactor
         // Interpolated arena time: the newest step minus the part of the step the render lerp has not reached yet.
         now = clock.worldTime - (1f - clock.interpolationAlpha) * PHYSICS_UPDATE_INTERVAL
     }

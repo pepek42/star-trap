@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-203**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-204**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -24,7 +24,7 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-63e. ST-195 Gravitational red- and blueshift in colours
+63e1. ST-203 Gravitational shift: ghosts, audio pitch, disk in the total potential
 63f. ST-196 Laser damage: wider clamp and gravitational photon energy (ST-185 Q5)
 63g. ST-197 Pilot view: light-delayed rocket plume
 63h. ST-198 Photons fly until they leave the arena
@@ -88,25 +88,20 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew test` passes
 - playtest: Rockets still hit near a planet or hole, and the intercept ring lines up with the real meeting point.
 
-### ST-195 Gravitational red- and blueshift in colours
+### ST-203 Gravitational shift: ghosts, audio pitch, disk in the total potential
 - status: ready
-- size: M
+- size: S
 - agent: kotlin-dev
-- depends: ST-194
-- files: `physics/ObserverState.kt`, `system/ObserverSystem.kt`, `system/RenderSystem.kt` (`tintAndQueue`), `render/Starfield.kt`, `render/PilotView.kt`, `render/AccretionDisk.kt` (`diskParticleApparent`), `assets/shaders/accretion_disk.vert`, `docs/design/physics-lies.md` rows 26, 53; tests
-- refs: `release-fidelity-audit.md` §1 rows 26 and 53, `relativity-effects.md` E15 and E17, `GravitySystem` `gravFactor`
-- layer: sim
-- goal: Light climbing out of a well loses energy and light falling in gains it. Hover near a hole and the sky turns blue (×3.3 at 1.1 r_s); things deep in a well look red. Today no colour sees gravity (new lie row 53).
-- spec:
-  - `ObserverState.gravFactor` = the player's `RelativisticComponent.gravFactor` (1 without one), set in `ObserverSystem` (not smoothed).
-  - Every Doppler factor gets `D_tot = D·g_e/g_o`: sprites use `g_e` = the entity's current `gravFactor` (APPROX in pilot view: the current value, not the retarded one; note it in row 53), and stars use `g_e = 1` (at infinity). Do it in one pure helper `gravDoppler(d, ge, go)`.
-  - Disk, pilot path (shader and `diskParticleApparent` mirror): the baked `a_temp` already holds the face-on `g = √(1 − 1.5 r_s/r)`, which includes the transverse Doppler. So drop the source γ: `d = γ_o(1 − β_o·n̂) / (g_o·(1 − β_src·n̂))` (new uniform `u_gObs`). Brightness = `clamp(D_disk², …)` with `D_disk = g·d`, replacing `g⁴·D^k` (g⁴ is the face-on 3D value for the top-down camera). Keep the world path as is (exact face-on).
-  - Rewrite row 53 as APPROX: `g_e` is current rather than retarded, other holes don't redshift the disk, Galilean hole velocity (row 26).
+- depends: —
+- files: `system/LightHistorySystem.kt` (`GhostInfo`), `system/RenderSystem.kt` (`GHOST_GRAV_FACTOR`), `system/ComputerSoundSystem.kt`, `render/AccretionDisk.kt`, `assets/shaders/accretion_disk.vert`, `docs/design/physics-lies.md` row 53; tests
+- refs: commit ST-195, physics-lies row 53
+- layer: sim (audio part: assist)
+- goal: Follow-ups from ST-195. (1) Ghosts use g_e = 1: store the entity's `gravFactor` at removal in `GhostInfo` and use it. (2) `ComputerSoundSystem`'s Doppler pitch ignores gravity: multiply by `gravDoppler`'s g_e/g_o so the pitch matches the colours. (3) The disk bakes `g(r)` from its own hole only; if cheap, include the other sources' potential (else leave it in row 53). Also guard `u_gObs <= 0` in the shader like the Kotlin `diskDoppler`.
 - acceptance:
-  - [ ] Test: `gravDoppler` with `g_o` = 0.3, a static star and a pilot at rest gives D = 1/0.3
-  - [ ] Test: `diskParticleApparent` for a hole at rest and an observer at rest far away along the orbit's tangent gives `D = √(1 − 1.5 r_s/r)/(1 ∓ β_orb)` within 1e-4
-  - [ ] `./gradlew core:test` passes and `scripts/web-check.sh --play` reports OK (shader change)
-- playtest: Hover just outside a hole's ISCO: the starfield shifts blue and brightens; an asteroid falling in reddens.
+  - [ ] Test: a ghost keeps its entity's `gravFactor`
+  - [ ] Test: the sound pitch factor includes g_e/g_o
+  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports PASS
+- playtest: Near a hole, an asteroid destroyed deep in the well keeps its red tint as a ghost, and sounds lower.
 
 ### ST-196 Laser damage: wider clamp and gravitational photon energy (ST-185 Q5)
 - status: ready

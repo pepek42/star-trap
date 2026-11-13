@@ -187,7 +187,7 @@ class BlackHoleRenderer : Disposable {
                     disk, centre.x, centre.y, source.effectiveGm(c),
                     time = pilot.now - pilot.centreLag, tau = pilot.centreLag,
                     holeVx = pilot.centreVx, holeVy = pilot.centreVy,
-                    ox = pilot.ox, oy = pilot.oy, betaX = pilot.betaX, betaY = pilot.betaY, c = c,
+                    ox = pilot.ox, oy = pilot.oy, betaX = pilot.betaX, betaY = pilot.betaY, gObs = pilot.gravObs, c = c,
                     delay = pilot.delayEnabled && pilot.centreLag > 0f, aberration = pilot.aberrationEnabled,
                 )
             }

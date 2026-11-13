@@ -15,10 +15,11 @@ import com.badlogic.gdx.utils.Disposable
 import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.physics.BETA_MAX_MASSIVE
 import com.github.pepek42.asteroids.physics.BH_RS
-import com.github.pepek42.asteroids.physics.dopplerFactor
+import com.github.pepek42.asteroids.physics.rsFromGm
 import ktx.log.logger
 import kotlin.math.cos
 import kotlin.math.ln
+import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -131,14 +132,18 @@ const val DISK_RETARD_ITERATIONS = 6
  * orbit. With [delay], its own emission is `s` seconds before the centre's, solved from `|p(φ − Ω s) − o| = c (τ + s)` by
  * [DISK_RETARD_ITERATIONS] fixed-point steps on the true circle (the tangent-line formula fails here: Ω·s reaches over a radian
  * near the ISCO). The particle velocity is `v_hole + Ω r t̂` (Galilean sum, error O(v_hole v_orb / c²)). Writes the apparent
- * position (boosted by `apparentOffset` when [aberration]) into [out] and returns the Doppler factor `D` toward the observer at
- * ([ox], [oy]) moving with ([betaX], [betaY]) (fractions of c).
+ * position (boosted by `apparentOffset` when [aberration]) into [out].
+ *
+ * Returns the total frequency factor `D_disk = g · d` toward the observer at ([ox], [oy]) moving with ([betaX], [betaY])
+ * (fractions of c), with `g = diskRedshift` (face-on, already holding the source's transverse Doppler and its gravity, so the
+ * source γ is dropped) and `d = γ_o (1 − β_o·n̂) / (g_o (1 − β_src·n̂))`, [gObs] being the pilot's clock factor (ST-195, row 53).
+ * The shader multiplies the baked `T·g` by `d`, so the colour temperature is `T·D_disk`.
  */
 fun diskParticleApparent(
     r: Float, phi: Float, gm: Float, c: Float,
     ox: Float, oy: Float, betaX: Float, betaY: Float,
     cx: Float, cy: Float, tau: Float, holeVx: Float, holeVy: Float,
-    delay: Boolean, aberration: Boolean, out: Vector2,
+    delay: Boolean, aberration: Boolean, out: Vector2, gObs: Float = 1f,
 ): Float {
     val omega = diskOmega(r, gm)
     var ph = phi
@@ -163,18 +168,29 @@ fun diskParticleApparent(
     val d = if (len > 0f) {
         nx /= len
         ny /= len
-        dopplerFactor(scratchObs.set(betaX, betaY), scratchSrc.set(bsx, bsy), nx, ny)
+        diskDoppler(betaX, betaY, bsx, bsy, nx, ny, gObs)
     } else {
         1f
     }
     pilotCorner(px, py, ox, oy, betaX, betaY, aberration, out)
-    return d
+    return d * diskRedshift(r, rsFromGm(gm, c))
 }
 
-private val scratchObs = Vector2()
-private val scratchSrc = Vector2()
+/**
+ * The kinematic part `d = γ_o (1 − β_o·n̂) / (g_o (1 − β_src·n̂))` of a disk particle's factor (ST-195): no source γ, because the
+ * baked face-on `g` already includes it, and the observer's gravitational [gObs] instead. ([nx], [ny]) is the unit direction from
+ * the source to the observer; β's are clamped to [BETA_MAX_MASSIVE] like the shader. Returns 1 when the result is not finite.
+ */
+fun diskDoppler(obsBx: Float, obsBy: Float, srcBx: Float, srcBy: Float, nx: Float, ny: Float, gObs: Float): Float {
+    val betaSq = obsBx * obsBx + obsBy * obsBy
+    val gammaO = 1f / sqrt(1f - min(betaSq, BETA_MAX_MASSIVE * BETA_MAX_MASSIVE))
+    val den = (if (gObs > 0f) gObs else 1f) * (1f - (srcBx * nx + srcBy * ny))
+    if (den <= 1e-6f) return 1f
+    val d = gammaO * (1f - (obsBx * nx + obsBy * ny)) / den
+    return if (d.isFinite()) d else 1f
+}
 
-/** Searchlight brightness of a disk particle in pilot view at Doppler factor [d]: `beamBrightness` with the point exponent (D²). */
+/** Searchlight brightness of a disk particle in pilot view at the total factor [d] (`D_disk`, [diskParticleApparent]): `beamBrightness` with the point exponent (D²). No `g⁴`: it is replaced by `D_disk²` (ST-195). */
 fun diskBeamBrightness(d: Float): Float = beamBrightness(d, true, true)
 
 /** Two triangles per particle quad: corners 0-1-2 and 2-3-0. */
@@ -264,7 +280,7 @@ class AccretionDiskShader : Disposable {
      */
     fun drawPilot(
         disk: AccretionDisk, centerX: Float, centerY: Float, gm: Float, time: Float, tau: Float, holeVx: Float, holeVy: Float,
-        ox: Float, oy: Float, betaX: Float, betaY: Float, c: Float, delay: Boolean, aberration: Boolean,
+        ox: Float, oy: Float, betaX: Float, betaY: Float, gObs: Float, c: Float, delay: Boolean, aberration: Boolean,
     ) {
         program.setUniformf("u_pilot", 1f)
         program.setUniformf("u_time", time)
@@ -272,6 +288,7 @@ class AccretionDiskShader : Disposable {
         program.setUniformf("u_holeVel", holeVx, holeVy)
         program.setUniformf("u_observer", ox, oy)
         program.setUniformf("u_beta", betaX, betaY)
+        program.setUniformf("u_gObs", gObs)
         program.setUniformf("u_c", c)
         program.setUniformf("u_delay", if (delay) 1f else 0f)
         program.setUniformf("u_aberration", if (aberration) 1f else 0f)

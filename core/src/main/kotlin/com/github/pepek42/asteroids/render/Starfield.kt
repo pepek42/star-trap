@@ -165,7 +165,7 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
         val bx = observer.betaVisual.x
         val by = observer.betaVisual.y
         val gamma = observer.gammaVisual
-        val doppler = observer.betaVisual.len() >= DOPPLER_MIN_BETA
+        val doppler = observer.betaVisual.len() >= DOPPLER_MIN_BETA || gravShiftActive(1f, observer.gravFactor)
         val px = observer.position.x
         val py = observer.position.y
         val halfW = camera.viewportWidth * zoom / 2f
@@ -176,6 +176,7 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
         val cy = camera.position.y
         frame.set(batch, cx, cy, halfW, halfH, doppler, aberration, pilotX, pilotY, betaX, betaY, px, py, bx, by, gamma)
         frame.pilotBeam = pilotBeam
+        frame.gObs = observer.gravFactor
         val oldColor = batch.packedColor
         val oldSrc = batch.blendSrcFunc
         val oldDst = batch.blendDstFunc
@@ -206,7 +207,7 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
     private class Frame {
         lateinit var batch: Batch
         var cx = 0f; var cy = 0f; var halfW = 0f; var halfH = 0f
-        var doppler = false; var aberration = false; var pilotBeam = false
+        var doppler = false; var aberration = false; var pilotBeam = false; var gObs = 1f
         var pilotX = 0f; var pilotY = 0f; var betaX = 0f; var betaY = 0f
         var px = 0f; var py = 0f; var bx = 0f; var by = 0f; var gamma = 1f
 
@@ -251,7 +252,9 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
         val ox = f.cx + adx - f.px
         val oy = f.cy + ady - f.py
         val dist = sqrt(ox * ox + oy * oy)
-        val d = if (dist < 1e-6f) 1f else effectiveDoppler(starDoppler(f.bx, f.by, f.gamma, ox / dist, oy / dist))
+        val kinematic = if (dist < 1e-6f) 1f else starDoppler(f.bx, f.by, f.gamma, ox / dist, oy / dist)
+        // Stars sit at infinity (g_e = 1); a pilot deep in a well sees them blueshifted by 1 / g_o (ST-195).
+        val d = effectiveDoppler(gravDoppler(kinematic, 1f, f.gObs))
         BlackbodyLut.rgbInto(data.kelvin[i] * d, rgb)
         val b = beamBrightness(d, f.pilotBeam, true)
         val scale = data.brightness[i] * min(b, 1f)

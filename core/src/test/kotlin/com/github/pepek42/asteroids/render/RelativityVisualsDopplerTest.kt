@@ -31,4 +31,38 @@ class RelativityVisualsDopplerTest {
         assertEquals(DOPPLER_D_MIN, effectiveDoppler(-1f))
         assertEquals(1.5f, effectiveDoppler(1.5f), 1e-5f)
     }
+
+    @Test
+    fun gravDopplerOfAStaticStarForAPilotDeepInAWellIsOneOverGo() {
+        val go = 0.3f
+        val d = starDoppler(0f, 0f, 1f, 1f, 0f) // pilot at rest
+        assertEquals(1f / go, gravDoppler(d, 1f, go), 1e-5f)
+    }
+
+    @Test
+    fun gravDopplerRedshiftsADeepEmitterAndKeepsTheKinematicFactor() {
+        assertEquals(0.5f, gravDoppler(1f, 0.5f, 1f), 1e-6f)
+        assertEquals(2f * 0.5f / 0.8f, gravDoppler(2f, 0.5f, 0.8f), 1e-6f)
+        assertEquals(1.7f, gravDoppler(1.7f, 1f, 1f), 0f)
+    }
+
+    @Test
+    fun gravDopplerTreatsNonPositiveFactorsAsOne() {
+        assertEquals(1.7f, gravDoppler(1.7f, 0f, 0.5f), 0f)
+        assertEquals(1.7f, gravDoppler(1.7f, 0.5f, -1f), 0f)
+    }
+
+    @Test
+    fun gravShiftActiveOnlyWhenTheFactorsDiffer() {
+        assertEquals(false, gravShiftActive(1f, 1f))
+        assertEquals(false, gravShiftActive(0.6f, 0.6f))
+        assertEquals(true, gravShiftActive(1f, 0.9f))
+        assertEquals(true, gravShiftActive(0.5f, 1f))
+    }
+
+    @Test
+    fun aPilotNearAHoleSeesTheStarsBlueAndBrighter() {
+        val d = effectiveDoppler(gravDoppler(1f, 1f, 0.3f))
+        assertEquals(true, beamBrightness(d, pilotView = true, point = true) > 1f)
+    }
 }

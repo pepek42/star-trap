@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.math.Vector2
 import com.github.pepek42.asteroids.component.EntityType
+import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.min
@@ -102,6 +103,17 @@ const val DOPPLER_MIN_BETA = 1e-4f
 /** `D^DOPPLER_COLOR_STRENGTH` clamped to [[DOPPLER_D_MIN], [DOPPLER_D_MAX]]. */
 fun effectiveDoppler(d: Float): Float =
     exp(DOPPLER_COLOR_STRENGTH * ln(d.coerceAtLeast(Float.MIN_VALUE))).coerceIn(DOPPLER_D_MIN, DOPPLER_D_MAX)
+
+/**
+ * Total frequency factor with gravitational shift (ST-195, research E15): `D_tot = D · g_e / g_o`, where [d] is the kinematic
+ * Doppler factor, [ge] the emitter's clock factor (`RelativisticComponent.gravFactor`; 1 for stars, which sit at infinity)
+ * and [go] the observer's. Light climbing out of a well (`ge < 1`) is redshifted, a pilot deep in a well (`go < 1`) sees
+ * everything blueshifted (`1 / go`). A non-positive factor is treated as 1.
+ */
+fun gravDoppler(d: Float, ge: Float, go: Float): Float = if (ge > 0f && go > 0f) d * ge / go else d
+
+/** True when `ge / go` differs from 1 enough that the colours need the Doppler pass even for sources and pilot at rest. */
+fun gravShiftActive(ge: Float, go: Float): Boolean = ge > 0f && go > 0f && abs(ge / go - 1f) >= DOPPLER_MIN_BETA
 
 /**
  * Doppler factor of a static star seen by an observer with velocity β = ([betaX], [betaY]) and Lorentz factor [gamma]:

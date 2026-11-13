@@ -43,17 +43,41 @@ class AccretionDiskPilotTest {
     @Test
     fun mirroredParticlesHaveTheExpectedDopplerProduct() {
         // Mirrored across the line of sight, the particle at -phi moves opposite to the mirror image of the one at phi, so
-        // β·n̂ flips sign: D(phi) D(-phi) = 1 / (γ² (1 - (β·n̂)²)).
+        // β·n̂ flips sign: D(phi) D(-phi) = g² / (1 - (β·n̂)²) (the source γ is inside g since ST-195).
         val beta = diskOmega(r, gm) * r / c
-        val gamma2 = 1f / (1f - beta * beta)
+        val g2 = 1f - 1.5f * BH_RS / r
         for (deg in listOf(20f, 60f, 100f, 150f)) {
             val a = deg * PI.toFloat() / 180f
             val px = r * cos(a)
             val py = r * sin(a)
             val len = hypot(obsX - px, -py)
             val bn = beta * (-sin(a) * (obsX - px) + cos(a) * (-py)) / len
-            assertEquals(1f / (gamma2 * (1f - bn * bn)), d(a) * d(-a), 1e-3f, "deg = $deg")
+            assertEquals(g2 / (1f - bn * bn), d(a) * d(-a), 1e-3f, "deg = $deg")
         }
+    }
+
+    @Test
+    fun farTangentObserverAtRestSeesFaceOnRedshiftOverOneMinusBeta() {
+        // Hole and pilot at rest, the pilot far away along the particle's tangent: n̂ = ±t̂, so β_src·n̂ = ±β_orb and
+        // D = sqrt(1 - 1.5 r_s / r) / (1 ∓ β_orb) (toward: 1 - β, away: 1 + β).
+        val far = 1e6f
+        val g = sqrt(1f - 1.5f * BH_RS / r)
+        val beta = diskOmega(r, gm) * r / c
+        val out = Vector2()
+        // Particle at phi = 0 moves along +y, the observer sits on +y: the particle approaches.
+        val toward = diskParticleApparent(r, 0f, gm, c, 0f, far, 0f, 0f, 0f, 0f, 0f, 0f, 0f, false, false, out)
+        assertEquals(g / (1f - beta), toward, 1e-4f)
+        // The observer on -y: it recedes.
+        val away = diskParticleApparent(r, 0f, gm, c, 0f, -far, 0f, 0f, 0f, 0f, 0f, 0f, 0f, false, false, out)
+        assertEquals(g / (1f + beta), away, 1e-4f)
+    }
+
+    @Test
+    fun pilotDeepInAWellSeesTheDiskBlueshiftedByOneOverGo() {
+        val out = Vector2()
+        val base = diskParticleApparent(r, 0f, gm, c, 100f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, false, false, out)
+        val deep = diskParticleApparent(r, 0f, gm, c, 100f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, false, false, out, gObs = 0.25f)
+        assertEquals(4f, deep / base, 1e-4f)
     }
 
     @Test

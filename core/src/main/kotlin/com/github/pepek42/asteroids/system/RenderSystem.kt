@@ -67,6 +67,8 @@ import com.github.pepek42.asteroids.render.tidalStretch
 import com.github.pepek42.asteroids.render.contractionK
 import com.github.pepek42.asteroids.render.glowsAdditively
 import com.github.pepek42.asteroids.render.effectiveDoppler
+import com.github.pepek42.asteroids.render.gravDoppler
+import com.github.pepek42.asteroids.render.gravShiftActive
 import com.github.pepek42.asteroids.render.tintSpriteVertices
 import kotlin.math.sqrt
 import ktx.ashley.allOf
@@ -233,7 +235,10 @@ class RenderSystem(
         if (pilotViewActive) {
             if (!pilotView.project(entity, scratch)) return
             if (!isPlayer) {
-                tintAndQueue(sprite, type, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy)
+                tintAndQueue(
+                    sprite, type, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy,
+                    entity.relativisticCmpOptional?.gravFactor ?: 1f,
+                )
             }
             beginLit(
                 entity, sprite, pilotView.sourceX, pilotView.sourceY, pilotView.sourceAngleRad, pilotView.sourceLag,
@@ -271,8 +276,9 @@ class RenderSystem(
         val contract = v != null && speed > MIN_CONTRACTION_SPEED
         val cx = transformComp.interpolatedPosition.x
         val cy = transformComp.interpolatedPosition.y
-        val tinted = !isPlayer && observerBlueShiftActive(vx, vy)
         val rel = entity.relativisticCmpOptional
+        val ge = rel?.gravFactor ?: 1f
+        val tinted = !isPlayer && observerBlueShiftActive(vx, vy, ge)
         val stretch = if (rel != null && rel.tidalRatio > 0f) tidalStretch(rel.tidalRatio) else 1f
         val stretched = stretch >= TIDAL_VISUAL_MIN_SCALE
         beginLit(entity, sprite, cx, cy, transformComp.interpolatedRotationDeg * MathUtils.degreesToRadians, 0f)
@@ -301,7 +307,7 @@ class RenderSystem(
                 scratch[i + 1] = cy + tmp.y
             }
         }
-        if (tinted) tintAndQueue(sprite, type, cx, cy, vx, vy)
+        if (tinted) tintAndQueue(sprite, type, cx, cy, vx, vy, ge)
         batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
         endLit()
     }
@@ -317,7 +323,7 @@ class RenderSystem(
         pilotView.history.forEachGhost { _, history, ghost, removedAt ->
             if (!pilotView.projectGhost(history, ghost, removedAt, ghostSprite, scratch)) return@forEachGhost
             if (ghostSprite.texture == null) return@forEachGhost
-            tintAndQueue(ghostSprite, ghost.type, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy)
+            tintAndQueue(ghostSprite, ghost.type, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy, GHOST_GRAV_FACTOR)
             val lit = litSprites
             litNow = lightingActive && lit != null && lit.prepare(
                 batch, ghostSprite, ghost.entityId, ghost.type, ghost.sphereNormals, lightSources,
@@ -357,28 +363,31 @@ class RenderSystem(
 
     /**
      * True when the Doppler tint can differ from white: the observer or the source moves. At rest on both sides D = 1 and the
-     * plain sprite path is used.
+     * plain sprite path is used. A gravitational shift (the source's [ge] against the observer's) also counts (ST-195).
      */
-    private fun observerBlueShiftActive(vx: Float, vy: Float): Boolean =
+    private fun observerBlueShiftActive(vx: Float, vy: Float, ge: Float): Boolean =
         observer.betaVisual.len2() >= DOPPLER_MIN_BETA * DOPPLER_MIN_BETA ||
-            vx * vx + vy * vy >= (DOPPLER_MIN_BETA * settings.c).let { it * it }
+            vx * vx + vy * vy >= (DOPPLER_MIN_BETA * settings.c).let { it * it } ||
+            gravShiftActive(ge, observer.gravFactor)
 
     /**
      * Tints the quad in [scratch] by the Doppler factor of a source at ([sx], [sy]) moving at ([vx], [vy]) as seen by the
      * observer (ST-045): `n̂` runs from the source to the observer, β_s = v / c. Blueshifted sprites also queue an additive glow
-     * copy, unless [glowsAdditively] is false for [type] (projectiles, ST-121).
+     * copy, unless [glowsAdditively] is false for [type] (projectiles, ST-121). The factor is `D · ge / go` ([gravDoppler], ST-195):
+     * [ge] is the source's current `gravFactor` (APPROX in pilot view: not the retarded one, physics-lies row 53), `go` the observer's.
      */
-    private fun tintAndQueue(sprite: Sprite, type: EntityType, sx: Float, sy: Float, vx: Float, vy: Float) {
+    private fun tintAndQueue(sprite: Sprite, type: EntityType, sx: Float, sy: Float, vx: Float, vy: Float, ge: Float) {
         val nx = observer.position.x - sx
         val ny = observer.position.y - sy
         val dist = sqrt(nx * nx + ny * ny)
         val c = settings.c
-        val d = if (dist < MIN_TINT_DISTANCE || c <= 0f) {
+        val kinematic = if (dist < MIN_TINT_DISTANCE || c <= 0f) {
             1f
         } else {
             betaSrc.set(vx / c, vy / c)
-            effectiveDoppler(dopplerFactor(observer.betaVisual, betaSrc, nx / dist, ny / dist))
+            dopplerFactor(observer.betaVisual, betaSrc, nx / dist, ny / dist)
         }
+        val d = effectiveDoppler(gravDoppler(kinematic, ge, observer.gravFactor))
         val col = sprite.color
         val glow = tintSpriteVertices(scratch, d, col.r, col.g, col.b, col.a, BlackbodyLut, rgb, pilotViewActive)
         if (glow > 0f && glowsAdditively(type)) additive.add(sprite.texture, scratch, glow * col.a)
@@ -408,6 +417,9 @@ class RenderSystem(
 
         /** Closer than this (u) the source-to-observer direction is undefined and the tint stays white. */
         private const val MIN_TINT_DISTANCE = 1e-3f
+
+        /** Ghosts (ST-079) keep no gravitational factor: their light is shifted as if emitted at infinity (physics-lies row 53). */
+        private const val GHOST_GRAV_FACTOR = 1f
         private val logger = logger<RenderSystem>()
     }
 }

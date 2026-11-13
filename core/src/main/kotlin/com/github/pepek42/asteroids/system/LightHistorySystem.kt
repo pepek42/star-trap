@@ -21,6 +21,7 @@ import com.github.pepek42.asteroids.component.GravitySourceKind
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.gravitySourceCmpOptional
 import com.github.pepek42.asteroids.component.playerMapper
+import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.component.spriteMapper
 import com.github.pepek42.asteroids.physics.LIGHT_HISTORY_CAPACITY
 import com.github.pepek42.asteroids.physics.LightHistory
@@ -51,7 +52,11 @@ class GhostInfo : Pool.Poolable {
     /** True for planets, which are lit with sphere normals instead of a normal-map partner (ST-097). */
     var sphereNormals = false
 
-    fun copyFrom(sprite: Sprite, entityType: EntityType, id: Int, sphere: Boolean) {
+    /** The entity's `RelativisticComponent.gravFactor` at removal (1 without one); the ghost's `g_e` for the colour shift (ST-203). */
+    var gravFactor = 1f
+
+    fun copyFrom(sprite: Sprite, entityType: EntityType, id: Int, sphere: Boolean, gravFactor: Float = 1f) {
+        this.gravFactor = gravFactor
         entityId = id
         sphereNormals = sphere
         region.setRegion(sprite)
@@ -68,6 +73,7 @@ class GhostInfo : Pool.Poolable {
         type = EntityType.UNKNOWN
         entityId = 0
         sphereNormals = false
+        gravFactor = 1f
     }
 }
 
@@ -149,7 +155,7 @@ class LightHistorySystem : EntitySystem(), PhysicsStepListener, EntityListener {
         // No ghost for the player: a death ghost could otherwise show after a respawn (ST-202).
         if (sprite != null && sprite.texture != null && !playerMapper.has(entity)) {
             val sphere = entity.gravitySourceCmpOptional?.kind == GravitySourceKind.PLANET
-            ghosts.put(id, ghostPool.obtain().also { it.copyFrom(sprite, entity.baseInfoCmp.entityType, id, sphere) })
+            ghosts.put(id, ghostPool.obtain().also { it.copyFrom(sprite, entity.baseInfoCmp.entityType, id, sphere, entity.relativisticCmpOptional?.gravFactor ?: 1f) })
         }
     }
 

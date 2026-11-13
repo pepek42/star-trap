@@ -16,6 +16,7 @@ import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.GravitySourceComponent
 import com.github.pepek42.asteroids.component.GravitySourceKind
 import com.github.pepek42.asteroids.component.PlayerComponent
+import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
@@ -164,6 +165,18 @@ class LightHistorySystemTest {
         history.forEachGhost { _, _, g, _ -> ghost = g }
         assertEquals(id, ghost!!.entityId)
         assertTrue(ghost!!.sphereNormals)
+    }
+
+    @Test
+    fun ghostKeepsGravFactor() {
+        val e = addBody(1f)
+        e.add(spriteCmp())
+        e.add(RelativisticComponent().apply { gravFactor = 0.6f })
+        step(3)
+        remove(e)
+        var ghost: GhostInfo? = null
+        history.forEachGhost { _, _, g, _ -> ghost = g }
+        assertEquals(0.6f, ghost!!.gravFactor)
     }
 
     @Test

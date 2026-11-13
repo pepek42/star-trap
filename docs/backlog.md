@@ -24,7 +24,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-63e1. ST-203 Gravitational shift: ghosts, audio pitch, disk in the total potential
 63f. ST-196 Laser damage: wider clamp and gravitational photon energy (ST-185 Q5)
 63g. ST-197 Pilot view: light-delayed rocket plume
 63h. ST-198 Photons fly until they leave the arena
@@ -87,21 +86,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] Test: near a gravity source the aim (or the fallback) never sends the rocket where it cannot meet the target
   - [ ] `./gradlew test` passes
 - playtest: Rockets still hit near a planet or hole, and the intercept ring lines up with the real meeting point.
-
-### ST-203 Gravitational shift: ghosts, audio pitch, disk in the total potential
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: —
-- files: `system/LightHistorySystem.kt` (`GhostInfo`), `system/RenderSystem.kt` (`GHOST_GRAV_FACTOR`), `system/ComputerSoundSystem.kt`, `render/AccretionDisk.kt`, `assets/shaders/accretion_disk.vert`, `docs/design/physics-lies.md` row 53; tests
-- refs: commit ST-195, physics-lies row 53
-- layer: sim (audio part: assist)
-- goal: Follow-ups from ST-195. (1) Ghosts use g_e = 1: store the entity's `gravFactor` at removal in `GhostInfo` and use it. (2) `ComputerSoundSystem`'s Doppler pitch ignores gravity: multiply by `gravDoppler`'s g_e/g_o so the pitch matches the colours. (3) The disk bakes `g(r)` from its own hole only; if cheap, include the other sources' potential (else leave it in row 53). Also guard `u_gObs <= 0` in the shader like the Kotlin `diskDoppler`.
-- acceptance:
-  - [ ] Test: a ghost keeps its entity's `gravFactor`
-  - [ ] Test: the sound pitch factor includes g_e/g_o
-  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports PASS
-- playtest: Near a hole, an asteroid destroyed deep in the well keeps its red tint as a ghost, and sounds lower.
 
 ### ST-196 Laser damage: wider clamp and gravitational photon energy (ST-185 Q5)
 - status: ready

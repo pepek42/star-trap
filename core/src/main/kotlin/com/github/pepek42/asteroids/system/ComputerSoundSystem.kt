@@ -16,6 +16,7 @@ import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.dopplerFactor
+import com.github.pepek42.asteroids.render.gravDoppler
 import com.github.pepek42.asteroids.settings.SoundSettings
 import kotlin.math.sqrt
 
@@ -24,7 +25,7 @@ import kotlin.math.sqrt
  * no sound travels through vacuum). Events wait in [ComputerSoundQueue] with their arena position and world time and play
  * once their light reaches the pilot's current position (`|x_pilot - x_event| <= c (t - t_event)`, [lightHasArrived]), never
  * earlier. Pitch is the Doppler factor of the source as seen by the pilot (true [ObserverState.betaRaw], only with
- * relativity on), volume falls with distance ([computerVolume]), pan follows the bearing ([computerPan]). At most
+ * relativity on) times the gravitational `g_e / g_o` ([gravDoppler], ST-203), volume falls with distance ([computerVolume]), pan follows the bearing ([computerPan]). At most
  * `COMPUTER_MAX_VOICES` play at once; extra events are dropped. With [SoundSettings.computerSounds] off it queues and plays
  * nothing. Allocation-free per frame.
  */
@@ -80,7 +81,8 @@ class ComputerSoundSystem(
             betaSrc.set(queue.vxAt(i) / c, queue.vyAt(i) / c)
             doppler = dopplerFactor(observer.betaRaw, betaSrc, dx / dist, dy / dist)
         }
-        val pitch = computerPitch(doppler)
+        // Gravitational shift as in the colours (ST-195): g_e of the emitter at the event over g_o now (row 53).
+        val pitch = computerPitch(gravDoppler(doppler, queue.gravFactorAt(i), observer.gravFactor))
         if (!voices.tryAcquire(realTime, COMPUTER_VOICE_SECONDS / pitch)) return
         val volume = computerVolume(dist, c) * settings.computerGain
         sounds[queue.kindAt(i).ordinal].play(volume, pitch, computerPan(-dx, -dy))

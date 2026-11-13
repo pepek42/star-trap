@@ -85,6 +85,16 @@ class ComputerSoundSystemTest {
     }
 
     @Test
+    fun pitchIncludesGravitationalShift() {
+        observer.gravFactor = 1f
+        queue.push(ComputerSoundKind.ASTEROID_BREAK_LARGE, 10f, 0f, 0f, 0f, 0f, 0.8f)
+        tick(10f)
+        val pitch = argumentCaptor<Float>()
+        verify(sound).play(any(), pitch.capture(), any())
+        assertEquals(computerPitch(0.8f), pitch.firstValue, 1e-4f)
+    }
+
+    @Test
     fun pitchIsClamped() {
         assertEquals(COMPUTER_PITCH_MAX, computerPitch(50f))
         assertEquals(COMPUTER_PITCH_MIN, computerPitch(0.01f))

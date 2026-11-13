@@ -105,7 +105,7 @@ void main() {
         float d = 1.0;
         if (len > 0.0) {
             vec2 n = toObs / len;
-            float den = u_gObs * (1.0 - dot(betaSrc, n));
+            float den = (u_gObs > 0.0 ? u_gObs : 1.0) * (1.0 - dot(betaSrc, n));
             if (den > 1e-6) d = gammaOf(u_beta) * (1.0 - dot(u_beta, n)) / den;
         }
         temp *= d;

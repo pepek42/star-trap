@@ -14,6 +14,7 @@ import com.github.pepek42.asteroids.component.enemyMapper
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.healthCmp
 import com.github.pepek42.asteroids.component.playerMapper
+import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.environment.AsteroidSize
 import com.github.pepek42.asteroids.physics.FRAGMENT_RAM_IMMUNITY
 import com.github.pepek42.asteroids.physics.GameClock
@@ -66,13 +67,13 @@ class DeathSystem(
             val body = entity.bodyCmp.body
             body.fixtureList.forEach { it.isSensor = true }
             val currentAsteroidSize = entity.asteroidCmp.asteroidSize
-            pushBreakUp(body, currentAsteroidSize)
+            pushBreakUp(body, currentAsteroidSize, entity.relativisticCmpOptional?.gravFactor ?: 1f)
             if (currentAsteroidSize.nextSize != null) {
                 spawnSmallerAsteroids(body, currentAsteroidSize)
             }
         }
         if (entity.has(enemyMapper)) {
-            pushEnemyKill(entity.bodyCmp.body)
+            pushEnemyKill(entity.bodyCmp.body, entity.relativisticCmpOptional?.gravFactor ?: 1f)
         }
         entity.addComponent<RemoveComponent>(engine)
     }
@@ -81,14 +82,14 @@ class DeathSystem(
      * The computer announces a destroyed enemy with the large-asteroid break-up sound (ST-157). A dedicated ship sound
      * can replace it later.
      */
-    private fun pushEnemyKill(body: Body) {
+    private fun pushEnemyKill(body: Body, gravFactor: Float) {
         val queue = computerSounds ?: return
         val p = body.position
         val v = body.linearVelocity
-        queue.push(ComputerSoundKind.ASTEROID_BREAK_LARGE, p.x, p.y, v.x, v.y, clock?.worldTime ?: 0f)
+        queue.push(ComputerSoundKind.ASTEROID_BREAK_LARGE, p.x, p.y, v.x, v.y, clock?.worldTime ?: 0f, gravFactor)
     }
 
-    private fun pushBreakUp(body: Body, size: AsteroidSize) {
+    private fun pushBreakUp(body: Body, size: AsteroidSize, gravFactor: Float) {
         val queue = computerSounds ?: return
         val kind = when (size) {
             AsteroidSize.SMALL -> ComputerSoundKind.ASTEROID_BREAK_SMALL
@@ -96,7 +97,7 @@ class DeathSystem(
         }
         val p = body.position
         val v = body.linearVelocity
-        queue.push(kind, p.x, p.y, v.x, v.y, clock?.worldTime ?: 0f)
+        queue.push(kind, p.x, p.y, v.x, v.y, clock?.worldTime ?: 0f, gravFactor)
     }
 
     private fun spawnSmallerAsteroids(body: Body, currentAsteroidSize: AsteroidSize) {

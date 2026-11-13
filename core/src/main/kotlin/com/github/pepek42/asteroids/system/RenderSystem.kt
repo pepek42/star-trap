@@ -323,7 +323,7 @@ class RenderSystem(
         pilotView.history.forEachGhost { _, history, ghost, removedAt ->
             if (!pilotView.projectGhost(history, ghost, removedAt, ghostSprite, scratch)) return@forEachGhost
             if (ghostSprite.texture == null) return@forEachGhost
-            tintAndQueue(ghostSprite, ghost.type, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy, GHOST_GRAV_FACTOR)
+            tintAndQueue(ghostSprite, ghost.type, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy, ghost.gravFactor)
             val lit = litSprites
             litNow = lightingActive && lit != null && lit.prepare(
                 batch, ghostSprite, ghost.entityId, ghost.type, ghost.sphereNormals, lightSources,
@@ -419,7 +419,6 @@ class RenderSystem(
         private const val MIN_TINT_DISTANCE = 1e-3f
 
         /** Ghosts (ST-079) keep no gravitational factor: their light is shifted as if emitted at infinity (physics-lies row 53). */
-        private const val GHOST_GRAV_FACTOR = 1f
         private val logger = logger<RenderSystem>()
     }
 }

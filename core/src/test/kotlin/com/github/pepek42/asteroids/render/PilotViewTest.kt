@@ -19,6 +19,7 @@ import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.physics.SPEED_OF_LIGHT
 import com.github.pepek42.asteroids.physics.apparentOffset
 import com.github.pepek42.asteroids.system.LightHistorySystem
 import com.github.pepek42.asteroids.system.PhysicsSystem
@@ -108,6 +109,29 @@ class PilotViewTest {
         pilotCorner(5f, 20f, 5f, 10f, 0.9f, 0f, true, out)
         assertEquals(5f + 20.65f, out.x, 0.01f)
         assertEquals(20f, out.y, 1e-4f)
+    }
+
+    @Test
+    fun staticCornerRetardedIsCentrePlusOffset() {
+        val out = Vector2()
+        cornerRetarded(3f, 4f, 1.5f, -2f, 0f, 0f, -7f, 2f, 0.4f, SPEED_OF_LIGHT, out)
+        assertEquals(4.5f, out.x, 0f)
+        assertEquals(2f, out.y, 0f)
+    }
+
+    @Test
+    fun movingCornerSatisfiesLightConeWithinOneNewtonStep() {
+        // A test-local c = 60 keeps v = (40, 0) subluminal (the default c is 20); the centre solves |x_c - o| = c·lookback exactly.
+        val c = 60f
+        val lookback = 0.5f
+        val out = Vector2()
+        for (qx in floatArrayOf(-2f, 2f)) {
+            cornerRetarded(0f, c * lookback, qx, 0f, 40f, 0f, 0f, 0f, lookback, c, out)
+            // Recover s from the displacement: p = x_c + q - v s.
+            val s = (qx - out.x) / 40f
+            val dist = Vector2.len(out.x, out.y)
+            assertEquals(c * (lookback + s), dist, 1e-2f)
+        }
     }
 
     @Test

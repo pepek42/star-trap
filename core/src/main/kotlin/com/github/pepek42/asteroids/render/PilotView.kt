@@ -43,6 +43,41 @@ fun pilotCorner(
 }
 
 /**
+ * Per-corner retarded position (ST-075, Terrell-Penrose, research E8/E9): refines one sprite corner of an object whose centre
+ * was solved at emission time `t_c` (arena position ([xc], [yc]), velocity ([vcx], [vcy]) then). The corner sits at the offset
+ * ([qx], [qy]) from the centre (rotated and contracted at `t_c`); [lookback] = `now - t_c`, the observer is at ([ox], [oy]).
+ * Looking back `s` from `t_c`: `p(s) = x_c + q - v_c s`, `h(s) = |p(s) - o| - c (lookback + s)`. One Newton step at `s = 0`
+ * gives `s = h(0) / (c + r̂·v_c)` with `r̂ = normalize(x_c + q - o)` (`h' = -r̂·v_c - c`). Writes `p(s)` to [out]. Exact for a
+ * static object (`v_c = 0`). Rotation and the change of `v_c` during `s` are ignored (FAKE, tiny: `s` is about `|q|/c`).
+ * Pure and allocation-free.
+ */
+fun cornerRetarded(
+    xc: Float, yc: Float, qx: Float, qy: Float, vcx: Float, vcy: Float, ox: Float, oy: Float,
+    lookback: Float, c: Float, out: Vector2,
+): Vector2 {
+    val px = xc + qx
+    val py = yc + qy
+    if (vcx == 0f && vcy == 0f) return out.set(px, py)
+    val rx = px - ox
+    val ry = py - oy
+    val r = sqrt(rx * rx + ry * ry)
+    // Corner on top of the observer: no direction, keep the centre's solution.
+    if (r < MIN_CORNER_DISTANCE) return out.set(px, py)
+    val h0 = r - c * lookback
+    val denom = c + (rx * vcx + ry * vcy) / r
+    // |v| < c keeps denom > 0; a degenerate value (photon heading at the observer) skips the refinement.
+    if (denom < c * MIN_CORNER_DENOM_FRACTION) return out.set(px, py)
+    val s = h0 / denom
+    return out.set(px - vcx * s, py - vcy * s)
+}
+
+/** Corners closer than this to the observer (u) are not retarded individually (no direction). */
+internal const val MIN_CORNER_DISTANCE = 1e-3f
+
+/** [cornerRetarded] skips the Newton step when `c + r̂·v` falls below this fraction of c. */
+internal const val MIN_CORNER_DENOM_FRACTION = 1e-3f
+
+/**
  * Builds the sprite quads of the pilot view (ST-074, research E8 + E9) without touching the GL batch, so it can be tested
  * headless. Call [begin] once per frame, then [project] per sprite entity. Reuses its scratch objects: no per-frame allocation.
  */
@@ -171,6 +206,7 @@ class PilotViewProjector(
         var vx = 0f
         var vy = 0f
         var lag = 0f
+        var perCorner = false
         var arenaAngleDeg = transform.interpolatedRotationDeg
         if (playerMapper.has(entity)) {
             x = ox
@@ -191,6 +227,7 @@ class PilotViewProjector(
                 vx = state.vx
                 vy = state.vy
                 lag = now - state.t
+                perCorner = true
                 arenaAngleDeg = angleDeg
             } else {
                 x = transform.interpolatedPosition.x
@@ -232,6 +269,12 @@ class PilotViewProjector(
                 contractOffset(px - x, py - y, vx / speed, vy / speed, k, contracted)
                 px = x + contracted.x
                 py = y + contracted.y
+            }
+            if (perCorner && contract) {
+                // Terrell-Penrose (ST-075): the corner's own retarded position, from its offset at the centre's emission time.
+                cornerRetarded(x, y, px - x, py - y, vx, vy, ox, oy, lag, settings.c, contracted)
+                px = contracted.x
+                py = contracted.y
             }
             if (isPlayer) {
                 // The player is at rest in its own frame: no boost.

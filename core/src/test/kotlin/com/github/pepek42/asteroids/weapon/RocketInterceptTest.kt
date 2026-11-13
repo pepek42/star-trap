@@ -1,6 +1,8 @@
 package com.github.pepek42.asteroids.weapon
 
 import com.badlogic.gdx.math.Vector2
+import com.github.pepek42.asteroids.input.AUTO_AIM_RANGE
+import com.github.pepek42.asteroids.physics.ENGINE_ACCEL_PER_C_MIN
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -16,6 +18,7 @@ class RocketInterceptTest {
     private val settings = RelativitySettings()
     private val c = settings.c
     private val properAccel = ROCKET_ACCEL_FACTOR * settings.engineProperAccel
+    private val maxTime = rocketInterceptMaxTime(AUTO_AIM_RANGE, c, properAccel)
 
     private fun solve(
         shipX: Float,
@@ -29,7 +32,7 @@ class RocketInterceptTest {
         out: Vector2,
     ): Float = rocketInterceptDir(
         shipX, shipY, shipUx, shipUy, tx, ty, tvx, tvy,
-        properAccel, ROCKET_BURN_SECONDS, c, ROCKET_INTERCEPT_MAX_SECONDS, PHYSICS_UPDATE_INTERVAL, out,
+        properAccel, ROCKET_BURN_SECONDS, c, maxTime, PHYSICS_UPDATE_INTERVAL, out,
     )
 
     @Test
@@ -37,7 +40,7 @@ class RocketInterceptTest {
         val out = Vector2()
         val hitTime = solve(0f, 0f, 0f, 0f, 0f, 30f, 0f, 0f, out)
         assertTrue(hitTime.isFinite(), "no solution for a static target ahead")
-        assertTrue(hitTime > 0f && hitTime < ROCKET_INTERCEPT_MAX_SECONDS, "hit time $hitTime")
+        assertTrue(hitTime > 0f && hitTime < maxTime, "hit time $hitTime")
         assertEquals(0f, out.x, 1e-4f)
         assertEquals(1f, out.y, 1e-4f)
         assertEquals(1f, out.len(), 1e-4f)
@@ -63,5 +66,26 @@ class RocketInterceptTest {
         assertTrue(hitTime.isNaN(), "the solver claimed a hit on an unreachable target")
         assertEquals(0.25f, out.x, 0f)
         assertEquals(-0.5f, out.y, 0f)
+    }
+
+    @Test
+    fun straightFlightTimeMatchesTheSolversStaticHitTime() {
+        // A static target dead ahead from rest is the straight flight the closed form describes (step error only).
+        val out = Vector2()
+        val hitTime = solve(0f, 0f, 0f, 0f, 0f, AUTO_AIM_RANGE, 0f, 0f, out)
+        val expected = rocketStraightFlightTime(AUTO_AIM_RANGE, c, properAccel, ROCKET_BURN_SECONDS)
+        assertEquals(expected, hitTime, 2f * PHYSICS_UPDATE_INTERVAL)
+    }
+
+    @Test
+    fun weakestEngineStillPlansAShotAtTheEdgeOfTheAutoAimRange() {
+        // ST-182 review: a fixed 6 s cap never fired at the 40 u edge with the engine slider at its minimum. The derived
+        // limit grows as the rocket gets slower.
+        val weak = RelativitySettings().apply { engineAccelPerC = ENGINE_ACCEL_PER_C_MIN }
+        val out = Vector2()
+        val hitTime = rocketLaunchAim(0f, 0f, 0f, 0f, 0f, AUTO_AIM_RANGE, 0f, 0f, weak, AUTO_AIM_RANGE, out)
+        assertTrue(hitTime.isFinite(), "no solution at the edge of the auto-aim range with the weakest engine")
+        val weakAccel = ROCKET_ACCEL_FACTOR * weak.engineProperAccel
+        assertTrue(rocketInterceptMaxTime(AUTO_AIM_RANGE, c, weakAccel) > rocketInterceptMaxTime(AUTO_AIM_RANGE, c, properAccel))
     }
 }

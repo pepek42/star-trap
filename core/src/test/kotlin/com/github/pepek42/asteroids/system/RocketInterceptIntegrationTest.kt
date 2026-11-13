@@ -20,6 +20,7 @@ import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.faction.FactionEnum
+import com.github.pepek42.asteroids.input.AUTO_AIM_RANGE
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaFromV
 import com.github.pepek42.asteroids.physics.uFromV
@@ -27,7 +28,7 @@ import com.github.pepek42.asteroids.provider.RocketProvider
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import com.github.pepek42.asteroids.weapon.ROCKET_ACCEL_FACTOR
 import com.github.pepek42.asteroids.weapon.ROCKET_BURN_SECONDS
-import com.github.pepek42.asteroids.weapon.ROCKET_INTERCEPT_MAX_SECONDS
+import com.github.pepek42.asteroids.weapon.rocketInterceptMaxTime
 import com.github.pepek42.asteroids.weapon.WeaponType
 import com.github.pepek42.asteroids.weapon.rocketInterceptDir
 import org.junit.jupiter.api.AfterEach
@@ -100,16 +101,17 @@ class RocketInterceptIntegrationTest {
         asteroid.add(HealthComponent().apply { health = 100f })
 
         val gamma = gammaFromV(beta0 * c, 0f, c)
+        val maxTime = rocketInterceptMaxTime(AUTO_AIM_RANGE, c, ROCKET_ACCEL_FACTOR * settings.engineProperAccel)
         val out = Vector2()
         val hitTime = rocketInterceptDir(
             0f, 0f, gamma * beta0 * c, 0f,
             0f, 30f, 5f, 0f,
             ROCKET_ACCEL_FACTOR * settings.engineProperAccel, ROCKET_BURN_SECONDS,
-            c, ROCKET_INTERCEPT_MAX_SECONDS, PHYSICS_UPDATE_INTERVAL,
+            c, maxTime, PHYSICS_UPDATE_INTERVAL,
             out,
         )
         assertTrue(hitTime.isFinite(), "the intercept solver found no solution")
-        assertTrue(hitTime > 0f && hitTime < ROCKET_INTERCEPT_MAX_SECONDS, "hit time $hitTime")
+        assertTrue(hitTime > 0f && hitTime < maxTime, "hit time $hitTime")
 
         val weapon = WeaponComponent().apply {
             projectileRadius = 0.1f
@@ -119,7 +121,7 @@ class RocketInterceptIntegrationTest {
         provider.spawnRocket(ship, weapon)
 
         var steps = 0
-        val maxSteps = (ROCKET_INTERCEPT_MAX_SECONDS / PHYSICS_UPDATE_INTERVAL).toInt()
+        val maxSteps = (maxTime / PHYSICS_UPDATE_INTERVAL).toInt()
         while (asteroid.getComponent(HealthComponent::class.java).health >= 100f && steps < maxSteps) {
             physics.update(PHYSICS_UPDATE_INTERVAL + 1e-4f)
             steps++

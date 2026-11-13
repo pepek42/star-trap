@@ -39,7 +39,6 @@ import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.PlayerInputListener
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.trueLeadDirection
-import com.github.pepek42.asteroids.physics.uFromV
 import com.github.pepek42.asteroids.provider.MapProvider
 import com.github.pepek42.asteroids.render.LASER_DAMAGE_LABEL_MIN_FACTOR
 import com.github.pepek42.asteroids.render.displayedPhotonFactor
@@ -97,14 +96,12 @@ import com.github.pepek42.asteroids.component.weaponLoadoutCmpOptional
 import com.github.pepek42.asteroids.ui.TARGET_LOCKED_COLOR
 import com.github.pepek42.asteroids.ui.TARGET_LOCKING_COLOR
 import com.github.pepek42.asteroids.weapon.TargetLockState
-import com.github.pepek42.asteroids.weapon.ROCKET_ACCEL_FACTOR
-import com.github.pepek42.asteroids.weapon.ROCKET_BURN_SECONDS
-import com.github.pepek42.asteroids.weapon.ROCKET_INTERCEPT_MAX_SECONDS
 import com.github.pepek42.asteroids.weapon.WeaponType
 import com.github.pepek42.asteroids.weapon.lockFraction
 import com.github.pepek42.asteroids.weapon.lockReticleRadius
 import com.github.pepek42.asteroids.weapon.rocketInterceptDir
-import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
+import com.github.pepek42.asteroids.weapon.rocketLaunchAim
+import com.github.pepek42.asteroids.input.AUTO_AIM_RANGE
 import ktx.ashley.allOf
 import ktx.ashley.exclude
 import kotlin.math.cos
@@ -153,7 +150,6 @@ class TacticalOverlaySystem(
     private val leadIndex = IntArray(TACTICAL_LEAD_MAX)
     private val leadDir = Vector2()
     private val muzzle = Vector2()
-    private val shipU = Vector2()
     private val reticlePos = Vector2()
     private val ringPos = Vector2()
     private var levelTargets: ImmutableArray<Entity>? = null
@@ -444,25 +440,15 @@ class TacticalOverlaySystem(
         val bx = if (relOn) pv.x / c else 0f
         val by = if (relOn) pv.y / c else 0f
         val rockets = player.weaponCmpOptional?.weaponType == WeaponType.ROCKET
-        if (rockets) {
-            val rel = player.relativisticCmpOptional
-            if (rel != null) {
-                shipU.set(rel.u)
-            } else {
-                uFromV(pv.x, pv.y, c, relativity.betaMaxMassive, shipU)
-            }
-        }
-        val rocketAccel = ROCKET_ACCEL_FACTOR * relativity.engineProperAccel
         val ringRadius = TACTICAL_LEAD_RING_PX * wpp
         for (k in 0 until n) {
             val target = list[leadIndex[k]]
             val tPos = target.transformCmp.interpolatedPosition
             val tv = target.relativisticCmpOptional?.vSet ?: target.bodyCmp.body.linearVelocity
+            // Rockets: the same solve auto-aim fires with (spawn offset, ship velocity, AUTO_AIM_RANGE flight limit).
+            // Deliberately AUTO_AIM_RANGE, not tacticalLeadRange(c): the ring shows exactly what auto-aim would fire.
             val t = if (rockets) {
-                rocketInterceptDir(
-                    sx, sy, shipU.x, shipU.y, tPos.x, tPos.y, tv.x, tv.y, rocketAccel, ROCKET_BURN_SECONDS, c,
-                    ROCKET_INTERCEPT_MAX_SECONDS, PHYSICS_UPDATE_INTERVAL, leadDir,
-                )
+                rocketLaunchAim(sx, sy, pv.x, pv.y, tPos.x, tPos.y, tv.x, tv.y, relativity, AUTO_AIM_RANGE, leadDir)
             } else {
                 trueLeadDirection(sx, sy, bx, by, tPos.x, tPos.y, tv.x, tv.y, c, leadDir)
             }

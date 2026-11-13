@@ -3,14 +3,19 @@ package com.github.pepek42.asteroids.weapon
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.github.pepek42.asteroids.physics.GAMMA_MAX_MASSIVE
+import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.thrustAccelWorld
+import com.github.pepek42.asteroids.physics.uFromV
+import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.cosh
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.math.sinh
 import kotlin.math.sqrt
 import kotlin.math.tanh
 
@@ -108,8 +113,8 @@ fun rocketInterceptDir(
     val distance = hypot(rx, ry)
     if (distance < MIN_LENGTH) return Float.NaN
 
-    // Straight-line time at the burnout speed of a rocket launched from rest. Starting with the ship's proper velocity
-    // only speeds the rocket up, so this time errs on the late side and the first aim is biased away from the target.
+    // Straight-line time at the burnout speed of a rocket launched from rest: only a seed for the first aim. The ship's
+    // velocity can make the real flight faster (flying toward the target) or slower (flying away); the search corrects it.
     val burnoutSpeed = c * tanh(properAccel * burn / c)
     if (!(burnoutSpeed > MIN_LENGTH)) return Float.NaN
     val seedTime = distance / burnoutSpeed
@@ -289,6 +294,78 @@ private fun probeAim(
         return true
     }
     return false
+}
+
+/**
+ * How far past the caller's targeting reach the fire computer still plans a rocket flight, as a multiple of that reach.
+ * A tuning factor: the target may flee and the ship may fly away from it, so the meeting point can lie well beyond the
+ * current range. 2 gives about 5.4 s for the 40 u auto-aim reach at the default c and engine (the 6 s fixed cap ST-182
+ * shipped with), and the time follows c and the engine slider through [rocketStraightFlightTime].
+ */
+const val ROCKET_INTERCEPT_REACH_FACTOR = 2f
+
+/**
+ * Arena seconds a rocket launched from rest needs to cover [distance] in a straight line. During the burn it is
+ * hyperbolic motion at proper acceleration a: `x = c²/a·(cosh(aτ/c) − 1)`, `t = c/a·sinh(aτ/c)`; after [burn] seconds of
+ * proper time it coasts at the burnout speed `c·tanh(a·burn/c)` ([rocketBurnoutBeta]).
+ */
+fun rocketStraightFlightTime(distance: Float, c: Float, properAccel: Float, burn: Float): Float {
+    val k = c * c / properAccel
+    val burnRapidity = properAccel * burn / c
+    val burnDistance = k * (cosh(burnRapidity) - 1f)
+    if (distance <= burnDistance) {
+        val ch = 1f + distance / k
+        return c / properAccel * sqrt(ch * ch - 1f)
+    }
+    return c / properAccel * sinh(burnRapidity) + (distance - burnDistance) / (c * tanh(burnRapidity))
+}
+
+/**
+ * Longest flight (arena s) the fire computer plans for a target within [reach]: the straight flight from rest over
+ * [ROCKET_INTERCEPT_REACH_FACTOR]·[reach]. Derived from the runtime c and rocket acceleration, so a lower c or a weaker
+ * engine plans longer flights instead of never firing.
+ */
+fun rocketInterceptMaxTime(reach: Float, c: Float, properAccel: Float): Float =
+    rocketStraightFlightTime(reach * ROCKET_INTERCEPT_REACH_FACTOR, c, properAccel, ROCKET_BURN_SECONDS)
+
+private val launchU = Vector2()
+
+/**
+ * Pod-rocket aim from the ship as `RocketProvider` launches it (ST-182). The single entry point for auto-aim and the
+ * intercept ring, so both show the same aim. The rocket inherits the ship's proper velocity, rebuilt here from the
+ * ship's arena velocity ([shipVx], [shipVy]). It spawns at `muzzle + dir·ROCKET_LENGTH`, so the aim is solved once from
+ * the muzzle and then again from that spawn point. The flight is planned up to [rocketInterceptMaxTime] of [reach] (the
+ * caller's targeting range).
+ * Returns the hit time in arena seconds and writes the unit aim into [out], or returns NaN.
+ * Allocation-free; single-threaded scratch.
+ */
+@Suppress("LongParameterList")
+fun rocketLaunchAim(
+    muzzleX: Float,
+    muzzleY: Float,
+    shipVx: Float,
+    shipVy: Float,
+    tx: Float,
+    ty: Float,
+    tvx: Float,
+    tvy: Float,
+    settings: RelativitySettings,
+    reach: Float,
+    out: Vector2,
+): Float {
+    val c = settings.c
+    uFromV(shipVx, shipVy, c, settings.betaMaxMassive, launchU)
+    val accel = ROCKET_ACCEL_FACTOR * settings.engineProperAccel
+    val maxTime = rocketInterceptMaxTime(reach, c, accel)
+    val first = rocketInterceptDir(
+        muzzleX, muzzleY, launchU.x, launchU.y, tx, ty, tvx, tvy,
+        accel, ROCKET_BURN_SECONDS, c, maxTime, PHYSICS_UPDATE_INTERVAL, out,
+    )
+    if (first.isNaN()) return Float.NaN
+    return rocketInterceptDir(
+        muzzleX + out.x * ROCKET_LENGTH, muzzleY + out.y * ROCKET_LENGTH, launchU.x, launchU.y, tx, ty, tvx, tvy,
+        accel, ROCKET_BURN_SECONDS, c, maxTime, PHYSICS_UPDATE_INTERVAL, out,
+    )
 }
 
 /** Writes the unit aim direction into [out] and returns the hit time. */

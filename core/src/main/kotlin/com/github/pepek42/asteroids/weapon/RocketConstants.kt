@@ -57,15 +57,6 @@ const val ROCKET_DENSITY = LOCK_ON_DENSITY
 const val ROCKET_SPRITE_LENGTH = 1.6f
 
 /**
- * Longest rocket flight the fire computer plans for (arena seconds, ST-182). A tuning value like `AUTO_AIM_RANGE`, not
- * derived from a base constant: at the default engine a rocket reaches 0.85c in [ROCKET_BURN_SECONDS], so a target at
- * the 40 u auto-aim reach is roughly 3 s of flight and the far side of the 200 u arena is roughly 12 s. Six seconds
- * plans the reachable engagements without aiming at something the rocket will never get to; a rocket that would need
- * longer is not fired.
- */
-const val ROCKET_INTERCEPT_MAX_SECONDS = 6f
-
-/**
  * Burnout speed over c of a rocket launched at rest in the heading direction: the motor adds a constant proper
  * acceleration `a0 = ROCKET_ACCEL_FACTOR · engineProperAccel` for [ROCKET_BURN_SECONDS] of rocket proper time, so the
  * rapidity is `a0 · burn / c` and `β = tanh(rapidity)`. A launch from a moving ship along its motion adds the ship's

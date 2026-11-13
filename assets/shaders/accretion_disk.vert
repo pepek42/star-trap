@@ -30,7 +30,7 @@ uniform vec2 u_beta;        // pilot velocity / c
 uniform float u_c;
 uniform float u_delay;      // 1: per-particle light delay
 uniform float u_aberration; // 1: boost into the pilot frame
-uniform vec3 u_beam;        // searchlight: x = exponent, y = min, z = max (spriteBrightness)
+uniform vec3 u_beam;        // searchlight: x = exponent, y = min, z = max (beamBrightness)
 uniform float u_betaMax;    // BETA_MAX_MASSIVE
 
 uniform vec4 u_disturb0;

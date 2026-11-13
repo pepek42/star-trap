@@ -154,12 +154,13 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
      * Draws the stars. While the visual speed is below [DOPPLER_MIN_BETA] the cached [StarData.packedColor] is used; otherwise each
      * star's colour and size follow its Doppler factor (blue and larger ahead, red and dimmer behind). With [aberration] (pilot
      * view) the stars are a shell around the pilot at ([pilotX], [pilotY]) and are drawn at their aberrated direction
-     * ([aberrateStarOffset] with [betaX], [betaY]); colour and size still use the arena-frame source direction. Stars are
+     * ([aberrateStarOffset] with [betaX], [betaY]); colour and size still use the arena-frame source direction. [pilotBeam] (default: [aberration]) selects the pilot-view searchlight exponent. Stars are
      * culled by distance to the pilot (the view half-diagonal) before the aberration. Does not allocate.
      */
     fun render(
         batch: Batch, camera: Camera, zoom: Float, logicalWidthPx: Int, observer: ObserverState,
         aberration: Boolean = false, pilotX: Float = 0f, pilotY: Float = 0f, betaX: Float = 0f, betaY: Float = 0f,
+        pilotBeam: Boolean = aberration,
     ) {
         val bx = observer.betaVisual.x
         val by = observer.betaVisual.y
@@ -174,6 +175,7 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
         val cx = camera.position.x
         val cy = camera.position.y
         frame.set(batch, cx, cy, halfW, halfH, doppler, aberration, pilotX, pilotY, betaX, betaY, px, py, bx, by, gamma)
+        frame.pilotBeam = pilotBeam
         val oldColor = batch.packedColor
         val oldSrc = batch.blendSrcFunc
         val oldDst = batch.blendDstFunc
@@ -204,7 +206,7 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
     private class Frame {
         lateinit var batch: Batch
         var cx = 0f; var cy = 0f; var halfW = 0f; var halfH = 0f
-        var doppler = false; var aberration = false
+        var doppler = false; var aberration = false; var pilotBeam = false
         var pilotX = 0f; var pilotY = 0f; var betaX = 0f; var betaY = 0f
         var px = 0f; var py = 0f; var bx = 0f; var by = 0f; var gamma = 1f
 
@@ -251,7 +253,7 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
         val dist = sqrt(ox * ox + oy * oy)
         val d = if (dist < 1e-6f) 1f else effectiveDoppler(starDoppler(f.bx, f.by, f.gamma, ox / dist, oy / dist))
         BlackbodyLut.rgbInto(data.kelvin[i] * d, rgb)
-        val b = d.pow(BRIGHTNESS_EXPONENT_MVP).coerceIn(B_MIN, B_MAX)
+        val b = beamBrightness(d, f.pilotBeam)
         val scale = data.brightness[i] * min(b, 1f)
         batch.packedColor = Color.toFloatBits(rgb[0] * scale, rgb[1] * scale, rgb[2] * scale, 1f)
         val s = size * sqrt(max(b, 1f))

@@ -44,7 +44,7 @@ class BackgroundProvider(
     }
 
     /** [pilotView] non-null = the pilot view's aberration is on: the stars are drawn at their aberrated directions (ST-077). */
-    fun renderBg(camera: Camera, zoom: Float, logicalWidthPx: Int, observer: ObserverState, pilotView: PilotViewProjector? = null) {
+    fun renderBg(camera: Camera, zoom: Float, logicalWidthPx: Int, observer: ObserverState, pilotView: PilotViewProjector? = null, pilotBeam: Boolean = pilotView != null) {
         val oldColor = batch.packedColor
         batch.setColor(1f, 1f, 1f, NEBULA_ALPHA)
         for (i in -1..xRepeats) {
@@ -54,9 +54,9 @@ class BackgroundProvider(
         }
         batch.packedColor = oldColor
         if (pilotView != null) {
-            starfield?.render(batch, camera, zoom, logicalWidthPx, observer, true, pilotView.ox, pilotView.oy, pilotView.betaX, pilotView.betaY)
+            starfield?.render(batch, camera, zoom, logicalWidthPx, observer, true, pilotView.ox, pilotView.oy, pilotView.betaX, pilotView.betaY, pilotBeam)
         } else {
-            starfield?.render(batch, camera, zoom, logicalWidthPx, observer)
+            starfield?.render(batch, camera, zoom, logicalWidthPx, observer, pilotBeam = pilotBeam)
         }
     }
 

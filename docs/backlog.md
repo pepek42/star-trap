@@ -24,7 +24,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-63c. ST-080 Searchlight k = 2 in pilot view, with a brightness floor
 63d. ST-194 Exact searchlight exponents and 10 % floors (ST-185 Q3)
 63e. ST-195 Gravitational red- and blueshift in colours
 63f. ST-196 Laser damage: wider clamp and gravitational photon energy (ST-185 Q5)
@@ -46,23 +45,6 @@ M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a wea
 
 The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead markers) was pulled forward into M3 by the 2026-11-02 interview: ST-070 to ST-078. M4 holds the follow-ups.
 - result: `RelativitySettings.pilotHullTransform` (pilotView && relativityEnabled && pilotAberration) now gates both the drawn player hull in `PilotView.project()` and the `PlayerInputSystem` cursor mapping.
-
-### ST-080 Searchlight k = 2 in pilot view, with a brightness floor
-- status: ready
-- note (owner 2026-11-12): unparked into M7. The spec dates from 2026-11-03: check every file and symbol it names against the current code (pilot view, `PilotViewProjector`, `LightHistorySystem`) before starting, and adapt it.
-- note (owner 2026-11-12): no outlines. The target rings and the tactical overlay already mark dim targets at their true position. The 25 % floor may be lowered by the ST-185 audit (its Q3).
-- note (ST-185, 2026-11-13): ST-194 follows this card: floors 0.1, clamps [0.1, 10], exponent 3 for sprites and 2 for stars and disk particles. Build `beamBrightness` so it can take those.
-- size: S
-- agent: kotlin-dev
-- depends: ST-043, ST-045, ST-074
-- files: `render/RelativityVisuals.kt`, `render/Starfield.kt`, `system/RenderSystem.kt`; tests
-- goal: Full relativistic beaming in the pilot view (research E10, k = 2): things ahead blaze and things behind dim. Q14 is planned around the recommendation (b), so behind you nothing goes below 25 %.
-- spec:
-  - `const val BRIGHTNESS_EXPONENT_PILOT = 2f`. Starfield and sprite tint use `B = clamp(D^k, B_MIN, B_MAX)` with `k = BRIGHTNESS_EXPONENT_PILOT` in pilot view and `BRIGHTNESS_EXPONENT_MVP` in world view. Pull it into `fun beamBrightness(d: Float, pilotView: Boolean): Float`.
-- acceptance:
-  - [ ] Tests: `beamBrightness(2f, true) == 3f` (clamped from 4); `beamBrightness(0.3f, true) == 0.25f` (floor); `beamBrightness(0.6f, false) == 0.6f`; `beamBrightness(1f, true) == 1f`
-  - [ ] `./gradlew core:test` passes
-- playtest: At speed the view ahead is bright, and asteroids behind you are dim; the target rings still show where they are.
 
 ### ST-173 Enemy difficulty tuning (owner decision)
 - status: needs-user

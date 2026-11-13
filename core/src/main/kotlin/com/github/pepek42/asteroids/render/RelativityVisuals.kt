@@ -63,11 +63,26 @@ const val DOPPLER_D_MAX = 4f
 /** Searchlight brightness B = D^exponent; 1 is the mild MVP version of research E10. */
 const val BRIGHTNESS_EXPONENT_MVP = 1f
 
-/** Stars behind never dim below this fraction of their rest brightness. */
+/**
+ * Searchlight exponent of the pilot view (ST-080, research E10, k = 2): the 2D value for a point source's flux
+ * (a point source's brightness goes as D^2 in 2D, a surface's as D^3; ST-194 splits the two).
+ */
+const val BRIGHTNESS_EXPONENT_PILOT = 2f
+
+/** Things behind never dim below this fraction of their rest brightness (FAKE safety floor, physics-lies row 21). */
 const val B_MIN = 0.25f
 
-/** Stars ahead never grow beyond this multiple of their rest size. */
+/** Things ahead never grow beyond this multiple of their rest brightness or size. */
 const val B_MAX = 3f
+
+/** The searchlight exponent for the active view: [BRIGHTNESS_EXPONENT_PILOT] in pilot view, [BRIGHTNESS_EXPONENT_MVP] otherwise. */
+fun brightnessExponent(pilotView: Boolean): Float = if (pilotView) BRIGHTNESS_EXPONENT_PILOT else BRIGHTNESS_EXPONENT_MVP
+
+/**
+ * Searchlight brightness `B = clamp(D^k, B_MIN, B_MAX)` of an object at Doppler factor [d]; k is [brightnessExponent]
+ * for [pilotView]. The single place the exponent and clamps live (ST-194 adds a per-source exponent here).
+ */
+fun beamBrightness(d: Float, pilotView: Boolean): Float = d.pow(brightnessExponent(pilotView)).coerceIn(B_MIN, B_MAX)
 
 /** Below this |β| the starfield uses its cached colours (no Doppler pass). */
 const val DOPPLER_MIN_BETA = 1e-4f
@@ -105,9 +120,6 @@ fun spriteTint(d: Float, lut: BlackbodyLut, out: FloatArray) {
     out[2] = if (b0 > 0f) (out[2] / b0).coerceIn(0f, 1f) else 1f
 }
 
-/** Searchlight brightness of an object at (effective) Doppler factor [d]: `D^BRIGHTNESS_EXPONENT_MVP` in [[B_MIN], [B_MAX]]. */
-fun spriteBrightness(d: Float): Float = d.pow(BRIGHTNESS_EXPONENT_MVP).coerceIn(B_MIN, B_MAX)
-
 /** Glow strength of the additive copy: 1 would make `D − 1` full alpha; 0.5 keeps the glow readable rather than blinding (ST-121). */
 const val DOPPLER_GLOW_STRENGTH = 0.5f
 
@@ -142,9 +154,10 @@ const val SPRITE_COLOR_OFFSET = 2
  */
 fun tintSpriteVertices(
     v: FloatArray, d: Float, r: Float, g: Float, b: Float, a: Float, lut: BlackbodyLut, rgb: FloatArray,
+    pilotView: Boolean = false,
 ): Float {
     spriteTint(d, lut, rgb)
-    setSpriteVertexColor(v, rgb[0] * r, rgb[1] * g, rgb[2] * b, min(spriteBrightness(d), 1f) * a)
+    setSpriteVertexColor(v, rgb[0] * r, rgb[1] * g, rgb[2] * b, min(beamBrightness(d, pilotView), 1f) * a)
     return additiveGlowAlpha(d)
 }
 

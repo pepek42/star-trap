@@ -175,7 +175,7 @@ class RenderSystem(
         val lensCount = if (lens != null && lens.ready && settings.lensingEnabled) collectLenses() else 0
         val lensed = lens != null && lensCount > 0 && lens.beginCapture()
         val aberrated = if (pilotViewActive && pilotView.aberrationEnabled) pilotView else null
-        batch.use(camera) { backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width, observer, aberrated) }
+        batch.use(camera) { backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width, observer, aberrated, pilotViewActive) }
         if (lensed && lens != null) {
             lens.endCapture()
             viewport.apply()
@@ -380,7 +380,7 @@ class RenderSystem(
             effectiveDoppler(dopplerFactor(observer.betaVisual, betaSrc, nx / dist, ny / dist))
         }
         val col = sprite.color
-        val glow = tintSpriteVertices(scratch, d, col.r, col.g, col.b, col.a, BlackbodyLut, rgb)
+        val glow = tintSpriteVertices(scratch, d, col.r, col.g, col.b, col.a, BlackbodyLut, rgb, pilotViewActive)
         if (glow > 0f && glowsAdditively(type)) additive.add(sprite.texture, scratch, glow * col.a)
     }
 

@@ -31,7 +31,7 @@ import com.github.pepek42.asteroids.physics.PHOTON_DAMAGE_D_MIN
 import com.github.pepek42.asteroids.physics.RAM_GAMMA_THRESHOLD
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaRel
-import com.github.pepek42.asteroids.physics.photonEnergyFactor
+import com.github.pepek42.asteroids.physics.clampedPhotonDamageFactor
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.audio.HullSoundKind
 import com.github.pepek42.asteroids.audio.HullSoundQueue
@@ -104,12 +104,12 @@ private fun photonDamageFactor(projectile: Entity, target: Entity, settings: Rel
     val photon = projectile.photonCmpOptional ?: return 1f
     val projectileCmp = projectile.projectileCmp
     val targetV = target.relativisticCmpOptional?.vSet ?: target.bodyCmpOptional?.body?.linearVelocity ?: return 1f
-    val factor = photonEnergyFactor(
+    return clampedPhotonDamageFactor(
         projectileCmp.shooterBetaX, projectileCmp.shooterBetaY,
         targetV.x / settings.c, targetV.y / settings.c,
         photon.dir.x, photon.dir.y,
+        projectileCmp.shooterGravFactor, target.relativisticCmpOptional?.gravFactor ?: 1f,
     )
-    return factor.coerceIn(PHOTON_DAMAGE_D_MIN, PHOTON_DAMAGE_D_MAX)
 }
 
 /**

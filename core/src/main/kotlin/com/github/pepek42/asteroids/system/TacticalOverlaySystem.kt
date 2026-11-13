@@ -575,6 +575,7 @@ class TacticalOverlaySystem(
         val factor = displayedPhotonFactor(
             tactical.showLaserDamage, relativity.relativityEnabled,
             pv.x / c, pv.y / c, tv.x / c, tv.y / c, aimDir.x, aimDir.y,
+            player.relativisticCmpOptional?.gravFactor ?: 1f, target.relativisticCmpOptional?.gravFactor ?: 1f,
         ) ?: return
         formatDamageFactor(factor, label)
         labelPos.set(targetPos.x, targetPos.y, 0f)

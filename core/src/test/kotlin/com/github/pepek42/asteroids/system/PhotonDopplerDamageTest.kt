@@ -53,12 +53,13 @@ class PhotonDopplerDamageTest {
     }
 
     /** A photon flying along +x with damage 50, fired from a shooter with velocity [shooterBetaX]·c. */
-    private fun photon(shooterBetaX: Float = 0f, withPhoton: Boolean = true): Entity {
+    private fun photon(shooterBetaX: Float = 0f, withPhoton: Boolean = true, shooterGrav: Float = 1f): Entity {
         val entity = engine.createEntity()
         entity.add(BaseInfoComponent().apply { this.faction = FactionEnum.PLAYER; this.entityType = EntityType.PROJECTILE })
         entity.add(ProjectileComponent().apply {
             projectile = LaserProjectile().apply { damage = 50f }
             this.shooterBetaX = shooterBetaX
+            this.shooterGravFactor = shooterGrav
         })
         if (withPhoton) entity.add(PhotonComponent().apply { dir.set(1f, 0f) })
         return entity
@@ -70,6 +71,21 @@ class PhotonDopplerDamageTest {
     fun headOnTargetTakesDoubleDamage() {
         val target = addTarget(-0.6f * c)
         applyProjectileHit(engine, photon(), target, settings)
+        assertEquals(100f, lost(target), 0.1f)
+    }
+
+    @Test
+    fun headOnAtPointNineIsNotClampedToFour() {
+        val target = addTarget(-0.9f * c)
+        applyProjectileHit(engine, photon(), target, settings)
+        assertEquals(50f * 4.3589f, lost(target), 0.05f)
+    }
+
+    @Test
+    fun gravitationalTermScalesByShooterOverTarget() {
+        val target = addTarget(0f)
+        target.getComponent(RelativisticComponent::class.java).gravFactor = 0.5f
+        applyProjectileHit(engine, photon(shooterGrav = 1f), target, settings)
         assertEquals(100f, lost(target), 0.1f)
     }
 

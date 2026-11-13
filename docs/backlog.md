@@ -24,7 +24,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-63f. ST-196 Laser damage: wider clamp and gravitational photon energy (ST-185 Q5)
 63g. ST-197 Pilot view: light-delayed rocket plume
 63h. ST-198 Photons fly until they leave the arena
 63i. ST-199 Pilot clock exact past the warp cap
@@ -86,22 +85,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] Test: near a gravity source the aim (or the fallback) never sends the rocket where it cannot meet the target
   - [ ] `./gradlew test` passes
 - playtest: Rockets still hit near a planet or hole, and the intercept ring lines up with the real meeting point.
-
-### ST-196 Laser damage: wider clamp and gravitational photon energy (ST-185 Q5)
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: —
-- files: `physics/PhysicsConstants.kt`, `component/ProjectileComponent.kt`, `provider/WeaponProjectileProvider.kt`, `system/ContactSystem.kt` (`photonDamageFactor`), `render/TacticalOverlay.kt` (`displayedPhotonFactor`), `system/TacticalOverlaySystem.kt`, `docs/design/physics-lies.md` row 36; tests
-- refs: `relativity-effects.md` E12, E15
-- layer: sim
-- goal: Owner ST-185 Q5: widen the photon damage clamp to [0.1, 10]. Also add the missing gravitational term: a photon's energy at the target is `E·D_{s→t}·g_s/g_t`, so a shot from high up into a hole's well hits harder.
-- spec: `PHOTON_DAMAGE_D_MIN/MAX` → 0.1 / 10. `ProjectileComponent.shooterGravFactor` (reset to 1) is set at emission from the shooter's `RelativisticComponent.gravFactor`. `photonDamageFactor` multiplies by `shooterGravFactor / target.gravFactor` (1 when the target has none) before the clamp. `displayedPhotonFactor` gets `gs, gt` parameters with the same formula, so the overlay label matches the hit. Update row 36.
-- acceptance:
-  - [ ] Test: a head-on hit (shooter at rest, target at 0.9 c toward it) gives 4.36 (no longer 4); with `g_s = 1, g_t = 0.5` a shot from rest at a target at rest gives 2
-  - [ ] Test: the overlay factor equals the applied factor for the same inputs
-  - [ ] `./gradlew core:test` passes
-- playtest: Charging an enemy head-on, the overlay shows ×4+ and the hit lands that hard.
 
 ### ST-197 Pilot view: light-delayed rocket plume
 - status: ready

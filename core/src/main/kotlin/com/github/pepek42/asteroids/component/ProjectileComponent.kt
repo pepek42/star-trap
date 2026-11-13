@@ -20,7 +20,11 @@ class ProjectileComponent : Component, Pool.Poolable {
     var shooterBetaX = 0f
     var shooterBetaY = 0f
 
+    /** Shooter's gravitational time factor g_s at emission (ST-196); photon energy at the target scales with g_s / g_t. */
+    var shooterGravFactor = 1f
+
     override fun reset() {
+        shooterGravFactor = 1f
         projectile = LaserProjectile()
         shooterBetaX = 0f
         shooterBetaY = 0f

@@ -234,6 +234,14 @@ fun photonEnergyFactor(bsx: Float, bsy: Float, btx: Float, bty: Float, nx: Float
 }
 
 /**
+ * Photon damage multiplier (ST-081, ST-196): [photonEnergyFactor] times the gravitational term [gs] / [gt] (shooter and
+ * target `gravFactor`, 1 when absent), clamped to [PHOTON_DAMAGE_D_MIN]..[PHOTON_DAMAGE_D_MAX]. Shared by the hit and the overlay label.
+ */
+fun clampedPhotonDamageFactor(
+    bsx: Float, bsy: Float, btx: Float, bty: Float, nx: Float, ny: Float, gs: Float, gt: Float,
+): Float = (photonEnergyFactor(bsx, bsy, btx, bty, nx, ny) * gs / gt).coerceIn(PHOTON_DAMAGE_D_MIN, PHOTON_DAMAGE_D_MAX)
+
+/**
  * World-frame acceleration of a thruster firing along unit direction (nx, ny) in the ship frame:
  * a = a0·[(n̂'·v̂)v̂ + (n̂' - (n̂'·v̂)v̂)/γ]. Falls back to a0·n̂' when |v| < 1e-6.
  */

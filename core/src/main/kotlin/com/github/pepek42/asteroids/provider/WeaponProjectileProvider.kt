@@ -109,6 +109,7 @@ class WeaponProjectileProvider(
                 projectile = LaserProjectile().apply { damage = 50f }
                 shooterBetaX = shooterBeta.x
                 shooterBetaY = shooterBeta.y
+                shooterGravFactor = entity.relativisticCmpOptional?.gravFactor ?: 1f
             }
         }
     }

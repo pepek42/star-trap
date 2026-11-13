@@ -2,6 +2,7 @@ package com.github.pepek42.asteroids.render
 
 import com.github.pepek42.asteroids.physics.PHOTON_DAMAGE_D_MAX
 import com.github.pepek42.asteroids.physics.PHOTON_DAMAGE_D_MIN
+import com.github.pepek42.asteroids.physics.clampedPhotonDamageFactor
 import com.github.pepek42.asteroids.physics.photonEnergyFactor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -20,8 +21,8 @@ class LaserDamageLabelTest {
 
     @Test
     fun clampedAtBothEnds() {
-        assertEquals(PHOTON_DAMAGE_D_MAX, displayedPhotonFactor(true, true, 0f, 0f, -0.95f, 0f, 1f, 0f)!!, 1e-6f)
-        assertEquals(PHOTON_DAMAGE_D_MIN, displayedPhotonFactor(true, true, 0f, 0f, 0.95f, 0f, 1f, 0f)!!, 1e-6f)
+        assertEquals(PHOTON_DAMAGE_D_MAX, displayedPhotonFactor(true, true, 0f, 0f, -0.99f, 0f, 1f, 0f)!!, 1e-6f)
+        assertEquals(PHOTON_DAMAGE_D_MIN, displayedPhotonFactor(true, true, 0f, 0f, 0.999f, 0f, 1f, 0f)!!, 1e-6f)
     }
 
     @Test
@@ -39,5 +40,12 @@ class LaserDamageLabelTest {
         assertEquals("×0.3", sb.toString())
         formatDamageFactor(4f, sb)
         assertEquals("×4.0", sb.toString())
+    }
+
+    @Test
+    fun overlayMatchesAppliedFactorWithGravity() {
+        val expected = clampedPhotonDamageFactor(0f, 0f, 0f, 0f, 1f, 0f, 1f, 0.5f)
+        assertEquals(2f, expected, 1e-5f)
+        assertEquals(expected, displayedPhotonFactor(true, true, 0f, 0f, 0f, 0f, 1f, 0f, 1f, 0.5f)!!, 1e-6f)
     }
 }

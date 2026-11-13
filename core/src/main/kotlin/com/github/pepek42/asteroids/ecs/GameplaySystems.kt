@@ -115,7 +115,7 @@ fun buildGameplaySystems(deps: GameplayDeps, presentation: (GameplaySystems) -> 
     // A lock-on shot adds its engine acceleration in beforeStep like the ship; RelativisticDynamics integrates it last.
     val lockOnSteeringSystem = LockOnSteeringSystem(deps.settings)
     // Rocket motors burn in beforeStep too (ST-181), right after the lock-on shots.
-    val rocketMotorSystem = RocketMotorSystem(deps.settings)
+    val rocketMotorSystem = RocketMotorSystem(deps.settings, deps.clock)
     val projectileSweepSystem = ProjectileSweepSystem(deps.world, deps.settings)
     // Must be the last step listener: it integrates the accelerations the others added.
     val relativisticDynamics = RelativisticDynamics(deps.settings)

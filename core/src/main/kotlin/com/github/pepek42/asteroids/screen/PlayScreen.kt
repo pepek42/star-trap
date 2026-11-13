@@ -167,7 +167,7 @@ class PlayScreen(
             controlSettings = game.get<ControlSettings>(),
             weaponProjectileProvider = WeaponProjectileProvider(game.get<TextureAtlas>(), engine, world, settings),
             lockOnProvider = LockOnProvider(game.get<TextureAtlas>(), engine, world, settings, mapProvider),
-            rocketProvider = RocketProvider(game.get<TextureAtlas>(), engine, world, settings),
+            rocketProvider = RocketProvider(game.get<TextureAtlas>(), engine, world, settings, clock),
             asteroidProvider = asteroidProvider,
             random = game.get<RandomXS128>(),
             shimmerImpacts = shimmerImpacts,

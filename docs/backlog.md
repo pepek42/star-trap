@@ -24,7 +24,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-63g. ST-197 Pilot view: light-delayed rocket plume
 63h. ST-198 Photons fly until they leave the arena
 63i. ST-199 Pilot clock exact past the warp cap
 63j. ST-200 A hole that eats a planet grows
@@ -85,22 +84,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] Test: near a gravity source the aim (or the fallback) never sends the rocket where it cannot meet the target
   - [ ] `./gradlew test` passes
 - playtest: Rockets still hit near a planet or hole, and the intercept ring lines up with the real meeting point.
-
-### ST-197 Pilot view: light-delayed rocket plume
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: —
-- files: `component/RocketComponent.kt`, `system/RocketMotorSystem.kt`, `system/RenderSystem.kt` (`applyRocketPlume`), `render/PilotView.kt` (`sourceLag`), `docs/design/physics-lies.md` row 49; tests
-- refs: `architecture.md` row 6d (`RocketMotorSystem`), physics-lies row 49
-- layer: sim
-- goal: At c = 20 a rocket 40 u away is seen 2 s late, longer than its 1.5 s burn, yet its plume follows the true `burnLeft`. In the pilot view the plume should show while the rocket's light shows it burning.
-- spec: `RocketComponent.burnEndTime` (arena time, `GameClock`/`ObserverState.worldTime`, set when `burnLeft` reaches 0; `+∞` while burning; reset in `reset()`) and `launchTime`. A pure `plumeVisible(emitTime, launchTime, burnEndTime) = emitTime >= launchTime && emitTime < burnEndTime`. Pilot view: `emitTime = now − pilotView.sourceLag`; Outside view: `emitTime = now` (unchanged behaviour). Drop the plume clause from row 49. ST-187 reuses `plumeVisible` for the lock-on booster and sustainer plumes.
-- acceptance:
-  - [ ] Test: `plumeVisible` at the edges (launch, burnout, and while burning with `burnEndTime = ∞`)
-  - [ ] Test: a rocket that burned out at t = 1 and is seen with a 0.8 s lag at now = 1.5 still shows the plume; at now = 1.9 it doesn't
-  - [ ] `./gradlew core:test` passes
-- playtest: In pilot view a distant rocket keeps its flame after launch until its light says it burned out.
 
 ### ST-198 Photons fly until they leave the arena
 - status: needs-user

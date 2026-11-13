@@ -31,6 +31,7 @@ import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.playerMapper
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
+import com.github.pepek42.asteroids.component.plumeVisible
 import com.github.pepek42.asteroids.component.rocketCmp
 import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformCmp
@@ -231,9 +232,9 @@ class RenderSystem(
         }
         val isPlayer = playerMapper.has(entity)
         val type = baseInfoMapper.get(entity)?.entityType ?: EntityType.UNKNOWN
-        if (type == EntityType.ROCKET) applyRocketPlume(entity, sprite)
         if (pilotViewActive) {
             if (!pilotView.project(entity, scratch)) return
+            if (type == EntityType.ROCKET) applyRocketPlume(entity, sprite, pilotView.now - pilotView.sourceLag)
             if (!isPlayer) {
                 tintAndQueue(
                     sprite, type, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy,
@@ -247,6 +248,7 @@ class RenderSystem(
             endLit()
             return
         }
+        if (type == EntityType.ROCKET) applyRocketPlume(entity, sprite, observer.worldTime)
         val transformComp = entity.transformCmp
         sprite.rotation = transformComp.interpolatedRotationDeg
         sprite.setPosition(
@@ -337,11 +339,11 @@ class RenderSystem(
 
     /**
      * Shows the motor plume on a rocket while its motor burns (ST-181) by swapping the sprite to the plume image and back at
-     * burnout. The plume follows the true `burnLeft`, so in the pilot view a distant rocket's plume is not light-delayed
-     * (physics-lies row 49).
+     * burnout. [emitTime] is the arena time of the light shown: `now - sourceLag` in the pilot view (ST-197), `now` outside.
      */
-    private fun applyRocketPlume(entity: Entity, sprite: Sprite) {
-        val region = (if (entity.rocketCmp.burnLeft > 0f) rocketBurnRegion else rocketRegion) ?: return
+    private fun applyRocketPlume(entity: Entity, sprite: Sprite, emitTime: Float) {
+        val rocket = entity.rocketCmp
+        val region = (if (plumeVisible(emitTime, rocket.launchTime, rocket.burnEndTime)) rocketBurnRegion else rocketRegion) ?: return
         if (sprite.u != region.u || sprite.v != region.v) sprite.setRegion(region)
     }
 

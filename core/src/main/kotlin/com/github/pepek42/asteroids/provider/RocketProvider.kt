@@ -13,6 +13,7 @@ import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.HealthComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.RocketComponent
+import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
@@ -52,6 +53,7 @@ class RocketProvider(
     private val engine: Engine,
     private val world: World,
     private val settings: RelativitySettings = RelativitySettings(),
+    private val clock: GameClock? = null,
 ) {
     /**
      * Launches a rocket from [shooter] along `weaponCmp.aimAngleRad` (the computer's aim, gimballed pod) or the hull angle.
@@ -117,6 +119,7 @@ class RocketProvider(
             }
             with<RocketComponent> {
                 burnLeft = ROCKET_BURN_SECONDS
+                launchTime = clock?.worldTime ?: 0f
                 headingX = dirX
                 headingY = dirY
                 damage = ROCKET_DAMAGE

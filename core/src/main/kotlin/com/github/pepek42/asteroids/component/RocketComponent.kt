@@ -25,7 +25,15 @@ class RocketComponent : Component, Pool.Poolable {
     /** `BaseInfoComponent.id` of the shooter. */
     var shooterId: Int = -1
 
+    /** Arena time (`GameClock.worldTime`) the rocket was launched (s). */
+    var launchTime: Float = 0f
+
+    /** Arena time the motor burned out (s): set when [burnLeft] reaches 0, `+∞` while it burns. Drives the pilot-view plume. */
+    var burnEndTime: Float = Float.POSITIVE_INFINITY
+
     override fun reset() {
+        launchTime = 0f
+        burnEndTime = Float.POSITIVE_INFINITY
         burnLeft = 0f
         headingX = 1f
         headingY = 0f
@@ -33,6 +41,13 @@ class RocketComponent : Component, Pool.Poolable {
         shooterId = -1
     }
 }
+
+/**
+ * True when a rocket's plume shows in light emitted at [emitTime] (arena time): from [launchTime] up to [burnEndTime]
+ * (`+∞` while burning). The pilot view passes `now - sourceLag`, the outside view `now` (ST-197; ST-187 reuses it).
+ */
+fun plumeVisible(emitTime: Float, launchTime: Float, burnEndTime: Float): Boolean =
+    emitTime >= launchTime && emitTime < burnEndTime
 
 val rocketMapper = mapperFor<RocketComponent>()
 val Entity.rocketCmp by propertyFor(rocketMapper)

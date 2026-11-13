@@ -11,7 +11,9 @@ import com.github.pepek42.asteroids.component.RocketComponent
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.relativisticCmp
 import com.github.pepek42.asteroids.component.rocketCmp
+import com.github.pepek42.asteroids.physics.GameClock
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
+import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.gammaFromU
 import com.github.pepek42.asteroids.physics.thrustAccelWorld
@@ -28,6 +30,7 @@ import ktx.ashley.allOf
  */
 class RocketMotorSystem(
     private val settings: RelativitySettings = RelativitySettings(),
+    private val clock: GameClock? = null,
 ) : EntitySystem(), PhysicsStepListener {
     private var rockets: ImmutableArray<Entity>? = null
 
@@ -69,6 +72,8 @@ class RocketMotorSystem(
                 entity.bodyCmp.body.applyForceToCenter(rocket.headingX * force, rocket.headingY * force, true)
             }
             rocket.burnLeft = (rocket.burnLeft - dt / gamma).coerceAtLeast(0f)
+            // Arena time of burnout: the end of the current tick (worldTime advances after the substeps).
+            if (rocket.burnLeft <= 0f) rocket.burnEndTime = (clock?.worldTime ?: 0f) + PHYSICS_UPDATE_INTERVAL
         }
     }
 

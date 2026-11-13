@@ -197,7 +197,7 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - playtest: Clear level 1, pick lock-on, play level 2 with keys 1 and 3; clear it and get the rockets.
 
 ### ST-185 Physics fidelity audit before release
-- status: needs-user
+- status: ready
 - size: M
 - agent: physics-researcher
 - depends: —
@@ -207,16 +207,17 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - goal: Owner 2026-11-12: "I want all the physics to be as close as possible." Go through every FAKE/APPROX row and decide per row: remove now (cost and risk), keep because the engine forces it (Box2D, float, perf on web), or keep for gameplay (owner decides). Turn the "remove now" rows into small follow-up cards.
 - questions:
 * Q1: Braking boost (row 7: engines push up to 3× harder against your motion). Remove it for realism (Rec: yes; it makes braking slower, so the balance pass ST-189 rechecks levels)?
-  * A:
+  * A:No, IMO this is required. In ST-189 we can have review of this
 * Q2: Fuel / reaction mass (row 6): add a rocket equation with fuel for the ship? Rec: no for release (big gameplay change); keep the row.
-  * A:
+  * A:No, fuel is antimatter and it weight is almost nothing. Ok, calculate how much would it need, I am curious. We can assume it is antimatter with nearly perfect E=mc^2. But probably a lot with our game c value, so use real one and game one.
 * Q3: Length-contraction floor at 25 % (row 31) and the clamped starfield Doppler/brightness (row 33): move toward the true values with the floors only as a safety (Rec: floor 10 %, brightness D³ clamped wider)?
-  * A:
+  * A:Recommended for now
 * Q4: Source-source gravity at 0.1 (row 14): try physical coupling with stable initial orbits (the parking-lot idea) for release? Rec: research only, card only if cheap.
-  * A:
+  * A:Recommended
 * Q5: Laser damage clamp [0.25, 4] (row 36): widen or remove? Rec: widen to [0.1, 10].
-  * A:
-- spec: For each row: tag (keep-engine / keep-gameplay / remove), cost estimate, web performance risk, and the exact formula that replaces the lie. Recommend the 3-6 most visible wins. Add follow-up cards (`kotlin-dev` or `junior-dev`, size S/M) to M7 after ST-080, `needs-user` where the owner's answer above is not enough.
+  * A:Recommended
+- note (owner answers 2026-11-13): Q1 keep the braking boost (row 7 = keep-gameplay; ST-189 reviews its strength). Q2 no fuel mechanic (row 6 stays), but add a "Fuel curiosity" section: antimatter with perfect E = mc² (photon rocket, exhaust speed c), the fuel mass ratio for the ship's typical burns (e.g. 0 → β 0.5, 0.9, 0.99 and back to rest; one level's worth of manoeuvring) from the relativistic rocket equation `m0/m1 = exp(Δrapidity)` = `sqrt((1+β)/(1−β))` per burn, computed for the game c (`SPEED_OF_LIGHT`) and the real c (same β, so the ratio is equal; show also the absolute energy/mass for a ship of a stated mass at real c vs. game c). Q3, Q4, Q5 Rec (floor 10 %, brightness D³ clamped wider; source-source gravity research only; laser clamp [0.1, 10]).
+- spec: For each row: tag (keep-engine / keep-gameplay / remove), cost estimate, web performance risk, and the exact formula that replaces the lie. Recommend the 3-6 most visible wins. Add follow-up cards (`kotlin-dev` or `junior-dev`, size S/M) to M7 after ST-080, `needs-user` where the owner's answer above is not enough. Q3 and Q5 become follow-up cards with the Rec values.
 - acceptance:
   - [ ] `release-fidelity-audit.md` has a table covering every physics-lies row
   - [ ] Follow-up cards are in the backlog and in the implementation order
@@ -224,7 +225,7 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - playtest: —
 
 ### ST-186 Lock-on shot: booster, sustainer and side-thruster turning
-- status: needs-user
+- status: ready
 - size: M
 - agent: kotlin-dev
 - depends: ST-183
@@ -234,14 +235,15 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - goal: Owner 2026-11-12: lock-ons need to be more dynamic and fly like the real thing. After launch a booster gives a big speed boost for a short time; then the regular (sustainer) engine takes over. The shot turns with side thrusters (a torque, finite angular acceleration), not by setting its angle, and the main engines only push along the hull, so the path curves because the hull turns.
 - questions:
 * Q1: Booster (Rec): proper acceleration 8 × `ENGINE_PROPER_ACCEL` for 0.3 s of the shot's clock, along the launch heading, no steering during the boost. OK?
-  * A:
+  * A:OK
 * Q2: Sustainer (Rec): the current 3 × engine accel for 2 s, then coast; the sustainer throttles down when the hull is more than 30° off the guidance direction (so it does not push the wrong way). Or should it burn until it hits (longer chase)?
-  * A:
+  * A:Sustainer should have infinite fuel for booster and manoeuvre boosters. TBD exact values during rebalance
 * Q3: Guidance (Rec): proportional navigation (N = 3) on the target's true state, replacing the current "lead point" solver; it is what real missiles use and curves more naturally. OK?
-  * A:
+  * A:Looks ok
 * Q4: Side thrusters (Rec): angular acceleration limit 20 rad/s², max turn rate kept at `LOCK_ON_TURN_RATE`, turning by a PD controller through Box2D torque. OK?
-  * A:
-- spec (Rec answers): `LockOnComponent` gets a `phase` (BOOST, SUSTAIN, COAST) and the burn timers (proper time, ticked by `dt/γ`). Thrust is always along the body angle (`thrustAccelWorld` with the hull heading, never the guidance direction). Turning: the guidance gives a desired heading; a PD controller applies `body.applyTorque` limited by `LOCK_ON_RCS_ANGULAR_ACCEL · I`; no `setTransform`. Expose the current RCS command (−1..1) and phase on the component for ST-187. Update `lockOnLifetime` for the new burn and physics-lies rows 46-47.
+  * A:OK
+- note (owner answers 2026-11-13): Q1, Q3, Q4 Rec. Q2: the booster is the finite 0.3 s kick; the sustainer and the RCS have unlimited fuel, so there is no COAST phase: the sustainer burns until the shot hits or its lifetime ends (still throttled down when the hull is > 30° off the guidance direction). Exact values are tuned in ST-189. End of flight: keep a lifetime cap derived from the arena (boost + powered flight across `LOCK_ON_RANGE_ARENA_FRACTION` of the arena), then the shot self-destructs; if the target dies it flies straight on until the cap.
+- spec: `LockOnComponent` gets a `phase` (BOOST, SUSTAIN) and the boost timer (proper time, ticked by `dt/γ`). Thrust is always along the body angle (`thrustAccelWorld` with the hull heading, never the guidance direction), sustainer throttle `max(0, cos Δ)`-style falloff to zero past 30°. Turning: proportional navigation (N = 3) on the target's true state gives a desired heading; a PD controller applies `body.applyTorque` limited by `LOCK_ON_RCS_ANGULAR_ACCEL · I`, turn rate capped at `LOCK_ON_TURN_RATE`; no `setTransform`. Expose the current RCS command (−1..1), the phase and the sustainer throttle on the component for ST-187. Rewrite `lockOnLifetime` for a powered (constant proper acceleration) flight instead of burn + coast, with the derivation in the KDoc. Update physics-lies rows 46-47 (unlimited sustainer fuel joins row 6's reason).
 - acceptance:
   - [ ] Test: the angle changes only through angular velocity (no `setTransform` after launch), and |dω/dt| never exceeds the RCS limit
   - [ ] Test: the speed after the boost matches the formula within 2 %; during the boost the heading does not change
@@ -258,9 +260,10 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - refs: `render/RelativityVisuals.kt` (Doppler tint), `render/PilotView.kt`, physics-lies row 20
 - layer: sim
 - goal: "It should be all visible" (owner 2026-11-12): a big, bright booster plume, a smaller sustainer plume and short side puffs when the RCS fires, drawn for lock-on shots (and the main plume for dumb rockets), so the player can read what each missile is doing. Plumes are light like any sprite: light-delayed and aberrated in pilot view, Doppler-tinted.
-- spec: An additive plume quad behind the body, length and alpha from the phase (BOOST large, SUSTAIN medium, COAST none); two RCS puff quads at the nose sides, alpha from the RCS command of ST-186 (left/right by its sign). Plumes use the entity's displayed transform (retarded in pilot view) and the same Doppler tint as the body. No allocation per frame; pure helper `plumeGeometry(phase, rcs, out)` tested.
+- note (2026-11-13): ST-186 has no COAST phase (unlimited sustainer); the sustainer plume scales with the sustainer throttle instead.
+- spec: An additive plume quad behind the body, length and alpha from the phase (BOOST large, SUSTAIN medium × sustainer throttle, so it shrinks to nothing when the hull is far off course; dumb rockets: the main plume until burnout); two RCS puff quads at the nose sides, alpha from the RCS command of ST-186 (left/right by its sign). Plumes use the entity's displayed transform (retarded in pilot view) and the same Doppler tint as the body. No allocation per frame; pure helper `plumeGeometry(phase, rcs, out)` tested.
 - acceptance:
-  - [ ] Test: `plumeGeometry` gives the BOOST > SUSTAIN > COAST (zero) lengths and the RCS puff on the correct side for a positive and a negative command
+  - [ ] Test: `plumeGeometry` gives BOOST > SUSTAIN (full throttle) > SUSTAIN (zero throttle) = 0 lengths and the RCS puff on the correct side for a positive and a negative command
   - [ ] Screenshot (harness) viewed by the agent: a just-launched lock-on shows the booster flame, a turning one shows side puffs
   - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
 - playtest: You can tell at a glance which missiles are boosting, cruising or coasting, and which way they are turning.
@@ -307,6 +310,7 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 * Q2: Targets stay as before: a cautious bot clears levels 1-3 in ≥ 90 % and level 5 in ≥ 50 % of runs? Rec: yes.
   * A:
 - spec (Rec answers): bots use the weapons a player has at that level (rockets picked after L1 in half the seeds, lock-on in the other half). Tune only derived spawn/enemy constants (no literals), re-run `./gradlew tool:balanceSim`, record the table in `balance.md`.
+- note (owner 2026-11-13): also review (1) the braking boost strength `BRAKE_BOOST_K` (ST-185 Q1: it stays, but its strength is up for review) and (2) the ST-186 lock-on values: booster accel/duration, sustainer accel, RCS angular accel, lifetime cap.
 - acceptance:
   - [ ] The targets in Q2 hold; numbers recorded in `balance.md`
   - [ ] `./gradlew test tool:test` passes

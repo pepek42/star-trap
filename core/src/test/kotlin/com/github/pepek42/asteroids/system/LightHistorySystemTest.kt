@@ -4,6 +4,8 @@ import com.badlogic.ashley.core.Engine
 import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.Box2D
@@ -12,6 +14,7 @@ import com.badlogic.gdx.physics.box2d.World
 import com.badlogic.gdx.utils.GdxNativesLoader
 import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
+import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.physics.LIGHT_HISTORY_CAPACITY
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_TICK_RATE
@@ -103,6 +106,34 @@ class LightHistorySystemTest {
         step(LIGHT_HISTORY_CAPACITY + 2)
         assertNull(history.historyOf(id))
         assertTrue(history.removedAt(id).isNaN())
+    }
+
+    @Test
+    fun ghostInfoIsKeptThenFreedWhenHistoryIsPruned() {
+        val e = addBody(1f)
+        val id = idOf(e)
+        e.add(SpriteComponent().apply {
+            sprite = Sprite(mock<Texture> {
+                on { width } doReturn 1
+                on { height } doReturn 1
+            }).apply { setSize(2f, 3f) }
+        })
+        step(5)
+        world.destroyBody(e.getComponent(BodyComponent::class.java).body)
+        e.getComponent(BodyComponent::class.java).body.userData = null
+        engine.removeEntity(e)
+        var seen = 0
+        var ghost: GhostInfo? = null
+        history.forEachGhost { gid, _, g, _ -> if (gid == id) { seen++; ghost = g } }
+        assertEquals(1, seen)
+        assertEquals(2f, ghost!!.width)
+        assertEquals(3f, ghost!!.height)
+        step(LIGHT_HISTORY_CAPACITY + 2)
+        seen = 0
+        history.forEachGhost { _, _, _, _ -> seen++ }
+        assertEquals(0, seen)
+        // Freed to the pool: reset cleared the region.
+        assertNull(ghost!!.region.texture)
     }
 
     @Test

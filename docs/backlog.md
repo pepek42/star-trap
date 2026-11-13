@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-202**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-203**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -24,7 +24,7 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-63b. ST-079 Pilot view: ghosts of removed entities until their light runs out
+63b1. ST-202 Pilot-view ghosts: lit, and none for the player
 63c. ST-080 Searchlight k = 2 in pilot view, with a brightness floor
 63d. ST-194 Exact searchlight exponents and 10 % floors (ST-185 Q3)
 63e. ST-195 Gravitational red- and blueshift in colours
@@ -48,24 +48,20 @@ M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a wea
 The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead markers) was pulled forward into M3 by the 2026-11-02 interview: ST-070 to ST-078. M4 holds the follow-ups.
 - result: `RelativitySettings.pilotHullTransform` (pilotView && relativityEnabled && pilotAberration) now gates both the drawn player hull in `PilotView.project()` and the `PlayerInputSystem` cursor mapping.
 
-### ST-079 Pilot view: ghosts of removed entities until their light runs out
+### ST-202 Pilot-view ghosts: lit, and none for the player
 - status: ready
-- note (owner 2026-11-12): unparked into M7. The spec dates from 2026-11-03: check every file and symbol it names against the current code (pilot view, `PilotViewProjector`, `LightHistorySystem`) before starting, and adapt it.
 - size: S
 - agent: kotlin-dev
-- depends: ST-074
-- files: `system/LightHistorySystem.kt`, `system/RenderSystem.kt`; tests in `system/LightHistorySystemTest.kt`
-- goal: In pilot view a destroyed asteroid must stay visible until the light of its destruction reaches the pilot, or you see things vanish before the hit "happens" (research E8). Its fragments already stay invisible until their light arrives (ST-070, non-eternal histories).
-- spec:
-  - `LightHistorySystem.entityRemoved`: besides `removedAt`, store a `GhostInfo` (pooled; `region: TextureRegion`, `width`, `height`, `originX`, `originY`, `color` packed float), copied from the entity's `SpriteComponent` sprite, keyed by id. Free it when the history is pruned.
-  - Expose `fun forEachGhost(action: (id: Int, history: LightHistory, ghost: GhostInfo, removedAt: Float) -> Unit)` without allocating (an inline function over the `IntMap`).
-  - `RenderSystem` pilot path: after the live sprites, for each ghost `retarded(o, now)`; if it returns true and `state.t < removedAt`, draw it exactly like a live entity (same corner and boost code, ST-075 corners if present). Otherwise skip it.
-  - In world view, ghosts are never drawn.
+- depends: —
+- files: `system/LightHistorySystem.kt` (`GhostInfo`), `render/PilotView.kt` (`projectGhost`), `system/RenderSystem.kt` (`drawGhosts`), `docs/design/physics-lies.md` row 55; tests
+- refs: commit ST-079, physics-lies row 55
+- layer: sim
+- goal: Follow-ups from ST-079. (1) Ghosts are drawn unlit. Copy the normal map / light state the live sprite uses into `GhostInfo` so a ghost is lit like the live entity was, then trim row 55. (2) Don't create a ghost for the player's own entity (a death ghost could show after a respawn).
 - acceptance:
-  - [ ] Test: an asteroid 30 u from a resting observer, removed at `t = 1`: at `now = 1.3` the ghost is visible (`t_ret = 0.8 < 1`), at `now = 1.6` it isn't
-  - [ ] Test: the ghost's `GhostInfo` is freed when the history is pruned
-  - [ ] `./gradlew core:test` passes
-- playtest: Shoot a distant asteroid in pilot view: the shot reaches it, and it breaks a moment later, as seen. No asteroid pops out of existence early.
+  - [ ] Test: a ghost keeps the lighting data of its entity
+  - [ ] Test: removing the player creates no ghost
+  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports PASS
+- playtest: Pilot view with light delay: a far asteroid you destroy stays visible, lit and shadowed like before, until its light arrives.
 
 ### ST-080 Searchlight k = 2 in pilot view, with a brightness floor
 - status: ready

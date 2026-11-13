@@ -99,6 +99,9 @@ class RenderSystem(
     private var asteroids: ImmutableArray<Entity>? = null
     private var diskBodies: ImmutableArray<Entity>? = null
     private var pilotViewActive = false
+
+    /** Scratch sprite the ghosts of removed entities are built on (ST-079). */
+    private val ghostSprite = Sprite()
     private val lightSources = LightSources()
     private val occluders = OccluderPool()
 
@@ -155,6 +158,7 @@ class RenderSystem(
         batch.use(camera) {
             additive.clear()
             super.update(deltaTime)
+            if (pilotViewActive) drawGhosts()
             litSprites?.release(batch)
             drawAdditive()
             fieldShimmerRenderer.render(batch, pilotViewActive && pilotView.aberrationEnabled, pilotView.ox, pilotView.oy, pilotView.betaX, pilotView.betaY)
@@ -300,6 +304,22 @@ class RenderSystem(
         if (tinted) tintAndQueue(sprite, type, cx, cy, vx, vy)
         batch.draw(sprite.texture, scratch, 0, VERTEX_FLOATS)
         endLit()
+    }
+
+    /**
+     * Pilot view only (ST-079): draws the removed entities whose last light has not reached the pilot yet, so a destroyed asteroid
+     * vanishes when the light of its destruction arrives, not before. Drawn unlit (no normals kept for them, physics-lies row 55)
+     * like the live sprites in the same pass, with the same Doppler tint, contraction, Terrell corners and boost.
+     */
+    private fun drawGhosts() {
+        litSprites?.release(batch)
+        litNow = false
+        pilotView.history.forEachGhost { _, history, ghost, removedAt ->
+            if (!pilotView.projectGhost(history, ghost, removedAt, ghostSprite, scratch)) return@forEachGhost
+            if (ghostSprite.texture == null) return@forEachGhost
+            tintAndQueue(ghostSprite, ghost.type, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy)
+            batch.draw(ghostSprite.texture, scratch, 0, VERTEX_FLOATS)
+        }
     }
 
     /**

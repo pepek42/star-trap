@@ -1,8 +1,10 @@
 package com.github.pepek42.asteroids.render
 
 import com.badlogic.ashley.core.Entity
+import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
+import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.baseInfoMapper
 import com.github.pepek42.asteroids.component.bodyCmpOptional
 import com.github.pepek42.asteroids.component.playerMapper
@@ -10,6 +12,7 @@ import com.github.pepek42.asteroids.component.relativisticCmpOptional
 import com.github.pepek42.asteroids.component.spriteCmp
 import com.github.pepek42.asteroids.component.transformCmp
 import com.github.pepek42.asteroids.physics.GameClock
+import com.github.pepek42.asteroids.physics.LightHistory
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.RelativitySettings
 import com.github.pepek42.asteroids.physics.RetardedState
@@ -17,6 +20,7 @@ import com.github.pepek42.asteroids.physics.apparentOffset
 import com.github.pepek42.asteroids.physics.gammaFromV
 import com.github.pepek42.asteroids.physics.retarded
 import com.github.pepek42.asteroids.physics.worldHullToPilot
+import com.github.pepek42.asteroids.system.GhostInfo
 import com.github.pepek42.asteroids.system.LightHistorySystem
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import kotlin.math.sqrt
@@ -122,7 +126,7 @@ internal const val MIN_CORNER_DENOM_FRACTION = 1e-3f
  * headless. Call [begin] once per frame, then [project] per sprite entity. Reuses its scratch objects: no per-frame allocation.
  */
 class PilotViewProjector(
-    private val history: LightHistorySystem,
+    val history: LightHistorySystem,
     private val observer: ObserverState,
     private val clock: GameClock,
     private val settings: RelativitySettings,
@@ -279,6 +283,36 @@ class PilotViewProjector(
                 }
             }
         }
+        return buildQuad(sprite, x, y, angleDeg, arenaAngleDeg, vx, vy, lag, perCorner, playerMapper.has(entity), entity.relativisticCmpOptional, out)
+    }
+
+    /**
+     * Writes the quad of a removed entity's [ghost] (ST-079) as seen by the pilot into [out] (20 floats), using [sprite] as scratch
+     * (set up from the ghost, so the caller can read its colour and texture afterwards). The ghost is visible while the light of
+     * its last moments is still on the way: returns false when no light from before [removedAt] reaches the pilot now, or
+     * when the light delay is off (a removed entity just vanishes). Call [begin] first. Allocation-free.
+     */
+    fun projectGhost(history: LightHistory, ghost: GhostInfo, removedAt: Float, sprite: Sprite, out: FloatArray): Boolean {
+        if (!settings.pilotDelay) return false
+        if (!history.retarded(ox, oy, now, settings.c, state)) return false
+        if (state.t >= removedAt) return false
+        sprite.setRegion(ghost.region)
+        sprite.setSize(ghost.width, ghost.height)
+        sprite.setOrigin(ghost.originX, ghost.originY)
+        sprite.setPackedColor(ghost.color)
+        val angleDeg = state.angle * MathUtils.radiansToDegrees
+        return buildQuad(sprite, state.x, state.y, angleDeg, angleDeg, state.vx, state.vy, now - state.t, true, false, null, out)
+    }
+
+    /**
+     * Shared by [project] and [projectGhost]: places [sprite] at ([x], [y]) rotated by [angleDeg] and writes its four corners as
+     * the pilot sees them to [out]: tidal stretch, contraction, Terrell corner retardation (when [perCorner]) and the boost. Also
+     * latches the `source*` fields. [arenaAngleDeg] is the arena-frame angle (for lighting).
+     */
+    private fun buildQuad(
+        sprite: Sprite, x: Float, y: Float, angleDeg: Float, arenaAngleDeg: Float, vx: Float, vy: Float, lag: Float,
+        perCorner: Boolean, isPlayer: Boolean, rel: RelativisticComponent?, out: FloatArray,
+    ): Boolean {
         sourceX = x
         sourceY = y
         sourceVx = vx
@@ -292,9 +326,7 @@ class PilotViewProjector(
         val speed = sqrt(vx * vx + vy * vy)
         val contract = speed > MIN_CONTRACTION_SPEED
         val k = if (contract) contractionK(gammaFromV(vx, vy, settings.c)) else 0f
-        val isPlayer = playerMapper.has(entity)
         // Tidal stretch (ST-153) uses the true (not retarded) tidal state, before the contraction.
-        val rel = entity.relativisticCmpOptional
         val stretch = if (rel != null && rel.tidalRatio > 0f) tidalStretch(rel.tidalRatio) else 1f
         val stretched = stretch >= TIDAL_VISUAL_MIN_SCALE
         for (i in 0 until SPRITE_VERTEX_FLOATS step SPRITE_VERTEX_STRIDE) {

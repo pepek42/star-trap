@@ -4,7 +4,9 @@ import com.badlogic.ashley.core.Engine
 import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Sprite
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.physics.box2d.BodyDef
 import com.badlogic.gdx.physics.box2d.Box2D
@@ -239,6 +241,57 @@ class PilotViewTest {
         step(seconds(30f / settings.c + 0.5f))
         begin(player)
         assertTrue(projector.project(asteroid, verts))
+    }
+
+    private val mockTexture = mock<Texture> {
+        on { width } doReturn 1
+        on { height } doReturn 1
+    }
+
+    private fun remove(e: Entity) {
+        val body = e.getComponent(BodyComponent::class.java).body
+        world.destroyBody(body)
+        body.userData = null
+        engine.removeEntity(e)
+    }
+
+    private fun ghostVisible(): Boolean {
+        var visible = false
+        val sprite = Sprite()
+        history.forEachGhost { _, h, ghost, removedAt ->
+            if (projector.projectGhost(h, ghost, removedAt, sprite, verts)) visible = true
+        }
+        return visible
+    }
+
+    @Test
+    fun removedAsteroidStaysVisibleUntilItsLastLightArrives() {
+        val player = addEntity(50f, 50f, player = true)
+        val asteroid = addEntity(80f, 50f, player = false)
+        asteroid.getComponent(SpriteComponent::class.java).sprite.setRegion(TextureRegion(mockTexture, 0, 0, 1, 1))
+        step(seconds(1f))
+        remove(asteroid)
+        val lightTime = 30f / settings.c
+        // Just under the light travel time after the removal the ghost is still shown, shortly after it is gone.
+        step(seconds(lightTime * 0.5f))
+        begin(player)
+        assertTrue(ghostVisible())
+        step(seconds(lightTime * 1.0f))
+        begin(player)
+        assertFalse(ghostVisible())
+    }
+
+    @Test
+    fun ghostIsNotDrawnWithoutLightDelay() {
+        settings.pilotDelay = false
+        val player = addEntity(50f, 50f, player = true)
+        val asteroid = addEntity(80f, 50f, player = false)
+        asteroid.getComponent(SpriteComponent::class.java).sprite.setRegion(TextureRegion(mockTexture, 0, 0, 1, 1))
+        step(seconds(1f))
+        remove(asteroid)
+        step(1)
+        begin(player)
+        assertFalse(ghostVisible())
     }
 
     @Test

@@ -5,20 +5,58 @@ import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.core.EntityListener
 import com.badlogic.ashley.core.EntitySystem
 import com.badlogic.ashley.utils.ImmutableArray
+import com.badlogic.gdx.graphics.g2d.Sprite
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.IntArray
 import com.badlogic.gdx.utils.IntFloatMap
 import com.badlogic.gdx.utils.IntMap
+import com.badlogic.gdx.utils.Pool
 import com.github.pepek42.asteroids.component.BaseInfoComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.TransformComponent
+import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.bodyCmp
+import com.github.pepek42.asteroids.component.spriteMapper
 import com.github.pepek42.asteroids.physics.LIGHT_HISTORY_CAPACITY
 import com.github.pepek42.asteroids.physics.LightHistory
 import com.github.pepek42.asteroids.physics.PhysicsStepListener
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import ktx.ashley.allOf
+
+/**
+ * What the pilot view needs to keep drawing a removed entity until the light of its removal arrives (ST-079): a copy of its sprite's
+ * region, size, origin and colour. Pooled by [LightHistorySystem]; [region] is allocated once per pooled object and reused.
+ */
+class GhostInfo : Pool.Poolable {
+    val region = TextureRegion()
+    var width = 0f
+    var height = 0f
+    var originX = 0f
+    var originY = 0f
+
+    /** Packed ABGR colour float of the sprite (`Color.toFloatBits`). */
+    var color = 0f
+
+    /** Kind of the removed entity (decides whether its Doppler glow is drawn additively). */
+    var type = EntityType.UNKNOWN
+
+    fun copyFrom(sprite: Sprite, entityType: EntityType) {
+        region.setRegion(sprite)
+        width = sprite.width
+        height = sprite.height
+        originX = sprite.originX
+        originY = sprite.originY
+        color = sprite.color.toFloatBits()
+        type = entityType
+    }
+
+    override fun reset() {
+        region.texture = null
+        type = EntityType.UNKNOWN
+    }
+}
 
 /**
  * Records every body's post-step state into a [LightHistory] in arena time, so the renderer and AI can ask where the
@@ -28,12 +66,20 @@ import ktx.ashley.allOf
  * [clear] and gains `dt` per step, so it equals `GameClock.worldTime`. Histories are keyed by
  * [BaseInfoComponent.id] (unique per run; Ashley pools `Entity` objects). Removed entities keep their history for
  * [LIGHT_HISTORY_CAPACITY] samples so ghosts of the last light can still be drawn, then it returns to the free list.
+ * A removed entity that has a sprite also keeps a [GhostInfo] for [forEachGhost] over the same span (ST-079).
  */
 class LightHistorySystem : EntitySystem(), PhysicsStepListener, EntityListener {
     private var entities: ImmutableArray<Entity> = ImmutableArray(Array())
     private val histories = IntMap<LightHistory>()
     private val removedAtMap = IntFloatMap()
     private val freeList = Array<LightHistory>()
+    private val ghostPool = object : Pool<GhostInfo>() {
+        override fun newObject() = GhostInfo()
+    }
+
+    /** Ghosts of removed entities by id; internal only so the inline [forEachGhost] can iterate it. */
+    @PublishedApi
+    internal val ghosts = IntMap<GhostInfo>()
     private val pruneScratch = IntArray()
 
     /** Arena time (s) of the newest recorded step. */
@@ -84,7 +130,12 @@ class LightHistorySystem : EntitySystem(), PhysicsStepListener, EntityListener {
 
     override fun entityRemoved(entity: Entity) {
         val id = entity.baseInfoCmp.id
-        if (histories.containsKey(id)) removedAtMap.put(id, time)
+        if (!histories.containsKey(id)) return
+        removedAtMap.put(id, time)
+        val sprite = spriteMapper.get(entity)?.sprite
+        if (sprite != null && sprite.texture != null) {
+            ghosts.put(id, ghostPool.obtain().also { it.copyFrom(sprite, entity.baseInfoCmp.entityType) })
+        }
     }
 
     private fun prune() {
@@ -99,6 +150,7 @@ class LightHistorySystem : EntitySystem(), PhysicsStepListener, EntityListener {
             val id = pruneScratch[i]
             removedAtMap.remove(id, 0f)
             histories.remove(id)?.let { freeList.add(it) }
+            ghosts.remove(id)?.let { ghostPool.free(it) }
         }
     }
 
@@ -107,11 +159,26 @@ class LightHistorySystem : EntitySystem(), PhysicsStepListener, EntityListener {
     /** Arena time the entity was removed, or NaN while it is alive (or unknown). */
     fun removedAt(id: Int): Float = removedAtMap.get(id, Float.NaN)
 
+    /**
+     * Calls [action] for every removed entity that left a ghost: its id, history, sprite copy and the arena time it was removed.
+     * Allocation-free (inline over the map's reused iterator); do not nest it or add or remove entities inside [action].
+     */
+    inline fun forEachGhost(action: (id: Int, history: LightHistory, ghost: GhostInfo, removedAt: Float) -> Unit) {
+        val it = ghosts.entries()
+        while (it.hasNext()) {
+            val e = it.next()
+            val history = historyOf(e.key) ?: continue
+            action(e.key, history, e.value, removedAt(e.key))
+        }
+    }
+
     /** Returns all histories to the free list and restarts [time] at 0. Call when a level starts. */
     fun clear() {
         for (h in histories.values()) freeList.add(h)
         histories.clear()
         removedAtMap.clear()
+        for (g in ghosts.values()) ghostPool.free(g)
+        ghosts.clear()
         time = 0f
     }
 

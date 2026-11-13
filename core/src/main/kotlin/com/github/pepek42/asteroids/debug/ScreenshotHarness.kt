@@ -58,13 +58,15 @@ data class LaunchOptions(
     val noShadows: Boolean = false,
     /** Starts with `RelativitySettings.lensingEnabled` off (`--no-lensing`; web: `?no-lensing`), for A/B shots. Harness only. */
     val noLensing: Boolean = false,
+    /** Desktop window size at launch (`--window=<w>x<h>`, e.g. `1920x1080`), for screenshots at full-screen sizes. Desktop only. */
+    val windowSize: Pair<Int, Int>? = null,
 )
 
 /** Distance (u) from the player spawn to the first black hole under a bare `--hole-near`. */
 const val HOLE_NEAR_DISTANCE = 25f
 
 /**
- * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu|cleared`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--near-enemies=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play`, `--start-level=<n>`, `--scenario=<id>`, `--menu-page=<page>`, `--settings-tab=<tab>`, `--pilot-view`, `--shadow-demo`, `--no-shadows` and `--no-lensing`.
+ * Parses `--screenshot=<path>`, `--frames=<N>`, `--scene=play|menu|cleared`, `--thrust`, `--seed=<long>`, `--controls=mouse|twin|auto`, `--near-asteroids=<n>`, `--near-enemies=<n>`, `--hole-near[=<u>]`, `--invulnerable`, `--debug-panel`, `--play`, `--start-level=<n>`, `--scenario=<id>`, `--menu-page=<page>`, `--settings-tab=<tab>`, `--pilot-view`, `--shadow-demo`, `--no-shadows`, `--no-lensing` and `--window=<w>x<h>`.
  * Unknown flags and flags with a missing or invalid value are ignored (defaults are kept).
  */
 fun parseLaunchOptions(args: Array<String>): LaunchOptions {
@@ -96,9 +98,17 @@ fun parseLaunchOptions(args: Array<String>): LaunchOptions {
             "--no-lensing" -> options = options.copy(noLensing = true)
             "--no-star" -> options = options.copy(noStar = true)
             "--star-angle" -> value?.toFloatOrNull()?.let { options = options.copy(starAngleDeg = it) }
+            "--window" -> parseWindowSize(value)?.let { options = options.copy(windowSize = it) }
         }
     }
     return options
+}
+
+/** `1920x1080` -> (1920, 1080); null when malformed or not positive. */
+private fun parseWindowSize(value: String?): Pair<Int, Int>? {
+    val w = value?.substringBefore('x')?.toIntOrNull() ?: return null
+    val h = value.substringAfter('x', "").toIntOrNull() ?: return null
+    return if (w > 0 && h > 0) w to h else null
 }
 
 /**

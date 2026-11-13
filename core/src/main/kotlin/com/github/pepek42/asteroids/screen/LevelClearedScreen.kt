@@ -33,6 +33,10 @@ import ktx.log.logger
 private const val PANEL_WIDTH = 520f
 private const val SECTION_SPACE = 18f
 private const val BUTTON_SPACE = 16f
+/** Width (px) of a weapon-pick button; narrower than [MENU_BUTTON_WIDTH] so the description column gets room. */
+private const val PICK_BUTTON_WIDTH = 200f
+/** Width (px) of a weapon-pick description: the rest of the panel row. */
+private const val PICK_DESC_WIDTH = PANEL_WIDTH - PICK_BUTTON_WIDTH - BUTTON_SPACE
 /** Fade-in time (s) of the panel. */
 private const val FADE_IN_S = 0.35f
 
@@ -104,7 +108,7 @@ class LevelClearedScreen(
             val key = if (newWeapon != null) "weapon_new_unlocked" else "weapon_picked"
             weaponNote.setText(i18n.format(key, weaponName(shown), weaponSlotOf(shown) + 1))
         }
-        panel.invalidateHierarchy()
+        layoutPanel()
     }
 
     /** The weapon taken from the pick on this screen, for the note. */
@@ -128,15 +132,18 @@ class LevelClearedScreen(
             val button = entry.value
             val key = "weapon_pick_" + weapon.name.lowercase()
             button.setText(i18n[key])
-            pickRows.add(button).width(MENU_BUTTON_WIDTH).height(MENU_BUTTON_HEIGHT).left().top()
-            pickRows.add(style.paragraph(i18n[key + "_desc"], PANEL_WIDTH - MENU_BUTTON_WIDTH - BUTTON_SPACE, style.muted))
-                .padLeft(BUTTON_SPACE).left().row()
-            pickRows.getCell(button).padBottom(BUTTON_SPACE)
+            pickRows.add(button).width(PICK_BUTTON_WIDTH).height(MENU_BUTTON_HEIGHT).left().top().padBottom(BUTTON_SPACE)
+            // A wrapped label has no preferred width, so the cell must set it or the column collapses to one letter.
+            pickRows.add(style.paragraph(i18n[key + "_desc"], PICK_DESC_WIDTH, style.muted))
+                .width(PICK_DESC_WIDTH).padLeft(BUTTON_SPACE).padBottom(BUTTON_SPACE).left().top().row()
         }
-        t.add(pickTitle).padTop(SECTION_SPACE).row()
-        t.add(pickRows).padTop(4f).row()
-        t.add(pickNote).padTop(4f).row()
-        t.add(weaponNote).padTop(SECTION_SPACE).row()
+        // Hidden actors still take their cell's space, so only the visible parts are added.
+        if (pickRows.isVisible) {
+            t.add(pickTitle).padTop(SECTION_SPACE).row()
+            t.add(pickRows).padTop(4f).row()
+            t.add(pickNote).row()
+        }
+        if (weaponNote.isVisible) t.add(weaponNote).padTop(SECTION_SPACE).row()
         t.add(buttons).padTop(SECTION_SPACE * 2).row()
     }
 
@@ -150,7 +157,6 @@ class LevelClearedScreen(
             if (!gameState.weaponPickPending) saveRun()
             title.setText(i18n.format("level_cleared_message", gameState.level))
             subtitle.setText(i18n.format("level_cleared_next", gameState.level + 1))
-            layoutPanel()
             primaryButton.setText(i18n.format("next_level_button", gameState.level + 1))
             secondaryButton.setText(i18n["menu_quit_run"])
             onPrimary = { game.setScreen<PlayScreen>() }
@@ -159,7 +165,6 @@ class LevelClearedScreen(
         } else {
             title.setText(i18n["scenario_cleared_message"])
             subtitle.setText(i18n[scenario.titleKey])
-            layoutPanel()
             primaryButton.setText(i18n["scenario_retry"])
             secondaryButton.setText(i18n["menu_scenarios"])
             onPrimary = {

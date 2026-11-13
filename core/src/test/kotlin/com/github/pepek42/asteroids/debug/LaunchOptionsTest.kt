@@ -23,6 +23,13 @@ class LaunchOptionsTest {
     }
 
     @Test
+    fun windowSizeIsParsed() {
+        assertEquals(1920 to 1080, parseLaunchOptions(arrayOf("--window=1920x1080")).windowSize)
+        for (bad in listOf("--window", "--window=1920", "--window=0x600", "--window=ax600"))
+            assertEquals(null, parseLaunchOptions(arrayOf(bad)).windowSize, bad)
+    }
+
+    @Test
     fun seedIsParsed() {
         assertEquals(42L, parseLaunchOptions(arrayOf("--seed=42")).seed)
         assertEquals(null, parseLaunchOptions(arrayOf("--seed=abc")).seed)

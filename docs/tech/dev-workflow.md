@@ -85,6 +85,7 @@ Options (parsed by `parseLaunchOptions` in `core/.../debug/ScreenshotHarness.kt`
 
 - `--screenshot=<path.png>`: enables the harness. Use an absolute path, because the run task's working dir is `assets/`.
 - `--frames=<N>`: frames to render before capturing (default 180).
+- `--window=<w>x<h>`: desktop window size (default 800x600), e.g. `1920x1080` to check menus at full-screen sizes. Desktop only.
 - `--scene=play|menu|cleared`: `play` skips the main menu (default), `menu` stays on it, `cleared` opens the between-levels screen.
 - `--menu-page=main|new_game|scenarios|settings`: the main-menu page to open (with `--scene=menu`).
 - `--settings-tab=controls|ship_computer|graphics|audio|dev`: the Settings tab to open (with `--menu-page=settings`).

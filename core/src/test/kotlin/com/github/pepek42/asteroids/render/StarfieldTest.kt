@@ -66,3 +66,30 @@ class StarfieldTest {
         }
     }
 }
+
+class StarAberrationTest {
+    private val out = com.badlogic.gdx.math.Vector2()
+
+    @Test
+    fun keepsRadiusAndIsIdentityAtRest() {
+        aberrateStarOffset(3f, -4f, 0f, 0f, out)
+        assertEquals(3f, out.x, 1e-6f)
+        assertEquals(-4f, out.y, 1e-6f)
+        aberrateStarOffset(3f, -4f, 0.6f, 0.2f, out)
+        assertEquals(5f, out.len(), 1e-4f)
+    }
+
+    @Test
+    fun crowdsTowardMotion() {
+        // A star abeam (0, 10) at beta (0.9, 0): angle atan(10 / (gamma * 0.9 * 10)) = 25.84 degrees from the motion.
+        aberrateStarOffset(0f, 10f, 0.9f, 0f, out)
+        assertEquals(10f, out.len(), 1e-4f)
+        assertEquals(25.84f, Math.toDegrees(kotlin.math.atan2(out.y, out.x).toDouble()).toFloat(), 0.01f)
+    }
+
+    @Test
+    fun zeroOffsetStaysPut() {
+        aberrateStarOffset(0f, 0f, 0.9f, 0f, out)
+        assertEquals(0f, out.len(), 1e-9f)
+    }
+}

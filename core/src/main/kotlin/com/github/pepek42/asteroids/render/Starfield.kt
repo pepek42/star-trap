@@ -6,8 +6,10 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
 import com.github.pepek42.asteroids.physics.ObserverState
+import com.github.pepek42.asteroids.physics.apparentOffset
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -103,18 +105,40 @@ fun wrappedOffset(starPos: Float, cameraPos: Float, parallax: Float, tile: Float
 }
 
 /**
+ * Pilot-view aberration of a star on the celestial shell (ST-077, research E9). ([dx], [dy]) is the star's offset from the pilot in
+ * the arena frame (its source direction, which ST-043's Doppler `D = γ(1 + β·ŝ)` keeps using); the star is drawn at the same
+ * radius `|d|` but at the aberrated angle, the direction of `apparentOffset(d, β)` (the Lorentz boost of the light-reception
+ * event), so the sky crowds toward β. Identity at β = 0. Writes the pilot-frame offset to [out]. Pure and allocation-free.
+ */
+fun aberrateStarOffset(dx: Float, dy: Float, betaX: Float, betaY: Float, out: Vector2): Vector2 {
+    val r = sqrt(dx * dx + dy * dy)
+    apparentOffset(dx, dy, betaX, betaY, out)
+    val len = sqrt(out.x * out.x + out.y * out.y)
+    if (r < 1e-9f || len < 1e-9f) return out.set(dx, dy)
+    val k = r / len
+    return out.set(out.x * k, out.y * k)
+}
+
+/**
  * Draws [StarData] as additive soft dots. Stars keep a constant size in logical (HiDPI-independent) pixels regardless of camera zoom;
  * their world anchoring is parallax-scrolled, so zoom only changes how many fit on screen.
  */
 class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable {
     private val dot: Texture = createDotTexture()
     private val rgb = FloatArray(3)
+    private val aberrated = Vector2()
 
     /**
      * Draws the stars. While the visual speed is below [DOPPLER_MIN_BETA] the cached [StarData.packedColor] is used; otherwise each
-     * star's colour and size follow its Doppler factor (blue and larger ahead, red and dimmer behind). Does not allocate.
+     * star's colour and size follow its Doppler factor (blue and larger ahead, red and dimmer behind). With [aberration] (pilot
+     * view) the stars are a shell around the pilot at ([pilotX], [pilotY]) and are drawn at their aberrated direction
+     * ([aberrateStarOffset] with [betaX], [betaY]); colour and size still use the arena-frame source direction. Stars are
+     * culled by distance to the pilot (the view half-diagonal) before the aberration. Does not allocate.
      */
-    fun render(batch: Batch, camera: Camera, zoom: Float, logicalWidthPx: Int, observer: ObserverState) {
+    fun render(
+        batch: Batch, camera: Camera, zoom: Float, logicalWidthPx: Int, observer: ObserverState,
+        aberration: Boolean = false, pilotX: Float = 0f, pilotY: Float = 0f, betaX: Float = 0f, betaY: Float = 0f,
+    ) {
         val bx = observer.betaVisual.x
         val by = observer.betaVisual.y
         val gamma = observer.gammaVisual
@@ -123,6 +147,7 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
         val py = observer.position.y
         val halfW = camera.viewportWidth * zoom / 2f
         val halfH = camera.viewportHeight * zoom / 2f
+        val halfDiagSq = halfW * halfW + halfH * halfH
         val worldPerPx = camera.viewportWidth * zoom / logicalWidthPx.coerceAtLeast(1)
         val cx = camera.position.x
         val cy = camera.position.y
@@ -134,17 +159,30 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
             val l = data.layer[i]
             val p = STAR_LAYER_PARALLAX[l]
             val size = STAR_LAYER_PIXELS[l] * worldPerPx
-            val dx = wrappedOffset(data.x[i], cx, p)
-            val dy = wrappedOffset(data.y[i], cy, p)
+            // Drawn offset from the camera in the arena frame (the source direction); dx/dy become the pilot-frame one.
+            val adx = wrappedOffset(data.x[i], cx, p)
+            val ady = wrappedOffset(data.y[i], cy, p)
+            var dx = adx
+            var dy = ady
+            if (aberration) {
+                // Shell around the pilot: cull by radius (an aberrated star can land anywhere on its circle), then rotate it.
+                val rx = cx + adx - pilotX
+                val ry = cy + ady - pilotY
+                val reach = sqrt(halfDiagSq) + size
+                if (rx * rx + ry * ry > reach * reach) continue
+                aberrateStarOffset(rx, ry, betaX, betaY, aberrated)
+                dx = pilotX + aberrated.x - cx
+                dy = pilotY + aberrated.y - cy
+            }
             if (dx < -halfW - size || dx > halfW + size || dy < -halfH - size || dy > halfH + size) continue
             if (!doppler) {
                 batch.packedColor = data.packedColor[i]
                 batch.draw(dot, cx + dx - size / 2, cy + dy - size / 2, size, size)
                 continue
             }
-            // Direction from the player to where the star is drawn.
-            val ox = cx + dx - px
-            val oy = cy + dy - py
+            // Arena-frame direction from the player to the star (the source direction), not the aberrated one.
+            val ox = cx + adx - px
+            val oy = cy + ady - py
             val dist = sqrt(ox * ox + oy * oy)
             val d = if (dist < 1e-6f) 1f else effectiveDoppler(starDoppler(bx, by, gamma, ox / dist, oy / dist))
             BlackbodyLut.rgbInto(data.kelvin[i] * d, rgb)

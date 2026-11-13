@@ -9,6 +9,7 @@ import com.github.pepek42.asteroids.UNIT_SCALE
 import com.github.pepek42.asteroids.event.GameEventManager
 import com.github.pepek42.asteroids.event.MapEventListener
 import com.github.pepek42.asteroids.physics.ObserverState
+import com.github.pepek42.asteroids.render.PilotViewProjector
 import com.github.pepek42.asteroids.render.Starfield
 import kotlin.math.ceil
 
@@ -42,7 +43,8 @@ class BackgroundProvider(
         starfield = null
     }
 
-    fun renderBg(camera: Camera, zoom: Float, logicalWidthPx: Int, observer: ObserverState) {
+    /** [pilotView] non-null = the pilot view's aberration is on: the stars are drawn at their aberrated directions (ST-077). */
+    fun renderBg(camera: Camera, zoom: Float, logicalWidthPx: Int, observer: ObserverState, pilotView: PilotViewProjector? = null) {
         val oldColor = batch.packedColor
         batch.setColor(1f, 1f, 1f, NEBULA_ALPHA)
         for (i in -1..xRepeats) {
@@ -51,7 +53,11 @@ class BackgroundProvider(
             }
         }
         batch.packedColor = oldColor
-        starfield?.render(batch, camera, zoom, logicalWidthPx, observer)
+        if (pilotView != null) {
+            starfield?.render(batch, camera, zoom, logicalWidthPx, observer, true, pilotView.ox, pilotView.oy, pilotView.betaX, pilotView.betaY)
+        } else {
+            starfield?.render(batch, camera, zoom, logicalWidthPx, observer)
+        }
     }
 
     companion object {

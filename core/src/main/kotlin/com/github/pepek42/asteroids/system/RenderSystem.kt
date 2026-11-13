@@ -157,7 +157,7 @@ class RenderSystem(
             super.update(deltaTime)
             litSprites?.release(batch)
             drawAdditive()
-            fieldShimmerRenderer.render(batch)
+            fieldShimmerRenderer.render(batch, pilotViewActive && pilotView.aberrationEnabled, pilotView.ox, pilotView.oy, pilotView.betaX, pilotView.betaY)
         }
     }
 
@@ -170,7 +170,8 @@ class RenderSystem(
         val lens = lensing
         val lensCount = if (lens != null && lens.ready && settings.lensingEnabled) collectLenses() else 0
         val lensed = lens != null && lensCount > 0 && lens.beginCapture()
-        batch.use(camera) { backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width, observer) }
+        val aberrated = if (pilotViewActive && pilotView.aberrationEnabled) pilotView else null
+        batch.use(camera) { backgroundProvider.renderBg(camera, camera.zoom, Gdx.graphics.width, observer, aberrated) }
         if (lensed && lens != null) {
             lens.endCapture()
             viewport.apply()

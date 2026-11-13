@@ -22,6 +22,10 @@ import com.github.pepek42.asteroids.ui.MENU_BUTTON_HEIGHT
 import com.github.pepek42.asteroids.ui.MENU_BUTTON_WIDTH
 import com.github.pepek42.asteroids.ui.MenuStyle
 import com.github.pepek42.asteroids.ui.panelContent
+import com.github.pepek42.asteroids.weapon.FIRST_PICK_LEVEL
+import com.github.pepek42.asteroids.weapon.FIRST_PICK_OPTIONS
+import com.github.pepek42.asteroids.weapon.WeaponType
+import com.github.pepek42.asteroids.weapon.weaponSlotOf
 import ktx.app.KtxScreen
 import ktx.app.clearScreen
 import ktx.log.logger
@@ -57,6 +61,13 @@ class LevelClearedScreen(
         touchable = Touchable.enabled
     }
 
+    /** Weapon pick (ST-183): a button and a one-line description per option, shown after level 1 until one is taken. */
+    private val pickTitle = Label("", style.title)
+    private val pickNote = style.paragraph("", PANEL_WIDTH, style.muted)
+    private val weaponNote = style.paragraph("", PANEL_WIDTH, style.muted)
+    private val pickButtons = FIRST_PICK_OPTIONS.associateWith { TextButton("", style.button) }
+    private val pickRows = Table()
+
     private val panel = style.panel()
     private val buttons = Table().apply {
         add(secondaryButton).height(MENU_BUTTON_HEIGHT).left()
@@ -68,7 +79,39 @@ class LevelClearedScreen(
         root.add(panel)
         primaryButton.onChange { onPrimary() }
         secondaryButton.onChange { onSecondary() }
+        for (entry in pickButtons.entries) entry.value.onChange { pick(entry.key) }
     }
+
+    private fun weaponName(weapon: WeaponType) = i18n["weapon_" + weapon.name.lowercase()]
+
+    private fun pick(weapon: WeaponType) {
+        if (!gameState.pickWeapon(weapon)) return
+        saveRun()
+        showWeaponState()
+    }
+
+    /** Pick rows while a pick is pending (Next level locked), else the unlocked-weapon note. */
+    private fun showWeaponState(newWeapon: WeaponType? = null) {
+        val pending = gameState.scenario == null && gameState.weaponPickPending
+        pickRows.isVisible = pending
+        pickTitle.isVisible = pending
+        pickNote.isVisible = pending
+        primaryButton.isDisabled = pending
+        primaryButton.touchable = if (pending) Touchable.disabled else Touchable.enabled
+        val shown = newWeapon ?: lastPicked
+        weaponNote.isVisible = shown != null
+        if (shown != null) {
+            val key = if (newWeapon != null) "weapon_new_unlocked" else "weapon_picked"
+            weaponNote.setText(i18n.format(key, weaponName(shown), weaponSlotOf(shown) + 1))
+        }
+        panel.invalidateHierarchy()
+    }
+
+    /** The weapon taken from the pick on this screen, for the note. */
+    private val lastPicked: WeaponType?
+        get() = FIRST_PICK_OPTIONS.firstOrNull {
+            it in gameState.unlockedWeapons && gameState.scenario == null && gameState.level == FIRST_PICK_LEVEL
+        }
 
     /** Fills the panel: title, subtitle and the buttons. */
     private fun layoutPanel() {
@@ -77,6 +120,23 @@ class LevelClearedScreen(
         t.defaults().left().width(PANEL_WIDTH)
         t.add(title).row()
         t.add(subtitle).padTop(4f).row()
+        pickRows.clearChildren()
+        pickTitle.setText(i18n["weapon_pick_title"])
+        pickNote.setText(i18n["weapon_pick_needed"])
+        for (entry in pickButtons.entries) {
+            val weapon = entry.key
+            val button = entry.value
+            val key = "weapon_pick_" + weapon.name.lowercase()
+            button.setText(i18n[key])
+            pickRows.add(button).width(MENU_BUTTON_WIDTH).height(MENU_BUTTON_HEIGHT).left().top()
+            pickRows.add(style.paragraph(i18n[key + "_desc"], PANEL_WIDTH - MENU_BUTTON_WIDTH - BUTTON_SPACE, style.muted))
+                .padLeft(BUTTON_SPACE).left().row()
+            pickRows.getCell(button).padBottom(BUTTON_SPACE)
+        }
+        t.add(pickTitle).padTop(SECTION_SPACE).row()
+        t.add(pickRows).padTop(4f).row()
+        t.add(pickNote).padTop(4f).row()
+        t.add(weaponNote).padTop(SECTION_SPACE).row()
         t.add(buttons).padTop(SECTION_SPACE * 2).row()
     }
 
@@ -85,7 +145,9 @@ class LevelClearedScreen(
     override fun show() {
         val scenario = gameState.scenario
         if (scenario == null) {
-            saveRun()
+            val granted = gameState.grantRemainingWeapon()
+            // With a pick pending the save waits for the pick, so Continue never resumes a run with no choice made.
+            if (!gameState.weaponPickPending) saveRun()
             title.setText(i18n.format("level_cleared_message", gameState.level))
             subtitle.setText(i18n.format("level_cleared_next", gameState.level + 1))
             layoutPanel()
@@ -93,6 +155,7 @@ class LevelClearedScreen(
             secondaryButton.setText(i18n["menu_quit_run"])
             onPrimary = { game.setScreen<PlayScreen>() }
             onSecondary = { toMenu(MenuPage.MAIN) }
+            showWeaponState(granted)
         } else {
             title.setText(i18n["scenario_cleared_message"])
             subtitle.setText(i18n[scenario.titleKey])
@@ -106,6 +169,7 @@ class LevelClearedScreen(
                 game.setScreen<PlayScreen>()
             }
             onSecondary = { toMenu(MenuPage.SCENARIOS) }
+            showWeaponState()
         }
         gameEventManager.ignorePlayerInputs()
         root.clearActions()

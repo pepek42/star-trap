@@ -3,11 +3,15 @@ package com.github.pepek42.asteroids.input
 import com.badlogic.gdx.Input.Keys
 import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.component.WeaponLoadoutComponent
+import com.github.pepek42.asteroids.component.applyUnlocked
 import com.github.pepek42.asteroids.component.select
 import com.github.pepek42.asteroids.component.slot
 import com.github.pepek42.asteroids.component.tickInactive
 import com.github.pepek42.asteroids.weapon.WeaponType
+import com.github.pepek42.asteroids.weapon.STARTING_WEAPONS
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 class WeaponSlotsTest {
@@ -21,13 +25,13 @@ class WeaponSlotsTest {
     }
 
     @Test
-    fun selectingSlotsActivatesLockOnAndThenRockets() {
+    fun selectingSlotsActivatesRocketsAndThenLockOn() {
         val loadout = WeaponLoadoutComponent()
         val weapon = WeaponComponent()
         loadout.select(1, weapon)
-        assertEquals(WeaponType.LOCK_ON, weapon.weaponType)
-        loadout.select(2, weapon)
         assertEquals(WeaponType.ROCKET, weapon.weaponType)
+        loadout.select(2, weapon)
+        assertEquals(WeaponType.LOCK_ON, weapon.weaponType)
         assertEquals(2, loadout.activeSlot)
     }
 
@@ -46,10 +50,30 @@ class WeaponSlotsTest {
 
 class WeaponLoadoutDefaultsTest {
     @Test
-    fun defaultSlotsAreLaserLockOnRockets() {
+    fun defaultSlotsAreLaserRocketsLockOn() {
         val l = WeaponLoadoutComponent()
         assertEquals(WeaponType.LASER, l.slot(0))
-        assertEquals(WeaponType.LOCK_ON, l.slot(1))
-        assertEquals(WeaponType.ROCKET, l.slot(2))
+        assertEquals(WeaponType.ROCKET, l.slot(1))
+        assertEquals(WeaponType.LOCK_ON, l.slot(2))
+    }
+
+    @Test
+    fun lockedSlotsAreEmptyAndCannotBeSelected() {
+        val l = WeaponLoadoutComponent().apply { applyUnlocked(STARTING_WEAPONS) }
+        val weapon = WeaponComponent().apply { weaponType = WeaponType.LASER }
+        assertEquals(WeaponType.LASER, l.slot(0))
+        assertNull(l.slot(1))
+        assertNull(l.slot(2))
+        assertFalse(l.select(1, weapon))
+        assertFalse(l.select(2, weapon))
+        assertEquals(0, l.activeSlot)
+        assertEquals(WeaponType.LASER, weapon.weaponType)
+    }
+
+    @Test
+    fun unlockedWeaponsFillTheirFixedSlots() {
+        val l = WeaponLoadoutComponent().apply { applyUnlocked(setOf(WeaponType.LASER, WeaponType.LOCK_ON)) }
+        assertNull(l.slot(1))
+        assertEquals(WeaponType.LOCK_ON, l.slot(2))
     }
 }

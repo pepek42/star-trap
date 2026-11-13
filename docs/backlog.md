@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-193**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-194**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -24,7 +24,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-61. ST-183 Weapon unlock progression
 62. ST-185 Physics fidelity audit before release
 63. ST-075 Pilot view: per-corner retarded time (Terrell rotation)
 63a. ST-077 Pilot view: starfield, field band and shimmer through the boost
@@ -34,6 +33,7 @@ M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a wea
 65. ST-187 Lock-on shot: visible booster, sustainer and RCS plumes
 66. ST-189 Rebalance after the weapon changes
 67. ST-188 Simplify the UI (owner decisions)
+67a. ST-193 Weapon unlock polish: new-weapon highlight, testable HUD slot text
 68. ST-190 Release prep: merge AI-slop to master
 
 ---
@@ -166,36 +166,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew test` passes
 - playtest: Rockets still hit near a planet or hole, and the intercept ring lines up with the real meeting point.
 
-### ST-183 Weapon unlock progression
-- status: ready
-- size: M
-- agent: kotlin-dev
-- depends: ST-180, ST-181
-- files: `GameState.kt` (unlocked weapons), `component/WeaponLoadoutComponent.kt` (slots from the unlocked set), `provider/PlayerEntityProvider.kt`, `screen/LevelClearedScreen.kt` (pick panel), `save/RunSave.kt`, `scenario/Scenario.kt`, `ui/Hud.kt` (slot strip), `tool/` balance runner, `assets/i18n/messages.properties`; tests; `game-design.md` §3
-- refs: `architecture.md` "Screens"
-- layer: infra
-- goal: Replace the shop with a simple unlock (owner 2026-11-12): level 1 = laser only; after level 1 the cleared screen offers dumb rockets or the lock-on shot; after level 2 the player gets the other one; a quick start at level 5 starts with all weapons.
-- questions:
-* Q1: Slot keys: fixed per weapon (1 = laser, 2 = rockets, 3 = lock-on; a locked slot is empty) (Rec), or in unlock order?
-  * A:locked slot is empty
-* Q2: After level 2 the second weapon is given automatically, with a "New weapon: X" line on the cleared screen (Rec)?
-  * A:Rockets and lock-on is proposed, user can choose either
-* Q3: Scenarios: all weapons unlocked (Rec), or each scenario lists its own?
-  * A:All
-* Q4: Does a run end? (a) endless levels until death, as now (Rec, smallest scope); (b) a final level (e.g. 10) with a victory screen.
-  * A:A
-* Q5: (from your ST-180 answer "2 options, just one pick per level") With 3 weapons, a pick exists only after level 1 (rockets or lock-on). What do the 2 options offer from level 2 on? (a) after L2 the other weapon is given automatically and later levels have no pick (Rec, matches Q2); (b) a pick on every level from small free run bonuses (e.g. +1 lock-on ammo or +1 rocket per pod vs. +25 % max health), which needs a list of bonuses; (c) something else.
-  * A:A
-- spec (Rec answers): `GameState.unlockedWeapons` (laser at start; all for a start at `QUICK_START_LEVEL` or above and in scenarios). The player's loadout fills slot 1 laser, slot 2 rockets, slot 3 lock-on when unlocked, else null. `LevelClearedScreen` after level 1 shows two buttons with a one-line description each; "Next level" is enabled only after a pick. After level 2 it unlocks the remaining weapon and says so. `RunSave` stores the unlocked set (bump the version). The HUD shows the three slots (locked ones dim) with the active one highlighted and lock-on ammo / pod count. Balance bots get the weapons a player would have at that level.
-- note (owner answers 2026-11-12): Q1 fixed slots, a locked slot is empty; Q2 "Rockets and lock-on is proposed, user can choose either" = the level 1 pick, and Q5 (a) confirms the other weapon is given after level 2 with no later picks; Q3 all weapons in scenarios; Q4 (a) endless.
-- acceptance:
-  - [ ] Test: a new run has only the laser; picking rockets after L1 gives laser + rockets; after L2 all three
-  - [ ] Test: a start at `QUICK_START_LEVEL` and every scenario have all three
-  - [ ] Test: the unlocked set survives a save/restore
-  - [ ] Test: selecting a locked slot does nothing
-  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports OK
-- playtest: Clear level 1, pick lock-on, play level 2 with keys 1 and 3; clear it and get the rockets.
-
 ### ST-185 Physics fidelity audit before release
 - status: ready
 - size: M
@@ -294,6 +264,20 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - acceptance:
   - [ ] Owner answers recorded; spec and acceptance filled in (or split into cards)
 - playtest: —
+
+### ST-193 Weapon unlock polish: new-weapon highlight, testable HUD slot text
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: ST-188
+- files: `screen/LevelClearedScreen.kt`, `ui/Hud.kt` (`updateWeapons`), tests
+- refs: `game-design.md` §3 (weapon unlock), commit ST-183
+- layer: infra
+- goal: Follow-ups from ST-183. (1) The "New weapon: X (slot N)" line on the cleared screen gets a highlight (accent colour or a short pulse; a jingle only if an audio cue already exists). (2) Move the HUD's lock-on ammo / rocket pod / locked-slot text formatting out of `Hud.updateWeapons` into a small pure function and unit-test it.
+- acceptance:
+  - [ ] Test: the pure slot-text function covers locked, laser, lock-on ammo and rocket pod states
+  - [ ] `./gradlew test` passes
+- playtest: Clear level 2 and check that the new-weapon line stands out.
 
 ### ST-189 Rebalance after the weapon changes
 - status: needs-user

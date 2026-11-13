@@ -243,6 +243,7 @@ class MainMenuScreen(private val game: Game) : KtxScreen {
         // Run physics come from the save; the player's New-game defaults in the store stay untouched.
         applyRunSave(store, menuSettings.runSpecs)
         gameState.resetGame(save.nextLevel)
+        gameState.restoreUnlockedWeapons(save.weapons)
         // PlayScreen.show advances level (nextLevel - 1) to nextLevel before spawning.
         game.setScreen<PlayScreen>()
     }

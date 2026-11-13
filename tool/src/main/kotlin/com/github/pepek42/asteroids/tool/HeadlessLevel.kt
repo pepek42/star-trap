@@ -45,6 +45,7 @@ import com.github.pepek42.asteroids.provider.RocketProvider
 import com.github.pepek42.asteroids.provider.PLAYER_SPRITE_SIZE_PX
 import com.github.pepek42.asteroids.provider.PlayerEntityProvider
 import com.github.pepek42.asteroids.provider.WeaponProjectileProvider
+import com.github.pepek42.asteroids.weapon.weaponsAtLevel
 import com.github.pepek42.asteroids.render.ShimmerImpacts
 import com.github.pepek42.asteroids.system.PhysicsSystem.Companion.PHYSICS_UPDATE_INTERVAL
 import ktx.ashley.allOf
@@ -157,7 +158,7 @@ fun runLevel(setup: LevelSetup, bot: BalanceBot): LevelResult {
         onPlayerDeath = { died = true },
     )
     buildGameplaySystems(deps)
-    PlayerEntityProvider(engine, world, mapProvider, atlas, settings).spawnPlayerEntity()
+    PlayerEntityProvider(engine, world, mapProvider, atlas, settings).spawnPlayerEntity(weaponsAtLevel(setup.level))
     deps.asteroidProvider.spawnAsteroids(setup.level, mapProvider)
     val enemyProvider = EnemyShipProvider(engine, world, atlas, settings)
     if (setup.enemies == enemyCount(setup.level)) {

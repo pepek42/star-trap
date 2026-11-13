@@ -291,7 +291,7 @@ class PlayScreen(
         gameState.nextLevel()
         val scenario = gameState.scenario
         mapProvider.loadMap(scenario?.arenaSize ?: MAP_WIDTH, scenario?.arenaSize ?: MAP_HEIGHT)
-        playerEntityProvider.spawnPlayerEntity()
+        playerEntityProvider.spawnPlayerEntity(gameState.unlockedWeapons)
         if (scenario != null) {
             scenario.spawn(ProviderSpawner(mapProvider.playerSpawnLocation()))
             star.roll(game.get<RandomXS128>())

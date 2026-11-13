@@ -20,8 +20,10 @@ import com.github.pepek42.asteroids.component.TacticalComputerComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.WeaponComponent
 import com.github.pepek42.asteroids.component.WeaponLoadoutComponent
+import com.github.pepek42.asteroids.component.applyUnlocked
 import com.github.pepek42.asteroids.faction.FactionEnum
 import com.github.pepek42.asteroids.physics.RelativitySettings
+import com.github.pepek42.asteroids.weapon.ALL_WEAPONS
 import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.ashley.add
 import ktx.ashley.entity
@@ -52,7 +54,8 @@ class PlayerEntityProvider(
     private val textureAtlas: TextureAtlas,
     private val settings: RelativitySettings = RelativitySettings(),
 ) {
-    fun spawnPlayerEntity() {
+    /** [unlocked] fills the weapon slots (ST-183); tests and the default give all three. */
+    fun spawnPlayerEntity(unlocked: Set<WeaponType> = ALL_WEAPONS) {
         val playerSprite = textureAtlas.createSprite("spaceship/disc_green")
         val worldUnitsWidth = playerSprite.width / UNIT_SCALE
         val worldUnitsHeight = playerSprite.height / UNIT_SCALE
@@ -94,7 +97,7 @@ class PlayerEntityProvider(
                 with<ShipHandlingComponent>()
                 with<PlayerComponent>()
                 with<TacticalComputerComponent> { tier = TACTICAL_COMPUTER_DEFAULT_TIER }
-                with<WeaponLoadoutComponent>()
+                with<WeaponLoadoutComponent> { applyUnlocked(unlocked) }
                 with<WeaponComponent> {
                     ready = true
                     weaponType = WeaponType.LASER

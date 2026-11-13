@@ -19,7 +19,7 @@ The long-term aim is an **action roguelike**, in the vein of Nova Drift, plus th
 
 ```
 Spawn in arena → clear threats (asteroids → enemy ships) → level cleared
-  → result screen (a free 2-option weapon pick from ST-183) → next level: more mass, more hazards, new effect
+  → result screen (weapon unlock: after level 1 a pick of rockets or lock-on, after level 2 the other one; ST-183) → next level: more mass, more hazards, new effect
 ```
 
 A run ends on death. Meta progression is out of scope for the POC.
@@ -75,7 +75,7 @@ Tunables: the speed of light `c` (c = 20 u/s, see §11; it has to fit Box2D's ~9
 | Planets | exists (ST-093) | Solid gravity wells, placed at spawn, pulled by the other sources and the player, eaten by a black hole. Mild gravitational time dilation (ST-086). Static until the gravity pull moves them |
 | Black holes | exists (ST-085) | 1 per level (2 from level 3), fixed at spawn and then pulled by gravity. Horizon kills, horizons merge, bright accretion disk and rings. Backdrop lensing (ST-088) |
 | Debris | exists (ST-094) | Small drifting pieces, not counted for level clear, no gravity pull. Not a target for auto-aim |
-| Weapon unlocks | planned | One free pick of 2 weapons after a level (ST-183); no money, no shop |
+| Weapon unlocks | done (ST-183) | Laser only at first; slots are fixed (1 laser, 2 rockets, 3 lock-on; a locked slot is empty and dim in the HUD). After level 1 the cleared screen offers rockets or lock-on (Next level waits for the pick), after level 2 the other is given with a "New weapon" line. A quick start (level 5) and every scenario have all three. The run is endless; the unlocked set is in the run save |
 
 ## 8. Game modes
 

@@ -69,6 +69,7 @@ class Hud(
     private var weaponShownActive = -1
     private var weaponShownAmmo = -1
     private var weaponShownRocketKey = Int.MIN_VALUE
+    private var weaponShownUnlocked = -1
     private val lockLabel: Label = scene2d.label("").apply { isVisible = false }
     private var lockShown: TargetLockState? = null
     private var tidalShownPercent = -1
@@ -187,19 +188,25 @@ class Hud(
         if (key != null) warpLabel.setText(i18NBundle.format(key, warp))
     }
 
-    /** Weapon slots line; the active weapon is highlighted (ST-163) and slot 2 shows its ammo (ST-164). */
+    /** Weapon slots line; the active weapon is highlighted (ST-163). The lock-on slot shows its ammo (ST-164), the rocket slot its pod (ST-181) and a locked slot is dim (ST-183). */
     fun updateWeapons(loadout: WeaponLoadoutComponent) {
         updateLock(loadout.lockState)
         val rocketKey = rocketReadoutKey(loadout.rocketsInPod, loadout.rocketReloadLeft)
-        if (loadout.activeSlot == weaponShownActive && loadout.lockOnAmmo == weaponShownAmmo && rocketKey == weaponShownRocketKey) return
+        val unlockedMask = (if (loadout.type1 != null) 1 else 0) or (if (loadout.type2 != null) 2 else 0)
+        if (unlockedMask == weaponShownUnlocked && loadout.activeSlot == weaponShownActive && loadout.lockOnAmmo == weaponShownAmmo && rocketKey == weaponShownRocketKey) return
+        weaponShownUnlocked = unlockedMask
         weaponShownActive = loadout.activeSlot
         weaponShownAmmo = loadout.lockOnAmmo
         weaponShownRocketKey = rocketKey
         for (i in 0 until WEAPON_SLOT_COUNT) {
             val type = loadout.slot(i)
             val label = weaponLabels[i]
-            label.isVisible = type != null
-            if (type == null) continue
+            label.isVisible = true
+            if (type == null) { // locked (ST-183): the slot stays, dimmed and empty
+                label.setText(i18NBundle.format("hud_weapon_slot_locked", i + 1))
+                label.color.set(Color.DARK_GRAY)
+                continue
+            }
             val name = i18NBundle.get("weapon_" + type.name.lowercase())
             label.setText(
                 if (type == WeaponType.LOCK_ON) {

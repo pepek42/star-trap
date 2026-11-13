@@ -6,6 +6,7 @@ import com.badlogic.gdx.utils.Pool
 import com.github.pepek42.asteroids.weapon.LOCK_ON_AMMO_PER_LEVEL
 import com.github.pepek42.asteroids.weapon.ROCKET_POD_SIZE
 import com.github.pepek42.asteroids.weapon.TargetLockState
+import com.github.pepek42.asteroids.weapon.WEAPON_SLOT_ORDER
 import com.github.pepek42.asteroids.weapon.WeaponType
 import ktx.ashley.mapperFor
 import ktx.ashley.optionalPropertyFor
@@ -23,21 +24,21 @@ const val WEAPON_SLOT_COUNT = 3
  */
 class WeaponLoadoutComponent : Component, Pool.Poolable {
     var type0: WeaponType? = WeaponType.LASER
-    var type1: WeaponType? = WeaponType.LOCK_ON
-    var type2: WeaponType? = WeaponType.ROCKET
+    var type1: WeaponType? = WeaponType.ROCKET
+    var type2: WeaponType? = WeaponType.LOCK_ON
     var cooldown0 = 0f
     var cooldown1 = 0f
     var cooldown2 = 0f
     var activeSlot: Int = 0
 
-    /** Lock-on shots left in slot 2 (ST-164). A new level spawns a new player entity, so [reset] refills it. */
+    /** Lock-on shots left (slot 3, ST-164). A new level spawns a new player entity, so [reset] refills it. */
     var lockOnAmmo: Int = LOCK_ON_AMMO_PER_LEVEL
 
     /** Proper seconds collected toward the next regenerated lock-on shot (`regenLockOnAmmo`). */
     var lockOnRegen: Float = 0f
 
     /**
-     * Rocket pod (ST-181, slot 3), all on ship proper time: rockets left, seconds until the next may leave, and the reload
+     * Rocket pod (ST-181, slot 2), all on ship proper time: rockets left, seconds until the next may leave, and the reload
      * left while the pod is empty. Logic in `weapon/RocketPod.kt`. Scalar fields only, like the rest (web rule).
      */
     var rocketsInPod: Int = ROCKET_POD_SIZE
@@ -56,8 +57,8 @@ class WeaponLoadoutComponent : Component, Pool.Poolable {
 
     override fun reset() {
         type0 = WeaponType.LASER
-        type1 = WeaponType.LOCK_ON
-        type2 = WeaponType.ROCKET
+        type1 = WeaponType.ROCKET
+        type2 = WeaponType.LOCK_ON
         cooldown0 = 0f
         cooldown1 = 0f
         cooldown2 = 0f
@@ -80,6 +81,17 @@ fun WeaponLoadoutComponent.slot(slot: Int): WeaponType? = when (slot) {
     1 -> type1
     2 -> type2
     else -> null
+}
+
+/**
+ * Fills the fixed slots (`WEAPON_SLOT_ORDER`: laser, rockets, lock-on) from [unlocked]; a locked weapon leaves its slot
+ * empty (ST-183). Slot 1 (the laser) is always filled and the active slot goes back to it.
+ */
+fun WeaponLoadoutComponent.applyUnlocked(unlocked: Set<WeaponType>) {
+    type0 = WEAPON_SLOT_ORDER[0]
+    type1 = WEAPON_SLOT_ORDER[1].takeIf { it in unlocked }
+    type2 = WEAPON_SLOT_ORDER[2].takeIf { it in unlocked }
+    activeSlot = 0
 }
 
 /** Switches to [slot] (0-based); empty or invalid slots do nothing. Returns true when the active slot changed. */

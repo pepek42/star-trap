@@ -93,3 +93,31 @@ class StarAberrationTest {
         assertEquals(0f, out.len(), 1e-9f)
     }
 }
+
+class StarTileCoverageTest {
+    @Test
+    fun maxZoomHalfDiagonalExceedsTheBareTile() {
+        assertTrue(STAR_MAX_VIEW_HALF_DIAGONAL > STAR_TILE_SIZE / 2, "the neighbour copies only matter past tile/2")
+        assertTrue(STAR_MAX_VIEW_HALF_DIAGONAL <= STAR_TILE_SIZE, "one ring of neighbours is not enough past one tile")
+    }
+
+    @Test
+    fun everyPointWithinTheMaxViewIsCoveredByATileCopy() {
+        val r = STAR_MAX_VIEW_HALF_DIAGONAL
+        val steps = 200
+        for (ix in -steps..steps) {
+            val x = r * ix / steps
+            // A star shows at x iff some copy `offset + shift * tile` equals x and starCopyAt selects it.
+            val offset = wrappedOffset(x, 0f, 1f)
+            val shift = Math.round((x - offset) / STAR_TILE_SIZE)
+            assertTrue(shift in -1..1)
+            assertTrue(starCopyAt(offset, shift, r), "x=$x offset=$offset shift=$shift")
+        }
+    }
+
+    @Test
+    fun copiesBeyondTheReachAreSkipped() {
+        assertTrue(!starCopyAt(10f, -1, STAR_MAX_VIEW_HALF_DIAGONAL))
+        assertTrue(!starCopyAt(STAR_TILE_SIZE / 2 - 1f, 1, STAR_MAX_VIEW_HALF_DIAGONAL))
+    }
+}

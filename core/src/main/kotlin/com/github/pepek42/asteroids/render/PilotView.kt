@@ -42,6 +42,46 @@ fun pilotCorner(
     return out.set(ox + out.x, oy + out.y)
 }
 
+/** Sides of the arena outline. */
+private const val OUTLINE_SIDES = 4
+
+/** Floats [buildOutlineVertices] writes for [segments] segments per side: a closed loop of `4 * segments + 1` points (x, y). */
+fun outlineVertexFloats(segments: Int): Int = (OUTLINE_SIDES * segments + 1) * 2
+
+/**
+ * Fills [out] (at least [outlineVertexFloats] floats) with the closed arena outline `(0,0) -> (w,0) -> (w,h) -> (0,h) -> (0,0)`,
+ * each side cut into [segments] segments as `x, y` pairs. With [aberration] (pilot view, ST-201) every point is boosted with
+ * [pilotCorner] about the pilot at ([ox], [oy]) with velocity fraction ([betaX], [betaY]), so the outline bends with the field band
+ * ([buildBandVertices]); without it the points are the straight arena ones (pass `segments = 1` for the plain rectangle).
+ * Returns the floats written. Pure and allocation-free ([scratch] is reused).
+ */
+fun buildOutlineVertices(
+    out: FloatArray, w: Float, h: Float, segments: Int, aberration: Boolean,
+    ox: Float, oy: Float, betaX: Float, betaY: Float, scratch: Vector2,
+): Int {
+    var n = 0
+    for (side in 0 until OUTLINE_SIDES) {
+        for (i in 0 until segments) {
+            val t = i.toFloat() / segments
+            val px: Float
+            val py: Float
+            when (side) {
+                0 -> { px = w * t; py = 0f }
+                1 -> { px = w; py = h * t }
+                2 -> { px = w - w * t; py = h }
+                else -> { px = 0f; py = h - h * t }
+            }
+            pilotCorner(px, py, ox, oy, betaX, betaY, aberration, scratch)
+            out[n++] = scratch.x
+            out[n++] = scratch.y
+        }
+    }
+    pilotCorner(0f, 0f, ox, oy, betaX, betaY, aberration, scratch)
+    out[n++] = scratch.x
+    out[n++] = scratch.y
+    return n
+}
+
 /**
  * Per-corner retarded position (ST-075, Terrell-Penrose, research E8/E9): refines one sprite corner of an object whose centre
  * was solved at emission time `t_c` (arena position ([xc], [yc]), velocity ([vcx], [vcy]) then). The corner sits at the offset

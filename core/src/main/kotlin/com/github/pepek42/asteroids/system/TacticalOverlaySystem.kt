@@ -26,6 +26,10 @@ import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.baseInfoCmp
 import com.github.pepek42.asteroids.component.bodyCmp
 import com.github.pepek42.asteroids.component.bodyCmpOptional
+import com.github.pepek42.asteroids.render.PILOT_BAND_SEGMENTS
+import com.github.pepek42.asteroids.render.PilotViewProjector
+import com.github.pepek42.asteroids.render.buildOutlineVertices
+import com.github.pepek42.asteroids.render.outlineVertexFloats
 import com.github.pepek42.asteroids.render.TARGET_RING_PULSE_PERIOD_S
 import com.github.pepek42.asteroids.component.playerCmpOptional
 import com.github.pepek42.asteroids.component.relativisticCmpOptional
@@ -127,6 +131,7 @@ class TacticalOverlaySystem(
     private val shape: ShapeRenderer = ShapeRenderer(),
     private val batch: SpriteBatch? = null,
     private val font: BitmapFont? = null,
+    private val pilotView: PilotViewProjector? = null,
 ) : IteratingSystem(
     allOf(BaseInfoComponent::class, BodyComponent::class, TransformComponent::class)
         .exclude(RemoveComponent::class).get()
@@ -136,6 +141,8 @@ class TacticalOverlaySystem(
 
     private var players: ImmutableArray<Entity>? = null
     private val verts = FloatArray(2 * TACTICAL_OUTLINE_MAX_VERTS)
+    private val borderVerts = FloatArray(outlineVertexFloats(PILOT_BAND_SEGMENTS))
+    private val borderScratch = Vector2()
     private val seg = FloatArray(ARROW_FLOATS)
     private val color = Color()
     private val headAngleRad = VEC_HEAD_ANGLE_DEG * MathUtils.degreesToRadians
@@ -189,7 +196,8 @@ class TacticalOverlaySystem(
     }
 
     override fun update(deltaTime: Float) {
-        val tier = players?.let { if (it.size() > 0) it[0] else null }?.tacticalComputerCmpOptional?.tier ?: TACTICAL_TIER_NONE
+        val player = players?.let { if (it.size() > 0) it[0] else null }
+        val tier = player?.tacticalComputerCmpOptional?.tier ?: TACTICAL_TIER_NONE
         ringTime = (ringTime + deltaTime) % TARGET_RING_PULSE_WRAP_S
         drawTargetRings()
         drawLockReticle()
@@ -210,11 +218,26 @@ class TacticalOverlaySystem(
         if (tactical.showIncomingFire) drawIncomingFire()
         color.set(ARENA_BOUNDARY_COLOR).a = TACTICAL_BORDER_ALPHA
         shape.color = color
-        shape.rect(0f, 0f, mapProvider.mapWidth, mapProvider.mapHeight)
+        drawBorder(player != null)
         shape.end()
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
         Gdx.gl.glDisable(GL20.GL_BLEND)
         drawLaserDamageLabel()
+    }
+
+    /**
+     * The arena border. In pilot view with the aberration boost on (ST-201) it is cut into [PILOT_BAND_SEGMENTS] per side and
+     * boosted with the same map as the field band, so it bends with it; otherwise it is the plain rectangle. Needs the
+     * [pilotView] latched this frame by `RenderSystem`; the reference grid is a separate computer assist and stays straight.
+     */
+    private fun drawBorder(hasPlayer: Boolean) {
+        val pv = pilotView
+        val bend = pv != null && hasPlayer && relativity.pilotView && pv.aberrationEnabled
+        val n = buildOutlineVertices(
+            borderVerts, mapProvider.mapWidth, mapProvider.mapHeight, if (bend) PILOT_BAND_SEGMENTS else 1, bend,
+            pv?.ox ?: 0f, pv?.oy ?: 0f, pv?.betaX ?: 0f, pv?.betaY ?: 0f, borderScratch,
+        )
+        shape.polyline(borderVerts, 0, n)
     }
 
     /**

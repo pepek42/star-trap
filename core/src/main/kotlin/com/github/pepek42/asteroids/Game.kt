@@ -56,6 +56,10 @@ import ktx.log.logger
 import com.github.pepek42.asteroids.save.clearRunSave
 import ktx.scene2d.Scene2DSkin
 
+/** Smallest world view (units) at zoom 1: the `ExtendViewport` minimum, 16:9. */
+const val VIEW_MIN_WIDTH = 16f * 3
+const val VIEW_MIN_HEIGHT = 9f * 3
+
 class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() {
     val ctx = Context()
     private val screenshotHarness = ScreenshotHarness(options)
@@ -104,7 +108,7 @@ class Game(val options: LaunchOptions = LaunchOptions()) : KtxGame<KtxScreen>() 
             Scene2DSkin.defaultSkin = ctx.inject<Skin>()
             bindSingleton(assetManager.get<I18NBundle>("i18n/messages"))
             bindSingleton(this@Game)
-            bindSingleton<Viewport>(ExtendViewport(16f * 3, 9f * 3, inject<OrthographicCamera>()))
+            bindSingleton<Viewport>(ExtendViewport(VIEW_MIN_WIDTH, VIEW_MIN_HEIGHT, inject<OrthographicCamera>()))
             bindSingleton(Stage(ScreenViewport()))
             bindSingleton(MainMenuScreen(inject<Game>()))
             bindSingleton(assetManager)

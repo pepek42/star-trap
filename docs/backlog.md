@@ -24,7 +24,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-63a1. ST-201 Pilot view: boundary outline through the boost, star tile coverage at max zoom
 63b. ST-079 Pilot view: ghosts of removed entities until their light runs out
 63c. ST-080 Searchlight k = 2 in pilot view, with a brightness floor
 63d. ST-194 Exact searchlight exponents and 10 % floors (ST-185 Q3)
@@ -48,21 +47,6 @@ M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a wea
 
 The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead markers) was pulled forward into M3 by the 2026-11-02 interview: ST-070 to ST-078. M4 holds the follow-ups.
 - result: `RelativitySettings.pilotHullTransform` (pilotView && relativityEnabled && pilotAberration) now gates both the drawn player hull in `PilotView.project()` and the `PlayerInputSystem` cursor mapping.
-
-### ST-201 Pilot view: boundary outline through the boost, star tile coverage at max zoom
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: —
-- files: the renderer that draws the orange arena-boundary outline (find it from `system/RenderSystem.kt`), `render/Starfield.kt`, `docs/design/physics-lies.md` row 22; tests
-- refs: commit ST-077 (`FieldShimmerRenderer.buildBandVertices`, `pilotCorner`), physics-lies row 22
-- layer: sim
-- goal: Follow-ups from ST-077. (1) In pilot view the honeycomb band bends but the orange boundary outline is still drawn straight in arena coords, which contradicts it. Subdivide the outline (reuse `PILOT_BAND_SEGMENTS`) and map each vertex with `pilotCorner` when pilot aberration is on, with no per-frame allocation. The reference grid is a computer assist and stays straight. (2) The star tile (`STAR_TILE_SIZE` 100 u) covers the view only to radius 50, but the max-zoom half-diagonal is about 55, so aberrated screen corners can lack stars. Draw the neighbouring tiles needed to cover the half-diagonal (don't change star density), then trim row 22.
-- acceptance:
-  - [ ] Test: the outline vertices equal `pilotCorner` of the arena-frame points in pilot view and the old straight segments in world view
-  - [ ] Test: star coverage reaches the max-zoom half-diagonal (derived from the zoom constants, not a literal)
-  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports PASS
-- playtest: Pilot view, fly fast at a wall: the orange outline bends with the band; zoom out fully at speed: no empty screen corners.
 
 ### ST-079 Pilot view: ghosts of removed entities until their light runs out
 - status: ready

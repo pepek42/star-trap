@@ -10,6 +10,10 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Disposable
 import com.github.pepek42.asteroids.physics.ObserverState
 import com.github.pepek42.asteroids.physics.apparentOffset
+import com.github.pepek42.asteroids.VIEW_MIN_HEIGHT
+import com.github.pepek42.asteroids.VIEW_MIN_WIDTH
+import com.github.pepek42.asteroids.system.ZOOM_MAX
+import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -23,8 +27,26 @@ const val STAR_SEED = 42L
 const val STAR_MIN_KELVIN = 2500f
 const val STAR_MAX_KELVIN = 12000f
 
-/** Side of the repeating star tile in world units. Must exceed the largest visible area (96x54 at zoom 2). */
+/**
+ * Side of the repeating star tile in world units. The wrapped offsets span [-tile/2, tile/2), so the tile alone covers a disc of
+ * radius tile/2 (50); the neighbouring tiles are drawn where the view reaches past it ([starCopyAt], ST-201).
+ */
 const val STAR_TILE_SIZE = 100f
+
+/**
+ * Half-diagonal (units) of the largest minimum-aspect view: [VIEW_MIN_WIDTH] x [VIEW_MIN_HEIGHT] at [ZOOM_MAX] (about 55).
+ * Wider windows extend the view; [Starfield.render] reads the real half-diagonal, this is the reference the tile must reach.
+ */
+val STAR_MAX_VIEW_HALF_DIAGONAL: Float =
+    sqrt(VIEW_MIN_WIDTH * VIEW_MIN_WIDTH + VIEW_MIN_HEIGHT * VIEW_MIN_HEIGHT) * ZOOM_MAX / 2f
+
+/**
+ * Whether the copy of a star shifted by [shift] tiles (-1, 0 or 1) along one axis must be drawn: the star's wrapped [offset]
+ * (in [-tile/2, tile/2)) puts the copy at `offset + shift * tile`, which is drawn when it lies within [reach] of the view centre.
+ * The shift 0 copy is always drawn (the caller culls it). Pure.
+ */
+fun starCopyAt(offset: Float, shift: Int, reach: Float, tile: Float = STAR_TILE_SIZE): Boolean =
+    shift == 0 || (offset * shift < 0f && abs(offset + shift * tile) <= reach)
 
 /** Parallax factor per depth layer: the share of camera movement that shows up on screen. */
 val STAR_LAYER_PARALLAX = floatArrayOf(0.15f, 0.4f, 0.75f)
@@ -147,10 +169,11 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
         val py = observer.position.y
         val halfW = camera.viewportWidth * zoom / 2f
         val halfH = camera.viewportHeight * zoom / 2f
-        val halfDiagSq = halfW * halfW + halfH * halfH
+        val reachR = sqrt(halfW * halfW + halfH * halfH)
         val worldPerPx = camera.viewportWidth * zoom / logicalWidthPx.coerceAtLeast(1)
         val cx = camera.position.x
         val cy = camera.position.y
+        frame.set(batch, cx, cy, halfW, halfH, doppler, aberration, pilotX, pilotY, betaX, betaY, px, py, bx, by, gamma)
         val oldColor = batch.packedColor
         val oldSrc = batch.blendSrcFunc
         val oldDst = batch.blendDstFunc
@@ -159,41 +182,80 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
             val l = data.layer[i]
             val p = STAR_LAYER_PARALLAX[l]
             val size = STAR_LAYER_PIXELS[l] * worldPerPx
-            // Drawn offset from the camera in the arena frame (the source direction); dx/dy become the pilot-frame one.
-            val adx = wrappedOffset(data.x[i], cx, p)
-            val ady = wrappedOffset(data.y[i], cy, p)
-            var dx = adx
-            var dy = ady
-            if (aberration) {
-                // Shell around the pilot: cull by radius (an aberrated star can land anywhere on its circle), then rotate it.
-                val rx = cx + adx - pilotX
-                val ry = cy + ady - pilotY
-                val reach = sqrt(halfDiagSq) + size
-                if (rx * rx + ry * ry > reach * reach) continue
-                aberrateStarOffset(rx, ry, betaX, betaY, aberrated)
-                dx = pilotX + aberrated.x - cx
-                dy = pilotY + aberrated.y - cy
+            // Drawn offset from the camera in the arena frame (the source direction), plus the neighbouring tile copies that
+            // the view reaches (ST-201): the tile alone covers only radius tile/2.
+            val ax = wrappedOffset(data.x[i], cx, p)
+            val ay = wrappedOffset(data.y[i], cy, p)
+            val reachX = (if (aberration) reachR else halfW) + size
+            val reachY = (if (aberration) reachR else halfH) + size
+            for (sx in -1..1) {
+                if (!starCopyAt(ax, sx, reachX)) continue
+                for (sy in -1..1) {
+                    if (!starCopyAt(ay, sy, reachY)) continue
+                    drawStar(i, ax + sx * STAR_TILE_SIZE, ay + sy * STAR_TILE_SIZE, size)
+                }
             }
-            if (dx < -halfW - size || dx > halfW + size || dy < -halfH - size || dy > halfH + size) continue
-            if (!doppler) {
-                batch.packedColor = data.packedColor[i]
-                batch.draw(dot, cx + dx - size / 2, cy + dy - size / 2, size, size)
-                continue
-            }
-            // Arena-frame direction from the player to the star (the source direction), not the aberrated one.
-            val ox = cx + adx - px
-            val oy = cy + ady - py
-            val dist = sqrt(ox * ox + oy * oy)
-            val d = if (dist < 1e-6f) 1f else effectiveDoppler(starDoppler(bx, by, gamma, ox / dist, oy / dist))
-            BlackbodyLut.rgbInto(data.kelvin[i] * d, rgb)
-            val b = d.pow(BRIGHTNESS_EXPONENT_MVP).coerceIn(B_MIN, B_MAX)
-            val scale = data.brightness[i] * min(b, 1f)
-            batch.packedColor = Color.toFloatBits(rgb[0] * scale, rgb[1] * scale, rgb[2] * scale, 1f)
-            val s = size * sqrt(max(b, 1f))
-            batch.draw(dot, cx + dx - s / 2, cy + dy - s / 2, s, s)
         }
         batch.setBlendFunction(oldSrc, oldDst)
         batch.packedColor = oldColor
+    }
+
+    /** Per-frame values [drawStar] needs; a field holder instead of a long parameter list (no allocation per star). */
+    private class Frame {
+        lateinit var batch: Batch
+        var cx = 0f; var cy = 0f; var halfW = 0f; var halfH = 0f
+        var doppler = false; var aberration = false
+        var pilotX = 0f; var pilotY = 0f; var betaX = 0f; var betaY = 0f
+        var px = 0f; var py = 0f; var bx = 0f; var by = 0f; var gamma = 1f
+
+        fun set(
+            batch: Batch, cx: Float, cy: Float, halfW: Float, halfH: Float, doppler: Boolean, aberration: Boolean,
+            pilotX: Float, pilotY: Float, betaX: Float, betaY: Float, px: Float, py: Float, bx: Float, by: Float, gamma: Float,
+        ) {
+            this.batch = batch; this.cx = cx; this.cy = cy; this.halfW = halfW; this.halfH = halfH
+            this.doppler = doppler; this.aberration = aberration
+            this.pilotX = pilotX; this.pilotY = pilotY; this.betaX = betaX; this.betaY = betaY
+            this.px = px; this.py = py; this.bx = bx; this.by = by; this.gamma = gamma
+        }
+    }
+
+    private val frame = Frame()
+
+    /**
+     * Draws star [i] at the arena-frame offset ([adx], [ady]) from the camera (a tile copy included). With the aberration the star
+     * is a shell around the pilot: cull by radius (an aberrated star can land anywhere on its circle), then rotate it.
+     */
+    private fun drawStar(i: Int, adx: Float, ady: Float, size: Float) {
+        val f = frame
+        val batch = f.batch
+        var dx = adx
+        var dy = ady
+        if (f.aberration) {
+            val rx = f.cx + adx - f.pilotX
+            val ry = f.cy + ady - f.pilotY
+            val reach = sqrt(f.halfW * f.halfW + f.halfH * f.halfH) + size
+            if (rx * rx + ry * ry > reach * reach) return
+            aberrateStarOffset(rx, ry, f.betaX, f.betaY, aberrated)
+            dx = f.pilotX + aberrated.x - f.cx
+            dy = f.pilotY + aberrated.y - f.cy
+        }
+        if (dx < -f.halfW - size || dx > f.halfW + size || dy < -f.halfH - size || dy > f.halfH + size) return
+        if (!f.doppler) {
+            batch.packedColor = data.packedColor[i]
+            batch.draw(dot, f.cx + dx - size / 2, f.cy + dy - size / 2, size, size)
+            return
+        }
+        // Arena-frame direction from the player to the star (the source direction), not the aberrated one.
+        val ox = f.cx + adx - f.px
+        val oy = f.cy + ady - f.py
+        val dist = sqrt(ox * ox + oy * oy)
+        val d = if (dist < 1e-6f) 1f else effectiveDoppler(starDoppler(f.bx, f.by, f.gamma, ox / dist, oy / dist))
+        BlackbodyLut.rgbInto(data.kelvin[i] * d, rgb)
+        val b = d.pow(BRIGHTNESS_EXPONENT_MVP).coerceIn(B_MIN, B_MAX)
+        val scale = data.brightness[i] * min(b, 1f)
+        batch.packedColor = Color.toFloatBits(rgb[0] * scale, rgb[1] * scale, rgb[2] * scale, 1f)
+        val s = size * sqrt(max(b, 1f))
+        batch.draw(dot, f.cx + dx - s / 2, f.cy + dy - s / 2, s, s)
     }
 
     override fun dispose() = dot.dispose()

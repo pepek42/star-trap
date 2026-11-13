@@ -19,7 +19,8 @@ import ktx.log.logger
 
 private const val ZOOM_SPEED = 10
 private const val ZOOM_MIN = 0.5f
-private const val ZOOM_MAX = 2f
+/** Widest zoom-out (world units per viewport unit). */
+const val ZOOM_MAX = 2f
 
 /** Extra zoom-out at beta = 1: zoom is multiplied by (1 + k * beta^2). */
 const val CAMERA_ZOOM_PER_BETA2 = 0.6f

@@ -39,20 +39,24 @@ class SpriteTintTest {
     }
 
     @Test
-    fun pilotBeamBrightnessUsesExponentTwoWithFloor() {
-        assertEquals(1f, BRIGHTNESS_EXPONENT_PILOT / 2f) // assumes k = 2
-        assertEquals(B_MAX, beamBrightness(2f, true)) // 4 clamped to B_MAX = 3
-        assertEquals(B_MIN, beamBrightness(0.3f, true)) // 0.09 floored to B_MIN = 0.25
-        assertEquals(1f, beamBrightness(1f, true), 1e-6f)
-        assertEquals(0.36f, beamBrightness(0.6f, true), 1e-6f)
-        assertEquals(0.6f, beamBrightness(0.6f, false), 1e-6f)
+    fun pilotBeamBrightnessUsesSurfaceAndPointExponents() {
+        assertEquals(3f, BRIGHTNESS_EXPONENT_SURFACE) // assumes k = 3
+        assertEquals(2f, BRIGHTNESS_EXPONENT_POINT) // assumes k = 2
+        assertEquals(8f, beamBrightness(2f, true, false), 1e-5f) // 8 < B_MAX = 10
+        assertEquals(4f, beamBrightness(2f, true, true), 1e-5f)
+        assertEquals(B_MAX, beamBrightness(3f, true, false)) // 27 clamped to B_MAX = 10
+        assertEquals(B_MIN, beamBrightness(0.3f, true, false)) // 0.027 floored to B_MIN = 0.1
+        assertEquals(1f, beamBrightness(1f, true, false), 1e-6f)
+        assertEquals(0.36f, beamBrightness(0.6f, true, true), 1e-6f)
+        assertEquals(0.6f, beamBrightness(0.6f, false, false), 1e-6f)
+        assertEquals(0.6f, beamBrightness(0.6f, false, true), 1e-6f)
     }
 
     @Test
     fun brightnessAndGlowFollowDoppler() {
-        assertEquals(B_MIN, beamBrightness(0.01f, false))
-        assertEquals(B_MAX, beamBrightness(100f, false))
-        assertEquals(1f, beamBrightness(1f, false), 1e-6f)
+        assertEquals(B_MIN, beamBrightness(0.01f, false, false))
+        assertEquals(B_MAX, beamBrightness(100f, false, false))
+        assertEquals(1f, beamBrightness(1f, false, false), 1e-6f)
         assertEquals(0f, additiveGlowAlpha(0.5f))
         assertEquals(DOPPLER_GLOW_STRENGTH * 0.5f, additiveGlowAlpha(1.5f), 1e-6f)
         assertEquals(1f, additiveGlowAlpha(1f + 1f / DOPPLER_GLOW_STRENGTH), 1e-6f)

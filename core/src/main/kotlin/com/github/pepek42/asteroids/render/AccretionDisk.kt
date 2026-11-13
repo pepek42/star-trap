@@ -174,8 +174,8 @@ fun diskParticleApparent(
 private val scratchObs = Vector2()
 private val scratchSrc = Vector2()
 
-/** Searchlight brightness of a disk particle in pilot view at Doppler factor [d]: the sprites' `beamBrightness`, so both read alike. */
-fun diskBeamBrightness(d: Float): Float = beamBrightness(d, true)
+/** Searchlight brightness of a disk particle in pilot view at Doppler factor [d]: `beamBrightness` with the point exponent (D²). */
+fun diskBeamBrightness(d: Float): Float = beamBrightness(d, true, true)
 
 /** Two triangles per particle quad: corners 0-1-2 and 2-3-0. */
 fun buildDiskIndices(count: Int = DISK_PARTICLES): ShortArray {
@@ -275,7 +275,7 @@ class AccretionDiskShader : Disposable {
         program.setUniformf("u_c", c)
         program.setUniformf("u_delay", if (delay) 1f else 0f)
         program.setUniformf("u_aberration", if (aberration) 1f else 0f)
-        program.setUniformf("u_beam", BRIGHTNESS_EXPONENT_PILOT, B_MIN, B_MAX)
+        program.setUniformf("u_beam", BRIGHTNESS_EXPONENT_POINT, B_MIN, B_MAX)
         program.setUniformf("u_betaMax", BETA_MAX_MASSIVE)
         drawMesh(disk, centerX, centerY, gm)
     }

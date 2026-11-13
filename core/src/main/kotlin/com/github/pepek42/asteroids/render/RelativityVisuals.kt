@@ -14,7 +14,7 @@ import kotlin.math.pow
 const val CONTRACTION_STRENGTH = 1f
 
 /** A sprite never shrinks below this fraction of its rest length along v̂ (readability clamp, there is no γ cap). */
-const val CONTRACTION_MIN_SCALE = 0.25f
+const val CONTRACTION_MIN_SCALE = 0.1f
 
 /** Contraction factor k for [gamma]: `min(CONTRACTION_STRENGTH·(1 − 1/γ), 1 − CONTRACTION_MIN_SCALE)`. */
 fun contractionK(gamma: Float): Float =
@@ -54,35 +54,47 @@ fun tidalOffset(ox: Float, oy: Float, rhx: Float, rhy: Float, s: Float, out: Vec
 /** Doppler colour strength: 1 is the exact factor, smaller values exaggerate less (research E4). */
 const val DOPPLER_COLOR_STRENGTH = 1f
 
-/** Lower clamp of the effective Doppler factor (stars never shift redder than a quarter of their frequency). */
-const val DOPPLER_D_MIN = 0.25f
+/** Lower clamp of the effective Doppler factor (stars never shift redder than a tenth of their frequency; FAKE safety clamp, physics-lies row 26). */
+const val DOPPLER_D_MIN = 0.1f
 
 /** Upper clamp of the effective Doppler factor. */
-const val DOPPLER_D_MAX = 4f
+const val DOPPLER_D_MAX = 10f
 
 /** Searchlight brightness B = D^exponent; 1 is the mild MVP version of research E10. */
 const val BRIGHTNESS_EXPONENT_MVP = 1f
 
 /**
- * Searchlight exponent of the pilot view (ST-080, research E10, k = 2): the 2D value for a point source's flux
- * (a point source's brightness goes as D^2 in 2D, a surface's as D^3; ST-194 splits the two).
+ * Searchlight exponent of the pilot view for extended sprites (ST-194, research E10, 2D column): the invariant is
+ * `I_ν/ν³`, so surface brightness goes as D³.
  */
-const val BRIGHTNESS_EXPONENT_PILOT = 2f
+const val BRIGHTNESS_EXPONENT_SURFACE = 3f
+
+/**
+ * Searchlight exponent of the pilot view for point sources (stars, disk particles): a point drawn at a fixed pixel size
+ * carries flux `∝ D³·dθ` and `dθ' = dθ/D`, so D². The aberration mapping already crowds the points by another factor D,
+ * so the sky's total still goes as D³.
+ */
+const val BRIGHTNESS_EXPONENT_POINT = 2f
 
 /** Things behind never dim below this fraction of their rest brightness (FAKE safety floor, physics-lies row 21). */
-const val B_MIN = 0.25f
+const val B_MIN = 0.1f
 
-/** Things ahead never grow beyond this multiple of their rest brightness or size. */
-const val B_MAX = 3f
+/** Things ahead never grow beyond this multiple of their rest brightness or size (FAKE safety clamp). */
+const val B_MAX = 10f
 
-/** The searchlight exponent for the active view: [BRIGHTNESS_EXPONENT_PILOT] in pilot view, [BRIGHTNESS_EXPONENT_MVP] otherwise. */
-fun brightnessExponent(pilotView: Boolean): Float = if (pilotView) BRIGHTNESS_EXPONENT_PILOT else BRIGHTNESS_EXPONENT_MVP
+/**
+ * The searchlight exponent: [BRIGHTNESS_EXPONENT_SURFACE] / [BRIGHTNESS_EXPONENT_POINT] in pilot view, the mild
+ * [BRIGHTNESS_EXPONENT_MVP] in the Outside view (its colours are the pilot's painted on a distant camera, row 52).
+ */
+fun brightnessExponent(pilotView: Boolean, point: Boolean): Float =
+    if (!pilotView) BRIGHTNESS_EXPONENT_MVP else if (point) BRIGHTNESS_EXPONENT_POINT else BRIGHTNESS_EXPONENT_SURFACE
 
 /**
  * Searchlight brightness `B = clamp(D^k, B_MIN, B_MAX)` of an object at Doppler factor [d]; k is [brightnessExponent]
- * for [pilotView]. The single place the exponent and clamps live (ST-194 adds a per-source exponent here).
+ * for [pilotView] and [point]. The single place the exponents and clamps live.
  */
-fun beamBrightness(d: Float, pilotView: Boolean): Float = d.pow(brightnessExponent(pilotView)).coerceIn(B_MIN, B_MAX)
+fun beamBrightness(d: Float, pilotView: Boolean, point: Boolean = false): Float =
+    d.pow(brightnessExponent(pilotView, point)).coerceIn(B_MIN, B_MAX)
 
 /** Below this |β| the starfield uses its cached colours (no Doppler pass). */
 const val DOPPLER_MIN_BETA = 1e-4f
@@ -124,10 +136,10 @@ fun spriteTint(d: Float, lut: BlackbodyLut, out: FloatArray) {
 const val DOPPLER_GLOW_STRENGTH = 0.5f
 
 /**
- * Alpha of the additive glow copy of a blueshifted sprite: `clamp((D − 1)·DOPPLER_GLOW_STRENGTH, 0, 1)`, 0 when it is not
- * blueshifted.
+ * Alpha of the additive glow copy of a brightened sprite: `clamp((B − 1)·DOPPLER_GLOW_STRENGTH, 0, 1)` from the
+ * searchlight brightness [b] (`beamBrightness`; equals D in the Outside view), 0 when it is not brightened.
  */
-fun additiveGlowAlpha(d: Float): Float = ((d - 1f) * DOPPLER_GLOW_STRENGTH).coerceIn(0f, 1f)
+fun additiveGlowAlpha(b: Float): Float = ((b - 1f) * DOPPLER_GLOW_STRENGTH).coerceIn(0f, 1f)
 
 /**
  * Whether an entity of [type] may get the additive glow copy. Projectiles fly near c and would always glow, so they keep
@@ -157,8 +169,9 @@ fun tintSpriteVertices(
     pilotView: Boolean = false,
 ): Float {
     spriteTint(d, lut, rgb)
-    setSpriteVertexColor(v, rgb[0] * r, rgb[1] * g, rgb[2] * b, min(beamBrightness(d, pilotView), 1f) * a)
-    return additiveGlowAlpha(d)
+    val beam = beamBrightness(d, pilotView, false)
+    setSpriteVertexColor(v, rgb[0] * r, rgb[1] * g, rgb[2] * b, min(beam, 1f) * a)
+    return additiveGlowAlpha(beam)
 }
 
 /**

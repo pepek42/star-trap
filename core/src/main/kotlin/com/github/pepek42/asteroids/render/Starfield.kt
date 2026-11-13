@@ -253,7 +253,7 @@ class Starfield(val data: StarData = StarData.generate(STAR_SEED)) : Disposable 
         val dist = sqrt(ox * ox + oy * oy)
         val d = if (dist < 1e-6f) 1f else effectiveDoppler(starDoppler(f.bx, f.by, f.gamma, ox / dist, oy / dist))
         BlackbodyLut.rgbInto(data.kelvin[i] * d, rgb)
-        val b = beamBrightness(d, f.pilotBeam)
+        val b = beamBrightness(d, f.pilotBeam, true)
         val scale = data.brightness[i] * min(b, 1f)
         batch.packedColor = Color.toFloatBits(rgb[0] * scale, rgb[1] * scale, rgb[2] * scale, 1f)
         val s = size * sqrt(max(b, 1f))

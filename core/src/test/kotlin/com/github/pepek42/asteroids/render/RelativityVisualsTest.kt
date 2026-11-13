@@ -36,6 +36,12 @@ class RelativityVisualsTest {
     }
 
     @Test
+    fun contractionIsExactBelowFloor() {
+        assertEquals(0.1f, 1f - contractionK(20f), 1e-6f) // assumes CONTRACTION_MIN_SCALE = 0.1
+        assertEquals(1f - 1f / 5f, contractionK(5f), 1e-6f)
+    }
+
+    @Test
     fun gammaOneNoContraction() {
         assertEquals(0f, contractionK(1f), 1e-6f)
     }

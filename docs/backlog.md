@@ -24,7 +24,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-63d. ST-194 Exact searchlight exponents and 10 % floors (ST-185 Q3)
 63e. ST-195 Gravitational red- and blueshift in colours
 63f. ST-196 Laser damage: wider clamp and gravitational photon energy (ST-185 Q5)
 63g. ST-197 Pilot view: light-delayed rocket plume
@@ -88,27 +87,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] Test: near a gravity source the aim (or the fallback) never sends the rocket where it cannot meet the target
   - [ ] `./gradlew test` passes
 - playtest: Rockets still hit near a planet or hole, and the intercept ring lines up with the real meeting point.
-
-### ST-194 Exact searchlight exponents and 10 % floors (ST-185 Q3)
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: ST-080
-- files: `render/RelativityVisuals.kt`, `render/Starfield.kt`, `render/AccretionDisk.kt`, `system/RenderSystem.kt`, `docs/design/physics-lies.md` rows 21, 26, 31, 33; tests
-- refs: `release-fidelity-audit.md` §2 "Brightness exponents", `relativity-effects.md` E10 (2D column)
-- layer: sim
-- goal: Owner ST-185 Q3: move the visuals toward the true values and keep the floors only as a safety net. In 2D, surface brightness goes as D³ and a point source's flux as D², and length contraction is L₀/γ.
-- spec:
-  - `CONTRACTION_MIN_SCALE` 0.25 → 0.1 (both views). `DOPPLER_D_MIN/MAX` → 0.1 / 10. `B_MIN/B_MAX` → 0.1 / 10.
-  - Extend ST-080's `beamBrightness` into `beamBrightness(d, pilotView, point: Boolean)`. Pilot view: k = `BRIGHTNESS_EXPONENT_SURFACE` = 3 for sprites, `BRIGHTNESS_EXPONENT_POINT` = 2 for stars and disk particles (the aberration mapping already crowds points by another factor D). Outside view: `BRIGHTNESS_EXPONENT_MVP` = 1 (row 52). Write the derivation in the KDoc.
-  - Sprites: alpha `min(B, 1)`, and the additive glow alpha `clamp((B − 1)·DOPPLER_GLOW_STRENGTH, 0, 1)` from B instead of D (identical in Outside view, where B = D).
-  - Disk pilot path: `u_beam` gets the point exponent and the new clamps.
-  - Update rows 21, 26, 31 and 33 (new values; the floors stay as FAKE safety clamps).
-- acceptance:
-  - [ ] Tests: `contractionK(20f)` gives scale 0.1 (floor) and `contractionK(5f)` gives exactly 1/5; `beamBrightness(2f, true, false) == 8f`, `beamBrightness(2f, true, true) == 4f`, `beamBrightness(0.3f, true, false) == 0.1f`, `beamBrightness(0.6f, false, false) == 0.6f`
-  - [ ] ST-080's tests are updated to the new clamps
-  - [ ] `./gradlew core:test` passes and `scripts/web-check.sh --play` reports OK
-- playtest: Pilot view at 0.9 c: the sky and the asteroids behind go nearly black, things ahead glow; fast ships flatten to slivers (γ up to 10).
 
 ### ST-195 Gravitational red- and blueshift in colours
 - status: ready

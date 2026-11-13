@@ -9,6 +9,7 @@ Agent instructions live in [`../AGENTS.md`](../AGENTS.md) (Claude Code reads it 
 | [design/main-menu.md](design/main-menu.md) | Main menu design: layout, controls list, player settings, persistence |
 | [design/physics-lies.md](design/physics-lies.md) | Register of every deliberate physics departure (FAKE / APPROX / ENGINE) |
 | [research/relativity-effects.md](research/relativity-effects.md) | Physics research: SR/GR effects, formulas, 2D adaptation, cost, verdicts (by `physics-researcher`) |
+| [research/release-fidelity-audit.md](research/release-fidelity-audit.md) | Release audit (ST-185): a verdict for every physics-lies row, fuel budget, gravity between holes |
 | [backlog.md](backlog.md) | Open task cards that agents implement (`/auto-dev`); query with `scripts/backlog.py` |
 | [tech/architecture.md](tech/architecture.md) | How the code works now: ECS order, physics loop, invariants, known issues |
 | [tech/balance.md](tech/balance.md) | Balance pass (ST-101): headless sim sweep, tables, chosen c / engine / asteroid / damage constants |

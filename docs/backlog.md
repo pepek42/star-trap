@@ -1,6 +1,6 @@
 # Backlog
 
-Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-194**.
+Open task cards for agent-driven development. Finished cards are closed with `scripts/backlog.py close` (deleted; lasting knowledge goes into the docs, the card text stays in git history). **Don't read this whole file to find work:** `scripts/backlog.py next` prints the next card (first `ready` card in `## Implementation order` whose `depends` are done), `scripts/backlog.py show ST-NNN` prints one card, `scripts/backlog.py list` gives one line per card. The card format and routing rules are in `agents/planner.md`. **Never renumber cards.** The next free ID is **ST-201**.
 
 Statuses: `ready` · `in-progress` · `done (date, sha)` · `blocked` (has a `blocker:` line) · `needs-user` (has a `question:` line).
 
@@ -24,13 +24,20 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-62. ST-185 Physics fidelity audit before release
 63. ST-075 Pilot view: per-corner retarded time (Terrell rotation)
 63a. ST-077 Pilot view: starfield, field band and shimmer through the boost
 63b. ST-079 Pilot view: ghosts of removed entities until their light runs out
 63c. ST-080 Searchlight k = 2 in pilot view, with a brightness floor
+63d. ST-194 Exact searchlight exponents and 10 % floors (ST-185 Q3)
+63e. ST-195 Gravitational red- and blueshift in colours
+63f. ST-196 Laser damage: wider clamp and gravitational photon energy (ST-185 Q5)
+63g. ST-197 Pilot view: light-delayed rocket plume
+63h. ST-198 Photons fly until they leave the arena
+63i. ST-199 Pilot clock exact past the warp cap
+63j. ST-200 A hole that eats a planet grows
 64. ST-186 Lock-on shot: booster, sustainer and side-thruster turning
 65. ST-187 Lock-on shot: visible booster, sustainer and RCS plumes
+65a. ST-192 Rocket fire control: Newtonian branch and gravity-aware planning
 66. ST-189 Rebalance after the weapon changes
 67. ST-188 Simplify the UI (owner decisions)
 67a. ST-193 Weapon unlock polish: new-weapon highlight, testable HUD slot text
@@ -111,6 +118,7 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - status: ready
 - note (owner 2026-11-12): unparked into M7. The spec dates from 2026-11-03: check every file and symbol it names against the current code (pilot view, `PilotViewProjector`, `LightHistorySystem`) before starting, and adapt it.
 - note (owner 2026-11-12): no outlines. The target rings and the tactical overlay already mark dim targets at their true position. The 25 % floor may be lowered by the ST-185 audit (its Q3).
+- note (ST-185, 2026-11-13): ST-194 follows this card: floors 0.1, clamps [0.1, 10], exponent 3 for sprites and 2 for stars and disk particles. Build `beamBrightness` so it can take those.
 - size: S
 - agent: kotlin-dev
 - depends: ST-043, ST-045, ST-074
@@ -166,32 +174,127 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] `./gradlew test` passes
 - playtest: Rockets still hit near a planet or hole, and the intercept ring lines up with the real meeting point.
 
-### ST-185 Physics fidelity audit before release
+### ST-194 Exact searchlight exponents and 10 % floors (ST-185 Q3)
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: ST-080
+- files: `render/RelativityVisuals.kt`, `render/Starfield.kt`, `render/AccretionDisk.kt`, `system/RenderSystem.kt`, `docs/design/physics-lies.md` rows 21, 26, 31, 33; tests
+- refs: `release-fidelity-audit.md` §2 "Brightness exponents", `relativity-effects.md` E10 (2D column)
+- layer: sim
+- goal: Owner ST-185 Q3: move the visuals toward the true values and keep the floors only as a safety net. In 2D, surface brightness goes as D³ and a point source's flux as D², and length contraction is L₀/γ.
+- spec:
+  - `CONTRACTION_MIN_SCALE` 0.25 → 0.1 (both views). `DOPPLER_D_MIN/MAX` → 0.1 / 10. `B_MIN/B_MAX` → 0.1 / 10.
+  - Extend ST-080's `beamBrightness` into `beamBrightness(d, pilotView, point: Boolean)`. Pilot view: k = `BRIGHTNESS_EXPONENT_SURFACE` = 3 for sprites, `BRIGHTNESS_EXPONENT_POINT` = 2 for stars and disk particles (the aberration mapping already crowds points by another factor D). Outside view: `BRIGHTNESS_EXPONENT_MVP` = 1 (row 52). Write the derivation in the KDoc.
+  - Sprites: alpha `min(B, 1)`, and the additive glow alpha `clamp((B − 1)·DOPPLER_GLOW_STRENGTH, 0, 1)` from B instead of D (identical in Outside view, where B = D).
+  - Disk pilot path: `u_beam` gets the point exponent and the new clamps.
+  - Update rows 21, 26, 31 and 33 (new values; the floors stay as FAKE safety clamps).
+- acceptance:
+  - [ ] Tests: `contractionK(20f)` gives scale 0.1 (floor) and `contractionK(5f)` gives exactly 1/5; `beamBrightness(2f, true, false) == 8f`, `beamBrightness(2f, true, true) == 4f`, `beamBrightness(0.3f, true, false) == 0.1f`, `beamBrightness(0.6f, false, false) == 0.6f`
+  - [ ] ST-080's tests are updated to the new clamps
+  - [ ] `./gradlew core:test` passes and `scripts/web-check.sh --play` reports OK
+- playtest: Pilot view at 0.9 c: the sky and the asteroids behind go nearly black, things ahead glow; fast ships flatten to slivers (γ up to 10).
+
+### ST-195 Gravitational red- and blueshift in colours
 - status: ready
 - size: M
-- agent: physics-researcher
-- depends: —
-- files: `docs/design/physics-lies.md`, create `docs/research/release-fidelity-audit.md`, `docs/backlog.md` (follow-up cards)
-- refs: `docs/design/physics-lies.md` (all rows), `relativity-effects.md` §4
+- agent: kotlin-dev
+- depends: ST-194
+- files: `physics/ObserverState.kt`, `system/ObserverSystem.kt`, `system/RenderSystem.kt` (`tintAndQueue`), `render/Starfield.kt`, `render/PilotView.kt`, `render/AccretionDisk.kt` (`diskParticleApparent`), `assets/shaders/accretion_disk.vert`, `docs/design/physics-lies.md` rows 26, 53; tests
+- refs: `release-fidelity-audit.md` §1 rows 26 and 53, `relativity-effects.md` E15 and E17, `GravitySystem` `gravFactor`
 - layer: sim
-- goal: Owner 2026-11-12: "I want all the physics to be as close as possible." Go through every FAKE/APPROX row and decide per row: remove now (cost and risk), keep because the engine forces it (Box2D, float, perf on web), or keep for gameplay (owner decides). Turn the "remove now" rows into small follow-up cards.
-- questions:
-* Q1: Braking boost (row 7: engines push up to 3× harder against your motion). Remove it for realism (Rec: yes; it makes braking slower, so the balance pass ST-189 rechecks levels)?
-  * A:No, IMO this is required. In ST-189 we can have review of this
-* Q2: Fuel / reaction mass (row 6): add a rocket equation with fuel for the ship? Rec: no for release (big gameplay change); keep the row.
-  * A:No, fuel is antimatter and it weight is almost nothing. Ok, calculate how much would it need, I am curious. We can assume it is antimatter with nearly perfect E=mc^2. But probably a lot with our game c value, so use real one and game one.
-* Q3: Length-contraction floor at 25 % (row 31) and the clamped starfield Doppler/brightness (row 33): move toward the true values with the floors only as a safety (Rec: floor 10 %, brightness D³ clamped wider)?
-  * A:Recommended for now
-* Q4: Source-source gravity at 0.1 (row 14): try physical coupling with stable initial orbits (the parking-lot idea) for release? Rec: research only, card only if cheap.
-  * A:Recommended
-* Q5: Laser damage clamp [0.25, 4] (row 36): widen or remove? Rec: widen to [0.1, 10].
-  * A:Recommended
-- note (owner answers 2026-11-13): Q1 keep the braking boost (row 7 = keep-gameplay; ST-189 reviews its strength). Q2 no fuel mechanic (row 6 stays), but add a "Fuel curiosity" section: antimatter with perfect E = mc² (photon rocket, exhaust speed c), the fuel mass ratio for the ship's typical burns (e.g. 0 → β 0.5, 0.9, 0.99 and back to rest; one level's worth of manoeuvring) from the relativistic rocket equation `m0/m1 = exp(Δrapidity)` = `sqrt((1+β)/(1−β))` per burn, computed for the game c (`SPEED_OF_LIGHT`) and the real c (same β, so the ratio is equal; show also the absolute energy/mass for a ship of a stated mass at real c vs. game c). Q3, Q4, Q5 Rec (floor 10 %, brightness D³ clamped wider; source-source gravity research only; laser clamp [0.1, 10]).
-- spec: For each row: tag (keep-engine / keep-gameplay / remove), cost estimate, web performance risk, and the exact formula that replaces the lie. Recommend the 3-6 most visible wins. Add follow-up cards (`kotlin-dev` or `junior-dev`, size S/M) to M7 after ST-080, `needs-user` where the owner's answer above is not enough. Q3 and Q5 become follow-up cards with the Rec values.
+- goal: Light climbing out of a well loses energy and light falling in gains it. Hover near a hole and the sky turns blue (×3.3 at 1.1 r_s); things deep in a well look red. Today no colour sees gravity (new lie row 53).
+- spec:
+  - `ObserverState.gravFactor` = the player's `RelativisticComponent.gravFactor` (1 without one), set in `ObserverSystem` (not smoothed).
+  - Every Doppler factor gets `D_tot = D·g_e/g_o`: sprites use `g_e` = the entity's current `gravFactor` (APPROX in pilot view: the current value, not the retarded one; note it in row 53), and stars use `g_e = 1` (at infinity). Do it in one pure helper `gravDoppler(d, ge, go)`.
+  - Disk, pilot path (shader and `diskParticleApparent` mirror): the baked `a_temp` already holds the face-on `g = √(1 − 1.5 r_s/r)`, which includes the transverse Doppler. So drop the source γ: `d = γ_o(1 − β_o·n̂) / (g_o·(1 − β_src·n̂))` (new uniform `u_gObs`). Brightness = `clamp(D_disk², …)` with `D_disk = g·d`, replacing `g⁴·D^k` (g⁴ is the face-on 3D value for the top-down camera). Keep the world path as is (exact face-on).
+  - Rewrite row 53 as APPROX: `g_e` is current rather than retarded, other holes don't redshift the disk, Galilean hole velocity (row 26).
 - acceptance:
-  - [ ] `release-fidelity-audit.md` has a table covering every physics-lies row
-  - [ ] Follow-up cards are in the backlog and in the implementation order
-  - [ ] No code changes in this card
+  - [ ] Test: `gravDoppler` with `g_o` = 0.3, a static star and a pilot at rest gives D = 1/0.3
+  - [ ] Test: `diskParticleApparent` for a hole at rest and an observer at rest far away along the orbit's tangent gives `D = √(1 − 1.5 r_s/r)/(1 ∓ β_orb)` within 1e-4
+  - [ ] `./gradlew core:test` passes and `scripts/web-check.sh --play` reports OK (shader change)
+- playtest: Hover just outside a hole's ISCO: the starfield shifts blue and brightens; an asteroid falling in reddens.
+
+### ST-196 Laser damage: wider clamp and gravitational photon energy (ST-185 Q5)
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: `physics/PhysicsConstants.kt`, `component/ProjectileComponent.kt`, `provider/WeaponProjectileProvider.kt`, `system/ContactSystem.kt` (`photonDamageFactor`), `render/TacticalOverlay.kt` (`displayedPhotonFactor`), `system/TacticalOverlaySystem.kt`, `docs/design/physics-lies.md` row 36; tests
+- refs: `relativity-effects.md` E12, E15
+- layer: sim
+- goal: Owner ST-185 Q5: widen the photon damage clamp to [0.1, 10]. Also add the missing gravitational term: a photon's energy at the target is `E·D_{s→t}·g_s/g_t`, so a shot from high up into a hole's well hits harder.
+- spec: `PHOTON_DAMAGE_D_MIN/MAX` → 0.1 / 10. `ProjectileComponent.shooterGravFactor` (reset to 1) is set at emission from the shooter's `RelativisticComponent.gravFactor`. `photonDamageFactor` multiplies by `shooterGravFactor / target.gravFactor` (1 when the target has none) before the clamp. `displayedPhotonFactor` gets `gs, gt` parameters with the same formula, so the overlay label matches the hit. Update row 36.
+- acceptance:
+  - [ ] Test: a head-on hit (shooter at rest, target at 0.9 c toward it) gives 4.36 (no longer 4); with `g_s = 1, g_t = 0.5` a shot from rest at a target at rest gives 2
+  - [ ] Test: the overlay factor equals the applied factor for the same inputs
+  - [ ] `./gradlew core:test` passes
+- playtest: Charging an enemy head-on, the overlay shows ×4+ and the hit lands that hard.
+
+### ST-197 Pilot view: light-delayed rocket plume
+- status: ready
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: `component/RocketComponent.kt`, `system/RocketMotorSystem.kt`, `system/RenderSystem.kt` (`applyRocketPlume`), `render/PilotView.kt` (`sourceLag`), `docs/design/physics-lies.md` row 49; tests
+- refs: `architecture.md` row 6d (`RocketMotorSystem`), physics-lies row 49
+- layer: sim
+- goal: At c = 20 a rocket 40 u away is seen 2 s late, longer than its 1.5 s burn, yet its plume follows the true `burnLeft`. In the pilot view the plume should show while the rocket's light shows it burning.
+- spec: `RocketComponent.burnEndTime` (arena time, `GameClock`/`ObserverState.worldTime`, set when `burnLeft` reaches 0; `+∞` while burning; reset in `reset()`) and `launchTime`. A pure `plumeVisible(emitTime, launchTime, burnEndTime) = emitTime >= launchTime && emitTime < burnEndTime`. Pilot view: `emitTime = now − pilotView.sourceLag`; Outside view: `emitTime = now` (unchanged behaviour). Drop the plume clause from row 49. ST-187 reuses `plumeVisible` for the lock-on booster and sustainer plumes.
+- acceptance:
+  - [ ] Test: `plumeVisible` at the edges (launch, burnout, and while burning with `burnEndTime = ∞`)
+  - [ ] Test: a rocket that burned out at t = 1 and is seen with a 0.8 s lag at now = 1.5 still shows the plume; at now = 1.9 it doesn't
+  - [ ] `./gradlew core:test` passes
+- playtest: In pilot view a distant rocket keeps its flame after launch until its light says it burned out.
+
+### ST-198 Photons fly until they leave the arena
+- status: needs-user
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: `weapon/ProjectileConstants.kt`, `provider/WeaponProjectileProvider.kt`, `docs/design/physics-lies.md` row 9; tests
+- refs: physics-lies rows 9 and 13, `architecture.md` (projectile sweep, off-arena removal ST-067)
+- layer: sim
+- goal: A laser bolt disappears 2 s (40 u) after leaving the muzzle, in the middle of empty space. Photons don't decay: one should fly until it crosses the arena edge, where it is already removed.
+- questions:
+* Q1: This gives the laser (and the enemies' lasers) the whole arena as range. OK, with ST-189 rebalancing the enemy fire range? Rec: yes.
+  * A:
+- spec (Rec): `PHOTON_WORLD_LIFETIME` becomes a safety net derived from the map: `(diagonal of the arena + margin) / c`, computed at spawn from `MapProvider` and the runtime c (KDoc derivation; no literal). The fade only plays at the arena edge, or drop it. Measure the live photon count in a level-5 run (debug log) and run `scripts/web-check.sh --play`. Update row 9 (only the off-arena removal and the safety lifetime remain).
+- acceptance:
+  - [ ] Test: a photon fired across an empty arena from the centre is removed at the edge, not before
+  - [ ] `./gradlew core:test` passes and `scripts/web-check.sh --play` reports OK (body count)
+- playtest: Shots cross the whole arena; no frame drops on the web build in a busy level.
+
+### ST-199 Pilot clock exact past the warp cap
+- status: needs-user
+- question: Past the warp cap (mostly near holes) the player's own fire rate and turning would slow in real time, like every other body. It's more exact, but it changes the feel. Do it? Rec: yes.
+- size: S
+- agent: kotlin-dev
+- depends: —
+- files: `component/RelativisticComponent.kt` (`properDelta`, `rotationTimeFactor`), `docs/design/physics-lies.md` rows 27, 28; tests
+- refs: physics-lies rows 1, 27, 28; `architecture.md` "Physics loop details"
+- layer: sim
+- goal: Below the warp cap the pilot's clock and real time agree. Past the cap (γ/g > `timeWarpMax`, mostly near holes) the arena can't keep pace, but the player's guns and turning still run on real time. Make them run on the pilot's proper time like every other body, so the pilot-to-arena clock ratio is exact everywhere and the only lie left is row 1 (the playback slows down).
+- spec: for the player `properDelta = worldDt·gravFactor/gUsed` and `rotationTimeFactor = gravFactor/gUsed`, the same as other relativistic bodies. Below the cap this equals the current values (worldDt = warp·realDt, warp = γ/g); keep the player branch only for when the player has no `RelativisticComponent`. Delete rows 27 and 28 (mark them retired), and extend row 1: "past the cap the whole game, the pilot included, plays slower than real time".
+- acceptance:
+  - [ ] Test: below the cap the player's `properDelta` equals `realDt` (within float error) and the turn time is unchanged
+  - [ ] Test: at γ = 20 with `timeWarpMax` = 10 the player's cooldown advances `realDt/2` per frame
+  - [ ] `./gradlew core:test` passes
+- playtest: Hovering at the edge of a hole, your own fire rate and turning slow down visibly as the arena hits the warp cap.
+
+### ST-200 A hole that eats a planet grows
+- status: ready
+- size: S
+- agent: junior-dev
+- depends: —
+- files: `system/GravitySystem.kt` (`eatPlanets`), `docs/design/physics-lies.md` row 19b; tests
+- refs: `physics/Gravity.kt` `mergeSources`, physics-lies row 19b
+- layer: sim
+- goal: The planet's mass is about 13 % of the hole's (gm 25.8 against 200 at the defaults), so swallowing it should grow the hole and pass on its momentum.
+- spec: in `eatPlanets`, before adding the planet's `RemoveComponent`, call `mergeSources` with masses `rs_hole` and `2·gm_planet/c²` (runtime `settings.c`; a hole's `gm = rs·c²/2`), then set the hole's `rs` to the merged mass and its body velocity to the merged velocity. Keep the hole's position (the planet is within `rs + 0.5 R`). The disk and renderer already follow a changed `rs` (black-hole merges, ST-085). Retire row 19b.
+- acceptance:
+  - [ ] Test: a resting hole (rs 1) eats a planet (gm 25.8, v = (2, 0)) at c = 20: rs becomes 1.129 and the hole's velocity is (0.229, 0) (momentum conserved)
+  - [ ] `./gradlew core:test` passes
 - playtest: —
 
 ### ST-186 Lock-on shot: booster, sustainer and side-thruster turning
@@ -231,6 +334,7 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
 - layer: sim
 - goal: "It should be all visible" (owner 2026-11-12): a big, bright booster plume, a smaller sustainer plume and short side puffs when the RCS fires, drawn for lock-on shots (and the main plume for dumb rockets), so the player can read what each missile is doing. Plumes are light like any sprite: light-delayed and aberrated in pilot view, Doppler-tinted.
 - note (2026-11-13): ST-186 has no COAST phase (unlimited sustainer); the sustainer plume scales with the sustainer throttle instead.
+- note (ST-185, 2026-11-13): "light-delayed" includes the plume state: in pilot view pick the phase with ST-197's `plumeVisible` at the emission time `now − sourceLag` (store the boost end time like `burnEndTime`). Throttle and RCS puffs from the current state are APPROX; add them to the lock-on row in `physics-lies.md`.
 - spec: An additive plume quad behind the body, length and alpha from the phase (BOOST large, SUSTAIN medium × sustainer throttle, so it shrinks to nothing when the hull is far off course; dumb rockets: the main plume until burnout); two RCS puff quads at the nose sides, alpha from the RCS command of ST-186 (left/right by its sign). Plumes use the entity's displayed transform (retarded in pilot view) and the same Doppler tint as the body. No allocation per frame; pure helper `plumeGeometry(phase, rcs, out)` tested.
 - acceptance:
   - [ ] Test: `plumeGeometry` gives BOOST > SUSTAIN (full throttle) > SUSTAIN (zero throttle) = 0 lengths and the RCS puff on the correct side for a positive and a negative command
@@ -295,6 +399,7 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   * A:
 - spec (Rec answers): bots use the weapons a player has at that level (rockets picked after L1 in half the seeds, lock-on in the other half). Tune only derived spawn/enemy constants (no literals), re-run `./gradlew tool:balanceSim`, record the table in `balance.md`.
 - note (owner 2026-11-13): also review (1) the braking boost strength `BRAKE_BOOST_K` (ST-185 Q1: it stays, but its strength is up for review) and (2) the ST-186 lock-on values: booster accel/duration, sustainer accel, RCS angular accel, lifetime cap.
+- note (ST-185, 2026-11-13): the audit cards change the laser: ST-196 widens the damage clamp to [0.1, 10], and ST-198 (if accepted) gives photons the whole arena as range. Re-check the enemy laser threat with both in.
 - acceptance:
   - [ ] The targets in Q2 hold; numbers recorded in `balance.md`
   - [ ] `./gradlew test tool:test` passes

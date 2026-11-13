@@ -13,6 +13,9 @@ import com.badlogic.gdx.physics.box2d.CircleShape
 import com.badlogic.gdx.physics.box2d.World
 import com.badlogic.gdx.utils.GdxNativesLoader
 import com.github.pepek42.asteroids.component.BaseInfoComponent
+import com.github.pepek42.asteroids.component.GravitySourceComponent
+import com.github.pepek42.asteroids.component.GravitySourceKind
+import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.SpriteComponent
 import com.github.pepek42.asteroids.component.TransformComponent
@@ -134,6 +137,45 @@ class LightHistorySystemTest {
         assertEquals(0, seen)
         // Freed to the pool: reset cleared the region.
         assertNull(ghost!!.region.texture)
+    }
+
+    private fun spriteCmp() = SpriteComponent().apply {
+        sprite = Sprite(mock<Texture> {
+            on { width } doReturn 1
+            on { height } doReturn 1
+        }).apply { setSize(2f, 3f) }
+    }
+
+    private fun remove(e: com.badlogic.ashley.core.Entity) {
+        world.destroyBody(e.getComponent(BodyComponent::class.java).body)
+        e.getComponent(BodyComponent::class.java).body.userData = null
+        engine.removeEntity(e)
+    }
+
+    @Test
+    fun ghostKeepsLightingData() {
+        val e = addBody(1f)
+        val id = idOf(e)
+        e.add(spriteCmp())
+        e.add(GravitySourceComponent().apply { kind = GravitySourceKind.PLANET })
+        step(3)
+        remove(e)
+        var ghost: GhostInfo? = null
+        history.forEachGhost { _, _, g, _ -> ghost = g }
+        assertEquals(id, ghost!!.entityId)
+        assertTrue(ghost!!.sphereNormals)
+    }
+
+    @Test
+    fun removingThePlayerCreatesNoGhost() {
+        val e = addBody(1f)
+        e.add(spriteCmp())
+        e.add(PlayerComponent())
+        step(3)
+        remove(e)
+        var seen = 0
+        history.forEachGhost { _, _, _, _ -> seen++ }
+        assertEquals(0, seen)
     }
 
     @Test

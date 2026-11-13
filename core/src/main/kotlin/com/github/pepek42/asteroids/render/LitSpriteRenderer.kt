@@ -190,12 +190,24 @@ class LitSpriteRenderer(private val atlas: TextureAtlas) : Disposable {
     fun prepare(
         batch: SpriteBatch, entity: Entity, sprite: Sprite, lights: LightSources,
         ax: Float, ay: Float, angleRad: Float, lag: Float, shadowCasters: OccluderPool? = null,
+    ): Boolean = prepare(
+        batch, sprite, baseInfoMapper.get(entity)?.id ?: NO_ENTITY_ID, baseInfoMapper.get(entity)?.entityType,
+        entity.gravitySourceCmpOptional?.kind == GravitySourceKind.PLANET, lights, ax, ay, angleRad, lag, shadowCasters,
+    )
+
+    /**
+     * Same as the entity overload, from the entity's lighting data ([id], [type], [sphere] = planet) so a pilot-view ghost of a
+     * removed entity (ST-202) can be lit like the live one was.
+     */
+    fun prepare(
+        batch: SpriteBatch, sprite: Sprite, id: Int, type: EntityType?, sphere: Boolean, lights: LightSources,
+        ax: Float, ay: Float, angleRad: Float, lag: Float, shadowCasters: OccluderPool? = null,
     ): Boolean {
         if (!program.isCompiled) return false
         val mode: Int
         var normals: Texture = sprite.texture
         var nr: AtlasRegion? = null
-        if (entity.gravitySourceCmpOptional?.kind == GravitySourceKind.PLANET) {
+        if (sphere) {
             mode = NORMAL_MODE_SPHERE
         } else {
             nr = normalPartner(sprite) ?: return false
@@ -219,7 +231,7 @@ class LitSpriteRenderer(private val atlas: TextureAtlas) : Disposable {
         }
         var occCount = 0
         if (shadowCasters != null && n > 0) {
-            val selfId = baseInfoMapper.get(entity)?.id ?: NO_ENTITY_ID
+            val selfId = id
             val radius = sqrt(sprite.width * sprite.width + sprite.height * sprite.height) / 2f
             occCount = selectOccluders(ax, ay, radius, lights.lights, idx, n, shadowCasters, lag, selfId, occluders)
             for (j in 0 until occCount) {
@@ -236,7 +248,6 @@ class LitSpriteRenderer(private val atlas: TextureAtlas) : Disposable {
         program.setUniformf("u_colorRegion", sprite.u, sprite.v, sprite.u2, sprite.v2)
         if (nr != null) program.setUniformf("u_normalRegion", nr.u, nr.v, nr.u2, nr.v2)
         program.setUniformi("u_normalMode", mode)
-        val type = baseInfoMapper.get(entity)?.entityType
         program.setUniformf("u_domeBlend", if (type == EntityType.ASTEROID || type == EntityType.DEBRIS) ASTEROID_DOME_BLEND else 0f)
         program.setUniformf("u_center", ax, ay)
         program.setUniformf("u_rot", cos(angleRad), sin(angleRad))

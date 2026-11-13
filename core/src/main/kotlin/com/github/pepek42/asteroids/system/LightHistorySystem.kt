@@ -17,7 +17,10 @@ import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.TransformComponent
 import com.github.pepek42.asteroids.component.EntityType
 import com.github.pepek42.asteroids.component.baseInfoCmp
+import com.github.pepek42.asteroids.component.GravitySourceKind
 import com.github.pepek42.asteroids.component.bodyCmp
+import com.github.pepek42.asteroids.component.gravitySourceCmpOptional
+import com.github.pepek42.asteroids.component.playerMapper
 import com.github.pepek42.asteroids.component.spriteMapper
 import com.github.pepek42.asteroids.physics.LIGHT_HISTORY_CAPACITY
 import com.github.pepek42.asteroids.physics.LightHistory
@@ -27,7 +30,7 @@ import ktx.ashley.allOf
 
 /**
  * What the pilot view needs to keep drawing a removed entity until the light of its removal arrives (ST-079): a copy of its sprite's
- * region, size, origin and colour. Pooled by [LightHistorySystem]; [region] is allocated once per pooled object and reused.
+ * region, size, origin and colour, plus the lighting data (entity id, kind, sphere or normal-map shading) so it is lit like the live sprite. Pooled by [LightHistorySystem]; [region] is allocated once per pooled object and reused.
  */
 class GhostInfo : Pool.Poolable {
     val region = TextureRegion()
@@ -42,7 +45,15 @@ class GhostInfo : Pool.Poolable {
     /** Kind of the removed entity (decides whether its Doppler glow is drawn additively). */
     var type = EntityType.UNKNOWN
 
-    fun copyFrom(sprite: Sprite, entityType: EntityType) {
+    /** Id of the removed entity (a lit ghost is never shadowed by itself). */
+    var entityId = 0
+
+    /** True for planets, which are lit with sphere normals instead of a normal-map partner (ST-097). */
+    var sphereNormals = false
+
+    fun copyFrom(sprite: Sprite, entityType: EntityType, id: Int, sphere: Boolean) {
+        entityId = id
+        sphereNormals = sphere
         region.setRegion(sprite)
         width = sprite.width
         height = sprite.height
@@ -55,6 +66,8 @@ class GhostInfo : Pool.Poolable {
     override fun reset() {
         region.texture = null
         type = EntityType.UNKNOWN
+        entityId = 0
+        sphereNormals = false
     }
 }
 
@@ -133,8 +146,10 @@ class LightHistorySystem : EntitySystem(), PhysicsStepListener, EntityListener {
         if (!histories.containsKey(id)) return
         removedAtMap.put(id, time)
         val sprite = spriteMapper.get(entity)?.sprite
-        if (sprite != null && sprite.texture != null) {
-            ghosts.put(id, ghostPool.obtain().also { it.copyFrom(sprite, entity.baseInfoCmp.entityType) })
+        // No ghost for the player: a death ghost could otherwise show after a respawn (ST-202).
+        if (sprite != null && sprite.texture != null && !playerMapper.has(entity)) {
+            val sphere = entity.gravitySourceCmpOptional?.kind == GravitySourceKind.PLANET
+            ghosts.put(id, ghostPool.obtain().also { it.copyFrom(sprite, entity.baseInfoCmp.entityType, id, sphere) })
         }
     }
 

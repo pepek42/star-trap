@@ -308,8 +308,8 @@ class RenderSystem(
 
     /**
      * Pilot view only (ST-079): draws the removed entities whose last light has not reached the pilot yet, so a destroyed asteroid
-     * vanishes when the light of its destruction arrives, not before. Drawn unlit (no normals kept for them, physics-lies row 55)
-     * like the live sprites in the same pass, with the same Doppler tint, contraction, Terrell corners and boost.
+     * vanishes when the light of its destruction arrives, not before. Lit like the live entity was (ST-202: the lighting data is kept in the ghost),
+     * with the same Doppler tint, contraction, Terrell corners and boost.
      */
     private fun drawGhosts() {
         litSprites?.release(batch)
@@ -318,7 +318,14 @@ class RenderSystem(
             if (!pilotView.projectGhost(history, ghost, removedAt, ghostSprite, scratch)) return@forEachGhost
             if (ghostSprite.texture == null) return@forEachGhost
             tintAndQueue(ghostSprite, ghost.type, pilotView.sourceX, pilotView.sourceY, pilotView.sourceVx, pilotView.sourceVy)
+            val lit = litSprites
+            litNow = lightingActive && lit != null && lit.prepare(
+                batch, ghostSprite, ghost.entityId, ghost.type, ghost.sphereNormals, lightSources,
+                pilotView.sourceX, pilotView.sourceY, pilotView.sourceAngleRad, pilotView.sourceLag, if (shadowsActive) occluders else null,
+            )
+            if (!litNow) lit?.release(batch)
             batch.draw(ghostSprite.texture, scratch, 0, VERTEX_FLOATS)
+            endLit()
         }
     }
 

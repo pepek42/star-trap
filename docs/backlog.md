@@ -24,7 +24,6 @@ M6 Enemies (planner 2026-11-07: honest light-delayed AI, research E13):
 Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save, shop and prebuilds come later):
 
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
-63b1. ST-202 Pilot-view ghosts: lit, and none for the player
 63c. ST-080 Searchlight k = 2 in pilot view, with a brightness floor
 63d. ST-194 Exact searchlight exponents and 10 % floors (ST-185 Q3)
 63e. ST-195 Gravitational red- and blueshift in colours
@@ -47,21 +46,6 @@ M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a wea
 
 The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead markers) was pulled forward into M3 by the 2026-11-02 interview: ST-070 to ST-078. M4 holds the follow-ups.
 - result: `RelativitySettings.pilotHullTransform` (pilotView && relativityEnabled && pilotAberration) now gates both the drawn player hull in `PilotView.project()` and the `PlayerInputSystem` cursor mapping.
-
-### ST-202 Pilot-view ghosts: lit, and none for the player
-- status: ready
-- size: S
-- agent: kotlin-dev
-- depends: —
-- files: `system/LightHistorySystem.kt` (`GhostInfo`), `render/PilotView.kt` (`projectGhost`), `system/RenderSystem.kt` (`drawGhosts`), `docs/design/physics-lies.md` row 55; tests
-- refs: commit ST-079, physics-lies row 55
-- layer: sim
-- goal: Follow-ups from ST-079. (1) Ghosts are drawn unlit. Copy the normal map / light state the live sprite uses into `GhostInfo` so a ghost is lit like the live entity was, then trim row 55. (2) Don't create a ghost for the player's own entity (a death ghost could show after a respawn).
-- acceptance:
-  - [ ] Test: a ghost keeps the lighting data of its entity
-  - [ ] Test: removing the player creates no ghost
-  - [ ] `./gradlew test` passes and `scripts/web-check.sh --play` reports PASS
-- playtest: Pilot view with light delay: a far asteroid you destroy stays visible, lit and shadowed like before, until its light arrives.
 
 ### ST-080 Searchlight k = 2 in pilot view, with a brightness floor
 - status: ready

@@ -16,6 +16,7 @@ import com.github.pepek42.asteroids.component.BodyComponent
 import com.github.pepek42.asteroids.component.GravitySourceComponent
 import com.github.pepek42.asteroids.component.GravitySourceKind
 import com.github.pepek42.asteroids.component.PhotonComponent
+import com.github.pepek42.asteroids.component.RemoveComponent
 import com.github.pepek42.asteroids.component.PlayerComponent
 import com.github.pepek42.asteroids.component.RelativisticComponent
 import com.github.pepek42.asteroids.component.TransformComponent
@@ -315,6 +316,23 @@ class GravitySystemTest {
         assertEquals(0f, proj.linearVelocity.y, 0f)
         assertEquals(1f, photon.dir.x, 0f)
         assertEquals(0f, photon.dir.y, 0f)
+    }
+
+    @Test
+    fun holeEatingAPlanetGrowsAndConservesMomentum() {
+        // Numbers pinned at the default c = 20: the planet's rs = 2 * 25.8 / c^2 = 0.129.
+        val hole = addSource(0f, 0f)
+        val planet = addSource(1f, 0f, GravitySourceKind.PLANET, gm = 25.8f, radius = 0.5f)
+        planet.setLinearVelocity(2f, 0f)
+        gravity.afterStep(dt)
+        val holeCmp = engine.entities.first { it.getComponent(BodyComponent::class.java).body === hole }
+            .getComponent(GravitySourceComponent::class.java)
+        val planetEntity = engine.entities.first { it.getComponent(BodyComponent::class.java).body === planet }
+        assertEquals(1.129f, holeCmp.rs, 1e-3f)
+        assertEquals(0.229f, hole.linearVelocity.x, 1e-3f)
+        assertEquals(0f, hole.linearVelocity.y, 1e-6f)
+        assertEquals(0f, hole.position.len(), 1e-6f)
+        assertTrue(planetEntity.getComponent(RemoveComponent::class.java) != null)
     }
 
     private val dt = PHYSICS_UPDATE_INTERVAL

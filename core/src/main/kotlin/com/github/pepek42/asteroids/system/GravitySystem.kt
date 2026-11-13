@@ -61,7 +61,8 @@ import kotlin.math.sqrt
  *   flies the chord of that path (the last direction would overshoot the bend by about 8 % at b = 3 `r_s`).
  *
  * [afterStep] also runs the black-hole horizon (bodies inside `rs` are removed, the player's health goes to 0) and merges
- * holes that touch (ST-085) and eats planets whose centre is within `rs + 0.5 radius` of a hole (ST-093); these run even with `gravityEnabled` off.
+ * holes that touch (ST-085) and eats planets whose centre is within `rs + 0.5 radius` of a hole (ST-093), which grows the hole
+ * by the planet's `rs` with momentum conserved (ST-200); these run even with `gravityEnabled` off.
  *
  * Each relativistic body also gets `RelativisticComponent.gravFactor` (ST-086, [gravTimeFactor] over all sources, 1 without
  * gravity or sources); the player's own pull does not count.
@@ -221,17 +222,22 @@ class GravitySystem(
         sg.rs = mergeOut[0]
         sb.setTransform(mergeOut[1], mergeOut[2], 0f)
         sb.setLinearVelocity(mergeOut[3], mergeOut[4])
-        while (sb.fixtureList.size > 0) sb.destroyFixture(sb.fixtureList[0])
-        val shape = CircleShape().apply { radius = sg.rs }
-        val fixture = sb.createFixture(shape, 1f)
+        resizeHoleFixture(sb, sg.rs)
+        survivorTransformReset(survivor)
+        gone.addComponent<RemoveComponent>(engine!!)
+    }
+
+    /** Rebuilds a hole's sensor disc with radius [rs] (no collisions, the horizon is drawn and tested by distance). */
+    private fun resizeHoleFixture(body: Body, rs: Float) {
+        while (body.fixtureList.size > 0) body.destroyFixture(body.fixtureList[0])
+        val shape = CircleShape().apply { radius = rs }
+        val fixture = body.createFixture(shape, 1f)
         shape.dispose()
         fixture.isSensor = true
         fixture.filterData = fixture.filterData.apply {
             categoryBits = FactionEnum.NEUTRAL.ownCategoryBit
             maskBits = 0
         }
-        survivorTransformReset(survivor)
-        gone.addComponent<RemoveComponent>(engine!!)
     }
 
     /** Keeps the render interpolation from smearing the hole from its old position to the centre of mass. */
@@ -243,7 +249,7 @@ class GravitySystem(
         }
     }
 
-    /** A planet whose centre is within `rs + 0.5 * radius` of a live hole is removed; the hole's rs stays (planet mass is negligible, declared omission). */
+    /** A planet whose centre is within `rs + 0.5 * radius` of a live hole is absorbed by it ([absorbPlanet]) and removed. */
     private fun eatPlanets() {
         for (i in 0 until sources.size()) {
             val hole = sources[i]
@@ -257,9 +263,32 @@ class GravitySystem(
                 val reach = hole.gravitySourceCmp.rs + PLANET_EATEN_RADIUS_FRACTION * src.radius
                 val dx = pp.x - hp.x
                 val dy = pp.y - hp.y
-                if (dx * dx + dy * dy < reach * reach) planet.addComponent<RemoveComponent>(engine!!)
+                if (dx * dx + dy * dy < reach * reach) {
+                    absorbPlanet(hole, planet)
+                    planet.addComponent<RemoveComponent>(engine!!)
+                }
             }
         }
+    }
+
+    /**
+     * The hole grows by the planet's Schwarzschild radius `2 GM / c^2` (ST-200): [mergeSources] with `rs` as the mass, so
+     * momentum is conserved and the hole takes the merged velocity. It keeps its position, since the planet is within
+     * `rs + 0.5 R` of it.
+     */
+    private fun absorbPlanet(hole: Entity, planet: Entity) {
+        val c = settings.c
+        val hb = hole.bodyCmp.body
+        val pb = planet.bodyCmp.body
+        val hg = hole.gravitySourceCmp
+        mergeSources(
+            hg.rs, hb.position.x, hb.position.y, hb.linearVelocity.x, hb.linearVelocity.y,
+            planet.gravitySourceCmp.effectiveRs(c), pb.position.x, pb.position.y, pb.linearVelocity.x, pb.linearVelocity.y,
+            mergeOut,
+        )
+        hg.rs = mergeOut[0]
+        hb.setLinearVelocity(mergeOut[3], mergeOut[4])
+        resizeHoleFixture(hb, hg.rs)
     }
 
     /** Any non-source body whose centre is inside a hole's horizon dies: the player's health goes to 0, the rest get a `RemoveComponent`. */

@@ -26,7 +26,6 @@ Menus & runs (owner 2026-11-07: New game / Scenarios / Settings menu done; save,
 M7 Ship it (owner 2026-11-12: wrap up and ship to master; roguelike cut to a weapon unlock; physics and graphics first; UI waits for owner decisions):
 63h. ST-198 Photons fly until they leave the arena
 63i. ST-199 Pilot clock exact past the warp cap
-63j. ST-200 A hole that eats a planet grows
 64. ST-186 Lock-on shot: booster, sustainer and side-thruster turning
 65. ST-187 Lock-on shot: visible booster, sustainer and RCS plumes
 65a. ST-192 Rocket fire control: Newtonian branch and gravity-aware planning
@@ -119,21 +118,6 @@ The pilot view itself (light delay E8, aberration E9, pilot-frame aiming, lead m
   - [ ] Test: at γ = 20 with `timeWarpMax` = 10 the player's cooldown advances `realDt/2` per frame
   - [ ] `./gradlew core:test` passes
 - playtest: Hovering at the edge of a hole, your own fire rate and turning slow down visibly as the arena hits the warp cap.
-
-### ST-200 A hole that eats a planet grows
-- status: ready
-- size: S
-- agent: junior-dev
-- depends: —
-- files: `system/GravitySystem.kt` (`eatPlanets`), `docs/design/physics-lies.md` row 19b; tests
-- refs: `physics/Gravity.kt` `mergeSources`, physics-lies row 19b
-- layer: sim
-- goal: The planet's mass is about 13 % of the hole's (gm 25.8 against 200 at the defaults), so swallowing it should grow the hole and pass on its momentum.
-- spec: in `eatPlanets`, before adding the planet's `RemoveComponent`, call `mergeSources` with masses `rs_hole` and `2·gm_planet/c²` (runtime `settings.c`; a hole's `gm = rs·c²/2`), then set the hole's `rs` to the merged mass and its body velocity to the merged velocity. Keep the hole's position (the planet is within `rs + 0.5 R`). The disk and renderer already follow a changed `rs` (black-hole merges, ST-085). Retire row 19b.
-- acceptance:
-  - [ ] Test: a resting hole (rs 1) eats a planet (gm 25.8, v = (2, 0)) at c = 20: rs becomes 1.129 and the hole's velocity is (0.229, 0) (momentum conserved)
-  - [ ] `./gradlew core:test` passes
-- playtest: —
 
 ### ST-186 Lock-on shot: booster, sustainer and side-thruster turning
 - status: ready
